@@ -16,7 +16,6 @@ import {
 import {
   LayoutDashboardIcon,
   UsersIcon,
-  UserPlusIcon,
   AudioLinesIcon,
   RadioIcon,
   ClockIcon,
@@ -44,11 +43,6 @@ const data = {
       url: "/",
       icon: <LayoutDashboardIcon />,
       isActive: true,
-    },
-    {
-      title: "Accounts",
-      url: "/accounts",
-      icon: <UserPlusIcon />,
     },
     {
       title: "Users",

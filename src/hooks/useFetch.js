@@ -14,7 +14,7 @@ export function useFetch(url, interval = null) {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setData(json);
+      setData(json.data !== undefined ? json.data : json);
       setError(null);
     } catch (err) {
       setError(err.message);

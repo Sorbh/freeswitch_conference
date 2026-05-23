@@ -99,12 +99,9 @@ async function _handleRegistration(event) {
     const macMatch = userAgent.match(macRegex);
     const mac = macMatch ? macMatch[0].toLowerCase() : null;
 
-    if (!mac) {
-        console.log(`Registration without MAC (non-Yealink): ${email} (${userAgent})`);
-    }
-
     const userName = `sip:${email}`;
-    console.log(`Registration: ${userName} | MAC: ${mac} | IP: ${networkIp}:${networkPort}`);
+    console.log('');
+    console.log(`[REG] ${email} | MAC: ${mac || 'none'} | IP: ${networkIp}:${networkPort} | UA: ${userAgent.split(' ')[0] || 'unknown'}`);
 
     const existingUser = global.db.getUserInfo(userName);
 
@@ -114,6 +111,7 @@ async function _handleRegistration(event) {
         existingUser.port = parseInt(networkPort);
         existingUser.online = true;
         existingUser.userAgent = userAgent;
+        if (mac) existingUser.mac = mac;
         global.db.setUserInfo(userName, existingUser);
         global.db.logEvent('registration', userName, null, 'User registered');
         global.db.logOnlineStatus(userName, 'online');
@@ -124,7 +122,7 @@ async function _handleRegistration(event) {
 
     const account = global.db.getAccountByEmail(email);
     if (!account || !account.active) {
-        console.log(`Registration rejected: no active account for ${email}`);
+        console.log(`[REG] REJECTED ${email} — no active account`);
         return;
     }
 
@@ -148,7 +146,9 @@ async function _handleRegistration(event) {
     global.db.setUserInfo(userName, userInfo);
     global.db.logEvent('registration', userName, null, 'User registered');
     global.db.logOnlineStatus(userName, 'online');
-    console.log(`New user registered: ${userName} -> room ${global.config.ROOM_NAME[room]}`);
+    console.log(`[REG] NEW ${email} -> ${global.config.ROOM_NAME[room] || room}`);
+
+    ensureInConference(userName);
 }
 
 async function _handleExpire(event) {
@@ -161,7 +161,7 @@ async function _handleExpire(event) {
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
 
-    console.log(`Registration expired: ${userName}`);
+    console.log(`[REG] EXPIRED ${email}`);
     userInfo.online = false;
     global.db.setUserInfo(userName, userInfo);
     global.db.logEvent('offline', userName, null, 'Registration expired');
@@ -174,7 +174,7 @@ function _handleChannelAnswer(event) {
     const callerUser = event.getHeader('Caller-Caller-ID-Number') || event.getHeader('variable_sip_from_user') || '';
     const callerUsername = event.getHeader('Caller-Username') || '';
     const sipFromUser = event.getHeader('variable_sip_from_user') || '';
-    console.log(`Channel answered: ${uuid} | name=${callerIdName} | number=${callerUser} | username=${callerUsername} | sip_from=${sipFromUser}`);
+    console.log(`[CALL] ANSWER ${callerIdName || callerUser} uuid=${uuid.slice(0, 8)}`);
 
     // Track inbound calls (browser/phone initiated) so we can auto-reconnect on hangup
     if (callerUser && !connectionHandlers.has(uuid)) {
@@ -189,7 +189,7 @@ function _handleChannelAnswer(event) {
             userInfo.login_expire = Math.floor(Date.now() / 1000) + global.config.loginExpireTime;
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             global.db.setUserInfo(userName, userInfo);
-            console.log(`Tracking inbound call for ${userName} UUID=${uuid}`);
+            console.log(`[CALL] TRACK ${userName} uuid=${uuid.slice(0, 8)}`);
 
             connectionHandlers.set(uuid, (_hangupUuid, cause) => {
                 _onCallHangup(userName, _hangupUuid, cause);
@@ -201,7 +201,7 @@ function _handleChannelAnswer(event) {
 function _handleChannelHangup(event) {
     const uuid = event.getHeader('Unique-ID');
     const cause = event.getHeader('Hangup-Cause');
-    console.log(`Channel hangup: ${uuid} (${cause})`);
+    console.log(`[CALL] HANGUP uuid=${uuid.slice(0, 8)} cause=${cause}`);
 
     if (connectionHandlers.has(uuid)) {
         const handler = connectionHandlers.get(uuid);
@@ -218,22 +218,22 @@ function _handleConferenceEvent(event) {
 
     const room = parseInt(conferenceName) || null;
 
+    const roomName = global.config.ROOM_NAME[room] || conferenceName;
+
     switch (action) {
         case 'add-member':
-            console.log(`Conference ${conferenceName}: ${callerIdName} joined (member ${memberId})`);
+            console.log(`[CONF] JOIN ${callerIdName} -> ${roomName} (member ${memberId})`);
             _updateMemberMapping(conferenceName, memberId, callerIdName, event);
             global.db.logEvent('conference_join', callerIdName, room, 'Joined conference');
             break;
         case 'del-member':
-            console.log(`Conference ${conferenceName}: ${callerIdName} left (member ${memberId})`);
+            console.log(`[CONF] LEAVE ${callerIdName} <- ${roomName} (member ${memberId})`);
             global.db.logEvent('conference_leave', callerIdName, room, 'Left conference');
             break;
         case 'mute-member':
-            console.log(`Conference ${conferenceName}: member ${memberId} muted`);
             global.db.logEvent('mute', null, room, 'Member muted');
             break;
         case 'unmute-member':
-            console.log(`Conference ${conferenceName}: member ${memberId} unmuted`);
             global.db.logEvent('unmute', null, room, 'Member unmuted');
             _broadcastCallerIdToRoom(conferenceName);
             break;
@@ -268,7 +268,7 @@ function _broadcastCallerIdToRoom(conferenceName) {
         u.connectionState === 'connected' && u.room === room && !u.payment
     );
 
-    console.log(`Caller ID update for room ${conferenceName}: ${connectedUsers.length} users to notify`);
+    console.log(`[CONF] CALLERID-UPDATE ${global.config.ROOM_NAME[room] || conferenceName} (${connectedUsers.length} users)`);
 }
 
 function _handleStartTalking(conferenceName, memberId, room, event) {
@@ -419,18 +419,16 @@ function originateToConference(userName) {
                 return;
             }
 
-            console.log(`Resolved contact for ${userName}: ${contact}`);
-
             const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
 
-            console.log(`Originating call: ${userName} -> ${roomName}`);
+            console.log(`[CALL] ORIGINATE ${userName} -> ${roomName}`);
 
             eslConnection.api(originateCmd, (response) => {
             const body = response.getBody().trim();
 
             if (body.startsWith('+OK')) {
                 const uuid = body.replace('+OK ', '').trim();
-                console.log(`Call originated: ${userName} UUID=${uuid}`);
+                console.log(`[CALL] OK ${userName} uuid=${uuid.slice(0, 8)}`);
 
                 userInfo.fsChannelUUID = uuid;
                 userInfo.connectionState = 'connected';
@@ -445,7 +443,7 @@ function originateToConference(userName) {
 
                 resolve(userInfo);
             } else {
-                console.error(`Originate failed for ${userName}: ${body}`);
+                console.error(`[CALL] FAILED ${userName}: ${body}`);
                 reject(new Error(body));
             }
         });
@@ -454,7 +452,8 @@ function originateToConference(userName) {
 }
 
 function _onCallHangup(userName, _uuid, cause) {
-    console.log(`Call hangup for ${userName}: ${cause}`);
+    console.log('');
+    console.log(`[CALL] END ${userName} cause=${cause}`);
 
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
@@ -467,8 +466,8 @@ function _onCallHangup(userName, _uuid, cause) {
     delete userInfo.error;
     global.db.setUserInfo(userName, userInfo);
 
-    if (userInfo.authState === 'login') {
-        console.log(`Auto-reconnecting ${userName}...`);
+    if (userInfo.online) {
+        console.log(`[CALL] RECONNECT ${userName}\n`);
         const service = global.callService;
         if (service) service.thirdPartyCallControl(userName);
     }
@@ -481,7 +480,7 @@ function hangupCall(uuid) {
             return;
         }
         eslConnection.api(`uuid_kill ${uuid}`, (response) => {
-            console.log(`Hangup ${uuid}: ${response.getBody().trim()}`);
+            console.log(`[CALL] KILL uuid=${uuid.slice(0, 8)}`);
             resolve();
         });
     });
@@ -492,7 +491,7 @@ function muteUser(mac) {
     if (Object.keys(userInfo).length === 0 || !userInfo.fsMemberId) return;
 
     eslConnection.api(`conference ${userInfo.room} mute ${userInfo.fsMemberId}`, (response) => {
-        console.log(`Mute ${mac} (member ${userInfo.fsMemberId}): ${response.getBody().trim()}`);
+        console.log(`[CONF] MUTE ${mac} member=${userInfo.fsMemberId}`);
     });
 }
 
@@ -501,14 +500,14 @@ function unmuteUser(mac) {
     if (Object.keys(userInfo).length === 0 || !userInfo.fsMemberId) return;
 
     eslConnection.api(`conference ${userInfo.room} unmute ${userInfo.fsMemberId}`, (response) => {
-        console.log(`Unmute ${mac} (member ${userInfo.fsMemberId}): ${response.getBody().trim()}`);
+        console.log(`[CONF] UNMUTE ${mac} member=${userInfo.fsMemberId}`);
     });
 }
 
 function honkRoom(room) {
     const audioFile = global.config.HONK_AUDIO_FILE;
     eslConnection.api(`conference ${room} play ${audioFile}`, (response) => {
-        console.log(`Honk room ${room}: ${response.getBody().trim()}`);
+        console.log(`[CONF] HONK ${global.config.ROOM_NAME[room] || room}`);
     });
 }
 
@@ -533,15 +532,18 @@ function getConferenceList() {
 function ensureInConference(userName) {
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
-    if (userInfo.authState !== 'login') return;
     if (!userInfo.online) return;
     if (userInfo.connectionState === 'connected' || userInfo.connectionState === 'connecting') return;
 
-    console.log(`[KeepAlive] ${userName} is ${userInfo.connectionState} but should be in call — reconnecting`);
+    console.log(`[CALL] AUTO-JOIN ${userName} (was ${userInfo.connectionState})`);
     const service = global.callService;
     if (service) service.thirdPartyCallControl(userName);
 }
 
+freeswitch.isConnected = () => {
+    try { return eslConnection != null && eslConnection.connected(); }
+    catch { return false; }
+};
 freeswitch.connect = connect;
 freeswitch.originateToConference = originateToConference;
 freeswitch.hangupCall = hangupCall;

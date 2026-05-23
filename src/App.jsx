@@ -19,11 +19,8 @@ import BroadcastsPage from "@/pages/BroadcastsPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SystemPage from "@/pages/SystemPage";
 import EventsPage from "@/pages/EventsPage";
-import AccountsPage from "@/pages/AccountsPage";
-
 const routes = [
   { path: "/", element: <DashboardPage />, title: "Dashboard" },
-  { path: "/accounts", element: <AccountsPage />, title: "Accounts" },
   { path: "/users", element: <UsersPage />, title: "Users" },
   { path: "/rooms", element: <RoomsPage />, title: "Conference Rooms" },
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcasts" },
@@ -80,7 +77,7 @@ function AppLayout() {
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="redline-ui-theme">
-      <BrowserRouter basename="/admin">
+      <BrowserRouter>
         <AppLayout />
       </BrowserRouter>
     </ThemeProvider>

@@ -8,6 +8,22 @@ const __dirname = path.dirname(__filename);
 
 export let adminRouter = express.Router();
 
+// GET /account-lookup?email=... — public endpoint to get account info after SIP auth
+adminRouter.get("/account-lookup", (req, res) => {
+    try {
+        const email = req.query.email;
+        if (!email) return res.status(400).json({ status: false, error: "Email is required" });
+        const account = global.db.getAccountByEmail(email);
+        if (!account || !account.active) {
+            return res.status(404).json({ status: false, error: "Account not found" });
+        }
+        const { password, ...safe } = account;
+        res.json({ status: true, data: safe });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /dashboard — returns dashboard stats
 adminRouter.get("/dashboard", (req, res) => {
     try {
@@ -18,19 +34,56 @@ adminRouter.get("/dashboard", (req, res) => {
     }
 });
 
-// GET /users — returns all users with calculated fields
+// GET /users — returns all users with calculated fields + account details
 adminRouter.get("/users", (req, res) => {
     try {
         const users = global.db.getAllUserInfo();
+        const accounts = global.db.getAllAccounts();
+        const accountByEmail = {};
+        for (const acc of accounts) {
+            accountByEmail[acc.email] = acc;
+        }
+
         const now = Math.floor(Date.now() / 1000);
-        const enriched = users.map(u => ({
-            ...u,
-            online_duration: u.online && u.lastConnectionStateUpdate
-                ? now - u.lastConnectionStateUpdate
-                : 0,
-            last_seen: u.updatedAt || u.createdAt
-        }));
-        res.json({ status: true, data: enriched });
+        const matchedEmails = new Set();
+
+        const enriched = users.map(u => {
+            const email = u.userName.replace(/^sip:/, '');
+            const account = accountByEmail[email] || accountByEmail[u.userName] || null;
+            if (account) matchedEmails.add(account.email);
+            const { password, ...safeAccount } = account || {};
+            return {
+                ...u,
+                online_duration: u.online && u.lastConnectionStateUpdate
+                    ? now - u.lastConnectionStateUpdate
+                    : 0,
+                last_seen: u.updatedAt || u.createdAt,
+                account: account ? safeAccount : null,
+            };
+        });
+
+        const unmatchedAccounts = accounts
+            .filter(acc => !matchedEmails.has(acc.email))
+            .map(acc => {
+                const { password, ...safeAccount } = acc;
+                return {
+                    userName: acc.email,
+                    callerIdName: acc.display_name || acc.email,
+                    room: acc.room,
+                    connectionState: 'ideal',
+                    authState: 'logout',
+                    mute: true,
+                    online: false,
+                    online_duration: 0,
+                    last_seen: acc.updated_at || acc.created_at,
+                    updatedAt: acc.updated_at,
+                    createdAt: acc.created_at,
+                    account: safeAccount,
+                    accountOnly: true,
+                };
+            });
+
+        res.json({ status: true, data: [...enriched, ...unmatchedAccounts] });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -174,14 +227,22 @@ adminRouter.get("/system", async (req, res) => {
             dbSize = stat.size;
         } catch { }
 
-        let fsStatus = 'unknown';
+        let eslConnected = false;
+        try {
+            eslConnected = global.freeswitch.isConnected();
+        } catch { }
+
         let conferenceList = '';
         try {
             conferenceList = await global.freeswitch.getConferenceList();
-            fsStatus = 'connected';
-        } catch {
-            fsStatus = 'disconnected';
-        }
+        } catch { }
+
+        const fsStatus = eslConnected ? 'running' : 'disconnected';
+
+        const users = global.db.getAllUserInfo();
+        const registrationCount = users.filter(u => u.online || u.connectionState === 'connected').length;
+        const totalUsers = users.length;
+        const connectedCount = users.filter(u => u.connectionState === 'connected').length;
 
         res.json({
             status: true,
@@ -189,10 +250,14 @@ adminRouter.get("/system", async (req, res) => {
                 uptime: process.uptime(),
                 memoryUsage: process.memoryUsage(),
                 freeswitchStatus: fsStatus,
+                eslConnected,
                 conferenceList,
-                dbSizeBytes: dbSize,
+                dbSize,
+                registrationCount,
+                totalUsers,
+                connectedCount,
                 nodeVersion: process.version,
-                platform: process.platform
+                platform: process.platform,
             }
         });
     } catch (err) {
@@ -332,6 +397,21 @@ adminRouter.post("/accounts", (req, res) => {
             zip,
             room: room ? parseInt(room) : null,
         });
+
+        const sipUser = `sip:${email}`;
+        const existingUser = global.db.getUserInfo(sipUser);
+        if (!existingUser || Object.keys(existingUser).length === 0) {
+            global.db.setUserInfo(sipUser, {
+                callerIdName: display_name || email,
+                room: room ? parseInt(room) : null,
+                connectionState: 'ideal',
+                authState: 'logout',
+                mute: true,
+                online: false,
+                payment: false,
+                retryCount: 0,
+            });
+        }
 
         const { password: _, ...safe } = account;
         global.db.logEvent('account_created', email, null, `Account created for ${company_name || email}`);

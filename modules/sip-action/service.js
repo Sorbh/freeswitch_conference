@@ -55,18 +55,19 @@ async function thirdPartyCallControl(userName) {
     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
     global.db.setUserInfo(userName, userInfo);
 
-    console.log(`Starting call: ${userName} -> room ${userInfo.room}${userInfo.retryCount ? ` (retry ${userInfo.retryCount}/2)` : ''}`);
+    const roomName = global.config.ROOM_NAME[userInfo.room] || userInfo.room;
+    console.log(`[CALL] START ${userName} -> ${roomName}${userInfo.retryCount ? ` (retry ${userInfo.retryCount}/2)` : ''}`);
 
     try {
         const result = await global.freeswitch.originateToConference(userName);
         return result;
     } catch (err) {
-        console.error(`${userName} originate failed: ${err.message}`);
+        console.error(`[CALL] FAILED ${userName}: ${err.message}`);
 
         const updatedInfo = global.db.getUserInfo(userName);
 
         if (updatedInfo.connectionState === ConnectionState.HANGUP) {
-            console.error(`${userName} hung up during connecting, skipping retry`);
+            console.error(`[CALL] ${userName} hung up during connect, skip retry`);
             updatedInfo.connectionState = ConnectionState.ERROR;
             updatedInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             updatedInfo.error = `${userName} originate failed: ${err.message}`;

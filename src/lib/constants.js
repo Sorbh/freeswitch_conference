@@ -67,7 +67,8 @@ export function formatUptimeSeconds(seconds) {
 }
 
 export function formatBytes(bytes) {
-  if (!bytes) return "-";
+  if (bytes == null || bytes === undefined) return "-";
+  if (bytes === 0) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
   let i = 0;
   let val = bytes;

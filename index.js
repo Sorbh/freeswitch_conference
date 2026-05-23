@@ -3,10 +3,10 @@ import dotenv from 'dotenv';
 import 'dotenv/config';
 import express from "express";
 import fs from 'fs';
-import http from 'http';
 import https from 'https';
 import path from "path";
 import { fileURLToPath } from 'url';
+import ViteExpress from "vite-express";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,19 +63,14 @@ app.use(cors());
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/admin", express.static(path.join(__dirname, "admin", "dist")));
-app.get("/admin/*", (req, res) => {
-    res.sendFile(path.join(__dirname, "admin", "dist", "index.html"));
-});
 
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
 const PORT = process.env.PORT || 4007;
 const HTTPS_PORT = process.env.HTTPS_PORT || 4008;
 
-var server = http.createServer(app);
-server.listen(PORT, () => {
-    console.log(`HTTP server listening at http://localhost:${PORT}/api/v1/`);
+ViteExpress.listen(app, PORT, () => {
+    console.log(`Server listening at http://localhost:${PORT}`);
 });
 
 const tlsDir = path.join(__dirname, 'config', 'tls');

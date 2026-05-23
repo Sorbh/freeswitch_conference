@@ -3,149 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FreeSWITCH SIP Test Client</title>
+    <title>Redline Conference</title>
     <script src="/jssip.bundle.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 { text-align: center; margin-bottom: 30px; color: #e94560; }
-        .card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #0f3460; }
-        .card h2 { color: #e94560; margin-bottom: 16px; font-size: 18px; }
-        .form-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }
-        .form-row label { min-width: 100px; font-size: 14px; color: #aaa; }
-        .form-row input, .form-row select { flex: 1; padding: 10px 14px; background: #0f3460; border: 1px solid #1a4a8a; border-radius: 8px; color: #eee; font-size: 14px; outline: none; }
-        .form-row input:focus { border-color: #e94560; }
-        button { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-primary { background: #e94560; color: white; }
-        .btn-primary:hover { background: #c73e54; }
-        .btn-primary:disabled { background: #555; cursor: not-allowed; }
-        .btn-success { background: #27ae60; color: white; }
-        .btn-success:hover { background: #219a52; }
-        .btn-danger { background: #c0392b; color: white; }
-        .btn-danger:hover { background: #a93226; }
-        .btn-warning { background: #f39c12; color: white; }
-        .btn-warning:hover { background: #d68910; }
-        .btn-group { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .status-disconnected { background: #c0392b33; color: #e74c3c; }
-        .status-connecting { background: #f39c1233; color: #f1c40f; }
-        .status-registered { background: #27ae6033; color: #2ecc71; }
-        .status-incall { background: #2980b933; color: #3498db; }
-        .log-area { background: #0a0e1a; border-radius: 8px; padding: 16px; height: 250px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; border: 1px solid #0f3460; }
-        .log-info { color: #3498db; }
-        .log-success { color: #2ecc71; }
-        .log-error { color: #e74c3c; }
-        .log-warn { color: #f1c40f; }
-        .log-time { color: #666; }
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
-        .stat-box { background: #0f3460; padding: 12px; border-radius: 8px; text-align: center; }
-        .stat-box .value { font-size: 24px; font-weight: 700; color: #e94560; }
-        .stat-box .label { font-size: 11px; color: #888; margin-top: 4px; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+        /* Login screen */
+        .login-container { width: 100%; max-width: 400px; padding: 20px; }
+        .login-card { background: #16213e; border-radius: 16px; padding: 40px 32px; border: 1px solid #0f3460; }
+        .login-card h1 { text-align: center; font-size: 24px; margin-bottom: 8px; color: #fff; }
+        .login-card .subtitle { text-align: center; font-size: 14px; color: #888; margin-bottom: 32px; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
+        .field input { width: 100%; padding: 12px 16px; background: #0f3460; border: 1px solid #1a4a8a; border-radius: 10px; color: #eee; font-size: 15px; outline: none; transition: border-color 0.2s; }
+        .field input:focus { border-color: #e94560; }
+        .login-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; background: #e94560; color: white; transition: background 0.2s; margin-top: 8px; }
+        .login-btn:hover { background: #c73e54; }
+        .login-btn:disabled { background: #555; cursor: not-allowed; }
+        .login-error { text-align: center; font-size: 13px; color: #e74c3c; margin-top: 12px; min-height: 20px; }
+        .login-status { text-align: center; font-size: 13px; color: #f1c40f; margin-top: 12px; min-height: 20px; }
+
+        /* Conference screen */
+        .conf-container { width: 100%; max-width: 500px; padding: 20px; display: none; }
+        .conf-card { background: #16213e; border-radius: 16px; padding: 32px; border: 1px solid #0f3460; text-align: center; }
+        .conf-user { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .conf-company { font-size: 14px; color: #888; margin-bottom: 4px; }
+        .conf-room { font-size: 14px; color: #e94560; font-weight: 600; margin-bottom: 24px; }
+        .conf-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 24px; }
+        .conf-status.connecting { background: #f39c1233; color: #f1c40f; }
+        .conf-status.connected { background: #27ae6033; color: #2ecc71; }
+        .conf-status.disconnected { background: #c0392b33; color: #e74c3c; }
+
+        .conf-timer { font-size: 48px; font-weight: 700; font-family: 'JetBrains Mono', 'Courier New', monospace; letter-spacing: 2px; margin-bottom: 32px; color: #fff; }
+
+        .conf-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .conf-btn { padding: 14px 28px; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .conf-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-mute { background: #f39c12; color: #fff; }
+        .btn-mute:hover:not(:disabled) { background: #d68910; }
+        .btn-mute.live { background: #27ae60; }
+        .btn-mute.live:hover:not(:disabled) { background: #219a52; }
+        .btn-leave { background: #2980b9; color: #fff; }
+        .btn-leave:hover:not(:disabled) { background: #2471a3; }
+        .btn-hangup { background: #c0392b; color: #fff; }
+        .btn-hangup:hover:not(:disabled) { background: #a93226; }
+
+        .conf-mic-icon { font-size: 20px; }
+
         audio { display: none; }
-        .mute-indicator { font-size: 24px; margin-right: 8px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>FreeSWITCH SIP Test Client</h1>
-
-        <!-- Connection Card -->
-        <div class="card">
-            <div class="header-row">
-                <h2>SIP Registration</h2>
-                <span id="regStatus" class="status status-disconnected">Disconnected</span>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <div class="login-card">
+            <h1>Redline Conference</h1>
+            <p class="subtitle">Sign in to join your conference room</p>
+            <div class="field">
+                <label>Email</label>
+                <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
             </div>
-            <div class="form-row">
-                <label>WS Server</label>
-                <input type="text" id="wsServer" value="" placeholder="ws://host:port">
-            </div>
-            <div class="form-row">
-                <label>SIP Domain</label>
-                <input type="text" id="sipDomain" value="" placeholder="SIP domain or IP">
-            </div>
-            <div class="form-row">
-                <label>Username</label>
-                <input type="text" id="username" value="testuser1" placeholder="SIP username or email">
-            </div>
-            <div class="form-row">
+            <div class="field">
                 <label>Password</label>
-                <input type="password" id="password" value="12345678" placeholder="SIP password">
+                <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
             </div>
-            <div class="form-row">
-                <label>Display Name</label>
-                <input type="text" id="displayName" value="Test User 1" placeholder="Caller ID name">
-            </div>
-            <div class="btn-group">
-                <button id="btnRegister" class="btn-primary" onclick="register()">Register</button>
-                <button id="btnUnregister" class="btn-danger" onclick="unregister()" disabled>Unregister</button>
-            </div>
+            <button class="login-btn" id="btnLogin" onclick="doLogin()">Join Conference</button>
+            <div class="login-status" id="loginStatus"></div>
+            <div class="login-error" id="loginError"></div>
         </div>
+    </div>
 
-        <!-- Conference Card -->
-        <div class="card">
-            <div class="header-row">
-                <h2>Conference</h2>
-                <span id="callStatus" class="status status-disconnected">Not in call</span>
-            </div>
-            <div class="form-row">
-                <label>Room</label>
-                <select id="confRoom">
-                    <option value="123456701">California (CA)</option>
-                    <option value="123456702">Texas (TX)</option>
-                    <option value="123456703">Florida (FL)</option>
-                    <option value="123456704">Mexico (MX)</option>
-                    <option value="123456705">ENS</option>
-                    <option value="123456706">Arizona (AZ)</option>
-                    <option value="123456707">Ohio (OH)</option>
-                    <option value="123456708">New York (NY)</option>
-                    <option value="123456709">Georgia (GA)</option>
-                    <option value="123456710">Indiana (IN)</option>
-                    <option value="123456711">Michigan (MI)</option>
-                    <option value="123456712">Carolinas (CR)</option>
-                </select>
-            </div>
-            <div class="btn-group">
-                <button id="btnJoin" class="btn-success" onclick="joinConference()" disabled>Join Conference</button>
-                <button id="btnLeave" class="btn-danger" onclick="leaveConference()" disabled>Leave Conference</button>
-                <button id="btnMute" class="btn-warning" onclick="toggleMute()" disabled>
-                    <span class="mute-indicator" id="muteIcon">🔇</span>Unmute
+    <!-- Conference Screen -->
+    <div class="conf-container" id="confScreen">
+        <div class="conf-card">
+            <div class="conf-user" id="confUser">-</div>
+            <div class="conf-company" id="confCompany">-</div>
+            <div class="conf-room" id="confRoom">-</div>
+            <div class="conf-status disconnected" id="confStatus">Connecting...</div>
+            <div class="conf-timer" id="confTimer">00:00</div>
+            <div class="conf-actions">
+                <button class="conf-btn btn-mute" id="btnMute" onclick="toggleMute()" disabled>
+                    <span class="conf-mic-icon" id="muteIcon">🔇</span>
+                    <span id="muteLabel">Unmute</span>
+                </button>
+                <button class="conf-btn btn-leave" id="btnLeave" onclick="reconnect()">
+                    Reconnect
+                </button>
+                <button class="conf-btn btn-hangup" id="btnHangup" onclick="hangup()">
+                    Hangup
                 </button>
             </div>
-        </div>
-
-        <!-- Stats Card -->
-        <div class="card">
-            <h2>Status</h2>
-            <div class="stats">
-                <div class="stat-box">
-                    <div class="value" id="statDuration">00:00</div>
-                    <div class="label">Call Duration</div>
-                </div>
-                <div class="stat-box">
-                    <div class="value" id="statRoom">-</div>
-                    <div class="label">Current Room</div>
-                </div>
-                <div class="stat-box">
-                    <div class="value" id="statMute">Muted</div>
-                    <div class="label">Mic Status</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Log Card -->
-        <div class="card">
-            <div class="header-row">
-                <h2>Event Log</h2>
-                <button class="btn-primary" onclick="clearLog()" style="padding: 6px 14px; font-size: 12px;">Clear</button>
-            </div>
-            <div id="logArea" class="log-area"></div>
         </div>
     </div>
 
     <audio id="remoteAudio" autoplay></audio>
-    <audio id="localAudio" autoplay muted></audio>
 
     <script>
         let ua = null;
@@ -153,361 +105,272 @@
         let isMuted = true;
         let callTimer = null;
         let callSeconds = 0;
+        let accountData = null;
 
-        function log(msg, type = 'info') {
-            const area = document.getElementById('logArea');
-            const time = new Date().toLocaleTimeString();
-            area.innerHTML += `<div><span class="log-time">[${time}]</span> <span class="log-${type}">${msg}</span></div>`;
-            area.scrollTop = area.scrollHeight;
+        const host = window.location.hostname || 'localhost';
+        const wsServer = window.location.protocol === 'https:'
+            ? `wss://${host}:5072`
+            : `ws://${host}:5071`;
+        const sipDomain = host;
+
+        function showStatus(msg) {
+            document.getElementById('loginStatus').textContent = msg;
+            document.getElementById('loginError').textContent = '';
         }
 
-        function clearLog() {
-            document.getElementById('logArea').innerHTML = '';
+        function showError(msg) {
+            document.getElementById('loginError').textContent = msg;
+            document.getElementById('loginStatus').textContent = '';
         }
 
-        function setRegStatus(status, text) {
-            const el = document.getElementById('regStatus');
-            el.className = `status status-${status}`;
-            el.textContent = text;
+        function generateMac(email) {
+            let hash = 0;
+            for (let i = 0; i < email.length; i++) {
+                hash = ((hash << 5) - hash + email.charCodeAt(i)) | 0;
+            }
+            const bytes = [];
+            let h = Math.abs(hash);
+            for (let i = 0; i < 6; i++) {
+                bytes.push(((h >> (i * 4)) & 0xFF).toString(16).padStart(2, '0'));
+            }
+            bytes[0] = (parseInt(bytes[0], 16) & 0xFE | 0x02).toString(16).padStart(2, '0');
+            return bytes.join(':');
         }
 
-        function setCallStatus(status, text) {
-            const el = document.getElementById('callStatus');
-            el.className = `status status-${status}`;
-            el.textContent = text;
-        }
-
-        function updateCallDuration() {
-            callSeconds++;
-            const min = String(Math.floor(callSeconds / 60)).padStart(2, '0');
-            const sec = String(callSeconds % 60).padStart(2, '0');
-            document.getElementById('statDuration').textContent = `${min}:${sec}`;
-        }
-
-        function register() {
-            console.log('Register button clicked');
-            log('Register button clicked...', 'info');
-
-            const wsServer = document.getElementById('wsServer').value;
-            const sipDomain = document.getElementById('sipDomain').value;
-            const username = document.getElementById('username').value;
+        async function doLogin() {
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            const displayName = document.getElementById('displayName').value;
 
-            console.log('Config:', { wsServer, sipDomain, username, displayName });
-            log(`Params: WS=${wsServer}, Domain=${sipDomain}, User=${username}`, 'info');
-
-            if (typeof JsSIP === 'undefined') {
-                log('ERROR: JsSIP not loaded! Cannot register.', 'error');
-                console.error('JsSIP is undefined');
+            if (!email || !password) {
+                showError('Please enter email and password.');
                 return;
             }
-            log('JsSIP library is available', 'success');
 
-            // Enable JsSIP debug
-            JsSIP.debug.enable('JsSIP:*');
+            document.getElementById('btnLogin').disabled = true;
+            showStatus('Connecting...');
 
             try {
-                log('Creating WebSocket interface...', 'info');
+                const sipUser = email.replace('@', '.at.');
+                const mac = generateMac(email);
+
+                if (typeof JsSIP === 'undefined') {
+                    showError('SIP library not loaded.');
+                    document.getElementById('btnLogin').disabled = false;
+                    return;
+                }
+
+                JsSIP.debug.enable('JsSIP:*');
+
                 const socket = new JsSIP.WebSocketInterface(wsServer);
-                log('WebSocket interface created', 'success');
-
-                // Encode email as SIP user: replace @ with . to avoid double-@ in SIP URI
-                // Server-side will reverse this to reconstruct the full email
-                const sipUser = username.includes('@') ? username.replace('@', '.at.') : username;
-                log(`SIP URI: sip:${sipUser}@${sipDomain} (original: ${username})`, 'info');
-
-                const regExpires = 120; // Re-register every 120 seconds
                 const config = {
                     sockets: [socket],
                     uri: `sip:${sipUser}@${sipDomain}`,
                     password: password,
-                    display_name: displayName,
+                    display_name: email,
                     register: true,
-                    register_expires: regExpires,
+                    register_expires: 120,
                     session_timers: false,
-                    user_agent: 'Yealink SIP-T54W 96.86.0.100 00:00:00:00:00:01',
+                    user_agent: `Redline-WebClient/1.0 ${mac}`,
                 };
 
-                log('Creating UA...', 'info');
                 ua = new JsSIP.UA(config);
-                log('UA created', 'success');
 
-                ua.on('connecting', () => {
-                    log('WebSocket connecting...', 'info');
-                    setRegStatus('connecting', 'Connecting...');
-                });
+                ua.on('registered', async () => {
+                    showStatus('Authenticated. Loading account...');
+                    console.log('SIP registered successfully for:', email);
 
-                ua.on('connected', () => {
-                    log('WebSocket connected to FreeSWITCH', 'success');
-                });
+                    try {
+                        const lookupUrl = `/api/v1/admin/account-lookup?email=${encodeURIComponent(email)}`;
+                        console.log('Fetching account:', lookupUrl);
+                        const res = await fetch(lookupUrl);
+                        console.log('Account lookup response status:', res.status);
+                        const json = await res.json();
+                        console.log('Account lookup response:', JSON.stringify(json, null, 2));
+                        accountData = json.data || json;
 
-                ua.on('disconnected', (e) => {
-                    log(`WebSocket disconnected: ${JSON.stringify(e)}`, 'error');
-                    setRegStatus('disconnected', 'Disconnected');
-                    document.getElementById('btnRegister').disabled = false;
-                    document.getElementById('btnUnregister').disabled = true;
-                    document.getElementById('btnJoin').disabled = true;
-                });
+                        if (!accountData || !accountData.room) {
+                            console.error('No room in account data:', accountData);
+                            showError('No conference room assigned to your account.');
+                            ua.unregister();
+                            ua.stop();
+                            ua = null;
+                            document.getElementById('btnLogin').disabled = false;
+                            return;
+                        }
 
-                ua.on('registered', () => {
-                    log(`Registered as ${username}@${sipDomain} (expires: ${regExpires}s)`, 'success');
-                    setRegStatus('registered', 'Registered');
-                    document.getElementById('btnRegister').disabled = true;
-                    document.getElementById('btnUnregister').disabled = false;
-                    document.getElementById('btnJoin').disabled = false;
-                });
+                        console.log('Account loaded:', accountData.display_name, 'Room:', accountData.room);
 
-                ua.on('unregistered', () => {
-                    log('Unregistered', 'warn');
-                    setRegStatus('disconnected', 'Unregistered');
-                    document.getElementById('btnRegister').disabled = false;
-                    document.getElementById('btnUnregister').disabled = true;
-                    document.getElementById('btnJoin').disabled = true;
+                        showConfScreen();
+                    } catch (e) {
+                        console.error('Account lookup failed:', e);
+                        showError('Failed to load account details: ' + e.message);
+                        document.getElementById('btnLogin').disabled = false;
+                    }
                 });
 
                 ua.on('registrationFailed', (e) => {
-                    log(`Registration failed: ${e.cause}`, 'error');
-                    setRegStatus('disconnected', 'Failed');
-                    document.getElementById('btnRegister').disabled = false;
+                    console.error('SIP registration failed:', e.cause, e);
+                    showError('Invalid email or password. (' + e.cause + ')');
+                    document.getElementById('btnLogin').disabled = false;
+                    ua.stop();
+                    ua = null;
+                });
+
+                ua.on('disconnected', (e) => {
+                    console.warn('SIP disconnected:', e);
+                    if (!accountData) {
+                        showError('Connection failed. Please try again.');
+                        document.getElementById('btnLogin').disabled = false;
+                    }
                 });
 
                 ua.on('newRTCSession', (data) => {
-                    log(`New RTC session: ${data.originator}`, 'info');
-
                     if (data.originator === 'remote') {
-                        const incomingSession = data.session;
-                        log('Incoming call — auto-answering...', 'success');
-
-                        incomingSession.on('peerconnection', (pcData) => {
-                            pcData.peerconnection.ontrack = (event) => {
-                                log(`Remote track received: kind=${event.track.kind}`, 'success');
-                            };
-                            pcData.peerconnection.oniceconnectionstatechange = () => {
-                                log(`ICE state: ${pcData.peerconnection.iceConnectionState}`, 'info');
-                            };
+                        const session = data.session;
+                        session.on('peerconnection', (pcData) => {
+                            pcData.peerconnection.ontrack = () => attachRemoteAudio(session);
                         });
-
-                        incomingSession.on('accepted', () => {
-                            log('Incoming call accepted — in conference', 'success');
-                            currentSession = incomingSession;
-                            setCallStatus('incall', 'In Call (auto)');
-                            document.getElementById('btnJoin').disabled = true;
-                            document.getElementById('btnLeave').disabled = false;
-                            document.getElementById('btnMute').disabled = false;
-
-                            isMuted = true;
-                            muteAudio(true);
-                            callSeconds = 0;
-                            callTimer = setInterval(updateCallDuration, 1000);
-                            _attachRemoteAudio();
+                        session.on('accepted', () => {
+                            currentSession = session;
+                            onCallConnected();
+                            attachRemoteAudio(session);
                         });
-
-                        incomingSession.on('failed', (e) => {
-                            log(`Incoming call failed: ${e.cause}`, 'error');
-                            resetCallUI();
-                        });
-
-                        incomingSession.on('ended', (e) => {
-                            log(`Incoming call ended: ${e.cause}`, 'warn');
-                            resetCallUI();
-                        });
-
-                        incomingSession.answer({
+                        session.on('failed', () => resetCallState());
+                        session.on('ended', () => resetCallState());
+                        session.answer({
                             mediaConstraints: { audio: true, video: false },
                             pcConfig: { iceServers: [] },
                         });
                     }
                 });
 
-                log('Starting UA...', 'info');
+                console.log('SIP UA starting, connecting to', wsServer, 'as', sipUser, 'MAC:', mac);
                 ua.start();
-                log(`UA started, connecting to ${wsServer}...`, 'info');
-                setRegStatus('connecting', 'Connecting...');
-                document.getElementById('btnRegister').disabled = true;
-
             } catch (e) {
-                log(`ERROR: ${e.message}`, 'error');
-                console.error('Registration error:', e);
+                console.error('SIP connection error:', e);
+                showError('Connection error: ' + e.message);
+                document.getElementById('btnLogin').disabled = false;
             }
         }
 
-        function unregister() {
-            if (currentSession) leaveConference();
-            if (ua) {
-                ua.unregister();
-                ua.stop();
-                ua = null;
-            }
-        }
+        function showConfScreen() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('confScreen').style.display = 'block';
 
-        function joinConference() {
-            if (!ua) {
-                log('Not registered', 'error');
-                return;
-            }
-
-            const room = document.getElementById('confRoom').value;
-            const roomName = document.getElementById('confRoom').selectedOptions[0].text;
-
-            log(`Joining conference room: ${roomName} (${room})...`, 'info');
-
-            const options = {
-                mediaConstraints: { audio: true, video: false },
-                pcConfig: {
-                    iceServers: []
-                },
-                rtcOfferConstraints: {
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: false,
-                },
+            const roomNames = {
+                123456701: 'California', 123456702: 'Texas', 123456703: 'Florida',
+                123456704: 'Mexico', 123456705: 'ENS', 123456706: 'Arizona',
+                123456707: 'Ohio', 123456708: 'New York', 123456709: 'Georgia',
+                123456710: 'Indiana', 123456711: 'Michigan', 123456712: 'Carolinas',
             };
 
-            currentSession = ua.call(`sip:${room}@${document.getElementById('sipDomain').value}`, options);
-
-            currentSession.on('connecting', () => {
-                log('Call connecting...', 'info');
-                setCallStatus('connecting', 'Connecting...');
-            });
-
-            currentSession.on('accepted', () => {
-                log(`Joined conference: ${roomName}`, 'success');
-                setCallStatus('incall', `In Call: ${roomName}`);
-                document.getElementById('btnJoin').disabled = true;
-                document.getElementById('btnLeave').disabled = false;
-                document.getElementById('btnMute').disabled = false;
-                document.getElementById('statRoom').textContent = roomName.split(' ')[0];
-
-                // Start muted
-                isMuted = true;
-                muteAudio(true);
-
-                // Start call timer
-                callSeconds = 0;
-                callTimer = setInterval(updateCallDuration, 1000);
-
-                // Attach remote audio
-                _attachRemoteAudio();
-            });
-
-            currentSession.on('failed', (e) => {
-                log(`Call failed: ${e.cause}`, 'error');
-                setCallStatus('disconnected', 'Failed');
-                resetCallUI();
-            });
-
-            currentSession.on('ended', (e) => {
-                log(`Call ended: ${e.cause}`, 'warn');
-                setCallStatus('disconnected', 'Not in call');
-                resetCallUI();
-            });
-
-            currentSession.on('peerconnection', (data) => {
-                log('PeerConnection created', 'info');
-                data.peerconnection.ontrack = (event) => {
-                    log(`Remote track received: kind=${event.track.kind} readyState=${event.track.readyState}`, 'success');
-                    _attachRemoteAudio();
-                };
-                data.peerconnection.oniceconnectionstatechange = () => {
-                    log(`ICE state: ${data.peerconnection.iceConnectionState}`, 'info');
-                };
-            });
+            document.getElementById('confUser').textContent = accountData.display_name || accountData.email;
+            document.getElementById('confCompany').textContent = accountData.company_name || '';
+            document.getElementById('confRoom').textContent = roomNames[accountData.room] || `Room ${accountData.room}`;
+            document.getElementById('confStatus').textContent = 'Connecting...';
+            document.getElementById('confStatus').className = 'conf-status connecting';
         }
 
-        function leaveConference() {
-            if (currentSession) {
-                currentSession.terminate();
+        async function reconnect() {
+            if (!accountData) return;
+            const userName = `sip:${accountData.email}`;
+            console.log('Requesting backend reconnect for:', userName);
+            document.getElementById('confStatus').textContent = 'Reconnecting...';
+            document.getElementById('confStatus').className = 'conf-status connecting';
+            try {
+                const res = await fetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/reconnect`, { method: 'POST' });
+                const json = await res.json();
+                console.log('Reconnect response:', json);
+            } catch (e) {
+                console.error('Reconnect failed:', e);
             }
-            resetCallUI();
+        }
+
+        function onCallConnected() {
+            document.getElementById('confStatus').textContent = 'Connected';
+            document.getElementById('confStatus').className = 'conf-status connected';
+            document.getElementById('btnMute').disabled = false;
+
+            isMuted = true;
+            muteAudio(true);
+            updateMuteUI();
+
+            callSeconds = 0;
+            callTimer = setInterval(() => {
+                callSeconds++;
+                const min = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+                const sec = String(callSeconds % 60).padStart(2, '0');
+                document.getElementById('confTimer').textContent = `${min}:${sec}`;
+            }, 1000);
+
+            attachRemoteAudio(currentSession);
+        }
+
+        function hangup() {
+            if (currentSession) {
+                console.log('[HANGUP] Sending BYE to FreeSWITCH');
+                currentSession.terminate();
+                currentSession = null;
+            }
+            resetCallState();
+            document.getElementById('confStatus').textContent = 'Disconnected';
+            document.getElementById('confStatus').className = 'conf-status disconnected';
         }
 
         function toggleMute() {
             isMuted = !isMuted;
             muteAudio(isMuted);
+            updateMuteUI();
+        }
 
+        function updateMuteUI() {
             const btn = document.getElementById('btnMute');
-            const icon = document.getElementById('muteIcon');
-            if (isMuted) {
-                btn.innerHTML = '<span class="mute-indicator">🔇</span>Unmute';
-                btn.className = 'btn-warning';
-                document.getElementById('statMute').textContent = 'Muted';
-                log('Microphone muted', 'warn');
-            } else {
-                btn.innerHTML = '<span class="mute-indicator">🔊</span>Mute';
-                btn.className = 'btn-success';
-                document.getElementById('statMute').textContent = 'Live';
-                log('Microphone unmuted — you are LIVE', 'success');
-            }
+            document.getElementById('muteIcon').textContent = isMuted ? '🔇' : '🔊';
+            document.getElementById('muteLabel').textContent = isMuted ? 'Unmute' : 'Mute';
+            btn.className = isMuted ? 'conf-btn btn-mute' : 'conf-btn btn-mute live';
         }
 
         function muteAudio(mute) {
             if (!currentSession || !currentSession.connection) return;
-            const senders = currentSession.connection.getSenders();
-            senders.forEach(sender => {
+            currentSession.connection.getSenders().forEach(sender => {
                 if (sender.track && sender.track.kind === 'audio') {
                     sender.track.enabled = !mute;
                 }
             });
         }
 
-        function _attachRemoteAudio() {
-            if (!currentSession || !currentSession.connection) {
-                log('No connection to attach audio', 'warn');
-                return;
-            }
-            const pc = currentSession.connection;
-            const receivers = pc.getReceivers();
-            log(`Receivers: ${receivers.length}`, 'info');
-
-            const audioTracks = receivers.filter(r => r.track && r.track.kind === 'audio').map(r => r.track);
-            log(`Audio tracks: ${audioTracks.length}`, 'info');
-
-            if (audioTracks.length > 0) {
-                const remoteStream = new MediaStream(audioTracks);
-                const remoteAudio = document.getElementById('remoteAudio');
-                remoteAudio.srcObject = remoteStream;
-                remoteAudio.play().then(() => {
-                    log('Remote audio playing!', 'success');
-                }).catch(e => {
-                    log(`Audio play error: ${e.message}`, 'error');
-                });
-            } else {
-                log('No audio tracks found yet', 'warn');
+        function attachRemoteAudio(session) {
+            if (!session || !session.connection) return;
+            const tracks = session.connection.getReceivers()
+                .filter(r => r.track && r.track.kind === 'audio')
+                .map(r => r.track);
+            if (tracks.length > 0) {
+                const audio = document.getElementById('remoteAudio');
+                audio.srcObject = new MediaStream(tracks);
+                audio.play().catch(() => {});
             }
         }
 
-        function resetCallUI() {
+        function resetCallState() {
             currentSession = null;
             if (callTimer) clearInterval(callTimer);
             callTimer = null;
-            document.getElementById('btnJoin').disabled = false;
-            document.getElementById('btnLeave').disabled = true;
+            document.getElementById('confTimer').textContent = '00:00';
+            document.getElementById('confStatus').textContent = 'Disconnected';
+            document.getElementById('confStatus').className = 'conf-status disconnected';
             document.getElementById('btnMute').disabled = true;
-            document.getElementById('statDuration').textContent = '00:00';
-            document.getElementById('statRoom').textContent = '-';
-            document.getElementById('statMute').textContent = 'Muted';
         }
 
-        // Auto-fill WS server from current host and protocol
-        (function() {
-            const host = window.location.hostname || 'localhost';
-            if (window.location.protocol === 'https:') {
-                document.getElementById('wsServer').value = `wss://${host}:5072`;
-            } else {
-                document.getElementById('wsServer').value = `ws://${host}:5071`;
+        // Allow Enter key to submit
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+                doLogin();
             }
-            document.getElementById('sipDomain').value = host;
-        })();
+        });
 
         if (typeof JsSIP === 'undefined') {
-            log('ERROR: JsSIP library failed to load! Check network/console.', 'error');
-        } else {
-            log(`SIP Test Client ready. JsSIP v${JsSIP.version} loaded. Enter credentials and click Register.`, 'info');
+            showError('SIP library failed to load.');
         }
-
-        window.onerror = function(msg, url, line) {
-            log(`JS Error: ${msg} (line ${line})`, 'error');
-        };
     </script>
 </body>
 </html>
