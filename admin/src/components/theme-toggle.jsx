@@ -1,24 +1,31 @@
-import { SunIcon, MoonIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { SunIcon, MoonIcon, MonitorIcon } from "lucide-react"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useTheme } from "@/components/theme-provider"
 
 export function ThemeToggle({ className }) {
   const { theme, setTheme } = useTheme()
-  const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={`size-8 ${className || ""}`}
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+    <ToggleGroup
+      value={[theme]}
+      onValueChange={(values) => {
+        const next = values.find((v) => v !== theme)
+        if (next) setTheme(next)
+      }}
+      spacing={0}
+      size="sm"
+      variant="outline"
+      className={className}
     >
-      {isDark ? (
+      <ToggleGroupItem value="system" aria-label="System theme">
+        <MonitorIcon className="size-4" />
+      </ToggleGroupItem>
+      <ToggleGroupItem value="light" aria-label="Light theme">
         <SunIcon className="size-4" />
-      ) : (
+      </ToggleGroupItem>
+      <ToggleGroupItem value="dark" aria-label="Dark theme">
         <MoonIcon className="size-4" />
-      )}
-    </Button>
+      </ToggleGroupItem>
+    </ToggleGroup>
   )
 }

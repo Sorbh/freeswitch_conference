@@ -15,11 +15,11 @@ export default defineConfig({
     port: 5175,
     proxy: {
       '/api': {
-        target: 'http://localhost:4007',
+        target: process.env.BACKEND_URL || 'http://localhost:4007',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:4007',
+        target: (process.env.BACKEND_URL || 'http://localhost:4007').replace('http', 'ws'),
         ws: true,
       },
     },

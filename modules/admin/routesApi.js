@@ -283,6 +283,105 @@ adminRouter.post("/users/:userName/room", (req, res) => {
     }
 });
 
+// --- Accounts CRUD ---
+
+// GET /accounts — list all accounts
+adminRouter.get("/accounts", (req, res) => {
+    try {
+        const accounts = global.db.getAllAccounts();
+        const safe = accounts.map(({ password, ...rest }) => rest);
+        res.json({ status: true, data: safe });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /accounts/:id — single account
+adminRouter.get("/accounts/:id", (req, res) => {
+    try {
+        const account = global.db.getAccountById(parseInt(req.params.id));
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        const { password, ...safe } = account;
+        res.json({ status: true, data: safe });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /accounts — create account
+adminRouter.post("/accounts", (req, res) => {
+    try {
+        const { email, password, display_name, company_name, company_address, city, state, zip, room } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ status: false, error: "Email and password are required" });
+        }
+
+        const existing = global.db.getAccountByEmail(email);
+        if (existing) {
+            return res.status(409).json({ status: false, error: "Account with this email already exists" });
+        }
+
+        const account = global.db.createAccount({
+            email,
+            password,
+            displayName: display_name,
+            companyName: company_name,
+            companyAddress: company_address,
+            city,
+            state,
+            zip,
+            room: room ? parseInt(room) : null,
+        });
+
+        const { password: _, ...safe } = account;
+        global.db.logEvent('account_created', email, null, `Account created for ${company_name || email}`);
+        res.status(201).json({ status: true, data: safe });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// PUT /accounts/:id — update account
+adminRouter.put("/accounts/:id", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        const fields = {};
+        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active'];
+        for (const key of allowed) {
+            if (req.body[key] !== undefined) {
+                fields[key] = key === 'room' ? parseInt(req.body[key]) : req.body[key];
+            }
+        }
+
+        const updated = global.db.updateAccount(id, fields);
+        if (!updated) return res.status(400).json({ status: false, error: "No valid fields to update" });
+
+        const { password, ...safe } = updated;
+        global.db.logEvent('account_updated', account.email, null, `Account updated`);
+        res.json({ status: true, data: safe });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// DELETE /accounts/:id — delete account
+adminRouter.delete("/accounts/:id", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        global.db.deleteAccount(id);
+        global.db.logEvent('account_deleted', account.email, null, `Account deleted`);
+        res.json({ status: true, message: `Account ${account.email} deleted` });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // POST /rooms/:roomId/honk — honk a room
 adminRouter.post("/rooms/:roomId/honk", (req, res) => {
     try {

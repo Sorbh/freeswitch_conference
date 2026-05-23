@@ -12,7 +12,7 @@
       <param name="rate" value="48000"/>
       <param name="channels" value="1"/>
       <param name="interval" value="20"/>
-      <param name="energy-level" value="0"/>
+      <param name="energy-level" value="200"/>
 
       <!-- Room limits -->
       <param name="max-members" value="500"/>

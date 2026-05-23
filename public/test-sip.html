@@ -59,11 +59,11 @@
             </div>
             <div class="form-row">
                 <label>WS Server</label>
-                <input type="text" id="wsServer" value="ws://50.28.84.57:5071" placeholder="ws://host:port">
+                <input type="text" id="wsServer" value="" placeholder="ws://host:port">
             </div>
             <div class="form-row">
                 <label>SIP Domain</label>
-                <input type="text" id="sipDomain" value="50.28.84.57" placeholder="SIP domain or IP">
+                <input type="text" id="sipDomain" value="" placeholder="SIP domain or IP">
             </div>
             <div class="form-row">
                 <label>Username</label>
@@ -489,14 +489,15 @@
         }
 
         // Auto-fill WS server from current host and protocol
-        if (window.location.hostname && window.location.hostname !== 'localhost') {
+        (function() {
+            const host = window.location.hostname || 'localhost';
             if (window.location.protocol === 'https:') {
-                document.getElementById('wsServer').value = `wss://${window.location.hostname}:5072`;
+                document.getElementById('wsServer').value = `wss://${host}:5072`;
             } else {
-                document.getElementById('wsServer').value = `ws://${window.location.hostname}:5071`;
+                document.getElementById('wsServer').value = `ws://${host}:5071`;
             }
-            document.getElementById('sipDomain').value = window.location.hostname;
-        }
+            document.getElementById('sipDomain').value = host;
+        })();
 
         if (typeof JsSIP === 'undefined') {
             log('ERROR: JsSIP library failed to load! Check network/console.', 'error');

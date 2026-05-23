@@ -1,4 +1,6 @@
 import esl from 'modesl';
+import fs from 'fs';
+import path from 'path';
 
 const freeswitch = {};
 
@@ -7,6 +9,12 @@ let reconnectTimer = null;
 
 const connectionHandlers = new Map();
 const memberIdMap = new Map();
+
+// Broadcast detection state
+const BROADCAST_MIN_DURATION_MS = 3000;
+const BROADCAST_RESPONSE_WINDOW_MS = 5000;
+const activeTalkers = new Map();       // `room:memberId` → { startTime, userName, displayName, room }
+const pendingBroadcasts = new Map();   // `room` → { timer, userName, displayName, startTime, durationMs }
 
 async function connect() {
     return new Promise((resolve, reject) => {
@@ -114,43 +122,33 @@ async function _handleRegistration(event) {
         return;
     }
 
-    // New user — validate against API
-    try {
-        const response = await (await fetch(`${global.config.USER_VALIDATION_API}?email=${email}`)).json();
-
-        if (!response.status) {
-            console.log(`User validation failed for ${email}`);
-            return;
-        }
-
-        const userData = response.data;
-        const room = parseInt(userData.rooms?.[0]?.code) || 123456701;
-
-        const userInfo = {
-            userId: userData.id,
-            contact: contact,
-            mac: mac,
-            ip: networkIp,
-            port: parseInt(networkPort),
-            room: room,
-            connectionState: 'ideal',
-            authState: 'logout',
-            mute: true,
-            online: true,
-            payment: false,
-            userAgent: userAgent,
-            callerIdName: `${userData.company_name} / ${userData.representative_name}`,
-            callerIdHtml: userData.caller_id_html,
-            redlineData: userData,
-        };
-
-        global.db.setUserInfo(userName, userInfo);
-        global.db.logEvent('registration', userName, null, 'User registered');
-        global.db.logOnlineStatus(userName, 'online');
-        console.log(`New user registered: ${userName} -> room ${global.config.ROOM_NAME[room]}`);
-    } catch (err) {
-        console.error(`User validation error for ${email}: ${err.message}`);
+    const account = global.db.getAccountByEmail(email);
+    if (!account || !account.active) {
+        console.log(`Registration rejected: no active account for ${email}`);
+        return;
     }
+
+    const room = account.room || 123456701;
+    const userInfo = {
+        userId: account.id,
+        contact: contact,
+        mac: mac,
+        ip: networkIp,
+        port: parseInt(networkPort),
+        room: room,
+        connectionState: 'ideal',
+        authState: 'logout',
+        mute: true,
+        online: true,
+        payment: false,
+        userAgent: userAgent,
+        callerIdName: `${account.company_name || ''} / ${account.display_name || email}`,
+    };
+
+    global.db.setUserInfo(userName, userInfo);
+    global.db.logEvent('registration', userName, null, 'User registered');
+    global.db.logOnlineStatus(userName, 'online');
+    console.log(`New user registered: ${userName} -> room ${global.config.ROOM_NAME[room]}`);
 }
 
 async function _handleExpire(event) {
@@ -240,7 +238,10 @@ function _handleConferenceEvent(event) {
             _broadcastCallerIdToRoom(conferenceName);
             break;
         case 'start-talking':
+            _handleStartTalking(conferenceName, memberId, room, event);
+            break;
         case 'stop-talking':
+            _handleStopTalking(conferenceName, memberId, room);
             break;
     }
 }
@@ -268,6 +269,129 @@ function _broadcastCallerIdToRoom(conferenceName) {
     );
 
     console.log(`Caller ID update for room ${conferenceName}: ${connectedUsers.length} users to notify`);
+}
+
+function _handleStartTalking(conferenceName, memberId, room, event) {
+    const key = `${conferenceName}:${memberId}`;
+    const memberInfo = memberIdMap.get(key);
+    const uuid = event.getHeader('Unique-ID') || memberInfo?.uuid;
+    const callerIdName = event.getHeader('Caller-Caller-ID-Name') || memberInfo?.callerIdName || 'Unknown';
+
+    let userName = null;
+    let displayName = callerIdName;
+    if (uuid) {
+        const users = global.db.filter(u => u.fsChannelUUID === uuid);
+        if (users.length > 0) {
+            userName = users[0].userName;
+            displayName = users[0].callerIdName || callerIdName;
+        }
+    }
+
+    activeTalkers.set(key, {
+        startTime: Date.now(),
+        userName: userName || callerIdName,
+        displayName,
+        room,
+        uuid,
+    });
+
+    if (pendingBroadcasts.has(conferenceName)) {
+        const pending = pendingBroadcasts.get(conferenceName);
+        clearTimeout(pending.timer);
+        pendingBroadcasts.delete(conferenceName);
+
+        const respondedBy = userName || callerIdName;
+        console.log(`[Broadcast] Room ${conferenceName}: ${respondedBy} responded to ${pending.displayName}'s broadcast`);
+        _finalizeBroadcast(conferenceName, room, pending, true, respondedBy);
+    }
+
+    if (uuid) {
+        const recordingDir = global.config.RECORDING_DIR;
+        if (!fs.existsSync(recordingDir)) fs.mkdirSync(recordingDir, { recursive: true });
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const roomName = global.config.ROOM_NAME[room] || conferenceName;
+        const recordingFile = path.join(recordingDir, `${roomName}_${timestamp}_${memberId}.wav`);
+
+        eslConnection.api(`uuid_record ${uuid} start ${recordingFile}`, (response) => {
+            const body = response.getBody().trim();
+            console.log(`[Broadcast] Recording started for member ${memberId} in room ${conferenceName}: ${body}`);
+        });
+
+        const talker = activeTalkers.get(key);
+        if (talker) talker.recordingPath = recordingFile;
+    }
+}
+
+function _handleStopTalking(conferenceName, memberId, room) {
+    const key = `${conferenceName}:${memberId}`;
+    const talker = activeTalkers.get(key);
+    if (!talker) return;
+
+    const durationMs = Date.now() - talker.startTime;
+    activeTalkers.delete(key);
+
+    if (talker.uuid && talker.recordingPath) {
+        eslConnection.api(`uuid_record ${talker.uuid} stop ${talker.recordingPath}`, (response) => {
+            console.log(`[Broadcast] Recording stopped for member ${memberId}: ${response.getBody().trim()}`);
+        });
+
+        if (durationMs < BROADCAST_MIN_DURATION_MS && talker.recordingPath) {
+            try { fs.unlinkSync(talker.recordingPath); } catch {}
+        }
+    }
+
+    if (durationMs < BROADCAST_MIN_DURATION_MS) {
+        console.log(`[Broadcast] Member ${memberId} in room ${conferenceName} talked ${durationMs}ms (below threshold, ignoring)`);
+        return;
+    }
+
+    console.log(`[Broadcast] Potential broadcast detected: ${talker.displayName} in room ${conferenceName} (${durationMs}ms)`);
+
+    const timer = setTimeout(() => {
+        pendingBroadcasts.delete(conferenceName);
+        console.log(`[Broadcast] UNANSWERED broadcast in room ${conferenceName} by ${talker.displayName}`);
+        _finalizeBroadcast(conferenceName, room, { ...talker, durationMs }, false, null);
+    }, BROADCAST_RESPONSE_WINDOW_MS);
+
+    pendingBroadcasts.set(conferenceName, {
+        timer,
+        userName: talker.userName,
+        displayName: talker.displayName,
+        startTime: talker.startTime,
+        durationMs,
+        recordingPath: talker.recordingPath,
+    });
+}
+
+function _finalizeBroadcast(conferenceName, room, broadcastData, answered, respondedBy) {
+    const roomName = global.config.ROOM_NAME[room] || conferenceName;
+    const participants = global.db.filter(u => u.connectionState === 'connected' && u.room === room);
+    const participantList = participants.map(u => ({
+        userName: u.userName,
+        displayName: u.callerIdName,
+        mute: u.mute,
+    }));
+
+    global.db.logBroadcast({
+        room,
+        roomName,
+        userName: broadcastData.userName,
+        displayName: broadcastData.displayName,
+        durationMs: broadcastData.durationMs,
+        answered,
+        respondedBy,
+        participants: participantList,
+        participantCount: participantList.length,
+        recordingPath: broadcastData.recordingPath || null,
+    });
+
+    global.db.logEvent(
+        answered ? 'broadcast_answered' : 'broadcast_unanswered',
+        broadcastData.userName,
+        room,
+        `${broadcastData.displayName} broadcast ${broadcastData.durationMs}ms in ${roomName}${answered ? ` — answered by ${respondedBy}` : ' — UNANSWERED'}`
+    );
 }
 
 function originateToConference(userName) {
@@ -382,7 +506,7 @@ function unmuteUser(mac) {
 }
 
 function honkRoom(room) {
-    const audioFile = '/root/sorbh/freeswitch_conference/public/redlinehonk.wav';
+    const audioFile = global.config.HONK_AUDIO_FILE;
     eslConnection.api(`conference ${room} play ${audioFile}`, (response) => {
         console.log(`Honk room ${room}: ${response.getBody().trim()}`);
     });

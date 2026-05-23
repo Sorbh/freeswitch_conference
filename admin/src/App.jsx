@@ -4,7 +4,6 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,9 +19,11 @@ import BroadcastsPage from "@/pages/BroadcastsPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SystemPage from "@/pages/SystemPage";
 import EventsPage from "@/pages/EventsPage";
+import AccountsPage from "@/pages/AccountsPage";
 
 const routes = [
   { path: "/", element: <DashboardPage />, title: "Dashboard" },
+  { path: "/accounts", element: <AccountsPage />, title: "Accounts" },
   { path: "/users", element: <UsersPage />, title: "Users" },
   { path: "/rooms", element: <RoomsPage />, title: "Conference Rooms" },
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcasts" },
@@ -62,7 +63,6 @@ function AppLayout() {
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 !h-4" />
             <BreadcrumbNav />
-            <ThemeToggle className="ml-auto" />
           </header>
           <div className="flex-1 overflow-auto p-6">
             <Routes>

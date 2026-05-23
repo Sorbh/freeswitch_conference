@@ -23,6 +23,9 @@ public/jssip.bundle.js
 # Admin panel build output (rebuild with: cd admin && npx vite build)
 admin/dist/
 
+# Broadcast recordings
+recordings/*.wav
+
 # Logs
 *.log
 

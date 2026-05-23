@@ -86,7 +86,7 @@ if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDi
     }, app);
     httpsServer.listen(HTTPS_PORT, () => {
         console.log(`HTTPS server listening at https://localhost:${HTTPS_PORT}/api/v1/`);
-        console.log(`Test page: https://50.28.84.57:${HTTPS_PORT}/test-sip.html`);
+        console.log(`Test page: https://${config.FREESWITCH_PUBLIC_IP}:${HTTPS_PORT}/test-sip.html`);
     });
 } else {
     console.log('No TLS certs found, HTTPS disabled');

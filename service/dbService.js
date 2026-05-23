@@ -48,11 +48,16 @@ function init() {
         CREATE TABLE IF NOT EXISTS broadcast_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             room INTEGER,
+            room_name TEXT,
             user_name TEXT,
             display_name TEXT,
             transcription TEXT,
             duration_ms INTEGER,
             answered INTEGER DEFAULT 0,
+            responded_by TEXT,
+            participants TEXT,
+            participant_count INTEGER DEFAULT 0,
+            recording_path TEXT,
             created_at INTEGER DEFAULT (strftime('%s', 'now'))
         );
 
@@ -81,6 +86,38 @@ function init() {
         CREATE INDEX IF NOT EXISTS idx_event_log_created ON event_log(created_at);
         CREATE INDEX IF NOT EXISTS idx_online_history_user ON online_history(user_name);
         CREATE INDEX IF NOT EXISTS idx_online_history_created ON online_history(created_at);
+    `);
+
+    const broadcastCols = sqlite.prepare("PRAGMA table_info(broadcast_log)").all().map(c => c.name);
+    const migrations = [
+        ['room_name', "ALTER TABLE broadcast_log ADD COLUMN room_name TEXT"],
+        ['responded_by', "ALTER TABLE broadcast_log ADD COLUMN responded_by TEXT"],
+        ['participants', "ALTER TABLE broadcast_log ADD COLUMN participants TEXT"],
+        ['participant_count', "ALTER TABLE broadcast_log ADD COLUMN participant_count INTEGER DEFAULT 0"],
+        ['recording_path', "ALTER TABLE broadcast_log ADD COLUMN recording_path TEXT"],
+    ];
+    for (const [col, sql] of migrations) {
+        if (!broadcastCols.includes(col)) sqlite.exec(sql);
+    }
+
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            display_name TEXT,
+            company_name TEXT,
+            company_address TEXT,
+            city TEXT,
+            state TEXT,
+            zip TEXT,
+            room INTEGER,
+            active INTEGER DEFAULT 1,
+            created_at INTEGER DEFAULT (strftime('%s', 'now')),
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_email ON accounts(email);
     `);
 
     console.log(`SQLite database initialized at ${DB_PATH}`);
@@ -280,6 +317,14 @@ function getDashboardStats() {
     };
 }
 
+function logBroadcast({ room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath }) {
+    sqlite.prepare(`
+        INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath);
+    eventEmitter.emit('BROADCAST', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, created_at: Math.floor(Date.now() / 1000) });
+}
+
 function getBroadcastStats(days = 7) {
     const since = Math.floor(Date.now() / 1000) - (days * 86400);
 
@@ -315,6 +360,47 @@ function getBroadcastStats(days = 7) {
     return { hourly, daily, topBroadcasters, byRoom };
 }
 
+function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room }) {
+    sqlite.prepare(`
+        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room);
+    return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email);
+}
+
+function getAccountByEmail(email) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email) || null;
+}
+
+function getAccountById(id) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE id = ?').get(id) || null;
+}
+
+function getAllAccounts() {
+    return sqlite.prepare('SELECT * FROM accounts ORDER BY created_at DESC').all();
+}
+
+function updateAccount(id, fields) {
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active'];
+    const sets = [];
+    const values = [];
+    for (const [key, val] of Object.entries(fields)) {
+        if (allowed.includes(key) && val !== undefined) {
+            sets.push(`${key} = ?`);
+            values.push(val);
+        }
+    }
+    if (sets.length === 0) return null;
+    sets.push("updated_at = strftime('%s', 'now')");
+    values.push(id);
+    sqlite.prepare(`UPDATE accounts SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+    return sqlite.prepare('SELECT * FROM accounts WHERE id = ?').get(id);
+}
+
+function deleteAccount(id) {
+    sqlite.prepare('DELETE FROM accounts WHERE id = ?').run(id);
+}
+
 db.init = init;
 db.getUserInfo = getUserInfo;
 db.setUserInfo = setUserInfo;
@@ -332,6 +418,13 @@ db.getEvents = getEvents;
 db.logOnlineStatus = logOnlineStatus;
 db.getOnlineHistory = getOnlineHistory;
 db.getDashboardStats = getDashboardStats;
+db.logBroadcast = logBroadcast;
 db.getBroadcastStats = getBroadcastStats;
+db.createAccount = createAccount;
+db.getAccountByEmail = getAccountByEmail;
+db.getAccountById = getAccountById;
+db.getAllAccounts = getAllAccounts;
+db.updateAccount = updateAccount;
+db.deleteAccount = deleteAccount;
 
 export default { db };
