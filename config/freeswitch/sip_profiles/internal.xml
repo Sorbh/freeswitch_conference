@@ -1,0 +1,61 @@
+<profile name="internal">
+  <settings>
+    <param name="sip-port" value="5070"/>
+    <param name="sip-ip" value="0.0.0.0"/>
+    <param name="rtp-ip" value="0.0.0.0"/>
+    <param name="ext-rtp-ip" value="50.28.84.57"/>
+    <param name="ext-sip-ip" value="50.28.84.57"/>
+
+    <!-- NAT handling -->
+    <param name="aggressive-nat-detection" value="true"/>
+    <param name="NDLB-received-in-nat-reg-contact" value="true"/>
+    <param name="NDLB-force-rport" value="true"/>
+    <param name="apply-nat-acl" value="rfc1918.auto"/>
+
+    <!-- WebRTC ICE candidate ACL -->
+    <param name="apply-candidate-acl" value="wan.auto"/>
+    <param name="apply-candidate-acl" value="rfc1918.auto"/>
+    <param name="apply-candidate-acl" value="any_v4.auto"/>
+
+    <!-- Authentication via mod_xml_curl -->
+    <param name="accept-blind-reg" value="false"/>
+    <param name="accept-blind-auth" value="false"/>
+
+    <!-- Codecs -->
+    <param name="inbound-codec-prefs" value="OPUS,PCMU,PCMA"/>
+    <param name="outbound-codec-prefs" value="OPUS,PCMU,PCMA"/>
+    <param name="inbound-codec-negotiation" value="generous"/>
+    <param name="inbound-late-negotiation" value="false"/>
+    <param name="inbound-zrtp-passthru" value="false"/>
+
+    <!-- Speed up WebRTC connection - skip unnecessary ICE gathering -->
+    <param name="rtp-timeout-sec" value="300"/>
+    <param name="rtp-hold-timeout-sec" value="1800"/>
+
+    <!-- Session timers (matches current 120s in Drachtio) -->
+    <param name="enable-timer" value="true"/>
+    <param name="session-timeout" value="120"/>
+
+    <!-- WebSocket for browser-based SIP -->
+    <param name="ws-binding" value="0.0.0.0:5071"/>
+    <param name="wss-binding" value="0.0.0.0:5072"/>
+    <param name="tls-cert-dir" value="/root/sorbh/freeswitch_1.10.12/freeswitch/etc/freeswitch/tls/"/>
+
+    <!-- Use only public IP for RTP/ICE candidates — prevents slow gathering on Docker bridges -->
+    <param name="local-network-acl" value="none"/>
+    <param name="force-register-domain" value="50.28.84.57"/>
+
+    <!-- Context for inbound calls -->
+    <param name="context" value="default"/>
+
+    <!-- Keep-alive: ping registered devices, unregister if they stop responding -->
+    <param name="nat-options-ping" value="true"/>
+    <param name="all-reg-options-ping" value="true"/>
+    <param name="unregister-on-options-fail" value="true"/>
+    <param name="options-ping-interval" value="30"/>
+
+    <!-- Misc -->
+    <param name="dialplan" value="XML"/>
+    <param name="manage-presence" value="false"/>
+  </settings>
+</profile>

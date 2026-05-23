@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreeSWITCH SIP Test Client</title>
+    <script src="/jssip.bundle.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 30px; color: #e94560; }
+        .card { background: #16213e; border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #0f3460; }
+        .card h2 { color: #e94560; margin-bottom: 16px; font-size: 18px; }
+        .form-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }
+        .form-row label { min-width: 100px; font-size: 14px; color: #aaa; }
+        .form-row input, .form-row select { flex: 1; padding: 10px 14px; background: #0f3460; border: 1px solid #1a4a8a; border-radius: 8px; color: #eee; font-size: 14px; outline: none; }
+        .form-row input:focus { border-color: #e94560; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #e94560; color: white; }
+        .btn-primary:hover { background: #c73e54; }
+        .btn-primary:disabled { background: #555; cursor: not-allowed; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #219a52; }
+        .btn-danger { background: #c0392b; color: white; }
+        .btn-danger:hover { background: #a93226; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-warning:hover { background: #d68910; }
+        .btn-group { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-disconnected { background: #c0392b33; color: #e74c3c; }
+        .status-connecting { background: #f39c1233; color: #f1c40f; }
+        .status-registered { background: #27ae6033; color: #2ecc71; }
+        .status-incall { background: #2980b933; color: #3498db; }
+        .log-area { background: #0a0e1a; border-radius: 8px; padding: 16px; height: 250px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; border: 1px solid #0f3460; }
+        .log-info { color: #3498db; }
+        .log-success { color: #2ecc71; }
+        .log-error { color: #e74c3c; }
+        .log-warn { color: #f1c40f; }
+        .log-time { color: #666; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+        .stat-box { background: #0f3460; padding: 12px; border-radius: 8px; text-align: center; }
+        .stat-box .value { font-size: 24px; font-weight: 700; color: #e94560; }
+        .stat-box .label { font-size: 11px; color: #888; margin-top: 4px; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        audio { display: none; }
+        .mute-indicator { font-size: 24px; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FreeSWITCH SIP Test Client</h1>
+
+        <!-- Connection Card -->
+        <div class="card">
+            <div class="header-row">
+                <h2>SIP Registration</h2>
+                <span id="regStatus" class="status status-disconnected">Disconnected</span>
+            </div>
+            <div class="form-row">
+                <label>WS Server</label>
+                <input type="text" id="wsServer" value="ws://50.28.84.57:5071" placeholder="ws://host:port">
+            </div>
+            <div class="form-row">
+                <label>SIP Domain</label>
+                <input type="text" id="sipDomain" value="50.28.84.57" placeholder="SIP domain or IP">
+            </div>
+            <div class="form-row">
+                <label>Username</label>
+                <input type="text" id="username" value="testuser1" placeholder="SIP username or email">
+            </div>
+            <div class="form-row">
+                <label>Password</label>
+                <input type="password" id="password" value="12345678" placeholder="SIP password">
+            </div>
+            <div class="form-row">
+                <label>Display Name</label>
+                <input type="text" id="displayName" value="Test User 1" placeholder="Caller ID name">
+            </div>
+            <div class="btn-group">
+                <button id="btnRegister" class="btn-primary" onclick="register()">Register</button>
+                <button id="btnUnregister" class="btn-danger" onclick="unregister()" disabled>Unregister</button>
+            </div>
+        </div>
+
+        <!-- Conference Card -->
+        <div class="card">
+            <div class="header-row">
+                <h2>Conference</h2>
+                <span id="callStatus" class="status status-disconnected">Not in call</span>
+            </div>
+            <div class="form-row">
+                <label>Room</label>
+                <select id="confRoom">
+                    <option value="123456701">California (CA)</option>
+                    <option value="123456702">Texas (TX)</option>
+                    <option value="123456703">Florida (FL)</option>
+                    <option value="123456704">Mexico (MX)</option>
+                    <option value="123456705">ENS</option>
+                    <option value="123456706">Arizona (AZ)</option>
+                    <option value="123456707">Ohio (OH)</option>
+                    <option value="123456708">New York (NY)</option>
+                    <option value="123456709">Georgia (GA)</option>
+                    <option value="123456710">Indiana (IN)</option>
+                    <option value="123456711">Michigan (MI)</option>
+                    <option value="123456712">Carolinas (CR)</option>
+                </select>
+            </div>
+            <div class="btn-group">
+                <button id="btnJoin" class="btn-success" onclick="joinConference()" disabled>Join Conference</button>
+                <button id="btnLeave" class="btn-danger" onclick="leaveConference()" disabled>Leave Conference</button>
+                <button id="btnMute" class="btn-warning" onclick="toggleMute()" disabled>
+                    <span class="mute-indicator" id="muteIcon">🔇</span>Unmute
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Card -->
+        <div class="card">
+            <h2>Status</h2>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="value" id="statDuration">00:00</div>
+                    <div class="label">Call Duration</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value" id="statRoom">-</div>
+                    <div class="label">Current Room</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value" id="statMute">Muted</div>
+                    <div class="label">Mic Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Card -->
+        <div class="card">
+            <div class="header-row">
+                <h2>Event Log</h2>
+                <button class="btn-primary" onclick="clearLog()" style="padding: 6px 14px; font-size: 12px;">Clear</button>
+            </div>
+            <div id="logArea" class="log-area"></div>
+        </div>
+    </div>
+
+    <audio id="remoteAudio" autoplay></audio>
+    <audio id="localAudio" autoplay muted></audio>
+
+    <script>
+        let ua = null;
+        let currentSession = null;
+        let isMuted = true;
+        let callTimer = null;
+        let callSeconds = 0;
+
+        function log(msg, type = 'info') {
+            const area = document.getElementById('logArea');
+            const time = new Date().toLocaleTimeString();
+            area.innerHTML += `<div><span class="log-time">[${time}]</span> <span class="log-${type}">${msg}</span></div>`;
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+        }
+
+        function setRegStatus(status, text) {
+            const el = document.getElementById('regStatus');
+            el.className = `status status-${status}`;
+            el.textContent = text;
+        }
+
+        function setCallStatus(status, text) {
+            const el = document.getElementById('callStatus');
+            el.className = `status status-${status}`;
+            el.textContent = text;
+        }
+
+        function updateCallDuration() {
+            callSeconds++;
+            const min = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+            const sec = String(callSeconds % 60).padStart(2, '0');
+            document.getElementById('statDuration').textContent = `${min}:${sec}`;
+        }
+
+        function register() {
+            console.log('Register button clicked');
+            log('Register button clicked...', 'info');
+
+            const wsServer = document.getElementById('wsServer').value;
+            const sipDomain = document.getElementById('sipDomain').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const displayName = document.getElementById('displayName').value;
+
+            console.log('Config:', { wsServer, sipDomain, username, displayName });
+            log(`Params: WS=${wsServer}, Domain=${sipDomain}, User=${username}`, 'info');
+
+            if (typeof JsSIP === 'undefined') {
+                log('ERROR: JsSIP not loaded! Cannot register.', 'error');
+                console.error('JsSIP is undefined');
+                return;
+            }
+            log('JsSIP library is available', 'success');
+
+            // Enable JsSIP debug
+            JsSIP.debug.enable('JsSIP:*');
+
+            try {
+                log('Creating WebSocket interface...', 'info');
+                const socket = new JsSIP.WebSocketInterface(wsServer);
+                log('WebSocket interface created', 'success');
+
+                // Encode email as SIP user: replace @ with . to avoid double-@ in SIP URI
+                // Server-side will reverse this to reconstruct the full email
+                const sipUser = username.includes('@') ? username.replace('@', '.at.') : username;
+                log(`SIP URI: sip:${sipUser}@${sipDomain} (original: ${username})`, 'info');
+
+                const config = {
+                    sockets: [socket],
+                    uri: `sip:${sipUser}@${sipDomain}`,
+                    password: password,
+                    display_name: displayName,
+                    register: true,
+                    session_timers: false,
+                    user_agent: 'Yealink SIP-T54W 96.86.0.100 00:00:00:00:00:01',
+                };
+
+                log('Creating UA...', 'info');
+                ua = new JsSIP.UA(config);
+                log('UA created', 'success');
+
+                ua.on('connecting', () => {
+                    log('WebSocket connecting...', 'info');
+                    setRegStatus('connecting', 'Connecting...');
+                });
+
+                ua.on('connected', () => {
+                    log('WebSocket connected to FreeSWITCH', 'success');
+                });
+
+                ua.on('disconnected', (e) => {
+                    log(`WebSocket disconnected: ${JSON.stringify(e)}`, 'error');
+                    setRegStatus('disconnected', 'Disconnected');
+                    document.getElementById('btnRegister').disabled = false;
+                    document.getElementById('btnUnregister').disabled = true;
+                    document.getElementById('btnJoin').disabled = true;
+                });
+
+                ua.on('registered', () => {
+                    log(`Registered as ${username}@${sipDomain}`, 'success');
+                    setRegStatus('registered', 'Registered');
+                    document.getElementById('btnRegister').disabled = true;
+                    document.getElementById('btnUnregister').disabled = false;
+                    document.getElementById('btnJoin').disabled = false;
+                });
+
+                ua.on('unregistered', () => {
+                    log('Unregistered', 'warn');
+                    setRegStatus('disconnected', 'Unregistered');
+                    document.getElementById('btnRegister').disabled = false;
+                    document.getElementById('btnUnregister').disabled = true;
+                    document.getElementById('btnJoin').disabled = true;
+                });
+
+                ua.on('registrationFailed', (e) => {
+                    log(`Registration failed: ${e.cause}`, 'error');
+                    setRegStatus('disconnected', 'Failed');
+                    document.getElementById('btnRegister').disabled = false;
+                });
+
+                ua.on('newRTCSession', (data) => {
+                    log(`New RTC session: ${data.originator}`, 'info');
+
+                    if (data.originator === 'remote') {
+                        const incomingSession = data.session;
+                        log('Incoming call — auto-answering...', 'success');
+
+                        incomingSession.on('peerconnection', (pcData) => {
+                            pcData.peerconnection.ontrack = (event) => {
+                                log(`Remote track received: kind=${event.track.kind}`, 'success');
+                            };
+                            pcData.peerconnection.oniceconnectionstatechange = () => {
+                                log(`ICE state: ${pcData.peerconnection.iceConnectionState}`, 'info');
+                            };
+                        });
+
+                        incomingSession.on('accepted', () => {
+                            log('Incoming call accepted — in conference', 'success');
+                            currentSession = incomingSession;
+                            setCallStatus('incall', 'In Call (auto)');
+                            document.getElementById('btnJoin').disabled = true;
+                            document.getElementById('btnLeave').disabled = false;
+                            document.getElementById('btnMute').disabled = false;
+
+                            isMuted = true;
+                            muteAudio(true);
+                            callSeconds = 0;
+                            callTimer = setInterval(updateCallDuration, 1000);
+                            _attachRemoteAudio();
+                        });
+
+                        incomingSession.on('failed', (e) => {
+                            log(`Incoming call failed: ${e.cause}`, 'error');
+                            resetCallUI();
+                        });
+
+                        incomingSession.on('ended', (e) => {
+                            log(`Incoming call ended: ${e.cause}`, 'warn');
+                            resetCallUI();
+                        });
+
+                        incomingSession.answer({
+                            mediaConstraints: { audio: true, video: false },
+                            pcConfig: { iceServers: [] },
+                        });
+                    }
+                });
+
+                log('Starting UA...', 'info');
+                ua.start();
+                log(`UA started, connecting to ${wsServer}...`, 'info');
+                setRegStatus('connecting', 'Connecting...');
+                document.getElementById('btnRegister').disabled = true;
+
+            } catch (e) {
+                log(`ERROR: ${e.message}`, 'error');
+                console.error('Registration error:', e);
+            }
+        }
+
+        function unregister() {
+            if (currentSession) leaveConference();
+            if (ua) {
+                ua.unregister();
+                ua.stop();
+                ua = null;
+            }
+        }
+
+        function joinConference() {
+            if (!ua) {
+                log('Not registered', 'error');
+                return;
+            }
+
+            const room = document.getElementById('confRoom').value;
+            const roomName = document.getElementById('confRoom').selectedOptions[0].text;
+
+            log(`Joining conference room: ${roomName} (${room})...`, 'info');
+
+            const options = {
+                mediaConstraints: { audio: true, video: false },
+                pcConfig: {
+                    iceServers: []
+                },
+                rtcOfferConstraints: {
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: false,
+                },
+            };
+
+            currentSession = ua.call(`sip:${room}@${document.getElementById('sipDomain').value}`, options);
+
+            currentSession.on('connecting', () => {
+                log('Call connecting...', 'info');
+                setCallStatus('connecting', 'Connecting...');
+            });
+
+            currentSession.on('accepted', () => {
+                log(`Joined conference: ${roomName}`, 'success');
+                setCallStatus('incall', `In Call: ${roomName}`);
+                document.getElementById('btnJoin').disabled = true;
+                document.getElementById('btnLeave').disabled = false;
+                document.getElementById('btnMute').disabled = false;
+                document.getElementById('statRoom').textContent = roomName.split(' ')[0];
+
+                // Start muted
+                isMuted = true;
+                muteAudio(true);
+
+                // Start call timer
+                callSeconds = 0;
+                callTimer = setInterval(updateCallDuration, 1000);
+
+                // Attach remote audio
+                _attachRemoteAudio();
+            });
+
+            currentSession.on('failed', (e) => {
+                log(`Call failed: ${e.cause}`, 'error');
+                setCallStatus('disconnected', 'Failed');
+                resetCallUI();
+            });
+
+            currentSession.on('ended', (e) => {
+                log(`Call ended: ${e.cause}`, 'warn');
+                setCallStatus('disconnected', 'Not in call');
+                resetCallUI();
+            });
+
+            currentSession.on('peerconnection', (data) => {
+                log('PeerConnection created', 'info');
+                data.peerconnection.ontrack = (event) => {
+                    log(`Remote track received: kind=${event.track.kind} readyState=${event.track.readyState}`, 'success');
+                    _attachRemoteAudio();
+                };
+                data.peerconnection.oniceconnectionstatechange = () => {
+                    log(`ICE state: ${data.peerconnection.iceConnectionState}`, 'info');
+                };
+            });
+        }
+
+        function leaveConference() {
+            if (currentSession) {
+                currentSession.terminate();
+            }
+            resetCallUI();
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            muteAudio(isMuted);
+
+            const btn = document.getElementById('btnMute');
+            const icon = document.getElementById('muteIcon');
+            if (isMuted) {
+                btn.innerHTML = '<span class="mute-indicator">🔇</span>Unmute';
+                btn.className = 'btn-warning';
+                document.getElementById('statMute').textContent = 'Muted';
+                log('Microphone muted', 'warn');
+            } else {
+                btn.innerHTML = '<span class="mute-indicator">🔊</span>Mute';
+                btn.className = 'btn-success';
+                document.getElementById('statMute').textContent = 'Live';
+                log('Microphone unmuted — you are LIVE', 'success');
+            }
+        }
+
+        function muteAudio(mute) {
+            if (!currentSession || !currentSession.connection) return;
+            const senders = currentSession.connection.getSenders();
+            senders.forEach(sender => {
+                if (sender.track && sender.track.kind === 'audio') {
+                    sender.track.enabled = !mute;
+                }
+            });
+        }
+
+        function _attachRemoteAudio() {
+            if (!currentSession || !currentSession.connection) {
+                log('No connection to attach audio', 'warn');
+                return;
+            }
+            const pc = currentSession.connection;
+            const receivers = pc.getReceivers();
+            log(`Receivers: ${receivers.length}`, 'info');
+
+            const audioTracks = receivers.filter(r => r.track && r.track.kind === 'audio').map(r => r.track);
+            log(`Audio tracks: ${audioTracks.length}`, 'info');
+
+            if (audioTracks.length > 0) {
+                const remoteStream = new MediaStream(audioTracks);
+                const remoteAudio = document.getElementById('remoteAudio');
+                remoteAudio.srcObject = remoteStream;
+                remoteAudio.play().then(() => {
+                    log('Remote audio playing!', 'success');
+                }).catch(e => {
+                    log(`Audio play error: ${e.message}`, 'error');
+                });
+            } else {
+                log('No audio tracks found yet', 'warn');
+            }
+        }
+
+        function resetCallUI() {
+            currentSession = null;
+            if (callTimer) clearInterval(callTimer);
+            callTimer = null;
+            document.getElementById('btnJoin').disabled = false;
+            document.getElementById('btnLeave').disabled = true;
+            document.getElementById('btnMute').disabled = true;
+            document.getElementById('statDuration').textContent = '00:00';
+            document.getElementById('statRoom').textContent = '-';
+            document.getElementById('statMute').textContent = 'Muted';
+        }
+
+        // Auto-fill WS server from current host and protocol
+        if (window.location.hostname && window.location.hostname !== 'localhost') {
+            if (window.location.protocol === 'https:') {
+                document.getElementById('wsServer').value = `wss://${window.location.hostname}:5072`;
+            } else {
+                document.getElementById('wsServer').value = `ws://${window.location.hostname}:5071`;
+            }
+            document.getElementById('sipDomain').value = window.location.hostname;
+        }
+
+        if (typeof JsSIP === 'undefined') {
+            log('ERROR: JsSIP library failed to load! Check network/console.', 'error');
+        } else {
+            log(`SIP Test Client ready. JsSIP v${JsSIP.version} loaded. Enter credentials and click Register.`, 'info');
+        }
+
+        window.onerror = function(msg, url, line) {
+            log(`JS Error: ${msg} (line ${line})`, 'error');
+        };
+    </script>
+</body>
+</html>

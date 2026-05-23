@@ -1,0 +1,22 @@
+{
+  "name": "freeswitch-conference",
+  "version": "1.0.0",
+  "description": "FreeSWITCH SIP Conference Bridge - POC",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "Saurabh",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jssip": "^3.13.8",
+    "modesl": "^1.1.5",
+    "node-fetch": "^3.3.2"
+  }
+}

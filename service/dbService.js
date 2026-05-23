@@ -1,0 +1,211 @@
+import { EventEmitter } from 'events';
+import Database from 'better-sqlite3';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DB_PATH = path.join(__dirname, '..', 'data', 'freeswitch_conference.db');
+
+const db = {};
+let sqlite;
+const eventEmitter = new EventEmitter();
+
+function init() {
+    sqlite = new Database(DB_PATH);
+    sqlite.pragma('journal_mode = WAL');
+    sqlite.pragma('busy_timeout = 5000');
+
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+            user_name TEXT PRIMARY KEY,
+            user_id INTEGER,
+            contact TEXT,
+            mac TEXT UNIQUE,
+            ip TEXT,
+            port INTEGER,
+            room INTEGER,
+            connection_state TEXT DEFAULT 'ideal',
+            auth_state TEXT DEFAULT 'logout',
+            mute INTEGER DEFAULT 1,
+            online INTEGER DEFAULT 0,
+            payment INTEGER DEFAULT 0,
+            retry_count INTEGER DEFAULT 0,
+            login_expire INTEGER,
+            last_connection_state_update INTEGER,
+            fs_channel_uuid TEXT,
+            fs_member_id TEXT,
+            caller_id_name TEXT,
+            caller_id_html TEXT,
+            user_agent TEXT,
+            error TEXT,
+            redline_data TEXT,
+            created_at INTEGER DEFAULT (strftime('%s', 'now')),
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS broadcast_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room INTEGER,
+            user_name TEXT,
+            display_name TEXT,
+            transcription TEXT,
+            duration_ms INTEGER,
+            answered INTEGER DEFAULT 0,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_users_mac ON users(mac);
+        CREATE INDEX IF NOT EXISTS idx_users_room ON users(room);
+        CREATE INDEX IF NOT EXISTS idx_users_connection_state ON users(connection_state);
+        CREATE INDEX IF NOT EXISTS idx_broadcast_room_date ON broadcast_log(room, created_at);
+    `);
+
+    console.log(`SQLite database initialized at ${DB_PATH}`);
+}
+
+function getUserInfo(userName) {
+    const row = sqlite.prepare('SELECT * FROM users WHERE user_name = ?').get(userName);
+    if (!row) return {};
+    return _rowToUserInfo(row);
+}
+
+function setUserInfo(userName, userInfo) {
+    const existing = sqlite.prepare('SELECT user_name FROM users WHERE user_name = ?').get(userName);
+
+    if (existing) {
+        sqlite.prepare(`
+            UPDATE users SET
+                user_id = ?, contact = ?, mac = ?, ip = ?, port = ?,
+                room = ?, connection_state = ?, auth_state = ?, mute = ?,
+                online = ?, payment = ?, retry_count = ?, login_expire = ?,
+                last_connection_state_update = ?, fs_channel_uuid = ?, fs_member_id = ?,
+                caller_id_name = ?, caller_id_html = ?, user_agent = ?, error = ?,
+                redline_data = ?, updated_at = strftime('%s', 'now')
+            WHERE user_name = ?
+        `).run(
+            userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
+            userInfo.room, userInfo.connectionState, userInfo.authState, userInfo.mute ? 1 : 0,
+            userInfo.online ? 1 : 0, userInfo.payment ? 1 : 0, userInfo.retryCount || 0, userInfo.login_expire,
+            userInfo.lastConnectionStateUpdate, userInfo.fsChannelUUID, userInfo.fsMemberId,
+            userInfo.callerIdName, userInfo.callerIdHtml, userInfo.userAgent, userInfo.error,
+            typeof userInfo.redlineData === 'object' ? JSON.stringify(userInfo.redlineData) : userInfo.redlineData,
+            userName
+        );
+    } else {
+        sqlite.prepare(`
+            INSERT INTO users (
+                user_name, user_id, contact, mac, ip, port,
+                room, connection_state, auth_state, mute,
+                online, payment, retry_count, login_expire,
+                last_connection_state_update, fs_channel_uuid, fs_member_id,
+                caller_id_name, caller_id_html, user_agent, error, redline_data
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            userName, userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
+            userInfo.room, userInfo.connectionState || 'ideal', userInfo.authState || 'logout', userInfo.mute ? 1 : 0,
+            userInfo.online ? 1 : 0, userInfo.payment ? 1 : 0, userInfo.retryCount || 0, userInfo.login_expire,
+            userInfo.lastConnectionStateUpdate, userInfo.fsChannelUUID, userInfo.fsMemberId,
+            userInfo.callerIdName, userInfo.callerIdHtml, userInfo.userAgent, userInfo.error,
+            typeof userInfo.redlineData === 'object' ? JSON.stringify(userInfo.redlineData) : userInfo.redlineData
+        );
+    }
+
+    eventEmitter.emit('USER_UPDATE', { userName, ...userInfo });
+}
+
+function getAllUserInfo() {
+    const rows = sqlite.prepare('SELECT * FROM users').all();
+    return rows.map(_rowToUserInfo);
+}
+
+function findUserInfo(key, value) {
+    const columnMap = { mac: 'mac', room: 'room', userId: 'user_id' };
+    const column = columnMap[key];
+
+    if (column) {
+        const row = sqlite.prepare(`SELECT * FROM users WHERE ${column} = ?`).get(value);
+        return row ? _rowToUserInfo(row) : {};
+    }
+
+    const rows = sqlite.prepare('SELECT * FROM users').all();
+    for (const row of rows) {
+        const userInfo = _rowToUserInfo(row);
+        if (userInfo[key] == value) return userInfo;
+    }
+
+    console.error(`No Matching Keys ${key} & Values ${value}`);
+    return {};
+}
+
+function filter(callback) {
+    const rows = sqlite.prepare('SELECT * FROM users').all();
+    return rows.map(_rowToUserInfo).filter(callback);
+}
+
+function deleteUserInfo(userName) {
+    sqlite.prepare('DELETE FROM users WHERE user_name = ?').run(userName);
+}
+
+function getTableInfo(tableName) {
+    const rows = sqlite.prepare(`SELECT * FROM ${tableName}`).all();
+    const count = sqlite.prepare(`SELECT COUNT(*) as count FROM ${tableName}`).get();
+    return { count: count.count, rows };
+}
+
+function getTables() {
+    return sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();
+}
+
+function rawQuery(sql) {
+    return sqlite.prepare(sql).all();
+}
+
+function _rowToUserInfo(row) {
+    let redlineData = row.redline_data;
+    try {
+        if (typeof redlineData === 'string') redlineData = JSON.parse(redlineData);
+    } catch { }
+
+    return {
+        userName: row.user_name,
+        userId: row.user_id,
+        contact: row.contact,
+        mac: row.mac,
+        ip: row.ip,
+        port: row.port,
+        room: row.room,
+        connectionState: row.connection_state,
+        authState: row.auth_state,
+        mute: !!row.mute,
+        online: !!row.online,
+        payment: !!row.payment,
+        retryCount: row.retry_count,
+        login_expire: row.login_expire,
+        lastConnectionStateUpdate: row.last_connection_state_update,
+        fsChannelUUID: row.fs_channel_uuid,
+        fsMemberId: row.fs_member_id,
+        callerIdName: row.caller_id_name,
+        callerIdHtml: row.caller_id_html,
+        userAgent: row.user_agent,
+        error: row.error,
+        redlineData: redlineData,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+    };
+}
+
+db.init = init;
+db.getUserInfo = getUserInfo;
+db.setUserInfo = setUserInfo;
+db.getAllUserInfo = getAllUserInfo;
+db.findUserInfo = findUserInfo;
+db.filter = filter;
+db.deleteUserInfo = deleteUserInfo;
+db.getTableInfo = getTableInfo;
+db.getTables = getTables;
+db.rawQuery = rawQuery;
+db.eventEmitter = eventEmitter;
+
+export default { db };

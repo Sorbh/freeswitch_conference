@@ -1,0 +1,28 @@
+# FreeSWITCH build artifacts and installation
+freeswitch_build/
+freeswitch_install/
+
+# SQLite database
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# Node
+node_modules/
+package-lock.json
+
+# Env
+.env
+
+# TLS certificates (self-signed or production)
+config/tls/*.pem
+
+# JsSIP browser bundle (generated via esbuild)
+public/jssip.bundle.js
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

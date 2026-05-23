@@ -1,0 +1,42 @@
+<configuration name="conference.conf" description="Audio Conference">
+  <advertise/>
+  <caller-controls>
+    <group name="default">
+      <control action="mute" digits="0"/>
+    </group>
+  </caller-controls>
+
+  <profiles>
+    <profile name="redline-hotline">
+      <!-- Audio settings -->
+      <param name="rate" value="48000"/>
+      <param name="channels" value="1"/>
+      <param name="interval" value="20"/>
+      <param name="energy-level" value="0"/>
+
+      <!-- Room limits -->
+      <param name="max-members" value="500"/>
+
+      <!-- Silent conference - no join/leave/mute sounds -->
+      <param name="muted-sound" value=""/>
+      <param name="unmuted-sound" value=""/>
+      <param name="enter-sound" value=""/>
+      <param name="exit-sound" value=""/>
+      <param name="alone-sound" value=""/>
+      <param name="locked-sound" value=""/>
+      <param name="is-locked-sound" value=""/>
+      <param name="is-unlocked-sound" value=""/>
+      <param name="kicked-sound" value=""/>
+
+      <!-- Caller ID -->
+      <param name="caller-id-name" value="${caller_id_name}"/>
+      <param name="caller-id-number" value="${caller_id_number}"/>
+
+      <!-- No comfort noise -->
+      <param name="comfort-noise" value="0"/>
+
+      <!-- Conference flags -->
+      <param name="conference-flags" value="waste-flag"/>
+    </profile>
+  </profiles>
+</configuration>
