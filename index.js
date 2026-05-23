@@ -43,14 +43,15 @@ const { default: callService } = await import('./modules/sip-action/service.js')
 global.callService = callService;
 console.log('Call service loaded');
 
-// End all calls on startup, then reconnect all logged-in users
-await callService.allEndCall();
+// On startup: reset all connection states (previous server session is gone)
+global.db.resetAllConnectionStates();
 
-// On startup, reconnect all logged-in users
-const allUsers = global.db.getAllUserInfo();
-for (const user of allUsers) {
-    global.freeswitch.ensureInConference(user.userName);
-}
+// Kill any leftover channels in FreeSWITCH
+try {
+    await new Promise((resolve) => {
+        global.freeswitch.getConferenceList().then(resolve).catch(resolve);
+    });
+} catch { }
 
 // Express
 import ApiRouter from "./routes/api.js";
@@ -62,6 +63,10 @@ app.use(cors());
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/admin", express.static(path.join(__dirname, "admin", "dist")));
+app.get("/admin/*", (req, res) => {
+    res.sendFile(path.join(__dirname, "admin", "dist", "index.html"));
+});
 
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
@@ -104,16 +109,25 @@ process
     .on('exit', shutdown('exit'))
     .on('uncaughtException', (err) => shutdown('uncaughtException', err));
 
-function shutdown(signal, err) {
+function shutdown(signal) {
     return (err) => {
-        console.log('Triggering All Call End');
-        callService.allEndCall();
-        console.log(`${signal}...`);
+        console.log(`${signal} received — shutting down`);
         if (err) console.error(err.stack || err);
+
+        // Reset all users in DB so web clients see correct state
+        try {
+            global.db.resetAllConnectionStates();
+        } catch { }
+
+        // End all active FreeSWITCH calls
+        try {
+            callService.allEndCall();
+        } catch { }
+
         setTimeout(() => {
-            console.log('...waited 5s, exiting.');
+            console.log('Exiting.');
             process.exit(err ? 1 : 0);
-        }, 5000).unref();
+        }, 3000).unref();
     };
 }
 

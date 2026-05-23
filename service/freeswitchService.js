@@ -107,6 +107,8 @@ async function _handleRegistration(event) {
         existingUser.online = true;
         existingUser.userAgent = userAgent;
         global.db.setUserInfo(userName, existingUser);
+        global.db.logEvent('registration', userName, null, 'User registered');
+        global.db.logOnlineStatus(userName, 'online');
 
         ensureInConference(userName);
         return;
@@ -143,6 +145,8 @@ async function _handleRegistration(event) {
         };
 
         global.db.setUserInfo(userName, userInfo);
+        global.db.logEvent('registration', userName, null, 'User registered');
+        global.db.logOnlineStatus(userName, 'online');
         console.log(`New user registered: ${userName} -> room ${global.config.ROOM_NAME[room]}`);
     } catch (err) {
         console.error(`User validation error for ${email}: ${err.message}`);
@@ -162,6 +166,8 @@ async function _handleExpire(event) {
     console.log(`Registration expired: ${userName}`);
     userInfo.online = false;
     global.db.setUserInfo(userName, userInfo);
+    global.db.logEvent('offline', userName, null, 'Registration expired');
+    global.db.logOnlineStatus(userName, 'offline');
 }
 
 function _handleChannelAnswer(event) {
@@ -212,19 +218,25 @@ function _handleConferenceEvent(event) {
     const memberId = event.getHeader('Member-ID');
     const callerIdName = event.getHeader('Caller-Caller-ID-Name');
 
+    const room = parseInt(conferenceName) || null;
+
     switch (action) {
         case 'add-member':
             console.log(`Conference ${conferenceName}: ${callerIdName} joined (member ${memberId})`);
             _updateMemberMapping(conferenceName, memberId, callerIdName, event);
+            global.db.logEvent('conference_join', callerIdName, room, 'Joined conference');
             break;
         case 'del-member':
             console.log(`Conference ${conferenceName}: ${callerIdName} left (member ${memberId})`);
+            global.db.logEvent('conference_leave', callerIdName, room, 'Left conference');
             break;
         case 'mute-member':
             console.log(`Conference ${conferenceName}: member ${memberId} muted`);
+            global.db.logEvent('mute', null, room, 'Member muted');
             break;
         case 'unmute-member':
             console.log(`Conference ${conferenceName}: member ${memberId} unmuted`);
+            global.db.logEvent('unmute', null, room, 'Member unmuted');
             _broadcastCallerIdToRoom(conferenceName);
             break;
         case 'start-talking':

@@ -3,6 +3,7 @@ import ActionApiRouter from "../modules/sip-action/routesApi.js";
 import { testRouter } from "../modules/test/routesApi.js";
 import { debugRouter } from "../modules/debug/routesApi.js";
 import { freeswitchRouter } from "../modules/freeswitch/routesApi.js";
+import { adminRouter } from "../modules/admin/routesApi.js";
 
 export default class ApiRouter {
     apiRouter;
@@ -13,5 +14,6 @@ export default class ApiRouter {
         this.apiRouter.use("/action", new ActionApiRouter().actionRouter);
         this.apiRouter.use("/debug", debugRouter);
         this.apiRouter.use("/freeswitch", freeswitchRouter);
+        this.apiRouter.use("/admin", adminRouter);
     }
 }

@@ -20,6 +20,9 @@ config/tls/*.pem
 # JsSIP browser bundle (generated via esbuild)
 public/jssip.bundle.js
 
+# Admin panel build output (rebuild with: cd admin && npx vite build)
+admin/dist/
+
 # Logs
 *.log
 

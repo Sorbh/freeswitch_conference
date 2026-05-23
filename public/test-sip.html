@@ -217,12 +217,14 @@
                 const sipUser = username.includes('@') ? username.replace('@', '.at.') : username;
                 log(`SIP URI: sip:${sipUser}@${sipDomain} (original: ${username})`, 'info');
 
+                const regExpires = 120; // Re-register every 120 seconds
                 const config = {
                     sockets: [socket],
                     uri: `sip:${sipUser}@${sipDomain}`,
                     password: password,
                     display_name: displayName,
                     register: true,
+                    register_expires: regExpires,
                     session_timers: false,
                     user_agent: 'Yealink SIP-T54W 96.86.0.100 00:00:00:00:00:01',
                 };
@@ -249,7 +251,7 @@
                 });
 
                 ua.on('registered', () => {
-                    log(`Registered as ${username}@${sipDomain}`, 'success');
+                    log(`Registered as ${username}@${sipDomain} (expires: ${regExpires}s)`, 'success');
                     setRegStatus('registered', 'Registered');
                     document.getElementById('btnRegister').disabled = true;
                     document.getElementById('btnUnregister').disabled = false;
