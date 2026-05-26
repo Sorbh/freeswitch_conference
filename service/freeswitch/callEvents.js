@@ -263,29 +263,25 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'mute-member': {
-            const muteKey = `${conferenceName}:${memberId}`;
-            const muteMapping = getMemberIdMap().get(muteKey);
-            if (muteMapping) {
-                const users = global.db.filter(u => u.fsChannelUUID === muteMapping.uuid);
-                if (users.length > 0) {
-                    users[0].mute = true;
-                    global.db.setUserInfo(users[0].userName, users[0]);
-                }
+            const muteUser = _findUserByMember(conferenceName, memberId);
+            if (muteUser) {
+                muteUser.mute = true;
+                global.db.setUserInfo(muteUser.userName, muteUser);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: muteUser.userName });
+                console.log(`[CONF] MUTE ${muteUser.userName} (member ${memberId})`);
             }
-            global.db.logEvent('mute', null, room, 'Member muted');
+            global.db.logEvent('mute', muteUser?.userName || null, room, 'Member muted');
             break;
         }
         case 'unmute-member': {
-            const unmuteKey = `${conferenceName}:${memberId}`;
-            const unmuteMapping = getMemberIdMap().get(unmuteKey);
-            if (unmuteMapping) {
-                const users = global.db.filter(u => u.fsChannelUUID === unmuteMapping.uuid);
-                if (users.length > 0) {
-                    users[0].mute = false;
-                    global.db.setUserInfo(users[0].userName, users[0]);
-                }
+            const unmuteUser = _findUserByMember(conferenceName, memberId);
+            if (unmuteUser) {
+                unmuteUser.mute = false;
+                global.db.setUserInfo(unmuteUser.userName, unmuteUser);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: unmuteUser.userName });
+                console.log(`[CONF] UNMUTE ${unmuteUser.userName} (member ${memberId})`);
             }
-            global.db.logEvent('unmute', null, room, 'Member unmuted');
+            global.db.logEvent('unmute', unmuteUser?.userName || null, room, 'Member unmuted');
             _broadcastCallerIdToRoom(conferenceName);
             break;
         }
@@ -304,6 +300,19 @@ function _updateMemberMapping(conferenceName, memberId, callerIdName, event) {
     }
 
     getMemberIdMap().set(`${conferenceName}:${memberId}`, { uuid, callerIdName });
+}
+
+function _findUserByMember(conferenceName, memberId) {
+    // Try memberIdMap first
+    const mapping = getMemberIdMap().get(`${conferenceName}:${memberId}`);
+    if (mapping) {
+        const users = global.db.filter(u => u.fsChannelUUID === mapping.uuid);
+        if (users.length > 0) return users[0];
+    }
+    // Fallback: find by fsMemberId in DB
+    const byMemberId = global.db.filter(u => u.fsMemberId === memberId || u.fsMemberId === String(memberId));
+    if (byMemberId.length > 0) return byMemberId[0];
+    return null;
 }
 
 function _broadcastCallerIdToRoom(conferenceName) {

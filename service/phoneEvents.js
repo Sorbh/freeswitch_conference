@@ -92,6 +92,7 @@ function _applyMuteState(userName, userInfo, event) {
 
     userInfo.mute = mute;
     global.db.setUserInfo(userName, userInfo);
+    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
     console.log(`[PHONE] ${userName} -> ${mute ? 'MUTED' : 'UNMUTED'} (${event})`);
 }
 

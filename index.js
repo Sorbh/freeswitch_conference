@@ -48,7 +48,7 @@ global.alerting = { checkCriticalUser, startCriticalAlert, stopCriticalAlert };
 
 // Phone events (syslog for Yealink hook detection)
 import { startSyslogServer } from './service/phoneEvents.js';
-startSyslogServer(global.config.SYSLOG_PORT || 514);
+startSyslogServer(global.config.SYSLOG_PORT || 515);
 
 console.log('Call service loaded');
 

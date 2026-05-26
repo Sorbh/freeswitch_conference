@@ -337,11 +337,12 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[130px]">
+                <TableHead className="w-[160px]">
                   <div className="flex items-center gap-3 text-muted-foreground/60">
                     <WifiIcon className="size-3.5" title="Online" />
                     <ShieldIcon className="size-3.5" title="Registration" />
                     <PhoneIcon className="size-3.5" title="Call" />
+                    <MicIcon className="size-3.5" title="Mute" />
                     <BanIcon className="size-3.5" title="Kickout" />
                   </div>
                 </TableHead>
@@ -393,6 +394,11 @@ export default function UsersPage() {
                           <PhoneOffIcon className="size-4 text-red-500" title="Hangup" />
                         ) : (
                           <PhoneIcon className="size-4 text-zinc-500" title="Idle" />
+                        )}
+                        {user.mute ? (
+                          <MicOffIcon className="size-4 text-red-500" title="Muted" />
+                        ) : (
+                          <MicIcon className="size-4 text-emerald-500" title="Unmuted" />
                         )}
                         {user.account?.kickout ? (
                           <BanIcon className="size-4 text-red-500" title="Kicked Out" />

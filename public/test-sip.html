@@ -98,13 +98,7 @@
             <div class="conf-actions" id="confActions">
                 <button class="conf-btn btn-mute" id="btnMute" onclick="toggleMute()" disabled>
                     <span class="conf-mic-icon" id="muteIcon">🔇</span>
-                    <span id="muteLabel">Unmute</span>
-                </button>
-                <button class="conf-btn btn-leave" id="btnLeave" onclick="reconnect()">
-                    Reconnect
-                </button>
-                <button class="conf-btn btn-hangup" id="btnHangup" onclick="hangup()">
-                    Hangup
+                    <span id="muteLabel">Unmute (Ctrl+L)</span>
                 </button>
             </div>
             <div class="conf-actions" id="confIdleActions" style="display:none">
@@ -584,10 +578,17 @@
             }
         }
 
-        // Allow Enter key to submit
         document.addEventListener('keydown', (e) => {
+            // Enter to login
             if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
                 doLogin();
+            }
+            // Ctrl+L to toggle mute
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                if (currentSession && !document.getElementById('btnMute').disabled) {
+                    toggleMute();
+                }
             }
         });
 
