@@ -13,6 +13,7 @@ const eventHandlers = {
     answer: [],
     hangup: [],
     message: [],
+    log: [],
 };
 
 export function getConnection() { return eslConnection; }
@@ -23,6 +24,7 @@ export function onCustomEvent(fn) { eventHandlers.custom.push(fn); }
 export function onAnswerEvent(fn) { eventHandlers.answer.push(fn); }
 export function onHangupEvent(fn) { eventHandlers.hangup.push(fn); }
 export function onMessageEvent(fn) { eventHandlers.message.push(fn); }
+export function onLogEvent(fn) { eventHandlers.log.push(fn); }
 
 export async function connect() {
     return new Promise((resolve, reject) => {
@@ -59,6 +61,13 @@ export async function connect() {
                 });
                 eslConnection.on('esl::event::RECV_INFO::*', (event) => {
                     for (const fn of eventHandlers.message) fn(event);
+                });
+
+                eslConnection.sendRecv('log notice', () => {
+                    console.log('ESL log subscription enabled (level: notice)');
+                });
+                eslConnection.on('esl::event::logdata', (event) => {
+                    for (const fn of eventHandlers.log) fn(event);
                 });
 
                 console.log('ESL event subscriptions registered');

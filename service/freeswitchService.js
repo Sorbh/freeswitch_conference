@@ -14,6 +14,7 @@ import { showMessage, sendCommands, sendActionUri } from './freeswitch/notificat
 import './freeswitch/callEvents.js';
 import './freeswitch/broadcast.js';
 import './freeswitch/onlineSync.js';
+import './freeswitch/fsLogService.js';
 
 const freeswitch = {};
 

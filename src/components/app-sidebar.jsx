@@ -22,6 +22,8 @@ import {
   ServerIcon,
   ActivityIcon,
   PhoneIcon,
+  CodeIcon,
+  ScrollTextIcon,
 } from "lucide-react"
 
 const data = {
@@ -37,42 +39,24 @@ const data = {
       plan: "Conference Admin",
     },
   ],
-  navMain: [
+  navGroups: [
     {
-      title: "Dashboard",
-      url: "/",
-      icon: <LayoutDashboardIcon />,
-      isActive: true,
+      label: "Platform",
+      items: [
+        { title: "Dashboard", url: "/", icon: <LayoutDashboardIcon /> },
+        { title: "Users", url: "/users", icon: <UsersIcon /> },
+        { title: "Conference Rooms", url: "/rooms", icon: <AudioLinesIcon /> },
+        { title: "Broadcasts", url: "/broadcasts", icon: <RadioIcon /> },
+        { title: "Online History", url: "/history", icon: <ClockIcon /> },
+        { title: "System Health", url: "/system", icon: <ServerIcon /> },
+        { title: "Live Events", url: "/events", icon: <ActivityIcon /> },
+      ],
     },
     {
-      title: "Users",
-      url: "/users",
-      icon: <UsersIcon />,
-    },
-    {
-      title: "Conference Rooms",
-      url: "/rooms",
-      icon: <AudioLinesIcon />,
-    },
-    {
-      title: "Broadcasts",
-      url: "/broadcasts",
-      icon: <RadioIcon />,
-    },
-    {
-      title: "Online History",
-      url: "/history",
-      icon: <ClockIcon />,
-    },
-    {
-      title: "System Health",
-      url: "/system",
-      icon: <ServerIcon />,
-    },
-    {
-      title: "Live Events",
-      url: "/events",
-      icon: <ActivityIcon />,
+      label: "Developer",
+      items: [
+        { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon /> },
+      ],
     },
   ],
 }
@@ -81,11 +65,14 @@ export function AppSidebar({ ...props }) {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const navItems = data.navMain.map((item) => ({
-    ...item,
-    isActive: location.pathname === item.url ||
-      (item.url !== "/" && location.pathname.startsWith(item.url)),
-    onClick: () => navigate(item.url),
+  const navGroups = data.navGroups.map((group) => ({
+    label: group.label,
+    items: group.items.map((item) => ({
+      ...item,
+      isActive: location.pathname === item.url ||
+        (item.url !== "/" && location.pathname.startsWith(item.url)),
+      onClick: () => navigate(item.url),
+    })),
   }))
 
   return (
@@ -94,7 +81,7 @@ export function AppSidebar({ ...props }) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} />
+        <NavMain groups={navGroups} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

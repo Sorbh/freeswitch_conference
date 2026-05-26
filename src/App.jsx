@@ -19,6 +19,7 @@ import BroadcastsPage from "@/pages/BroadcastsPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SystemPage from "@/pages/SystemPage";
 import EventsPage from "@/pages/EventsPage";
+import FsLogsPage from "@/pages/FsLogsPage";
 const routes = [
   { path: "/", element: <DashboardPage />, title: "Dashboard" },
   { path: "/users", element: <UsersPage />, title: "Users" },
@@ -27,6 +28,7 @@ const routes = [
   { path: "/history", element: <HistoryPage />, title: "Online History" },
   { path: "/system", element: <SystemPage />, title: "System Health" },
   { path: "/events", element: <EventsPage />, title: "Live Events" },
+  { path: "/dev/fs-logs", element: <FsLogsPage />, title: "FS Logs" },
 ];
 
 function BreadcrumbNav() {

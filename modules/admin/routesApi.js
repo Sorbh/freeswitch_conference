@@ -227,6 +227,27 @@ adminRouter.get("/events/stream", (req, res) => {
     });
 });
 
+// GET /events/fs-log — SSE endpoint for FreeSWITCH log stream
+adminRouter.get("/events/fs-log", (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    res.write('data: {"type":"connected"}\n\n');
+
+    const onLog = (entry) => {
+        res.write(`data: ${JSON.stringify(entry)}\n\n`);
+    };
+
+    global.db.eventEmitter.on('FS_LOG', onLog);
+
+    req.on('close', () => {
+        global.db.eventEmitter.off('FS_LOG', onLog);
+    });
+});
+
 // GET /system — returns system health
 adminRouter.get("/system", async (req, res) => {
     try {
