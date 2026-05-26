@@ -63,9 +63,6 @@ onLogEvent((event) => {
         message: sipText,
     };
 
-    const arrow = direction === 'recv' ? '<<<' : '>>>';
-    console.log(`[FS-SIP] ${arrow} ${method} ${transport} (${bytes}b)`);
-
     if (global.db?.eventEmitter) {
         global.db.eventEmitter.emit('FS_LOG', entry);
     }

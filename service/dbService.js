@@ -401,6 +401,13 @@ function getBroadcastStats(days = 7) {
     return { hourly, daily, topBroadcasters, byRoom };
 }
 
+function getRecentBroadcasts(limit = 10) {
+    return sqlite.prepare(`
+        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, created_at
+        FROM broadcast_log ORDER BY created_at DESC LIMIT ?
+    `).all(limit);
+}
+
 function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName }) {
     sqlite.prepare(`
         INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name)
@@ -466,6 +473,7 @@ db.getOnlineHistory = getOnlineHistory;
 db.getDashboardStats = getDashboardStats;
 db.logBroadcast = logBroadcast;
 db.getBroadcastStats = getBroadcastStats;
+db.getRecentBroadcasts = getRecentBroadcasts;
 db.createAccount = createAccount;
 db.getAccountByEmail = getAccountByEmail;
 db.getAccountByUserName = getAccountByUserName;

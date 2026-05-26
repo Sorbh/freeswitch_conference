@@ -177,6 +177,17 @@ adminRouter.get("/broadcasts", (req, res) => {
     }
 });
 
+// GET /broadcasts/recent — recent broadcasts with recordings
+adminRouter.get("/broadcasts/recent", (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const broadcasts = global.db.getRecentBroadcasts(limit);
+        res.json({ status: true, data: broadcasts });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /broadcasts/timeline — hourly broadcast data
 adminRouter.get("/broadcasts/timeline", (req, res) => {
     try {

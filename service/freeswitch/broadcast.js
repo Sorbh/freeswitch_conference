@@ -1,13 +1,18 @@
-// Broadcast detection and logging. Monitors conference events for unmuted speakers,
-// detects broadcast sessions (single speaker addressing a room), and logs them
-// with duration, participants, and optional transcription/recording paths.
+// Broadcast detection and logging. Tracks room-level talk sessions:
+// - Recording starts when first person starts talking in a room
+// - All speakers during the session are tracked
+// - Recording stops when everyone is muted/stopped
+// - Single speaker + no response in 5s = unanswered broadcast
+// - Multiple speakers = answered broadcast
 import fs from 'fs';
 import path from 'path';
 import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
 const BROADCAST_RESPONSE_WINDOW_MS = 5000;
-const activeTalkers = new Map();
+
+// Room-level active sessions: conferenceName -> { startTime, recordingPath, speakers: Map<memberId, {userName, displayName}>, room }
+const roomSessions = new Map();
 const pendingBroadcasts = new Map();
 
 onCustomEvent((event) => {
@@ -20,17 +25,17 @@ onCustomEvent((event) => {
     const room = parseInt(conferenceName) || null;
 
     if (action === 'start-talking') _handleStartTalking(conferenceName, memberId, room, event);
-    else if (action === 'stop-talking') _handleStopTalking(conferenceName, memberId, room);
+    else if (action === 'stop-talking') _handleMemberStopped(conferenceName, memberId, room);
+    else if (action === 'mute-member') _handleMemberStopped(conferenceName, memberId, room);
+    else if (action === 'del-member') _handleMemberStopped(conferenceName, memberId, room);
 });
 
-function _handleStartTalking(conferenceName, memberId, room, event) {
-    const key = `${conferenceName}:${memberId}`;
-    const memberInfo = getMemberIdMap().get(key);
-    const uuid = event.getHeader('Unique-ID') || memberInfo?.uuid;
-    const callerIdName = event.getHeader('Caller-Caller-ID-Name') || memberInfo?.callerIdName || 'Unknown';
-
+function _resolveMember(memberId, event) {
+    const uuid = event.getHeader('Unique-ID');
+    const callerIdName = event.getHeader('Caller-Caller-ID-Name') || 'Unknown';
     let userName = null;
     let displayName = callerIdName;
+
     if (uuid) {
         const users = global.db.filter(u => u.fsChannelUUID === uuid);
         if (users.length > 0) {
@@ -39,101 +44,163 @@ function _handleStartTalking(conferenceName, memberId, room, event) {
         }
     }
 
-    activeTalkers.set(key, {
-        startTime: Date.now(),
-        userName: userName || callerIdName,
-        displayName,
-        room,
-        uuid,
-    });
+    return { userName: userName || callerIdName, displayName, uuid };
+}
 
+function _handleStartTalking(conferenceName, memberId, room, event) {
+    const roomName = global.config.ROOM_NAME[room] || conferenceName;
+    const member = _resolveMember(memberId, event);
+
+    console.log(`[BROADCAST] START-TALKING ${member.displayName} in ${roomName} (member ${memberId})`);
+
+    // Check if this is a response to a pending broadcast
     if (pendingBroadcasts.has(conferenceName)) {
         const pending = pendingBroadcasts.get(conferenceName);
         clearTimeout(pending.timer);
         pendingBroadcasts.delete(conferenceName);
 
-        const respondedBy = userName || callerIdName;
-        console.log(`[BROADCAST] ${respondedBy} responded to ${pending.displayName} in ${global.config.ROOM_NAME[room] || conferenceName}`);
-        _finalizeBroadcast(conferenceName, room, pending, true, respondedBy);
+        console.log(`[BROADCAST] ${member.displayName} responded to ${pending.firstSpeaker.displayName} in ${roomName}`);
+        _finalizeBroadcast(conferenceName, room, pending, true, member.displayName);
     }
 
-    if (uuid) {
+    let session = roomSessions.get(conferenceName);
+
+    if (!session) {
+        // First talker — start a new room session + recording
         const recordingDir = global.config.RECORDING_DIR;
         if (!fs.existsSync(recordingDir)) fs.mkdirSync(recordingDir, { recursive: true });
 
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const roomName = global.config.ROOM_NAME[room] || conferenceName;
-        const recordingFile = path.join(recordingDir, `${roomName}_${timestamp}_${memberId}.wav`);
+        const recordingFile = path.join(recordingDir, `${roomName}_${timestamp}.wav`);
 
-        getConnection().api(`uuid_record ${uuid} start ${recordingFile}`, () => {});
+        console.log(`[BROADCAST] SESSION START in ${roomName} — recording -> ${recordingFile}`);
+        getConnection().api(`conference ${conferenceName} record ${recordingFile}`, () => {});
 
-        const talker = activeTalkers.get(key);
-        if (talker) talker.recordingPath = recordingFile;
+        session = {
+            startTime: Date.now(),
+            recordingPath: recordingFile,
+            speakers: new Map(),
+            allSpeakers: [],
+            room,
+        };
+        roomSessions.set(conferenceName, session);
+    }
+
+    // Track this speaker (active + historical)
+    if (!session.speakers.has(memberId)) {
+        const speakerInfo = { userName: member.userName, displayName: member.displayName };
+        session.speakers.set(memberId, speakerInfo);
+        const alreadyTracked = session.allSpeakers.some(s => s.userName === speakerInfo.userName);
+        if (!alreadyTracked) session.allSpeakers.push(speakerInfo);
     }
 }
 
-function _handleStopTalking(conferenceName, memberId, room) {
-    const key = `${conferenceName}:${memberId}`;
-    const talker = activeTalkers.get(key);
-    if (!talker) return;
+function _handleMemberStopped(conferenceName, memberId, room) {
+    const session = roomSessions.get(conferenceName);
+    if (!session) return;
 
-    const durationMs = Date.now() - talker.startTime;
-    activeTalkers.delete(key);
+    const speaker = session.speakers.get(memberId);
+    const roomName = global.config.ROOM_NAME[room] || conferenceName;
 
-    if (talker.uuid && talker.recordingPath) {
-        getConnection().api(`uuid_record ${talker.uuid} stop ${talker.recordingPath}`, () => {});
-
-        if (durationMs < BROADCAST_MIN_DURATION_MS && talker.recordingPath) {
-            try { fs.unlinkSync(talker.recordingPath); } catch {}
-        }
+    if (speaker) {
+        console.log(`[BROADCAST] STOP-TALKING ${speaker.displayName} in ${roomName} (member ${memberId})`);
+        session.speakers.delete(memberId);
     }
 
-    if (durationMs < BROADCAST_MIN_DURATION_MS) return;
+    // Still other people talking — session continues
+    if (session.speakers.size > 0) return;
 
-    console.log(`[BROADCAST] Detected: ${talker.displayName} in ${global.config.ROOM_NAME[room] || conferenceName} (${durationMs}ms)`);
+    // Everyone stopped — end the session
+    const durationMs = Date.now() - session.startTime;
+    roomSessions.delete(conferenceName);
 
-    const timer = setTimeout(() => {
-        pendingBroadcasts.delete(conferenceName);
-        console.log(`[BROADCAST] UNANSWERED in ${global.config.ROOM_NAME[room] || conferenceName} by ${talker.displayName}`);
-        _finalizeBroadcast(conferenceName, room, { ...talker, durationMs }, false, null);
-    }, BROADCAST_RESPONSE_WINDOW_MS);
+    // Stop conference recording
+    getConnection().api(`conference ${conferenceName} norecord ${session.recordingPath}`, () => {});
+    console.log(`[BROADCAST] SESSION END in ${roomName} (${durationMs}ms)`);
 
-    pendingBroadcasts.set(conferenceName, {
-        timer,
-        userName: talker.userName,
-        displayName: talker.displayName,
-        startTime: talker.startTime,
-        durationMs,
-        recordingPath: talker.recordingPath,
-    });
+    // Too short — delete recording and skip
+    if (durationMs < BROADCAST_MIN_DURATION_MS) {
+        console.log(`[BROADCAST] TOO SHORT (${durationMs}ms < ${BROADCAST_MIN_DURATION_MS}ms) — discarding`);
+        try { fs.unlinkSync(session.recordingPath); } catch {}
+        return;
+    }
+
+    // Collect all speakers that participated in this session
+    // (they were already removed from session.speakers, so we need to track them separately)
+    // We'll store them on the session object before deletion — let me refactor:
+    // Actually we need a separate tracking. Let me use the session data we have.
+    _evaluateSession(conferenceName, room, session, durationMs);
+}
+
+function _evaluateSession(conferenceName, room, session, durationMs) {
+    const roomName = global.config.ROOM_NAME[room] || conferenceName;
+
+    const totalSpeakers = session.allSpeakers || [];
+
+    if (totalSpeakers.length <= 1) {
+        // Single speaker — wait for response
+        const firstSpeaker = totalSpeakers[0] || { userName: 'Unknown', displayName: 'Unknown' };
+
+        console.log(`[BROADCAST] Detected: ${firstSpeaker.displayName} in ${roomName} (${durationMs}ms) — waiting for response`);
+
+        const timer = setTimeout(() => {
+            pendingBroadcasts.delete(conferenceName);
+            console.log(`[BROADCAST] UNANSWERED in ${roomName} by ${firstSpeaker.displayName}`);
+            _finalizeBroadcast(conferenceName, room, {
+                firstSpeaker,
+                allSpeakers: totalSpeakers,
+                durationMs,
+                recordingPath: session.recordingPath,
+                startTime: session.startTime,
+            }, false, null);
+        }, BROADCAST_RESPONSE_WINDOW_MS);
+
+        pendingBroadcasts.set(conferenceName, {
+            timer,
+            firstSpeaker,
+            allSpeakers: totalSpeakers,
+            durationMs,
+            recordingPath: session.recordingPath,
+            startTime: session.startTime,
+        });
+    } else {
+        // Multiple speakers — answered broadcast
+        const firstSpeaker = totalSpeakers[0];
+        const responders = totalSpeakers.slice(1).map(s => s.displayName).join(', ');
+        console.log(`[BROADCAST] ANSWERED in ${roomName} by ${firstSpeaker.displayName}, responders: ${responders}`);
+
+        _finalizeBroadcast(conferenceName, room, {
+            firstSpeaker,
+            allSpeakers: totalSpeakers,
+            durationMs,
+            recordingPath: session.recordingPath,
+            startTime: session.startTime,
+        }, true, responders);
+    }
 }
 
 function _finalizeBroadcast(conferenceName, room, broadcastData, answered, respondedBy) {
     const roomName = global.config.ROOM_NAME[room] || conferenceName;
-    const participants = global.db.filter(u => u.connectionState === 'connected' && u.room === room);
-    const participantList = participants.map(u => ({
-        userName: u.userName,
-        displayName: u.callerIdName,
-        mute: u.mute,
-    }));
+    const speaker = broadcastData.firstSpeaker || {};
+    const speakers = broadcastData.allSpeakers || [speaker];
 
     global.db.logBroadcast({
         room,
         roomName,
-        userName: broadcastData.userName,
-        displayName: broadcastData.displayName,
+        userName: speaker.userName,
+        displayName: speaker.displayName,
         durationMs: broadcastData.durationMs,
         answered,
-        respondedBy,
-        participants: participantList,
-        participantCount: participantList.length,
+        respondedBy: respondedBy || null,
+        participants: speakers,
+        participantCount: speakers.length,
         recordingPath: broadcastData.recordingPath || null,
     });
 
     global.db.logEvent(
         answered ? 'broadcast_answered' : 'broadcast_unanswered',
-        broadcastData.userName,
+        speaker.userName,
         room,
-        `${broadcastData.displayName} broadcast ${broadcastData.durationMs}ms in ${roomName}${answered ? ` — answered by ${respondedBy}` : ' — UNANSWERED'}`
+        `${speaker.displayName} broadcast ${broadcastData.durationMs}ms in ${roomName}${answered ? ` — answered by ${respondedBy}` : ' — UNANSWERED'}`
     );
 }

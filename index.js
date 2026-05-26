@@ -72,6 +72,7 @@ app.use(cors());
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/recordings", express.static(path.join(__dirname, "recordings")));
 
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
