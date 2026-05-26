@@ -4,7 +4,7 @@
 // conference::maintenance: tracks member join/leave/mute/unmute.
 // ESL disconnect: resets all connected users. ESL reconnect: syncs with actual conference state.
 import { getConnection, getConnectionHandlers, getMemberIdMap, onCustomEvent, onAnswerEvent, onHangupEvent, onEslDisconnect, onEslReconnect } from './connection.js';
-import { initiateCall, canInitiateCall } from './callGate.js';
+import { initiateCall, canInitiateCall, unlockCalls } from './callGate.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
 const uuidUserMap = new Map();
@@ -37,48 +37,106 @@ onEslDisconnect(() => {
 
 onEslReconnect(() => {
     console.log('[ESL] Reconnected — syncing state with FreeSWITCH');
-    setTimeout(() => _syncConferenceState(), 2000);
+    setTimeout(() => _syncConferenceState(), 3000);
 });
+
+// Also sync on initial ESL connect (after hupall in connection.js completes)
+setTimeout(() => {
+    if (getConnection()) _syncConferenceState();
+}, 5000);
 
 function _syncConferenceState() {
     const conn = getConnection();
     if (!conn) return;
 
-    conn.api('conference list', (response) => {
+    conn.api('conference xml_list', (response) => {
         const body = response.getBody().trim();
 
-        const activeUuids = new Set();
-        if (body && !body.includes('No active conferences')) {
-            for (const line of body.split('\n')) {
-                const parts = line.split(';');
-                if (parts.length > 2) {
-                    const uuid = parts[2];
-                    if (uuid && uuid.length > 8) activeUuids.add(uuid);
+        if (!body || body.includes('No active conferences') || body.startsWith('-ERR')) {
+            console.log('[ESL] SYNC no active conferences');
+            // Mark any users showing connected as hangup
+            const allUsers = global.db.getAllUserInfo();
+            for (const user of allUsers) {
+                if (user.connectionState === 'connected' || user.connectionState === 'connecting') {
+                    user.connectionState = 'hangup';
+                    user.fsChannelUUID = null;
+                    user.fsMemberId = null;
+                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                    global.db.setUserInfo(user.userName, user);
+                    console.log(`[ESL] SYNC ${user.userName} -> hangup (no conferences)`);
                 }
             }
+            unlockCalls();
+            return;
         }
 
-        console.log(`[ESL] SYNC found ${activeUuids.size} active channels in conferences`);
+        // Parse XML to extract uuid and callerIdName per member
+        const activeMembers = new Map();
+        const memberBlocks = body.split('<member>');
+        for (let i = 1; i < memberBlocks.length; i++) {
+            const block = memberBlocks[i];
+            const uuidMatch = block.match(/<uuid>([^<]+)<\/uuid>/);
+            const cidNameMatch = block.match(/<caller_id_name>([^<]+)<\/caller_id_name>/);
+            const cidNumMatch = block.match(/<caller_id_number>([^<]+)<\/caller_id_number>/);
+            const memberIdMatch = block.match(/<id>(\d+)<\/id>/);
+            if (!uuidMatch) continue;
+
+            const uuid = uuidMatch[1];
+            const callerIdName = cidNameMatch ? cidNameMatch[1] : '';
+            const callerIdNumber = cidNumMatch ? cidNumMatch[1] : '';
+            const memberId = memberIdMatch ? memberIdMatch[1] : null;
+            activeMembers.set(uuid, { callerIdName, callerIdNumber, memberId });
+        }
+
+        console.log(`[ESL] SYNC found ${activeMembers.size} active members in conferences`);
 
         const allUsers = global.db.getAllUserInfo();
+        const matchedUuids = new Set();
+
         for (const user of allUsers) {
-            if (user.fsChannelUUID && activeUuids.has(user.fsChannelUUID)) {
+            // Try matching by existing UUID first
+            if (user.fsChannelUUID && activeMembers.has(user.fsChannelUUID)) {
+                matchedUuids.add(user.fsChannelUUID);
                 if (user.connectionState !== 'connected') {
+                    const member = activeMembers.get(user.fsChannelUUID);
+                    user.connectionState = 'connected';
+                    user.fsMemberId = member.memberId;
+                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                    global.db.setUserInfo(user.userName, user);
+                    uuidUserMap.set(user.fsChannelUUID, user.userName);
+                    console.log(`[ESL] SYNC ${user.userName} -> connected (UUID match)`);
+                }
+                continue;
+            }
+
+            // Try matching by callerIdName (format: "CompanyName / DisplayName")
+            for (const [uuid, member] of activeMembers) {
+                if (matchedUuids.has(uuid)) continue;
+                if (user.callerIdName && member.callerIdName === user.callerIdName) {
+                    matchedUuids.add(uuid);
+                    user.fsChannelUUID = uuid;
+                    user.fsMemberId = member.memberId;
                     user.connectionState = 'connected';
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     global.db.setUserInfo(user.userName, user);
-                    console.log(`[ESL] SYNC ${user.userName} -> connected (found in conference)`);
+                    uuidUserMap.set(uuid, user.userName);
+                    console.log(`[ESL] SYNC ${user.userName} -> connected (callerIdName match, uuid=${uuid.slice(0, 8)})`);
+                    break;
                 }
-            } else if (user.connectionState === 'connected' || user.connectionState === 'connecting') {
+            }
+
+            // User not found in any conference
+            if (!matchedUuids.has(user.fsChannelUUID) && (user.connectionState === 'connected' || user.connectionState === 'connecting')) {
                 user.connectionState = 'hangup';
                 user.fsChannelUUID = null;
                 user.fsMemberId = null;
                 user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                 global.db.setUserInfo(user.userName, user);
-                global.db.logEvent('esl_sync', user.userName, user.room, 'Not found in conference after ESL reconnect');
                 console.log(`[ESL] SYNC ${user.userName} -> hangup (not in conference)`);
             }
         }
+
+        unlockCalls();
     });
 }
 

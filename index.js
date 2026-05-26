@@ -113,6 +113,12 @@ function shutdown(signal) {
         console.log(`${signal} received — shutting down`);
         if (err) console.error(err.stack || err);
 
+        // Lock gate first — prevents _onCallHangup from re-initiating calls during shutdown
+        try {
+            const { lockCalls } = await import('./service/freeswitch/callGate.js');
+            lockCalls('shutdown');
+        } catch { }
+
         // End all active FreeSWITCH calls first — sends BYE to clients
         try {
             await callService.allEndCall();

@@ -1,6 +1,6 @@
 import { connect, isConnected } from './freeswitch/connection.js';
 import { ensureInConference } from './freeswitch/registration.js';
-import { initiateCall, canInitiateCall } from './freeswitch/callGate.js';
+import { initiateCall, canInitiateCall, lockCalls, unlockCalls } from './freeswitch/callGate.js';
 import {
     hangupCall,
     muteUser,

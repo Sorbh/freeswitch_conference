@@ -63,6 +63,11 @@ export async function connect() {
 
                 console.log('ESL event subscriptions registered');
 
+                // Kill all orphaned calls immediately on connect
+                eslConnection.api('hupall MANAGER_REQUEST', () => {
+                    console.log('[ESL] CLEANUP — hupall complete (cleared orphaned calls)');
+                });
+
                 if (reconnectTimer) {
                     clearTimeout(reconnectTimer);
                     reconnectTimer = null;

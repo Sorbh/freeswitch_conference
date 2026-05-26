@@ -6,7 +6,24 @@ import { getConnection } from './connection.js';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 5000;
 
+let _locked = true;
+console.log('[GATE] LOCKED — startup (waiting for ESL sync)');
+
+export function lockCalls(reason) {
+    _locked = true;
+    console.log(`[GATE] LOCKED — ${reason}`);
+}
+
+export function unlockCalls() {
+    _locked = false;
+    console.log('[GATE] UNLOCKED — system ready');
+}
+
 export function canInitiateCall(userName) {
+    if (_locked) {
+        return { allowed: false, reason: 'system_locked', message: 'System is starting up or shutting down' };
+    }
+
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) {
         return { allowed: false, reason: 'not_found', message: `${userName} not in user table` };
