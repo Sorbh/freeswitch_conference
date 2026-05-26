@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
+import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -408,11 +409,13 @@ adminRouter.post("/users/:userName/mute", (req, res) => {
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
         }
-        if (!userInfo.mac) {
-            return res.status(400).json({ status: false, error: "User has no MAC address" });
+        if (!userInfo.fsMemberId) {
+            return res.status(400).json({ status: false, error: "User has no conference member ID" });
         }
-        global.freeswitch.muteUser(userInfo.mac);
-        global.db.logEvent('mute', userName, userInfo.room, 'Admin muted user');
+        global.freeswitch.muteByMemberId(userInfo.room, userInfo.fsMemberId, userName);
+        userInfo.mute = true;
+        global.db.setUserInfo(userName, userInfo);
+        global.db.logEvent('mute', userName, userInfo.room, 'Muted');
         emitStateChange('users', { userName });
         res.json({ status: true, message: `Mute command sent for ${userName}` });
     } catch (err) {
@@ -429,13 +432,38 @@ adminRouter.post("/users/:userName/unmute", (req, res) => {
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
         }
-        if (!userInfo.mac) {
-            return res.status(400).json({ status: false, error: "User has no MAC address" });
+        if (!userInfo.fsMemberId) {
+            return res.status(400).json({ status: false, error: "User has no conference member ID" });
         }
-        global.freeswitch.unmuteUser(userInfo.mac);
-        global.db.logEvent('unmute', userName, userInfo.room, 'Admin unmuted user');
+        global.freeswitch.unmuteByMemberId(userInfo.room, userInfo.fsMemberId, userName);
+        userInfo.mute = false;
+        global.db.setUserInfo(userName, userInfo);
+        global.db.logEvent('unmute', userName, userInfo.room, 'Unmuted');
         emitStateChange('users', { userName });
         res.json({ status: true, message: `Unmute command sent for ${userName}` });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/:userName/hook — web client hook event (mute/unmute)
+adminRouter.post("/users/:userName/hook", (req, res) => {
+    try {
+        const userName = req.params.userName;
+        const { event } = req.body;
+        console.log(`[API] HOOK ${userName} event=${event}`);
+
+        if (!event) {
+            return res.status(400).json({ status: false, error: "event is required (off_hook or on_hook)" });
+        }
+
+        const result = handleHttpHookEvent(userName, event);
+        if (!result) {
+            return res.status(400).json({ status: false, error: "Failed to process hook event" });
+        }
+
+        emitStateChange('users', { userName });
+        res.json({ status: true, muted: event === 'on_hook' });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

@@ -22,22 +22,30 @@ export function hangupCall(uuid, userName) {
 export function muteUser(mac) {
     const userInfo = global.db.findUserInfo('mac', mac);
     if (Object.keys(userInfo).length === 0 || !userInfo.fsMemberId) return;
-
-    const roomName = global.config.ROOM_NAME[userInfo.room] || userInfo.room;
-    getConnection().api(`conference ${userInfo.room} mute ${userInfo.fsMemberId}`, (response) => {
-        console.log(`[ACTION] MUTE ${userInfo.userName} -> ${roomName} (member ${userInfo.fsMemberId})`);
-        global.db.logEvent('mute_action', userInfo.userName, userInfo.room, 'Admin muted user');
-    });
+    userInfo.mute = true;
+    global.db.setUserInfo(userInfo.userName, userInfo);
+    muteByMemberId(userInfo.room, userInfo.fsMemberId, userInfo.userName);
 }
 
 export function unmuteUser(mac) {
     const userInfo = global.db.findUserInfo('mac', mac);
     if (Object.keys(userInfo).length === 0 || !userInfo.fsMemberId) return;
+    userInfo.mute = false;
+    global.db.setUserInfo(userInfo.userName, userInfo);
+    unmuteByMemberId(userInfo.room, userInfo.fsMemberId, userInfo.userName);
+}
 
-    const roomName = global.config.ROOM_NAME[userInfo.room] || userInfo.room;
-    getConnection().api(`conference ${userInfo.room} unmute ${userInfo.fsMemberId}`, (response) => {
-        console.log(`[ACTION] UNMUTE ${userInfo.userName} -> ${roomName} (member ${userInfo.fsMemberId})`);
-        global.db.logEvent('unmute_action', userInfo.userName, userInfo.room, 'Admin unmuted user');
+export function muteByMemberId(room, memberId, userName) {
+    const roomName = global.config.ROOM_NAME[room] || room;
+    getConnection().api(`conference ${room} mute ${memberId}`, (response) => {
+        console.log(`[ACTION] MUTE ${userName || 'unknown'} -> ${roomName} (member ${memberId})`);
+    });
+}
+
+export function unmuteByMemberId(room, memberId, userName) {
+    const roomName = global.config.ROOM_NAME[room] || room;
+    getConnection().api(`conference ${room} unmute ${memberId}`, (response) => {
+        console.log(`[ACTION] UNMUTE ${userName || 'unknown'} -> ${roomName} (member ${memberId})`);
     });
 }
 

@@ -520,10 +520,24 @@
             showError('');
         }
 
-        function toggleMute() {
+        async function toggleMute() {
             isMuted = !isMuted;
             muteAudio(isMuted);
             updateMuteUI();
+
+            if (!accountData) return;
+            const userName = `sip:${accountData.email}`;
+            const hookEvent = isMuted ? 'on_hook' : 'off_hook';
+            try {
+                await fetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/hook`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event: hookEvent }),
+                });
+                console.log(`[HOOK] ${hookEvent} sent to server`);
+            } catch (e) {
+                console.error(`[HOOK] Failed to send ${hookEvent}:`, e);
+            }
         }
 
         function updateMuteUI() {

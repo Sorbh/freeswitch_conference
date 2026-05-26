@@ -45,6 +45,11 @@ global.callService = callService;
 // Alerting service
 import { checkCriticalUser, startCriticalAlert, stopCriticalAlert } from './service/alerting.js';
 global.alerting = { checkCriticalUser, startCriticalAlert, stopCriticalAlert };
+
+// Phone events (syslog for Yealink hook detection)
+import { startSyslogServer } from './service/phoneEvents.js';
+startSyslogServer(global.config.SYSLOG_PORT || 514);
+
 console.log('Call service loaded');
 
 // On startup: reset all connection states (previous server session is gone)

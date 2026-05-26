@@ -5,6 +5,8 @@ import {
     hangupCall,
     muteUser,
     unmuteUser,
+    muteByMemberId,
+    unmuteByMemberId,
     honkRoom,
     getConferenceList,
 } from './freeswitch/callAction.js';
@@ -20,6 +22,8 @@ freeswitch.connect = connect;
 freeswitch.hangupCall = hangupCall;
 freeswitch.muteUser = muteUser;
 freeswitch.unmuteUser = unmuteUser;
+freeswitch.muteByMemberId = muteByMemberId;
+freeswitch.unmuteByMemberId = unmuteByMemberId;
 freeswitch.honkRoom = honkRoom;
 freeswitch.showMessage = showMessage;
 freeswitch.sendCommands = sendCommands;
