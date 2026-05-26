@@ -41,6 +41,10 @@ try {
 // Call service (depends on freeswitch + db)
 const { default: callService } = await import('./modules/sip-action/service.js');
 global.callService = callService;
+
+// Alerting service
+import { checkCriticalUser, startCriticalAlert, stopCriticalAlert } from './service/alerting.js';
+global.alerting = { checkCriticalUser, startCriticalAlert, stopCriticalAlert };
 console.log('Call service loaded');
 
 // On startup: reset all connection states (previous server session is gone)
@@ -105,18 +109,21 @@ process
     .on('uncaughtException', (err) => shutdown('uncaughtException', err));
 
 function shutdown(signal) {
-    return (err) => {
+    return async (err) => {
         console.log(`${signal} received — shutting down`);
         if (err) console.error(err.stack || err);
 
-        // Reset all users in DB so web clients see correct state
+        // End all active FreeSWITCH calls first — sends BYE to clients
+        try {
+            await callService.allEndCall();
+            console.log('All calls ended — BYE sent to clients');
+        } catch (e) {
+            console.error('Failed to end calls:', e.message);
+        }
+
+        // Then reset DB state
         try {
             global.db.resetAllConnectionStates();
-        } catch { }
-
-        // End all active FreeSWITCH calls
-        try {
-            callService.allEndCall();
         } catch { }
 
         setTimeout(() => {

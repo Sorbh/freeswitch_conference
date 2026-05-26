@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFetch } from "@/hooks/useFetch";
+import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { formatUptimeSeconds, formatBytes } from "@/lib/constants";
 import {
   ServerIcon,
@@ -25,7 +26,8 @@ function StatusDot({ status }) {
 }
 
 export default function SystemPage() {
-  const { data, loading } = useFetch("/api/v1/admin/system", 15000);
+  const { data, loading, refetch } = useFetch("/api/v1/admin/system");
+  useSSERefresh(refetch, ["users", "dashboard"]);
 
   if (loading) {
     return (

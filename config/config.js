@@ -39,6 +39,9 @@ config.ROOM_SHORT_CODE = {
 
 config.loginExpireTime = 24 * 60 * 60 * 7; // 7 days
 
+config.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+config.TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
 config.USER_VALIDATION_API = process.env.USER_VALIDATION_API || 'https://apis.redlineusedautoparts.com/api/user-info';
 config.SIP_DEFAULT_PASSWORD = process.env.SIP_DEFAULT_PASSWORD || '12345678';
 config.HONK_AUDIO_FILE = process.env.HONK_AUDIO_FILE || '/root/sorbh/freeswitch_conference/public/redlinehonk.wav';

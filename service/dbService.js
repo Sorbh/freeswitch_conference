@@ -100,6 +100,16 @@ function init() {
         if (!broadcastCols.includes(col)) sqlite.exec(sql);
     }
 
+    const userCols = sqlite.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+    const userMigrations = [
+        ['client_type', "ALTER TABLE users ADD COLUMN client_type TEXT DEFAULT 'unknown'"],
+        ['registration_state', "ALTER TABLE users ADD COLUMN registration_state TEXT DEFAULT 'unregistered'"],
+        ['reachable', "ALTER TABLE users ADD COLUMN reachable INTEGER DEFAULT 0"],
+    ];
+    for (const [col, sql] of userMigrations) {
+        if (!userCols.includes(col)) sqlite.exec(sql);
+    }
+
     sqlite.exec(`
         CREATE TABLE IF NOT EXISTS accounts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,12 +123,23 @@ function init() {
             zip TEXT,
             room INTEGER,
             active INTEGER DEFAULT 1,
+            critical INTEGER DEFAULT 0,
             created_at INTEGER DEFAULT (strftime('%s', 'now')),
             updated_at INTEGER DEFAULT (strftime('%s', 'now'))
         );
 
         CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_email ON accounts(email);
     `);
+
+    const accountCols = sqlite.prepare("PRAGMA table_info(accounts)").all().map(c => c.name);
+    const accountMigrations = [
+        ['critical', "ALTER TABLE accounts ADD COLUMN critical INTEGER DEFAULT 0"],
+        ['user_name', "ALTER TABLE accounts ADD COLUMN user_name TEXT"],
+        ['kickout', "ALTER TABLE accounts ADD COLUMN kickout INTEGER DEFAULT 0"],
+    ];
+    for (const [col, sql] of accountMigrations) {
+        if (!accountCols.includes(col)) sqlite.exec(sql);
+    }
 
     console.log(`SQLite database initialized at ${DB_PATH}`);
 }
@@ -140,7 +161,8 @@ function setUserInfo(userName, userInfo) {
                 online = ?, payment = ?, retry_count = ?, login_expire = ?,
                 last_connection_state_update = ?, fs_channel_uuid = ?, fs_member_id = ?,
                 caller_id_name = ?, caller_id_html = ?, user_agent = ?, error = ?,
-                redline_data = ?, updated_at = strftime('%s', 'now')
+                redline_data = ?, client_type = ?, registration_state = ?, reachable = ?,
+                updated_at = strftime('%s', 'now')
             WHERE user_name = ?
         `).run(
             userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
@@ -149,6 +171,9 @@ function setUserInfo(userName, userInfo) {
             userInfo.lastConnectionStateUpdate, userInfo.fsChannelUUID, userInfo.fsMemberId,
             userInfo.callerIdName, userInfo.callerIdHtml, userInfo.userAgent, userInfo.error,
             typeof userInfo.redlineData === 'object' ? JSON.stringify(userInfo.redlineData) : userInfo.redlineData,
+            userInfo.clientType || 'unknown',
+            userInfo.registrationState || 'unregistered',
+            userInfo.reachable ? 1 : 0,
             userName
         );
     } else {
@@ -158,19 +183,30 @@ function setUserInfo(userName, userInfo) {
                 room, connection_state, auth_state, mute,
                 online, payment, retry_count, login_expire,
                 last_connection_state_update, fs_channel_uuid, fs_member_id,
-                caller_id_name, caller_id_html, user_agent, error, redline_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                caller_id_name, caller_id_html, user_agent, error, redline_data, client_type,
+                registration_state, reachable
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             userName, userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
             userInfo.room, userInfo.connectionState || 'ideal', userInfo.authState || 'logout', userInfo.mute ? 1 : 0,
             userInfo.online ? 1 : 0, userInfo.payment ? 1 : 0, userInfo.retryCount || 0, userInfo.login_expire,
             userInfo.lastConnectionStateUpdate, userInfo.fsChannelUUID, userInfo.fsMemberId,
             userInfo.callerIdName, userInfo.callerIdHtml, userInfo.userAgent, userInfo.error,
-            typeof userInfo.redlineData === 'object' ? JSON.stringify(userInfo.redlineData) : userInfo.redlineData
+            typeof userInfo.redlineData === 'object' ? JSON.stringify(userInfo.redlineData) : userInfo.redlineData,
+            userInfo.clientType || 'unknown',
+            userInfo.registrationState || 'unregistered',
+            userInfo.reachable ? 1 : 0
         );
     }
 
-    eventEmitter.emit('USER_UPDATE', { userName, ...userInfo });
+    eventEmitter.emit('USER_UPDATE', { type: 'user_update', userName, ...userInfo });
+}
+
+function updateUserInfo(userName, updates) {
+    const userInfo = getUserInfo(userName);
+    if (Object.keys(userInfo).length === 0) return;
+    Object.assign(userInfo, updates);
+    setUserInfo(userName, userInfo);
 }
 
 function getAllUserInfo() {
@@ -262,6 +298,9 @@ function _rowToUserInfo(row) {
         userAgent: row.user_agent,
         error: row.error,
         redlineData: redlineData,
+        clientType: row.client_type || 'unknown',
+        registrationState: row.registration_state || 'unregistered',
+        reachable: !!row.reachable,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -269,7 +308,7 @@ function _rowToUserInfo(row) {
 
 function logEvent(eventType, userName, room, details) {
     sqlite.prepare('INSERT INTO event_log (event_type, user_name, room, details) VALUES (?, ?, ?, ?)').run(eventType, userName, room, details);
-    eventEmitter.emit('EVENT_LOG', { eventType, userName, room, details, created_at: Math.floor(Date.now() / 1000) });
+    eventEmitter.emit('EVENT_LOG', { type: 'event_log', eventType, userName, room, details, created_at: Math.floor(Date.now() / 1000) });
 }
 
 function getEvents(limit = 100, eventType = null) {
@@ -323,6 +362,8 @@ function logBroadcast({ room, roomName, userName, displayName, durationMs, answe
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath);
     eventEmitter.emit('BROADCAST', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, created_at: Math.floor(Date.now() / 1000) });
+    eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'broadcasts' });
+    eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
 }
 
 function getBroadcastStats(days = 7) {
@@ -360,16 +401,20 @@ function getBroadcastStats(days = 7) {
     return { hourly, daily, topBroadcasters, byRoom };
 }
 
-function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room }) {
+function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName }) {
     sqlite.prepare(`
-        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room);
+        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null);
     return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email);
 }
 
 function getAccountByEmail(email) {
     return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email) || null;
+}
+
+function getAccountByUserName(userName) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE user_name = ?').get(userName) || null;
 }
 
 function getAccountById(id) {
@@ -381,7 +426,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -404,6 +449,7 @@ function deleteAccount(id) {
 db.init = init;
 db.getUserInfo = getUserInfo;
 db.setUserInfo = setUserInfo;
+db.updateUserInfo = updateUserInfo;
 db.getAllUserInfo = getAllUserInfo;
 db.findUserInfo = findUserInfo;
 db.filter = filter;
@@ -422,6 +468,7 @@ db.logBroadcast = logBroadcast;
 db.getBroadcastStats = getBroadcastStats;
 db.createAccount = createAccount;
 db.getAccountByEmail = getAccountByEmail;
+db.getAccountByUserName = getAccountByUserName;
 db.getAccountById = getAccountById;
 db.getAllAccounts = getAllAccounts;
 db.updateAccount = updateAccount;

@@ -6,7 +6,7 @@ export default class ActionController {
     newCall = async (request, response) => {
         console.log(request.url);
         try {
-            const data = await service.thirdPartyCallControl(`sip:${request.query.user_name}`);
+            const data = await service.initiateCall(`sip:${request.query.user_name}`);
             return response.status(200).json({ message: 'new call api working fine', data });
         } catch (err) {
             return response.status(400).json(responseMessages.responseMessages.newCallFailed);
@@ -94,6 +94,7 @@ export default class ActionController {
         console.log(request.url);
 
         if (request.query.keep_alive) {
+            console.log(`[KEEP-ALIVE] Keep-alive connected from ${request.ip}`);
             response.setHeader('Content-Type', 'text/event-stream');
             response.setHeader('Cache-Control', 'no-cache');
             response.setHeader('Connection', 'keep-alive');
@@ -103,7 +104,10 @@ export default class ActionController {
             global.db.eventEmitter.on('USER_UPDATE', (msg) => {
                 response.write(`data: ${JSON.stringify({ message: 'Status all api working fine', data: [msg] })}\n\n`);
             });
-            request.on('close', () => response.end());
+            request.on('close', () => {
+                console.log(`[KEEP-ALIVE] Keep-alive disconnected from ${request.ip}`);
+                response.end();
+            });
             return;
         }
 
@@ -133,7 +137,7 @@ export default class ActionController {
             userInfo = global.db.getUserInfo(userInfo.userName);
             userInfo.room = parseInt(request.query.room);
             global.db.setUserInfo(userInfo.userName, userInfo);
-            await service.thirdPartyCallControl(userInfo.userName);
+            await service.initiateCall(userInfo.userName);
 
             return response.status(200).json({ message: 'Updated the room and refreshed the call' });
         } catch (error) {

@@ -18,13 +18,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useFetch } from "@/hooks/useFetch";
+import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { ROOM_NAMES } from "@/lib/constants";
 import { Volume2Icon } from "lucide-react";
 
 const MAX_CAPACITY = 500;
 
 export default function RoomsPage() {
-  const { data, loading } = useFetch("/api/v1/admin/rooms", 10000);
+  const { data, loading, refetch } = useFetch("/api/v1/admin/rooms");
+  useSSERefresh(refetch, ["rooms", "users"]);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 

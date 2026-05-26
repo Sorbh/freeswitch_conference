@@ -34,6 +34,16 @@
         .conf-status.connecting { background: #f39c1233; color: #f1c40f; }
         .conf-status.connected { background: #27ae6033; color: #2ecc71; }
         .conf-status.disconnected { background: #c0392b33; color: #e74c3c; }
+        .conf-status.idle { background: #3498db33; color: #3498db; }
+        .conf-status.deactivated { background: #95a5a633; color: #bdc3c7; }
+        .conf-reg { font-size: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .conf-reg .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .conf-reg .dot.green { background: #2ecc71; }
+        .conf-reg .dot.yellow { background: #f1c40f; }
+        .conf-reg .dot.red { background: #e74c3c; }
+        .conf-standby-msg { font-size: 13px; color: #888; margin-top: 16px; }
+        .btn-join { background: #27ae60; color: #fff; padding: 14px 36px; }
+        .btn-join:hover { background: #219a52; }
 
         .conf-timer { font-size: 48px; font-weight: 700; font-family: 'JetBrains Mono', 'Courier New', monospace; letter-spacing: 2px; margin-bottom: 32px; color: #fff; }
 
@@ -48,6 +58,8 @@
         .btn-leave:hover:not(:disabled) { background: #2471a3; }
         .btn-hangup { background: #c0392b; color: #fff; }
         .btn-hangup:hover:not(:disabled) { background: #a93226; }
+        .btn-logout { background: #7f8c8d; color: #fff; padding: 10px 20px; border: none; border-radius: 10px; font-size: 13px; cursor: pointer; margin-top: 20px; }
+        .btn-logout:hover { background: #636e72; }
 
         .conf-mic-icon { font-size: 20px; }
 
@@ -80,9 +92,10 @@
             <div class="conf-user" id="confUser">-</div>
             <div class="conf-company" id="confCompany">-</div>
             <div class="conf-room" id="confRoom">-</div>
+            <div class="conf-reg" id="confReg"><span class="dot yellow"></span> <span>Registering...</span></div>
             <div class="conf-status disconnected" id="confStatus">Connecting...</div>
             <div class="conf-timer" id="confTimer">00:00</div>
-            <div class="conf-actions">
+            <div class="conf-actions" id="confActions">
                 <button class="conf-btn btn-mute" id="btnMute" onclick="toggleMute()" disabled>
                     <span class="conf-mic-icon" id="muteIcon">🔇</span>
                     <span id="muteLabel">Unmute</span>
@@ -94,6 +107,11 @@
                     Hangup
                 </button>
             </div>
+            <div class="conf-actions" id="confIdleActions" style="display:none">
+                <button class="conf-btn btn-join" onclick="joinConference()">Join Conference</button>
+            </div>
+            <div class="conf-standby-msg" id="confStandbyMsg" style="display:none"></div>
+            <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
     </div>
 
@@ -106,6 +124,10 @@
         let callTimer = null;
         let callSeconds = 0;
         let accountData = null;
+        let keepAliveTimer = null;
+        let sipUserGlobal = null;
+        let loggingOut = false;
+        let regRetryTimer = null;
 
         const host = window.location.hostname || 'localhost';
         const wsServer = window.location.protocol === 'https:'
@@ -123,6 +145,13 @@
             document.getElementById('loginStatus').textContent = '';
         }
 
+        function setRegStatus(state, text) {
+            const el = document.getElementById('confReg');
+            if (!el) return;
+            const colors = { registered: 'green', registering: 'yellow', unregistered: 'red' };
+            el.innerHTML = `<span class="dot ${colors[state] || 'red'}"></span> <span>${text}</span>`;
+        }
+
         function generateMac(email) {
             let hash = 0;
             for (let i = 0; i < email.length; i++) {
@@ -135,6 +164,28 @@
             }
             bytes[0] = (parseInt(bytes[0], 16) & 0xFE | 0x02).toString(16).padStart(2, '0');
             return bytes.join(':');
+        }
+
+        function startKeepAlive() {
+            if (keepAliveTimer) return;
+            keepAliveTimer = setInterval(() => {
+                if (!ua || !ua.isRegistered()) return;
+                const target = `sip:${sipUserGlobal}@${sipDomain}`;
+                ua.sendMessage(target, 'keep-alive', {
+                    contentType: 'text/plain',
+                    eventHandlers: {
+                        succeeded: () => { console.log('[KEEP-ALIVE] sent MESSAGE -> 200 OK'); },
+                        failed: (e) => { console.warn('[KEEP-ALIVE] sent MESSAGE -> failed', e.cause); },
+                    }
+                });
+            }, 30000);
+        }
+
+        function stopKeepAlive() {
+            if (keepAliveTimer) {
+                clearInterval(keepAliveTimer);
+                keepAliveTimer = null;
+            }
         }
 
         async function doLogin() {
@@ -151,6 +202,7 @@
 
             try {
                 const sipUser = email.replace('@', '.at.');
+                sipUserGlobal = sipUser;
                 const mac = generateMac(email);
 
                 if (typeof JsSIP === 'undefined') {
@@ -170,15 +222,27 @@
                     register: true,
                     register_expires: 120,
                     session_timers: false,
+                    connection_recovery_min_interval: 2,
+                    connection_recovery_max_interval: 30,
                     user_agent: `Redline-WebClient/1.0 ${mac}`,
                 };
 
                 ua = new JsSIP.UA(config);
 
                 ua.on('registered', async () => {
-                    showStatus('Authenticated. Loading account...');
                     console.log('SIP registered successfully for:', email);
+                    setRegStatus('registered', 'Registered');
+                    startKeepAlive();
+                    if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
+                    sessionStorage.setItem('sip_credentials', JSON.stringify({ email, password }));
 
+                    // Already loaded — just update status on re-registration
+                    if (accountData) {
+                        console.log('[SIP] Re-registered');
+                        return;
+                    }
+
+                    showStatus('Authenticated. Loading account...');
                     try {
                         const lookupUrl = `/api/v1/admin/account-lookup?email=${encodeURIComponent(email)}`;
                         console.log('Fetching account:', lookupUrl);
@@ -191,6 +255,7 @@
                         if (!accountData || !accountData.room) {
                             console.error('No room in account data:', accountData);
                             showError('No conference room assigned to your account.');
+                            sessionStorage.removeItem('sip_credentials');
                             ua.unregister();
                             ua.stop();
                             ua = null;
@@ -201,6 +266,12 @@
                         console.log('Account loaded:', accountData.display_name, 'Room:', accountData.room);
 
                         showConfScreen();
+
+                        if (!accountData.active) {
+                            showDeactivatedState();
+                        } else {
+                            showIdleState();
+                        }
                     } catch (e) {
                         console.error('Account lookup failed:', e);
                         showError('Failed to load account details: ' + e.message);
@@ -209,18 +280,75 @@
                 });
 
                 ua.on('registrationFailed', (e) => {
-                    console.error('SIP registration failed:', e.cause, e);
-                    showError('Invalid email or password. (' + e.cause + ')');
-                    document.getElementById('btnLogin').disabled = false;
-                    ua.stop();
-                    ua = null;
+                    const cause = e.cause || '';
+                    console.error('SIP registration failed:', cause, e);
+
+                    // Only kill UA on hard auth failure during initial login
+                    if (!accountData && (cause === 'Rejected' || cause === 'Forbidden')) {
+                        stopKeepAlive();
+                        sessionStorage.removeItem('sip_credentials');
+                        setRegStatus('unregistered', 'Auth Failed');
+                        showError('Invalid email or password. (' + cause + ')');
+                        document.getElementById('btnLogin').disabled = false;
+                        ua.stop();
+                        ua = null;
+                        return;
+                    }
+
+                    // Once logged in, never kill UA — keep retrying like a Yealink
+                    console.log(`[SIP] Registration failed (${cause}), retrying in 30s`);
+                    stopKeepAlive();
+                    setRegStatus('registering', `Re-registering... (${cause || 'timeout'})`);
+                    if (accountData) {
+                        document.getElementById('confStatus').textContent = 'Re-registering...';
+                        document.getElementById('confStatus').className = 'conf-status connecting';
+                    } else {
+                        showStatus('Server unavailable, retrying...');
+                    }
+
+                    // jsSIP Registrator doesn't reschedule after failure — fill the gap
+                    if (!regRetryTimer && ua) {
+                        regRetryTimer = setInterval(() => {
+                            if (!ua) { clearInterval(regRetryTimer); regRetryTimer = null; return; }
+                            if (ua.isRegistered()) { clearInterval(regRetryTimer); regRetryTimer = null; return; }
+                            console.log('[SIP] Retry REGISTER');
+                            ua.register();
+                        }, 30000);
+                    }
+                });
+
+                ua.on('unregistered', () => {
+                    if (loggingOut) return;
+                    console.warn('[SIP] Unregistered');
+                    stopKeepAlive();
+                    setRegStatus('unregistered', 'Not Registered');
+                    if (accountData) {
+                        document.getElementById('confStatus').textContent = 'Unregistered';
+                        document.getElementById('confStatus').className = 'conf-status disconnected';
+                    }
                 });
 
                 ua.on('disconnected', (e) => {
-                    console.warn('SIP disconnected:', e);
-                    if (!accountData) {
-                        showError('Connection failed. Please try again.');
-                        document.getElementById('btnLogin').disabled = false;
+                    if (loggingOut) return;
+                    stopKeepAlive();
+                    console.warn('[SIP] WebSocket disconnected, jsSIP will auto-reconnect');
+                    setRegStatus('unregistered', 'Disconnected');
+                    if (accountData) {
+                        document.getElementById('confStatus').textContent = 'Reconnecting...';
+                        document.getElementById('confStatus').className = 'conf-status connecting';
+                    } else {
+                        showStatus('Connection lost, reconnecting...');
+                    }
+                });
+
+                ua.on('connected', () => {
+                    console.log('[SIP] WebSocket reconnected');
+                    setRegStatus('registering', 'Registering...');
+                });
+
+                ua.on('newMessage', (data) => {
+                    if (data.originator === 'remote') {
+                        data.message.accept();
                     }
                 });
 
@@ -269,6 +397,49 @@
             document.getElementById('confRoom').textContent = roomNames[accountData.room] || `Room ${accountData.room}`;
             document.getElementById('confStatus').textContent = 'Connecting...';
             document.getElementById('confStatus').className = 'conf-status connecting';
+            document.getElementById('confActions').style.display = 'none';
+            document.getElementById('confIdleActions').style.display = 'none';
+            document.getElementById('confStandbyMsg').style.display = 'none';
+        }
+
+        function showIdleState() {
+            document.getElementById('confStatus').textContent = 'Idle';
+            document.getElementById('confStatus').className = 'conf-status idle';
+            document.getElementById('confTimer').textContent = '--:--';
+            document.getElementById('confActions').style.display = 'none';
+            document.getElementById('confIdleActions').style.display = 'flex';
+            document.getElementById('confStandbyMsg').style.display = 'none';
+        }
+
+        function showDeactivatedState() {
+            document.getElementById('confStatus').textContent = 'Deactivated';
+            document.getElementById('confStatus').className = 'conf-status deactivated';
+            document.getElementById('confTimer').textContent = '--:--';
+            document.getElementById('confActions').style.display = 'none';
+            document.getElementById('confIdleActions').style.display = 'none';
+            document.getElementById('confStandbyMsg').style.display = 'block';
+            document.getElementById('confStandbyMsg').textContent = 'Your account is currently deactivated. Contact your administrator to reactivate.';
+        }
+
+        async function joinConference() {
+            if (!accountData) return;
+            const userName = `sip:${accountData.email}`;
+            console.log('Joining conference for:', userName);
+            document.getElementById('confStatus').textContent = 'Connecting...';
+            document.getElementById('confStatus').className = 'conf-status connecting';
+            document.getElementById('confIdleActions').style.display = 'none';
+            try {
+                const res = await fetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/reconnect`, { method: 'POST' });
+                const json = await res.json();
+                console.log('Join response:', json);
+                if (!json.status) {
+                    console.error('Join error:', json.error);
+                    showIdleState();
+                }
+            } catch (e) {
+                console.error('Join failed:', e);
+                showIdleState();
+            }
         }
 
         async function reconnect() {
@@ -281,6 +452,9 @@
                 const res = await fetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/reconnect`, { method: 'POST' });
                 const json = await res.json();
                 console.log('Reconnect response:', json);
+                if (!json.status) {
+                    console.error('Reconnect error:', json.error);
+                }
             } catch (e) {
                 console.error('Reconnect failed:', e);
             }
@@ -289,12 +463,16 @@
         function onCallConnected() {
             document.getElementById('confStatus').textContent = 'Connected';
             document.getElementById('confStatus').className = 'conf-status connected';
+            document.getElementById('confActions').style.display = 'flex';
+            document.getElementById('confIdleActions').style.display = 'none';
+            document.getElementById('confStandbyMsg').style.display = 'none';
             document.getElementById('btnMute').disabled = false;
 
             isMuted = true;
             muteAudio(true);
             updateMuteUI();
 
+            if (callTimer) clearInterval(callTimer);
             callSeconds = 0;
             callTimer = setInterval(() => {
                 callSeconds++;
@@ -315,6 +493,31 @@
             resetCallState();
             document.getElementById('confStatus').textContent = 'Disconnected';
             document.getElementById('confStatus').className = 'conf-status disconnected';
+        }
+
+        function logout() {
+            loggingOut = true;
+            stopKeepAlive();
+            if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
+            if (currentSession) {
+                currentSession.terminate();
+                currentSession = null;
+            }
+            if (ua) {
+                ua.unregister();
+                ua.stop();
+                ua = null;
+            }
+            accountData = null;
+            sipUserGlobal = null;
+            sessionStorage.removeItem('sip_credentials');
+            document.getElementById('confScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('btnLogin').disabled = false;
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            showStatus('');
+            showError('');
         }
 
         function toggleMute() {
@@ -356,9 +559,15 @@
             if (callTimer) clearInterval(callTimer);
             callTimer = null;
             document.getElementById('confTimer').textContent = '00:00';
-            document.getElementById('confStatus').textContent = 'Disconnected';
-            document.getElementById('confStatus').className = 'conf-status disconnected';
             document.getElementById('btnMute').disabled = true;
+            document.getElementById('confActions').style.display = 'none';
+
+            if (accountData && accountData.active) {
+                showIdleState();
+            } else {
+                document.getElementById('confStatus').textContent = 'Disconnected';
+                document.getElementById('confStatus').className = 'conf-status disconnected';
+            }
         }
 
         // Allow Enter key to submit
@@ -371,6 +580,22 @@
         if (typeof JsSIP === 'undefined') {
             showError('SIP library failed to load.');
         }
+
+        // Auto-reconnect on page load if credentials are saved
+        (function autoReconnect() {
+            const saved = sessionStorage.getItem('sip_credentials');
+            if (!saved) return;
+            try {
+                const { email, password } = JSON.parse(saved);
+                if (!email || !password) return;
+                console.log('[AUTO-RECONNECT] Restoring session for', email);
+                document.getElementById('email').value = email;
+                document.getElementById('password').value = password;
+                doLogin();
+            } catch (e) {
+                sessionStorage.removeItem('sip_credentials');
+            }
+        })();
     </script>
 </body>
 </html>

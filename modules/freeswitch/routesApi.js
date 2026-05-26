@@ -3,9 +3,7 @@ import express from "express";
 export let freeswitchRouter = express.Router();
 
 freeswitchRouter.post("/directory", async (req, res) => {
-    const { user, domain, purpose, action, section } = req.body;
-
-    console.log(`FS Directory request: user=${user} domain=${domain} purpose=${purpose} action=${action} section=${section}`);
+    const { user, domain, action, section } = req.body;
 
     if (section !== 'directory') {
         return res.type('xml').send(_notFoundXml());
@@ -19,7 +17,6 @@ freeswitchRouter.post("/directory", async (req, res) => {
     const account = global.db.getAccountByEmail(email);
 
     if (!account || !account.active) {
-        console.log(`FS Directory: account not found or inactive for ${email}`);
         return res.type('xml').send(_notFoundXml());
     }
 
@@ -27,7 +24,6 @@ freeswitchRouter.post("/directory", async (req, res) => {
         return res.type('xml').send(_userXml(user, domain, account.password));
     }
 
-    console.log(`FS Directory: authenticated ${email} (${account.company_name})`);
     return res.type('xml').send(_userXml(user, domain, account.password));
 });
 

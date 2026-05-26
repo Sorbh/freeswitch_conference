@@ -7,6 +7,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { useFetch } from "@/hooks/useFetch";
+import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { ROOM_NAMES, EVENT_COLORS, timeAgo } from "@/lib/constants";
 import {
   UsersIcon,
@@ -288,9 +289,11 @@ function EventFeed({ events }) {
 }
 
 export default function DashboardPage() {
-  const { data: dashRaw, loading } = useFetch("/api/v1/admin/dashboard", 10000);
-  const { data: recentRaw, loading: eventsLoading } = useFetch("/api/v1/admin/events?limit=10", 10000);
-  const { data: broadcastRaw } = useFetch("/api/v1/admin/broadcasts", 30000);
+  const { data: dashRaw, loading, refetch: refetchDash } = useFetch("/api/v1/admin/dashboard");
+  const { data: recentRaw, loading: eventsLoading, refetch: refetchEvents } = useFetch("/api/v1/admin/events?limit=10");
+  const { data: broadcastRaw, refetch: refetchBroadcasts } = useFetch("/api/v1/admin/broadcasts");
+  useSSERefresh(() => { refetchDash(); refetchEvents(); }, ["dashboard", "users", "events"]);
+  useSSERefresh(refetchBroadcasts, ["broadcasts"]);
 
   const data = dashRaw?.data ?? dashRaw;
   const recentEvents = (() => {

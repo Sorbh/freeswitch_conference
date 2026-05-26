@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useFetch } from "@/hooks/useFetch";
+import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { ROOM_NAMES, timeAgo } from "@/lib/constants";
 import {
   MicIcon,
@@ -52,9 +53,19 @@ import {
   MapPinIcon,
   AudioLinesIcon,
   WifiIcon,
+  WifiOffIcon,
   ShieldIcon,
+  ShieldCheckIcon,
+  ShieldXIcon,
   NetworkIcon,
   ClockIcon,
+  CopyIcon,
+  CheckIcon,
+  PhoneIcon,
+  PhoneCallIcon,
+  PhoneOffIcon,
+  PhoneIncomingIcon,
+  BanIcon,
 } from "lucide-react";
 
 const EMPTY_FORM = {
@@ -79,10 +90,61 @@ function formatDate(d) {
   return new Date(d).toLocaleString();
 }
 
+function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+  return Promise.resolve();
+}
+
+function CopyableCell({ text, children, className = "" }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback((e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!text) return;
+    copyToClipboard(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [text]);
+
+  if (!text) return <span className={className}>{children || "-"}</span>;
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 max-w-full ${className}`}>
+      <span className="truncate">{children || text}</span>
+      <button
+        type="button"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={handleCopy}
+        className="shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-150 p-0.5 rounded hover:bg-muted-foreground/10 cursor-pointer"
+        title={copied ? "Copied!" : `Copy ${text}`}
+      >
+        {copied ? (
+          <CheckIcon className="size-3 text-emerald-400 animate-in zoom-in-50 duration-150" />
+        ) : (
+          <CopyIcon className="size-3 text-muted-foreground/50 hover:text-muted-foreground transition-colors" />
+        )}
+      </button>
+    </span>
+  );
+}
+
 export default function UsersPage() {
-  const { data, loading, refetch } = useFetch("/api/v1/admin/users", 15000);
+  const { data, loading, refetch } = useFetch("/api/v1/admin/users");
+  useSSERefresh(refetch, ["users"]);
   const [search, setSearch] = useState("");
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUserName, setSelectedUserName] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [newRoom, setNewRoom] = useState("");
@@ -96,6 +158,10 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const users = Array.isArray(data) ? data : [];
+  const selectedUser = useMemo(
+    () => users.find((u) => u.userName === selectedUserName) || null,
+    [users, selectedUserName]
+  );
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
     return (
@@ -106,6 +172,13 @@ export default function UsersPage() {
       (u.account?.company_name || "").toLowerCase().includes(q) ||
       (u.account?.display_name || "").toLowerCase().includes(q)
     );
+  }).sort((a, b) => {
+    const score = (u) =>
+      (u.reachable ? 4 : 0) +
+      (u.connectionState === "connected" ? 3 : 0) +
+      (u.online ? 2 : 0) +
+      (u.registrationState === "registered" ? 1 : 0);
+    return score(b) - score(a);
   });
 
   const onlineCount = users.filter((u) => u.connectionState === "connected" || u.online).length;
@@ -242,6 +315,21 @@ export default function UsersPage() {
           <PlusIcon className="size-4 mr-2" />
           Add User
         </Button>
+        <Button
+          variant="destructive"
+          onClick={async () => {
+            if (!confirm("Kick out ALL users and disconnect all calls?")) return;
+            try {
+              await fetch("/api/v1/admin/users/kickout-all", { method: "POST" });
+              refetch();
+            } catch (e) {
+              console.error("Kickout all failed:", e);
+            }
+          }}
+        >
+          <BanIcon className="size-4 mr-2" />
+          Kickout All
+        </Button>
       </div>
 
       <Card>
@@ -249,12 +337,19 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40px]"></TableHead>
+                <TableHead className="w-[130px]">
+                  <div className="flex items-center gap-3 text-muted-foreground/60">
+                    <WifiIcon className="size-3.5" title="Online" />
+                    <ShieldIcon className="size-3.5" title="Registration" />
+                    <PhoneIcon className="size-3.5" title="Call" />
+                    <BanIcon className="size-3.5" title="Kickout" />
+                  </div>
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden lg:table-cell">Company</TableHead>
                 <TableHead className="hidden md:table-cell">Room</TableHead>
-                <TableHead className="hidden lg:table-cell">Status</TableHead>
+                <TableHead className="hidden md:table-cell">Account</TableHead>
                 <TableHead>Last Seen</TableHead>
                 <TableHead className="text-right w-[120px]"></TableHead>
               </TableRow>
@@ -270,25 +365,59 @@ export default function UsersPage() {
                 filtered.map((user) => (
                   <TableRow
                     key={user.userName}
-                    className="cursor-pointer group transition-colors"
+                    className={`cursor-pointer group transition-colors ${user.account && !user.account.active ? "opacity-50" : ""}`}
                     onClick={() => {
-                      setSelectedUser(user);
+                      setSelectedUserName(user.userName);
                       setSheetOpen(true);
                     }}
                   >
                     <TableCell>
-                      <span className={`inline-block size-2 rounded-full ${getStatusDot(user)}`} />
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {user.account?.display_name || user.callerIdName || user.userName}
-                        {user.account && !user.account.active && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactive</Badge>
+                      <div className="flex items-center gap-3">
+                        {user.online ? (
+                          <WifiIcon className="size-4 text-emerald-500" title="Online" />
+                        ) : (
+                          <WifiOffIcon className="size-4 text-zinc-500" title="Offline" />
+                        )}
+                        {user.registrationState === "registered" ? (
+                          <ShieldCheckIcon className="size-4 text-emerald-500" title="Registered" />
+                        ) : user.registrationState === "expired" ? (
+                          <ShieldXIcon className="size-4 text-amber-500" title="Expired" />
+                        ) : (
+                          <ShieldXIcon className="size-4 text-zinc-500" title="Unregistered" />
+                        )}
+                        {user.connectionState === "connected" ? (
+                          <PhoneCallIcon className="size-4 text-emerald-500" title="In Call" />
+                        ) : user.connectionState === "connecting" ? (
+                          <PhoneIncomingIcon className="size-4 text-amber-500 animate-pulse" title="Connecting" />
+                        ) : user.connectionState === "hangup" ? (
+                          <PhoneOffIcon className="size-4 text-red-500" title="Hangup" />
+                        ) : (
+                          <PhoneIcon className="size-4 text-zinc-500" title="Idle" />
+                        )}
+                        {user.account?.kickout ? (
+                          <BanIcon className="size-4 text-red-500" title="Kicked Out" />
+                        ) : (
+                          <BanIcon className="size-4 text-zinc-500/30" title="Not Kicked" />
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <CopyableCell text={user.account?.display_name || user.callerIdName || user.userName}>
+                          {user.account?.display_name || user.callerIdName || user.userName}
+                        </CopyableCell>
+                        {user.account && !user.account.active && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactive</Badge>
+                        )}
+                        {user.account?.kickout ? (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 gap-1">
+                            <BanIcon className="size-2.5" />Kicked
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                      {user.account?.email || user.userName}
+                      <CopyableCell text={user.account?.email || user.userName} />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
                       {user.account?.company_name || "-"}
@@ -296,8 +425,19 @@ export default function UsersPage() {
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                       {ROOM_NAMES[user.room] || user.room || "-"}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
-                      {user.connectionState || "-"}
+                    <TableCell className="hidden md:table-cell">
+                      {user.account ? (
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                          user.account.active
+                            ? "text-emerald-500"
+                            : "text-muted-foreground/50"
+                        }`}>
+                          <span className={`size-1.5 rounded-full ${user.account.active ? "bg-emerald-500" : "bg-zinc-500"}`} />
+                          {user.account.active ? "Active" : "Inactive"}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">
                       {timeAgo(user.updatedAt)}
@@ -371,7 +511,7 @@ export default function UsersPage() {
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="sm:max-w-[420px] p-0 overflow-y-auto border-l border-border/50 bg-background/95 backdrop-blur-xl">
+        <SheetContent showCloseButton={false} className="sm:max-w-[420px] p-0 overflow-y-auto border-l border-border/50 bg-background/95 backdrop-blur-xl">
           <SheetHeader className="sr-only">
             <SheetTitle>User Details</SheetTitle>
             <SheetDescription>User details and account info</SheetDescription>
@@ -401,19 +541,6 @@ export default function UsersPage() {
                       }`} />
                       {getStatusLabel(selectedUser)}
                     </div>
-                    {acc && (
-                      <button
-                        onClick={() => toggleActive(selectedUser)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer ${
-                          acc.active
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
-                            : "bg-zinc-500/10 text-zinc-500 border-zinc-500/20 hover:bg-zinc-500/20"
-                        }`}
-                      >
-                        <span className={`size-1.5 rounded-full ${acc.active ? "bg-emerald-400" : "bg-zinc-500"}`} />
-                        {acc.active ? "Active" : "Inactive"}
-                      </button>
-                    )}
                   </div>
 
                   <div className="relative flex items-center gap-4">
@@ -473,7 +600,38 @@ export default function UsersPage() {
                 {/* Account section */}
                 {acc && (
                   <div className="px-6 py-5 space-y-3">
-                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold">Account</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold">Account</p>
+                      <div className="flex items-center gap-2.5">
+                        <span className={`text-xs font-medium ${acc.active ? "text-emerald-400" : "text-muted-foreground/50"}`}>
+                          {acc.active ? "Active" : "Inactive"}
+                        </span>
+                        <Switch
+                          checked={!!acc.active}
+                          onCheckedChange={() => toggleActive(selectedUser)}
+                          className="data-checked:bg-emerald-500"
+                        />
+                      </div>
+                    </div>
+                    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${acc.kickout ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40"}`}>
+                      <div className="flex items-center gap-2">
+                        <BanIcon className={`size-4 ${acc.kickout ? "text-red-500" : "text-muted-foreground/50"}`} />
+                        <div>
+                          <p className="text-sm font-medium">Kicked Out</p>
+                          <p className="text-[11px] text-muted-foreground/60">Block from joining conferences</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        {acc.kickout ? (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Kicked</Badge>
+                        ) : null}
+                        <Switch
+                          checked={!!acc.kickout}
+                          onCheckedChange={() => doAction(selectedUser.userName, "kickout")}
+                          className="data-checked:bg-red-500"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-1">
                       {[
                         { icon: <MailIcon className="size-3.5" />, label: "Email", value: acc.email },

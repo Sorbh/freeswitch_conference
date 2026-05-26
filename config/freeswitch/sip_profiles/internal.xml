@@ -54,6 +54,9 @@
     <param name="unregister-on-options-fail" value="true"/>
     <param name="options-ping-interval" value="30"/>
 
+    <!-- Route SIP MESSAGE via chatplan instead of dialplan -->
+    <param name="chatplan" value="XML"/>
+
     <!-- Misc -->
     <param name="dialplan" value="XML"/>
     <param name="manage-presence" value="false"/>

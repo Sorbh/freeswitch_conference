@@ -15,6 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { useFetch } from "@/hooks/useFetch";
+import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { ROOM_NAMES } from "@/lib/constants";
 import {
   BarChart,
@@ -37,7 +38,8 @@ const chartConfig = {
 };
 
 export default function BroadcastsPage() {
-  const { data, loading } = useFetch("/api/v1/admin/broadcasts", 30000);
+  const { data, loading, refetch } = useFetch("/api/v1/admin/broadcasts");
+  useSSERefresh(refetch, ["broadcasts"]);
 
   if (loading) {
     return (

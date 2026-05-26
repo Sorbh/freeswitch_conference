@@ -1,0 +1,153 @@
+// Single entry point for initiating calls to SIP clients.
+// Validates eligibility (online, active, kickout, connectionState),
+// originates the call to FreeSWITCH conference, and handles retry logic.
+import { getConnection } from './connection.js';
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 5000;
+
+export function canInitiateCall(userName) {
+    const userInfo = global.db.getUserInfo(userName);
+    if (Object.keys(userInfo).length === 0) {
+        return { allowed: false, reason: 'not_found', message: `${userName} not in user table` };
+    }
+
+    if (!userInfo.online) {
+        return { allowed: false, reason: 'offline', message: `${userName} is offline` };
+    }
+
+    if (userInfo.connectionState === 'connected' || userInfo.connectionState === 'connecting') {
+        return { allowed: false, reason: 'already_in_call', message: `${userName} already ${userInfo.connectionState}` };
+    }
+
+    if (userInfo.authState === 'logout') {
+        return { allowed: false, reason: 'logged_out', message: `${userName} is logged out` };
+    }
+
+    const email = userName.replace('sip:', '');
+    const account = global.db.getAccountByEmail(email);
+
+    if (!account) {
+        return { allowed: false, reason: 'no_account', message: `${userName} has no account` };
+    }
+
+    if (!account.active) {
+        return { allowed: false, reason: 'inactive', message: `${userName} account inactive` };
+    }
+
+    if (account.kickout) {
+        return { allowed: false, reason: 'kickout', message: `${userName} is kicked out` };
+    }
+
+    return { allowed: true, userInfo, account };
+}
+
+export async function initiateCall(userName) {
+    const gate = canInitiateCall(userName);
+    if (!gate.allowed) {
+        console.log(`[GATE] BLOCKED ${userName} — ${gate.reason}`);
+        return false;
+    }
+
+    const userInfo = global.db.getUserInfo(userName);
+
+    if (userInfo.connectionState === 'retry') {
+        if (userInfo.retryCount > MAX_RETRIES) {
+            userInfo.connectionState = 'error';
+            userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            userInfo.retryCount = 0;
+            global.db.setUserInfo(userName, userInfo);
+            console.log(`[GATE] ${userName} reached max retries, aborting`);
+            return false;
+        }
+        userInfo.retryCount = (userInfo.retryCount || 0) + 1;
+    }
+
+    userInfo.connectionState = 'connecting';
+    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+    global.db.setUserInfo(userName, userInfo);
+
+    const roomName = global.config.ROOM_NAME[userInfo.room] || userInfo.room;
+    console.log(`[GATE] ALLOW ${userName} -> ${roomName}${userInfo.retryCount ? ` (retry ${userInfo.retryCount}/${MAX_RETRIES})` : ''}`);
+
+    try {
+        await _originateToConference(userName);
+        return true;
+    } catch (err) {
+        console.error(`[GATE] FAILED ${userName}: ${err.message}`);
+
+        const updatedInfo = global.db.getUserInfo(userName);
+
+        if (updatedInfo.connectionState === 'hangup') {
+            console.error(`[GATE] ${userName} hung up during connect, skip retry`);
+            updatedInfo.connectionState = 'error';
+            updatedInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            updatedInfo.error = err.message;
+            global.db.setUserInfo(userName, updatedInfo);
+            return false;
+        }
+
+        updatedInfo.connectionState = 'retry';
+        updatedInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+        updatedInfo.error = err.message;
+        global.db.setUserInfo(userName, updatedInfo);
+
+        console.log(`[GATE] Retrying ${userName} in ${RETRY_DELAY / 1000}s`);
+        setTimeout(() => initiateCall(userName), RETRY_DELAY);
+
+        return false;
+    }
+}
+
+function _originateToConference(userName) {
+    return new Promise((resolve, reject) => {
+        const userInfo = global.db.getUserInfo(userName);
+        if (Object.keys(userInfo).length === 0) {
+            reject(new Error(`User ${userName} not found`));
+            return;
+        }
+
+        const roomName = global.config.ROOM_NAME[userInfo.room] || 'Unknown';
+        const profile = global.config.FREESWITCH_SOFIA_PROFILE;
+        const confProfile = global.config.FREESWITCH_CONFERENCE_PROFILE;
+
+        const sipUser = userInfo.userName.replace('sip:', '');
+        const sipUserEncoded = sipUser.includes('@') ? sipUser.replace('@', '.at.') : sipUser;
+        const contactLookup = `sofia_contact ${profile}/${sipUserEncoded}@${global.config.FREESWITCH_PUBLIC_IP}`;
+
+        const conn = getConnection();
+        conn.api(contactLookup, (contactResponse) => {
+            const contact = contactResponse.getBody().trim();
+
+            if (!contact || contact.startsWith('-ERR') || contact === 'error/user_not_registered') {
+                reject(new Error(`User ${userName} not registered on FreeSWITCH`));
+                return;
+            }
+
+            const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
+
+            console.log(`[CALL] ORIGINATE ${userName} -> ${roomName}`);
+
+            conn.api(originateCmd, (response) => {
+                const body = response.getBody().trim();
+
+                if (body.startsWith('+OK')) {
+                    const uuid = body.replace('+OK ', '').trim();
+                    console.log(`[CALL] OK ${userName}`);
+
+                    userInfo.fsChannelUUID = uuid;
+                    userInfo.connectionState = 'connected';
+                    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                    delete userInfo.error;
+                    delete userInfo.retryCount;
+                    global.db.setUserInfo(userName, userInfo);
+
+                    resolve(userInfo);
+                } else {
+                    console.error(`[CALL] FAILED ${userName}: ${body}`);
+                    reject(new Error(body));
+                }
+            });
+        });
+    });
+}

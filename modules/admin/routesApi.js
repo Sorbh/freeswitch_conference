@@ -2,11 +2,16 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export let adminRouter = express.Router();
+
+function emitStateChange(scope, detail = {}) {
+    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope, ...detail });
+}
 
 // GET /account-lookup?email=... — public endpoint to get account info after SIP auth
 adminRouter.get("/account-lookup", (req, res) => {
@@ -14,7 +19,7 @@ adminRouter.get("/account-lookup", (req, res) => {
         const email = req.query.email;
         if (!email) return res.status(400).json({ status: false, error: "Email is required" });
         const account = global.db.getAccountByEmail(email);
-        if (!account || !account.active) {
+        if (!account) {
             return res.status(404).json({ status: false, error: "Account not found" });
         }
         const { password, ...safe } = account;
@@ -210,10 +215,14 @@ adminRouter.get("/events/stream", (req, res) => {
 
     global.db.eventEmitter.on('EVENT_LOG', onEvent);
     global.db.eventEmitter.on('USER_UPDATE', onEvent);
+    global.db.eventEmitter.on('STATE_CHANGE', onEvent);
+    global.db.eventEmitter.on('BROADCAST', onEvent);
 
     req.on('close', () => {
         global.db.eventEmitter.off('EVENT_LOG', onEvent);
         global.db.eventEmitter.off('USER_UPDATE', onEvent);
+        global.db.eventEmitter.off('STATE_CHANGE', onEvent);
+        global.db.eventEmitter.off('BROADCAST', onEvent);
     });
 });
 
@@ -269,20 +278,122 @@ adminRouter.get("/system", async (req, res) => {
 adminRouter.post("/users/:userName/reconnect", async (req, res) => {
     try {
         const userName = req.params.userName;
+        console.log(`[API] RECONNECT ${userName}`);
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
         }
 
-        // Hangup existing call if any
+        // End existing call: update DB first, clear handler, then kill on FreeSWITCH
         if (userInfo.fsChannelUUID) {
-            await global.freeswitch.hangupCall(userInfo.fsChannelUUID);
+            const savedUuid = userInfo.fsChannelUUID;
+            userInfo.connectionState = 'hangup';
+            userInfo.fsChannelUUID = null;
+            userInfo.fsMemberId = null;
+            userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            global.db.setUserInfo(userName, userInfo);
+            getConnectionHandlers().delete(savedUuid);
+            await global.freeswitch.hangupCall(savedUuid, userName);
+            // Wait for FreeSWITCH to send BYE to client
+            await new Promise(r => setTimeout(r, 1000));
         }
 
-        // Reconnect
-        const result = await global.freeswitch.originateToConference(userName);
-        global.db.logEvent('reconnect', userName, userInfo.room, 'Admin forced reconnect');
-        res.json({ status: true, data: result });
+        const result = await global.freeswitch.initiateCall(userName);
+        global.db.logEvent('reconnect', userName, userInfo.room, 'Reconnect from client');
+        emitStateChange('users', { userName });
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
+        res.json({ status: true, data: { reconnected: result } });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/:userName/kickout — toggle kickout for a user
+adminRouter.post("/users/:userName/kickout", async (req, res) => {
+    try {
+        const userName = req.params.userName;
+        console.log(`[API] KICKOUT ${userName}`);
+        const userInfo = global.db.getUserInfo(userName);
+        if (!userInfo || Object.keys(userInfo).length === 0) {
+            return res.status(404).json({ status: false, error: "User not found" });
+        }
+
+        const email = userName.replace('sip:', '');
+        const account = global.db.getAccountByEmail(email);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        const kickout = account.kickout ? 0 : 1;
+        global.db.updateAccount(account.id, { kickout });
+
+        if (kickout) {
+            const savedUuid = userInfo.fsChannelUUID;
+
+            // Update DB BEFORE killing call — prevents _onCallHangup from reconnecting
+            userInfo.connectionState = 'hangup';
+            userInfo.fsChannelUUID = null;
+            userInfo.fsMemberId = null;
+            userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            global.db.setUserInfo(userName, userInfo);
+            global.db.logEvent('kickout', userName, userInfo.room, 'User kicked from conference');
+
+            // Remove hangup handler so _onCallHangup doesn't trigger reconnect
+            if (savedUuid) {
+                getConnectionHandlers().delete(savedUuid);
+                await global.freeswitch.hangupCall(savedUuid, userName);
+            }
+        } else {
+            global.db.logEvent('kickout_removed', userName, userInfo.room, 'Kickout removed');
+        }
+
+        emitStateChange('users', { userName });
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
+        res.json({ status: true, kickout: !!kickout });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/kickout-all — kickout all users and disconnect all calls
+adminRouter.post("/users/kickout-all", async (req, res) => {
+    try {
+        console.log('[API] KICKOUT-ALL');
+        const accounts = global.db.getAllAccounts();
+        const users = global.db.getAllUserInfo();
+        let kicked = 0;
+        let disconnected = 0;
+
+        for (const account of accounts) {
+            if (!account.kickout) {
+                global.db.updateAccount(account.id, { kickout: 1 });
+                kicked++;
+            }
+        }
+
+        for (const user of users) {
+            if (user.fsChannelUUID) {
+                try {
+                    await global.freeswitch.hangupCall(user.fsChannelUUID, user.userName);
+                } catch (e) {
+                    console.error(`[KICKOUT-ALL] Failed to hangup ${user.userName}:`, e.message);
+                }
+                disconnected++;
+            }
+            if (user.connectionState === 'connected' || user.connectionState === 'connecting') {
+                user.connectionState = 'hangup';
+                user.fsChannelUUID = null;
+                user.fsMemberId = null;
+                user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                global.db.setUserInfo(user.userName, user);
+            }
+        }
+
+        global.db.logEvent('kickout_all', null, null, `All users kicked: ${kicked} accounts, ${disconnected} calls ended`);
+        emitStateChange('users');
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
+        res.json({ status: true, kicked, disconnected });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -292,6 +403,7 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
 adminRouter.post("/users/:userName/mute", (req, res) => {
     try {
         const userName = req.params.userName;
+        console.log(`[API] MUTE ${userName}`);
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
@@ -301,6 +413,7 @@ adminRouter.post("/users/:userName/mute", (req, res) => {
         }
         global.freeswitch.muteUser(userInfo.mac);
         global.db.logEvent('mute', userName, userInfo.room, 'Admin muted user');
+        emitStateChange('users', { userName });
         res.json({ status: true, message: `Mute command sent for ${userName}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -311,6 +424,7 @@ adminRouter.post("/users/:userName/mute", (req, res) => {
 adminRouter.post("/users/:userName/unmute", (req, res) => {
     try {
         const userName = req.params.userName;
+        console.log(`[API] UNMUTE ${userName}`);
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
@@ -320,6 +434,7 @@ adminRouter.post("/users/:userName/unmute", (req, res) => {
         }
         global.freeswitch.unmuteUser(userInfo.mac);
         global.db.logEvent('unmute', userName, userInfo.room, 'Admin unmuted user');
+        emitStateChange('users', { userName });
         res.json({ status: true, message: `Unmute command sent for ${userName}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -330,6 +445,7 @@ adminRouter.post("/users/:userName/unmute", (req, res) => {
 adminRouter.post("/users/:userName/room", (req, res) => {
     try {
         const userName = req.params.userName;
+        console.log(`[API] ROOM-CHANGE ${userName} -> ${req.body.room}`);
         const { room } = req.body;
         if (room === undefined || room === null) {
             return res.status(400).json({ status: false, error: "Room is required" });
@@ -342,6 +458,9 @@ adminRouter.post("/users/:userName/room", (req, res) => {
         userInfo.room = parseInt(room);
         global.db.setUserInfo(userName, userInfo);
         global.db.logEvent('room_change', userName, parseInt(room), `Moved from room ${oldRoom} to ${room}`);
+        emitStateChange('users', { userName });
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
         res.json({ status: true, message: `User ${userName} moved to room ${room}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -376,6 +495,7 @@ adminRouter.get("/accounts/:id", (req, res) => {
 // POST /accounts — create account
 adminRouter.post("/accounts", (req, res) => {
     try {
+        console.log(`[API] CREATE-ACCOUNT ${req.body.email}`);
         const { email, password, display_name, company_name, company_address, city, state, zip, room } = req.body;
         if (!email || !password) {
             return res.status(400).json({ status: false, error: "Email and password are required" });
@@ -415,6 +535,8 @@ adminRouter.post("/accounts", (req, res) => {
 
         const { password: _, ...safe } = account;
         global.db.logEvent('account_created', email, null, `Account created for ${company_name || email}`);
+        emitStateChange('users');
+        emitStateChange('dashboard');
         res.status(201).json({ status: true, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -422,14 +544,15 @@ adminRouter.post("/accounts", (req, res) => {
 });
 
 // PUT /accounts/:id — update account
-adminRouter.put("/accounts/:id", (req, res) => {
+adminRouter.put("/accounts/:id", async (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        console.log(`[API] UPDATE-ACCOUNT id=${id}`);
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
 
         const fields = {};
-        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active'];
+        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout'];
         for (const key of allowed) {
             if (req.body[key] !== undefined) {
                 fields[key] = key === 'room' ? parseInt(req.body[key]) : req.body[key];
@@ -439,8 +562,37 @@ adminRouter.put("/accounts/:id", (req, res) => {
         const updated = global.db.updateAccount(id, fields);
         if (!updated) return res.status(400).json({ status: false, error: "No valid fields to update" });
 
+        // Disconnect call when deactivating or kicking out
+        if (fields.active === 0 || fields.active === false || fields.kickout === 1 || fields.kickout === true) {
+            const userName = `sip:${account.email}`;
+            const userInfo = global.db.getUserInfo(userName);
+            if (userInfo && Object.keys(userInfo).length > 0) {
+                const savedUuid = userInfo.fsChannelUUID;
+                const reason = fields.kickout ? 'kickout' : 'deactivation';
+
+                // Update DB BEFORE killing call — prevents _onCallHangup from reconnecting
+                userInfo.connectionState = 'hangup';
+                userInfo.fsChannelUUID = null;
+                userInfo.fsMemberId = null;
+                userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                global.db.setUserInfo(userName, userInfo);
+                global.db.logEvent(reason, userName, userInfo.room, `Disconnected on account ${reason}`);
+
+                if (savedUuid) {
+                    getConnectionHandlers().delete(savedUuid);
+                    try {
+                        await global.freeswitch.hangupCall(savedUuid, userName);
+                    } catch (hangupErr) {
+                        console.error(`Failed to hangup call for ${userName}:`, hangupErr.message);
+                    }
+                }
+            }
+        }
+
         const { password, ...safe } = updated;
-        global.db.logEvent('account_updated', account.email, null, `Account updated`);
+        global.db.logEvent('account_updated', account.email, null, `Account ${fields.active === 0 || fields.active === false ? 'deactivated' : 'updated'}`);
+        emitStateChange('users', { userName: account.email });
+        emitStateChange('dashboard');
         res.json({ status: true, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -451,11 +603,14 @@ adminRouter.put("/accounts/:id", (req, res) => {
 adminRouter.delete("/accounts/:id", (req, res) => {
     try {
         const id = parseInt(req.params.id);
+        console.log(`[API] DELETE-ACCOUNT id=${id}`);
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
 
         global.db.deleteAccount(id);
         global.db.logEvent('account_deleted', account.email, null, `Account deleted`);
+        emitStateChange('users');
+        emitStateChange('dashboard');
         res.json({ status: true, message: `Account ${account.email} deleted` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -466,8 +621,10 @@ adminRouter.delete("/accounts/:id", (req, res) => {
 adminRouter.post("/rooms/:roomId/honk", (req, res) => {
     try {
         const roomId = parseInt(req.params.roomId);
+        console.log(`[API] HONK room=${roomId}`);
         global.freeswitch.honkRoom(roomId);
         global.db.logEvent('honk', null, roomId, 'Admin honked room');
+        emitStateChange('rooms');
         res.json({ status: true, message: `Honk sent to room ${roomId}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });

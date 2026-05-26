@@ -1,3 +1,6 @@
+// Broadcast detection and logging. Monitors conference events for unmuted speakers,
+// detects broadcast sessions (single speaker addressing a room), and logs them
+// with duration, participants, and optional transcription/recording paths.
 import fs from 'fs';
 import path from 'path';
 import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
