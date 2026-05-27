@@ -586,9 +586,9 @@ export default function UsersPage() {
                           Reconnect
                         </Button>
                         <Button
-                          variant="outline"
+                          variant={selectedUser.mute ? "outline" : "default"}
                           size="sm"
-                          className="flex-1 h-9"
+                          className={`flex-1 h-9 ${selectedUser.mute ? "" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
                           onClick={() => doAction(selectedUser.userName, selectedUser.mute ? "unmute" : "mute")}
                         >
                           {selectedUser.mute

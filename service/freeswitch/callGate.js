@@ -130,41 +130,54 @@ function _originateToConference(userName) {
 
         const sipUser = userInfo.userName.replace('sip:', '');
         const sipUserEncoded = sipUser.includes('@') ? sipUser.replace('@', '.at.') : sipUser;
-        const contactLookup = `sofia_contact ${profile}/${sipUserEncoded}@${global.config.FREESWITCH_PUBLIC_IP}`;
+        const fsIp = global.config.FREESWITCH_PUBLIC_IP;
+        const lookupVariants = [
+            `sofia_contact ${profile}/${sipUserEncoded}@${fsIp}`,
+            `sofia_contact ${profile}/${sipUser}`,
+        ];
 
         const conn = getConnection();
-        conn.api(contactLookup, (contactResponse) => {
-            const contact = contactResponse.getBody().trim();
-
-            if (!contact || contact.startsWith('-ERR') || contact === 'error/user_not_registered') {
+        const tryLookup = (idx) => {
+            if (idx >= lookupVariants.length) {
                 reject(new Error(`User ${userName} not registered on FreeSWITCH`));
                 return;
             }
-
-            const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
-
-            console.log(`[CALL] ORIGINATE ${userName} -> ${roomName}`);
-
-            conn.api(originateCmd, (response) => {
-                const body = response.getBody().trim();
-
-                if (body.startsWith('+OK')) {
-                    const uuid = body.replace('+OK ', '').trim();
-                    console.log(`[CALL] OK ${userName}`);
-
-                    userInfo.fsChannelUUID = uuid;
-                    userInfo.connectionState = 'connected';
-                    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    delete userInfo.error;
-                    delete userInfo.retryCount;
-                    global.db.setUserInfo(userName, userInfo);
-
-                    resolve(userInfo);
-                } else {
-                    console.error(`[CALL] FAILED ${userName}: ${body}`);
-                    reject(new Error(body));
+            conn.api(lookupVariants[idx], (contactResponse) => {
+                const contact = contactResponse.getBody().trim();
+                if (!contact || contact.startsWith('-ERR') || contact === 'error/user_not_registered') {
+                    tryLookup(idx + 1);
+                    return;
                 }
+                _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject);
             });
-        });
+        };
+        tryLookup(0);
+    });
+}
+
+function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
+    const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
+
+    console.log(`[CALL] ORIGINATE ${userName} -> ${roomName}`);
+
+    conn.api(originateCmd, (response) => {
+        const body = response.getBody().trim();
+
+        if (body.startsWith('+OK')) {
+            const uuid = body.replace('+OK ', '').trim();
+            console.log(`[CALL] OK ${userName}`);
+
+            userInfo.fsChannelUUID = uuid;
+            userInfo.connectionState = 'connected';
+            userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            delete userInfo.error;
+            delete userInfo.retryCount;
+            global.db.setUserInfo(userName, userInfo);
+
+            resolve(userInfo);
+        } else {
+            console.error(`[CALL] FAILED ${userName}: ${body}`);
+            reject(new Error(body));
+        }
     });
 }

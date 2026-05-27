@@ -56,6 +56,7 @@ const data = {
       label: "Developer",
       items: [
         { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon /> },
+        { title: "Phone Log", url: "/dev/phone-logs", icon: <PhoneIcon /> },
       ],
     },
   ],

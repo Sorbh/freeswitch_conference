@@ -259,6 +259,27 @@ adminRouter.get("/events/fs-log", (req, res) => {
     });
 });
 
+// GET /events/phone-log — SSE endpoint for phone syslog stream
+adminRouter.get("/events/phone-log", (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    res.write('data: {"type":"connected"}\n\n');
+
+    const onLog = (entry) => {
+        res.write(`data: ${JSON.stringify(entry)}\n\n`);
+    };
+
+    global.db.eventEmitter.on('PHONE_LOG', onLog);
+
+    req.on('close', () => {
+        global.db.eventEmitter.off('PHONE_LOG', onLog);
+    });
+});
+
 // GET /system — returns system health
 adminRouter.get("/system", async (req, res) => {
     try {

@@ -14,6 +14,12 @@ import {
 
 const MAX_LINES = 5000;
 
+function localTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3, hour12: false });
+}
+
 const METHOD_BADGE = {
   INVITE:    { bg: "#22c55e", fg: "#052e16" },
   ACK:       { bg: "#34d399", fg: "#052e16" },
@@ -178,7 +184,7 @@ export default function FsLogsPage() {
   const exportCsv = useCallback(() => {
     const header = "timestamp,direction,method,from,to,transport,bytes,callId\n";
     const rows = filtered.map((p) =>
-      [p.fsTime, p.direction, `"${p.method}"`, `"${extractEmail(p.from)}"`, `"${extractEmail(p.to)}"`, `"${p.transport}"`, p.bytes, p.callId].join(",")
+      [localTime(p.timestamp), p.direction, `"${p.method}"`, `"${extractEmail(p.from)}"`, `"${extractEmail(p.to)}"`, `"${p.transport}"`, p.bytes, p.callId].join(",")
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -358,7 +364,7 @@ function PacketRow({ pkt, color, isExpanded, onToggle, search, isLast }) {
         onClick={onToggle}
       >
         {/* Timestamp */}
-        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0 py-[6px]">{pkt.fsTime}</span>
+        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0 py-[6px]">{localTime(pkt.timestamp)}</span>
 
         {/* Direction */}
         <span className="w-[56px] shrink-0 flex items-center gap-1">

@@ -36,10 +36,12 @@
     <param name="enable-timer" value="true"/>
     <param name="session-timeout" value="120"/>
 
-    <!-- WebSocket for browser-based SIP -->
-    <param name="ws-binding" value="0.0.0.0:5071"/>
-    <param name="wss-binding" value="0.0.0.0:5072"/>
+    <!-- SIP TLS for Yealink phones -->
+    <param name="tls-binding" value="0.0.0.0:5071"/>
     <param name="tls-cert-dir" value="/root/sorbh/freeswitch_1.10.12/freeswitch/etc/freeswitch/tls/"/>
+
+    <!-- WebSocket for browser-based SIP -->
+    <param name="wss-binding" value="0.0.0.0:5072"/>
 
     <!-- Use only public IP for RTP/ICE candidates — prevents slow gathering on Docker bridges -->
     <param name="local-network-acl" value="none"/>

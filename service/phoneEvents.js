@@ -5,8 +5,53 @@
 import SyslogServer from 'syslog-server';
 
 let syslogServer = null;
+const sipBlocks = new Map();
+const SIP_BLOCK_TIMEOUT = 3000;
+const macByIp = new Map();
 
-export function startSyslogServer(port = 514) {
+export function getMacByIp(ip) {
+    return macByIp.get(ip) || null;
+}
+
+function _extractSipPayload(msg) {
+    return msg.replace(/.*?DLG\s*<\d+\+\w+\s*>\s*\[\d+\]\s?/, '');
+}
+
+function _finalizeSipBlock(block) {
+    const lines = block.lines.map(l => _extractSipPayload(l)).filter(Boolean);
+    const fullMessage = lines.join('\n');
+
+    let method = null, callId = null, from = null, to = null;
+    for (const line of lines) {
+        if (!method) {
+            const reqM = line.match(/^(INVITE|ACK|BYE|CANCEL|REGISTER|OPTIONS|NOTIFY|SUBSCRIBE|MESSAGE|INFO|UPDATE|REFER|PRACK|PUBLISH)\s/);
+            if (reqM) method = reqM[1];
+            const resM = line.match(/^SIP\/2\.0\s+(\d+\s+.*)/);
+            if (resM) method = resM[1].trim();
+        }
+        if (!callId) { const m = line.match(/^Call-ID:\s*(\S+)/i); if (m) callId = m[1]; }
+        if (!from) { const m = line.match(/^From:\s*(.+)/i); if (m) from = m[1].trim(); }
+        if (!to) { const m = line.match(/^To:\s*(.+)/i); if (m) to = m[1].trim(); }
+    }
+
+    global.db.eventEmitter.emit('PHONE_LOG', {
+        type: 'phone_log',
+        timestamp: block.timestamp,
+        mac: block.mac,
+        level: 'INFO',
+        message: fullMessage,
+        raw: block.rawLines.join('\n'),
+        isSip: true,
+        direction: block.direction,
+        dest: block.dest,
+        method: method || null,
+        callId: callId || null,
+        from: from || null,
+        to: to || null,
+    });
+}
+
+export function startSyslogServer(port = 515) {
     syslogServer = new SyslogServer();
 
     syslogServer.on('message', (value) => {
@@ -14,29 +59,92 @@ export function startSyslogServer(port = 514) {
 
         const macRegex = /\[([0-9a-fA-F:]+)\]/;
         const levelRegex = /<(?:\d+\+)?(error|warn|info|debug|notice)>/i;
-        const messageRegex = /SIP <[^>]+> (.*)/;
         const keyRegex = /key\[(.*?)\]/;
 
         const macMatch = msg.match(macRegex);
         const levelMatch = msg.match(levelRegex);
-        const messageMatch = msg.match(messageRegex);
 
         const macAddress = macMatch ? macMatch[1].toLowerCase() : null;
         const logLevel = levelMatch ? levelMatch[1].toUpperCase() : 'INFO';
-        const logMessage = messageMatch ? messageMatch[1] : msg;
 
-        if (logLevel !== 'NOTICE' || !macAddress) return;
+        if (macAddress && value.address) {
+            macByIp.set(value.address, macAddress);
+        }
 
-        const match = logMessage.match(keyRegex);
-        if (!match || !match[1]) return;
+        // SIP block detection (Yealink multi-line format)
+        const sendStart = msg.match(/Sending Packet\s*:to dest=(\S+)/);
+        const recvStart = msg.match(/Data Received\s*:from src=(\S+)/);
+        const isBlockEnd = /End of Sending Packet|End of Data Received/.test(msg);
+        const isBlockContent = /DLG\s*<\d+\+info/.test(msg);
+        const blockKey = macAddress || '__noMac';
 
-        const keyEvent = match[1];
-        console.log(`[PHONE] SYSLOG ${macAddress} key=${keyEvent}`);
+        if (sendStart || recvStart) {
+            // Finalize any open block for this MAC
+            if (sipBlocks.has(blockKey)) {
+                clearTimeout(sipBlocks.get(blockKey).timer);
+                _finalizeSipBlock(sipBlocks.get(blockKey));
+            }
+            const block = {
+                mac: macAddress,
+                direction: sendStart ? 'send' : 'recv',
+                dest: (sendStart || recvStart)[1],
+                timestamp: new Date().toISOString(),
+                lines: [],
+                rawLines: [msg],
+                timer: setTimeout(() => {
+                    if (sipBlocks.get(blockKey) === block) {
+                        _finalizeSipBlock(block);
+                        sipBlocks.delete(blockKey);
+                    }
+                }, SIP_BLOCK_TIMEOUT),
+            };
+            sipBlocks.set(blockKey, block);
+            // Don't emit this line as a plain log
+        } else if (sipBlocks.has(blockKey) && (isBlockContent || isBlockEnd)) {
+            const block = sipBlocks.get(blockKey);
+            block.rawLines.push(msg);
+            if (isBlockContent) {
+                block.lines.push(msg);
+            }
+            if (isBlockEnd) {
+                clearTimeout(block.timer);
+                _finalizeSipBlock(block);
+                sipBlocks.delete(blockKey);
+            }
+        } else {
+            // Not part of a SIP block — emit as plain log
+            // Close any stale open block for this MAC
+            if (sipBlocks.has(blockKey)) {
+                clearTimeout(sipBlocks.get(blockKey).timer);
+                _finalizeSipBlock(sipBlocks.get(blockKey));
+                sipBlocks.delete(blockKey);
+            }
 
-        if (keyEvent === 'off hook') {
-            _handleHookEvent(macAddress, 'off_hook');
-        } else if (keyEvent === 'on hook') {
-            _handleHookEvent(macAddress, 'on_hook');
+            const messageRegex = /(?:SIP\s*<[^>]+>\s*|DLG\s*<[^>]+>\s*\[\d+\]\s*)(.*)/;
+            const messageMatch = msg.match(messageRegex);
+            const logMessage = messageMatch ? messageMatch[1] : msg;
+
+            global.db.eventEmitter.emit('PHONE_LOG', {
+                type: 'phone_log',
+                timestamp: new Date().toISOString(),
+                mac: macAddress,
+                level: logLevel,
+                message: logMessage,
+                raw: msg,
+                isSip: false,
+            });
+
+            // Hook detection for mute/unmute
+            if (logLevel !== 'NOTICE' || !macAddress) return;
+            const match = logMessage.match(keyRegex);
+            if (!match || !match[1]) return;
+            const keyEvent = match[1];
+            console.log(`[PHONE] SYSLOG ${macAddress} key=${keyEvent}`);
+            if (keyEvent === 'off hook') {
+                _handleHookEvent(macAddress, 'off_hook');
+            } else if (keyEvent === 'on hook') {
+                _handleHookEvent(macAddress, 'on_hook');
+            }
         }
     });
 

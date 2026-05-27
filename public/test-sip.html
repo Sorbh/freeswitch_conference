@@ -124,9 +124,7 @@
         let regRetryTimer = null;
 
         const host = window.location.hostname || 'localhost';
-        const wsServer = window.location.protocol === 'https:'
-            ? `wss://${host}:5072`
-            : `ws://${host}:5071`;
+        const wsServer = `wss://${host}:5072`;
         const sipDomain = host;
 
         function showStatus(msg) {

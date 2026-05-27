@@ -33,7 +33,9 @@ async function _handleRegistration(event) {
     let email = fromUser.includes('.at.') ? fromUser.replace('.at.', '@') : (isIp ? fromUser : `${fromUser}@${fromHost}`);
 
     const macRegex = /([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})/;
-    const macMatch = userAgent.match(macRegex);
+    const macMatch = userAgent.match(macRegex)
+        || (contact || '').match(macRegex)
+        || (event.getHeader('sip_contact_params') || '').match(macRegex);
     const mac = macMatch ? macMatch[0].toLowerCase() : null;
     const clientType = _detectClientType(userAgent);
 
@@ -61,6 +63,7 @@ async function _handleRegistration(event) {
         existingUser.clientType = clientType;
         existingUser.registrationState = 'registered';
         if (mac) existingUser.mac = mac;
+        existingUser.authState = 'login';
         global.db.setUserInfo(userName, existingUser);
         global.db.logEvent('registration', userName, null, 'User registered');
         global.db.logOnlineStatus(userName, 'online');
@@ -80,7 +83,7 @@ async function _handleRegistration(event) {
         port: parseInt(networkPort),
         room: room,
         connectionState: 'ideal',
-        authState: 'logout',
+        authState: 'login',
         mute: true,
         online: true,
         payment: false,

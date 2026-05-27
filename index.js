@@ -77,11 +77,6 @@ app.use("/recordings", express.static(path.join(__dirname, "recordings")));
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
 const PORT = process.env.PORT || 4007;
-const HTTPS_PORT = process.env.HTTPS_PORT || 4008;
-
-ViteExpress.listen(app, PORT, () => {
-    console.log(`Server listening at http://localhost:${PORT}`);
-});
 
 const tlsDir = path.join(__dirname, 'config', 'tls');
 if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDir, 'cert.pem'))) {
@@ -89,20 +84,27 @@ if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDi
         key: fs.readFileSync(path.join(tlsDir, 'key.pem')),
         cert: fs.readFileSync(path.join(tlsDir, 'cert.pem')),
     }, app);
-    httpsServer.listen(HTTPS_PORT, () => {
-        console.log(`HTTPS server listening at https://localhost:${HTTPS_PORT}/api/v1/`);
-        console.log(`Test page: https://${config.FREESWITCH_PUBLIC_IP}:${HTTPS_PORT}/test-sip.html`);
+    httpsServer.listen(PORT, () => {
+        ViteExpress.bind(app, httpsServer);
+        console.log(`HTTPS server listening at https://localhost:${PORT}/`);
+        console.log(`Test page: https://${config.FREESWITCH_PUBLIC_IP}:${PORT}/test-sip.html`);
+    });
+    // Internal HTTP for FreeSWITCH xml_curl (localhost only)
+    app.listen(4070, '127.0.0.1', () => {
+        console.log(`Internal HTTP listening at http://127.0.0.1:4070/`);
     });
 } else {
-    console.log('No TLS certs found, HTTPS disabled');
+    ViteExpress.listen(app, PORT, () => {
+        console.log(`Server listening at http://localhost:${PORT} (no TLS certs found)`);
+    });
 }
 
-console.log(`DB Debug: http://localhost:${PORT}/api/v1/debug/tables`);
-console.log(`Conferences: http://localhost:${PORT}/api/v1/debug/conferences`);
+console.log(`DB Debug: https://localhost:${PORT}/api/v1/debug/tables`);
+console.log(`Conferences: https://localhost:${PORT}/api/v1/debug/conferences`);
 
 // Keep-alive
 setInterval(() => {
-    fetch(`http://localhost:${PORT}/api/v1/test/test`).catch(() => { });
+    fetch(`http://127.0.0.1:4070/api/v1/test/test`).catch(() => { });
 }, 30000);
 
 process.stdin.resume();

@@ -57,9 +57,17 @@ function _parseRegXml(xml) {
 
         if (!userMatch) continue;
 
-        const rawUser = userMatch[1].split('@')[0];
-        if (!rawUser) continue;
-        const email = rawUser.includes('.at.') ? rawUser.replace('.at.', '@') : rawUser;
+        // Web client: user=apple.ricardo.at.gmail.com@50.28.84.57 (strip @serverIP, decode .at.)
+        // Yealink: user=er.sorbh@gmail.com (use as-is, it's already the email)
+        const raw = userMatch[1];
+        const fsIp = global.config?.FREESWITCH_PUBLIC_IP || '50.28.84.57';
+        let email;
+        if (raw.endsWith(`@${fsIp}`)) {
+            const rawUser = raw.slice(0, -(fsIp.length + 1));
+            email = rawUser.includes('.at.') ? rawUser.replace('.at.', '@') : rawUser;
+        } else {
+            email = raw.includes('.at.') ? raw.replace('.at.', '@') : raw;
+        }
         const userName = `sip:${email}`;
 
         const registered = statusMatch ? statusMatch[1].trim() === 'Registered(UDP-NAT)' || statusMatch[1].trim().startsWith('Registered') : false;
