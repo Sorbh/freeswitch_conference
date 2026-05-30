@@ -26,6 +26,42 @@ global.db = dbService.db;
 global.db.init();
 console.log('Database initialized');
 
+// Express — start HTTP servers first so FreeSWITCH xml_curl can always reach us
+import ApiRouter from "./routes/api.js";
+const { json, urlencoded } = express;
+
+const app = express();
+
+app.use(cors());
+app.use(json());
+app.use(urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/recordings", express.static(path.join(__dirname, "recordings")));
+
+app.use("/api/v1/", new ApiRouter().apiRouter);
+
+const PORT = process.env.PORT || 4007;
+
+const tlsDir = path.join(__dirname, 'config', 'tls');
+if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDir, 'cert.pem'))) {
+    const httpsServer = https.createServer({
+        key: fs.readFileSync(path.join(tlsDir, 'key.pem')),
+        cert: fs.readFileSync(path.join(tlsDir, 'cert.pem')),
+    }, app);
+    httpsServer.listen(PORT, () => {
+        ViteExpress.bind(app, httpsServer);
+        console.log(`HTTPS server listening at https://localhost:${PORT}/`);
+        console.log(`Test page: https://${config.FREESWITCH_PUBLIC_IP}:${PORT}/test-sip.html`);
+    });
+    app.listen(4070, '127.0.0.1', () => {
+        console.log(`Internal HTTP listening at http://127.0.0.1:4070/`);
+    });
+} else {
+    ViteExpress.listen(app, PORT, () => {
+        console.log(`Server listening at http://localhost:${PORT} (no TLS certs found)`);
+    });
+}
+
 // FreeSWITCH ESL
 const { default: freeswitchService } = await import('./service/freeswitchService.js');
 global.freeswitch = freeswitchService.freeswitch;
@@ -61,43 +97,6 @@ try {
         global.freeswitch.getConferenceList().then(resolve).catch(resolve);
     });
 } catch { }
-
-// Express
-import ApiRouter from "./routes/api.js";
-const { json, urlencoded } = express;
-
-const app = express();
-
-app.use(cors());
-app.use(json());
-app.use(urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
-app.use("/recordings", express.static(path.join(__dirname, "recordings")));
-
-app.use("/api/v1/", new ApiRouter().apiRouter);
-
-const PORT = process.env.PORT || 4007;
-
-const tlsDir = path.join(__dirname, 'config', 'tls');
-if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDir, 'cert.pem'))) {
-    const httpsServer = https.createServer({
-        key: fs.readFileSync(path.join(tlsDir, 'key.pem')),
-        cert: fs.readFileSync(path.join(tlsDir, 'cert.pem')),
-    }, app);
-    httpsServer.listen(PORT, () => {
-        ViteExpress.bind(app, httpsServer);
-        console.log(`HTTPS server listening at https://localhost:${PORT}/`);
-        console.log(`Test page: https://${config.FREESWITCH_PUBLIC_IP}:${PORT}/test-sip.html`);
-    });
-    // Internal HTTP for FreeSWITCH xml_curl (localhost only)
-    app.listen(4070, '127.0.0.1', () => {
-        console.log(`Internal HTTP listening at http://127.0.0.1:4070/`);
-    });
-} else {
-    ViteExpress.listen(app, PORT, () => {
-        console.log(`Server listening at http://localhost:${PORT} (no TLS certs found)`);
-    });
-}
 
 console.log(`DB Debug: https://localhost:${PORT}/api/v1/debug/tables`);
 console.log(`Conferences: https://localhost:${PORT}/api/v1/debug/conferences`);
