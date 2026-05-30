@@ -66,6 +66,7 @@ async function _handleRegistration(event) {
         if (mac) existingUser.mac = mac;
         existingUser.authState = 'login';
         global.db.setUserInfo(userName, existingUser);
+        global.db.touchLastSeen(userName);
         global.db.logEvent('registration', userName, null, 'User registered');
         global.db.logOnlineStatus(userName, 'online');
 
@@ -95,6 +96,7 @@ async function _handleRegistration(event) {
     };
 
     global.db.setUserInfo(userName, userInfo);
+    global.db.touchLastSeen(userName);
     global.db.logEvent('registration', userName, null, 'User registered');
     global.db.logOnlineStatus(userName, 'online');
     console.log(`[REG] NEW ${email} -> ${global.config.ROOM_NAME[room] || room}`);

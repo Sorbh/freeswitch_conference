@@ -53,6 +53,8 @@ adminRouter.get("/users", (req, res) => {
         const now = Math.floor(Date.now() / 1000);
         const matchedEmails = new Set();
 
+        const talkingUsers = global.freeswitch?.getTalkingUsers?.() || new Set();
+
         const enriched = users.map(u => {
             const email = u.userName.replace(/^sip:/, '');
             const account = accountByEmail[email] || accountByEmail[u.userName] || null;
@@ -63,7 +65,8 @@ adminRouter.get("/users", (req, res) => {
                 online_duration: u.online && u.lastConnectionStateUpdate
                     ? now - u.lastConnectionStateUpdate
                     : 0,
-                last_seen: u.updatedAt || u.createdAt,
+                last_seen: u.lastSeen || u.updatedAt || u.createdAt,
+                talking: talkingUsers.has(u.userName),
                 account: account ? safeAccount : null,
             };
         });

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { ROOM_NAMES, timeAgo } from "@/lib/constants";
@@ -66,7 +67,55 @@ import {
   PhoneOffIcon,
   PhoneIncomingIcon,
   BanIcon,
+  FilterIcon,
 } from "lucide-react";
+
+function useTalkingUsers() {
+  const [talking, setTalking] = useState(new Set());
+  useEffect(() => {
+    const es = new EventSource("/api/v1/admin/events/stream");
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === "state_change" && data.scope === "talking") {
+          setTalking(prev => {
+            const next = new Set(prev);
+            if (data.talking) next.add(data.userName);
+            else next.delete(data.userName);
+            return next;
+          });
+        }
+      } catch {}
+    };
+    return () => es.close();
+  }, []);
+  return talking;
+}
+
+function CallDuration({ since }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const secs = Math.floor(Date.now() / 1000) - since;
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  const display = h > 0
+    ? `${h}h ${m}m ${s}s`
+    : m > 0 ? `${m}m ${s}s` : `${s}s`;
+  return <p className="text-sm font-mono text-emerald-400">{display}</p>;
+}
+
+function Tip({ label, children }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span className="inline-flex" />}>{children}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
 
 const EMPTY_FORM = {
   email: "", password: "", display_name: "", company_name: "",
@@ -143,6 +192,7 @@ function CopyableCell({ text, children, className = "" }) {
 export default function UsersPage() {
   const { data, loading, refetch } = useFetch("/api/v1/admin/users");
   useSSERefresh(refetch, ["users"]);
+  const talkingUsers = useTalkingUsers();
   const [search, setSearch] = useState("");
   const [selectedUserName, setSelectedUserName] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -152,6 +202,9 @@ export default function UsersPage() {
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, talking: false, error: false });
+  const [roomFilter, setRoomFilter] = useState("all");
+  const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -162,16 +215,32 @@ export default function UsersPage() {
     () => users.find((u) => u.userName === selectedUserName) || null,
     [users, selectedUserName]
   );
+  const anyFilterActive = Object.values(filters).some(Boolean) || roomFilter !== "all";
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
-    return (
+    if (q && !(
       (u.userName || "").toLowerCase().includes(q) ||
       (u.callerIdName || "").toLowerCase().includes(q) ||
       (u.mac || "").toLowerCase().includes(q) ||
       (u.account?.email || "").toLowerCase().includes(q) ||
       (u.account?.company_name || "").toLowerCase().includes(q) ||
       (u.account?.display_name || "").toLowerCase().includes(q)
-    );
+    )) return false;
+
+    if (roomFilter !== "all" && String(u.room || u.account?.room) !== roomFilter) return false;
+
+    if (Object.values(filters).some(Boolean)) {
+      let match = false;
+      if (filters.online && u.online) match = true;
+      if (filters.offline && !u.online) match = true;
+      if (filters.muted && !u.mute) match = true;
+      if (filters.inCall && u.connectionState === "connected") match = true;
+      if (filters.talking && (talkingUsers.has(u.userName) || u.talking)) match = true;
+      if (filters.error && u.connectionState === "error") match = true;
+      if (!match) return false;
+    }
+
+    return true;
   }).sort((a, b) => {
     const score = (u) =>
       (u.reachable ? 4 : 0) +
@@ -292,17 +361,42 @@ export default function UsersPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Users</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          <span className="font-mono tabular-nums">{users.length}</span> total,{" "}
-          <span className="font-mono tabular-nums">{onlineCount}</span> online
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Users</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            <span className="font-mono tabular-nums">{users.length}</span> total,{" "}
+            <span className="font-mono tabular-nums">{onlineCount}</span> online
+            {anyFilterActive && <span className="ml-2 text-primary">({filtered.length} shown)</span>}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={openCreate}>
+            <PlusIcon className="size-4 mr-2" />
+            Add User
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={async () => {
+              if (!confirm("Kick out ALL users and disconnect all calls?")) return;
+              try {
+                await fetch("/api/v1/admin/users/kickout-all", { method: "POST" });
+                refetch();
+              } catch (e) {
+                console.error("Kickout all failed:", e);
+              }
+            }}
+          >
+            <BanIcon className="size-4 mr-2" />
+            Kickout All
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             placeholder="Search name, email, company, or MAC..."
@@ -311,25 +405,41 @@ export default function UsersPage() {
             className="pl-9"
           />
         </div>
-        <Button onClick={openCreate}>
-          <PlusIcon className="size-4 mr-2" />
-          Add User
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={async () => {
-            if (!confirm("Kick out ALL users and disconnect all calls?")) return;
-            try {
-              await fetch("/api/v1/admin/users/kickout-all", { method: "POST" });
-              refetch();
-            } catch (e) {
-              console.error("Kickout all failed:", e);
-            }
-          }}
-        >
-          <BanIcon className="size-4 mr-2" />
-          Kickout All
-        </Button>
+        <Select value={roomFilter} onValueChange={setRoomFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Rooms" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Rooms</SelectItem>
+            {Object.entries(ROOM_NAMES).map(([id, name]) => (
+              <SelectItem key={id} value={id}>{name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Separator orientation="vertical" className="h-6 hidden sm:block" />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[
+            { key: "online", label: "Online", active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
+            { key: "offline", label: "Offline", active: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30", dot: "bg-zinc-400" },
+            { key: "inCall", label: "In Call", active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
+            { key: "muted", label: "Unmuted", active: "bg-amber-500/15 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
+            { key: "talking", label: "Talking", active: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30", dot: "bg-cyan-400" },
+            { key: "error", label: "Error", active: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400" },
+          ].map(({ key, label, active, dot }) => (
+            <button
+              key={key}
+              onClick={() => toggleFilter(key)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                filters[key]
+                  ? active
+                  : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:bg-muted/50"
+              }`}
+            >
+              <span className={`size-1.5 rounded-full ${filters[key] ? dot : "bg-muted-foreground/30"}`} />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Card>
@@ -339,11 +449,11 @@ export default function UsersPage() {
               <TableRow>
                 <TableHead className="w-[160px]">
                   <div className="flex items-center gap-3 text-muted-foreground/60">
-                    <WifiIcon className="size-3.5" title="Online" />
-                    <ShieldIcon className="size-3.5" title="Registration" />
-                    <PhoneIcon className="size-3.5" title="Call" />
-                    <MicIcon className="size-3.5" title="Mute" />
-                    <BanIcon className="size-3.5" title="Kickout" />
+                    <Tip label="Online Status"><WifiIcon className="size-3.5" /></Tip>
+                    <Tip label="Registration"><ShieldIcon className="size-3.5" /></Tip>
+                    <Tip label="Call Status"><PhoneIcon className="size-3.5" /></Tip>
+                    <Tip label="Mute"><MicIcon className="size-3.5" /></Tip>
+                    <Tip label="Kickout"><BanIcon className="size-3.5" /></Tip>
                   </div>
                 </TableHead>
                 <TableHead>Name</TableHead>
@@ -374,37 +484,49 @@ export default function UsersPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {user.online ? (
-                          <WifiIcon className="size-4 text-emerald-500" title="Online" />
-                        ) : (
-                          <WifiOffIcon className="size-4 text-zinc-500" title="Offline" />
-                        )}
-                        {user.registrationState === "registered" ? (
-                          <ShieldCheckIcon className="size-4 text-emerald-500" title="Registered" />
-                        ) : user.registrationState === "expired" ? (
-                          <ShieldXIcon className="size-4 text-amber-500" title="Expired" />
-                        ) : (
-                          <ShieldXIcon className="size-4 text-zinc-500" title="Unregistered" />
-                        )}
-                        {user.connectionState === "connected" ? (
-                          <PhoneCallIcon className="size-4 text-emerald-500" title="In Call" />
-                        ) : user.connectionState === "connecting" ? (
-                          <PhoneIncomingIcon className="size-4 text-amber-500 animate-pulse" title="Connecting" />
-                        ) : user.connectionState === "hangup" ? (
-                          <PhoneOffIcon className="size-4 text-red-500" title="Hangup" />
-                        ) : (
-                          <PhoneIcon className="size-4 text-zinc-500" title="Idle" />
-                        )}
-                        {user.mute ? (
-                          <MicOffIcon className="size-4 text-red-500" title="Muted" />
-                        ) : (
-                          <MicIcon className="size-4 text-emerald-500" title="Unmuted" />
-                        )}
-                        {user.account?.kickout ? (
-                          <BanIcon className="size-4 text-red-500" title="Kicked Out" />
-                        ) : (
-                          <BanIcon className="size-4 text-zinc-500/30" title="Not Kicked" />
-                        )}
+                        <Tip label={user.online ? "Online" : "Offline"}>
+                          {user.online ? (
+                            <WifiIcon className="size-4 text-emerald-500" />
+                          ) : (
+                            <WifiOffIcon className="size-4 text-zinc-500" />
+                          )}
+                        </Tip>
+                        <Tip label={user.registrationState === "registered" ? "Registered" : user.registrationState === "expired" ? "Expired" : "Unregistered"}>
+                          {user.registrationState === "registered" ? (
+                            <ShieldCheckIcon className="size-4 text-emerald-500" />
+                          ) : user.registrationState === "expired" ? (
+                            <ShieldXIcon className="size-4 text-amber-500" />
+                          ) : (
+                            <ShieldXIcon className="size-4 text-zinc-500" />
+                          )}
+                        </Tip>
+                        <Tip label={user.connectionState === "connected" ? "In Call" : user.connectionState === "connecting" ? "Connecting" : user.connectionState === "hangup" ? "Hangup" : user.connectionState === "error" ? `Error: ${user.error || "unknown"}` : "Idle"}>
+                          {user.connectionState === "connected" ? (
+                            <PhoneCallIcon className="size-4 text-emerald-500" />
+                          ) : user.connectionState === "connecting" ? (
+                            <PhoneIncomingIcon className="size-4 text-amber-500 animate-pulse" />
+                          ) : user.connectionState === "hangup" ? (
+                            <PhoneOffIcon className="size-4 text-red-500" />
+                          ) : user.connectionState === "error" ? (
+                            <PhoneOffIcon className="size-4 text-orange-500" />
+                          ) : (
+                            <PhoneIcon className="size-4 text-zinc-500" />
+                          )}
+                        </Tip>
+                        <Tip label={user.mute ? "Muted" : "Unmuted"}>
+                          {user.mute ? (
+                            <MicOffIcon className="size-4 text-red-500" />
+                          ) : (
+                            <MicIcon className="size-4 text-emerald-500" />
+                          )}
+                        </Tip>
+                        <Tip label={user.account?.kickout ? "Kicked Out" : "Active"}>
+                          {user.account?.kickout ? (
+                            <BanIcon className="size-4 text-red-500" />
+                          ) : (
+                            <BanIcon className="size-4 text-zinc-500/30" />
+                          )}
+                        </Tip>
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">
@@ -412,6 +534,11 @@ export default function UsersPage() {
                         <CopyableCell text={user.account?.display_name || user.callerIdName || user.userName}>
                           {user.account?.display_name || user.callerIdName || user.userName}
                         </CopyableCell>
+                        {(talkingUsers.has(user.userName) || user.talking) && (
+                          <Badge className="text-[10px] px-1.5 py-0 gap-1 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 animate-pulse">
+                            <AudioLinesIcon className="size-2.5" />Speaking
+                          </Badge>
+                        )}
                         {user.account && !user.account.active && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactive</Badge>
                         )}
@@ -446,7 +573,7 @@ export default function UsersPage() {
                       )}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground tabular-nums">
-                      {timeAgo(user.updatedAt)}
+                      {timeAgo(user.last_seen || user.updatedAt)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
@@ -560,6 +687,24 @@ export default function UsersPage() {
                       )}
                     </div>
                   </div>
+
+                  {selectedUser.connectionState === "connected" && selectedUser.lastConnectionStateUpdate && (
+                    <div className="relative mt-4 flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <PhoneCallIcon className="size-4 text-emerald-500 shrink-0" />
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="text-xs text-emerald-500/70 uppercase tracking-wider font-medium">In Call</span>
+                        <CallDuration since={selectedUser.lastConnectionStateUpdate} />
+                      </div>
+                    </div>
+                  )}
+                  {selectedUser.connectionState === "error" && selectedUser.error && (
+                    <div className="relative mt-4 flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-orange-500/5 border border-orange-500/20">
+                      <PhoneOffIcon className="size-4 text-orange-500 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-xs text-orange-400 font-mono truncate">{selectedUser.error}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick actions */}
@@ -897,5 +1042,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </TooltipProvider>
   );
 }

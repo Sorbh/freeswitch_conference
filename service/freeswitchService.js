@@ -12,7 +12,7 @@ import {
     getConferenceList,
 } from './freeswitch/callAction.js';
 import { showMessage, sendCommands, sendActionUri } from './freeswitch/notifications.js';
-import './freeswitch/callEvents.js';
+import { getTalkingUsers } from './freeswitch/callEvents.js';
 import './freeswitch/broadcast.js';
 import './freeswitch/onlineSync.js';
 import './freeswitch/fsLogService.js';
@@ -35,5 +35,6 @@ freeswitch.getConferenceList = getConferenceList;
 freeswitch.ensureInConference = ensureInConference;
 freeswitch.initiateCall = initiateCall;
 freeswitch.canInitiateCall = canInitiateCall;
+freeswitch.getTalkingUsers = getTalkingUsers;
 
 export default { freeswitch };

@@ -41,6 +41,7 @@ function init() {
             user_agent TEXT,
             error TEXT,
             redline_data TEXT,
+            last_seen INTEGER,
             created_at INTEGER DEFAULT (strftime('%s', 'now')),
             updated_at INTEGER DEFAULT (strftime('%s', 'now'))
         );
@@ -105,6 +106,7 @@ function init() {
         ['client_type', "ALTER TABLE users ADD COLUMN client_type TEXT DEFAULT 'unknown'"],
         ['registration_state', "ALTER TABLE users ADD COLUMN registration_state TEXT DEFAULT 'unregistered'"],
         ['reachable', "ALTER TABLE users ADD COLUMN reachable INTEGER DEFAULT 0"],
+        ['last_seen', "ALTER TABLE users ADD COLUMN last_seen INTEGER"],
     ];
     for (const [col, sql] of userMigrations) {
         if (!userCols.includes(col)) sqlite.exec(sql);
@@ -162,6 +164,7 @@ function setUserInfo(userName, userInfo) {
                 last_connection_state_update = ?, fs_channel_uuid = ?, fs_member_id = ?,
                 caller_id_name = ?, caller_id_html = ?, user_agent = ?, error = ?,
                 redline_data = ?, client_type = ?, registration_state = ?, reachable = ?,
+                last_seen = COALESCE(?, last_seen),
                 updated_at = strftime('%s', 'now')
             WHERE user_name = ?
         `).run(
@@ -174,6 +177,7 @@ function setUserInfo(userName, userInfo) {
             userInfo.clientType || 'unknown',
             userInfo.registrationState || 'unregistered',
             userInfo.reachable ? 1 : 0,
+            userInfo.lastSeen || null,
             userName
         );
     } else {
@@ -184,8 +188,8 @@ function setUserInfo(userName, userInfo) {
                 online, payment, retry_count, login_expire,
                 last_connection_state_update, fs_channel_uuid, fs_member_id,
                 caller_id_name, caller_id_html, user_agent, error, redline_data, client_type,
-                registration_state, reachable
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                registration_state, reachable, last_seen
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             userName, userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
             userInfo.room, userInfo.connectionState || 'ideal', userInfo.authState || 'logout', userInfo.mute ? 1 : 0,
@@ -195,11 +199,16 @@ function setUserInfo(userName, userInfo) {
             typeof userInfo.redlineData === 'object' ? JSON.stringify(userInfo.redlineData) : userInfo.redlineData,
             userInfo.clientType || 'unknown',
             userInfo.registrationState || 'unregistered',
-            userInfo.reachable ? 1 : 0
+            userInfo.reachable ? 1 : 0,
+            userInfo.lastSeen || null
         );
     }
 
     eventEmitter.emit('USER_UPDATE', { type: 'user_update', userName, ...userInfo });
+}
+
+function touchLastSeen(userName) {
+    sqlite.prepare('UPDATE users SET last_seen = strftime(\'%s\', \'now\') WHERE user_name = ?').run(userName);
 }
 
 function updateUserInfo(userName, updates) {
@@ -301,6 +310,7 @@ function _rowToUserInfo(row) {
         clientType: row.client_type || 'unknown',
         registrationState: row.registration_state || 'unregistered',
         reachable: !!row.reachable,
+        lastSeen: row.last_seen,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -481,5 +491,6 @@ db.getAccountById = getAccountById;
 db.getAllAccounts = getAllAccounts;
 db.updateAccount = updateAccount;
 db.deleteAccount = deleteAccount;
+db.touchLastSeen = touchLastSeen;
 
 export default { db };

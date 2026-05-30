@@ -232,6 +232,7 @@ onMessageEvent((event) => {
 
     console.log(`[KEEP-ALIVE] ${email}`);
 
+    global.db.touchLastSeen(userName);
     _checkLoginExpiry(userName, userInfo);
     _resetOnlineTimer(userName);
     _autoReconnect(userName);

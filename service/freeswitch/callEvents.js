@@ -8,6 +8,8 @@ import { initiateCall, canInitiateCall, unlockCalls } from './callGate.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
 const uuidUserMap = new Map();
+const _talkingUsers = new Set();
+export function getTalkingUsers() { return _talkingUsers; }
 
 onAnswerEvent(_handleChannelAnswer);
 onHangupEvent(_handleChannelHangup);
@@ -33,6 +35,7 @@ onEslDisconnect(() => {
     getConnectionHandlers().clear();
     getMemberIdMap().clear();
     uuidUserMap.clear();
+    _talkingUsers.clear();
 });
 
 onEslReconnect(() => {
@@ -244,6 +247,11 @@ function _handleConferenceEvent(event) {
         case 'add-member': {
             console.log(`[CONF] JOIN ${callerIdName} -> ${roomName} (member ${memberId})`);
             _updateMemberMapping(conferenceName, memberId, callerIdName, event);
+            const joinUuid = event.getHeader('Unique-ID');
+            if (joinUuid) {
+                const joinUsers = global.db.filter(u => u.fsChannelUUID === joinUuid);
+                if (joinUsers.length > 0) global.db.touchLastSeen(joinUsers[0].userName);
+            }
             global.db.logEvent('conference_join', callerIdName, room, 'Joined conference');
             break;
         }
@@ -274,6 +282,22 @@ function _handleConferenceEvent(event) {
                 console.log(`[CONF] MUTE ${muteUser.userName} (member ${memberId})`);
             }
             global.db.logEvent('mute', muteUser?.userName || null, room, 'Member muted');
+            break;
+        }
+        case 'start-talking': {
+            const talkUser = _findUserByMember(conferenceName, memberId);
+            if (talkUser) {
+                _talkingUsers.add(talkUser.userName);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
+            }
+            break;
+        }
+        case 'stop-talking': {
+            const stopUser = _findUserByMember(conferenceName, memberId);
+            if (stopUser) {
+                _talkingUsers.delete(stopUser.userName);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
+            }
             break;
         }
         case 'unmute-member': {
