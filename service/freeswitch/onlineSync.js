@@ -130,7 +130,71 @@ function _applyRegSync(allUsers, fsUsers) {
         console.log(`[REG-POLL] Synced: ${fsUsers.size} registered, ${changes} changes`);
     }
 
+    _syncConferenceState(allUsers);
     _cleanupDeadHandlers(allUsers);
+}
+
+function _syncConferenceState(allUsers) {
+    if (!isConnected()) return;
+
+    getConnection().api('conference xml_list', (response) => {
+        const body = response.getBody().trim();
+        if (!body || body.includes('No active conferences') || body.startsWith('-ERR')) return;
+
+        const activeByUuid = new Map();
+        const memberBlocks = body.split('<member>');
+        for (let i = 1; i < memberBlocks.length; i++) {
+            const block = memberBlocks[i];
+            const uuidMatch = block.match(/<uuid>([^<]+)<\/uuid>/);
+            const memberIdMatch = block.match(/<id>(\d+)<\/id>/);
+            const cidMatch = block.match(/<caller_id_number>([^<]+)<\/caller_id_number>/);
+            if (!uuidMatch) continue;
+            activeByUuid.set(uuidMatch[1], {
+                memberId: memberIdMatch ? memberIdMatch[1] : null,
+                callerIdNumber: cidMatch ? cidMatch[1] : '',
+            });
+        }
+
+        let fixes = 0;
+        for (const user of allUsers) {
+            if (user.connectionState === 'connected' || user.connectionState === 'connecting') continue;
+
+            // Check by existing UUID
+            if (user.fsChannelUUID && activeByUuid.has(user.fsChannelUUID)) {
+                const member = activeByUuid.get(user.fsChannelUUID);
+                user.connectionState = 'connected';
+                user.fsMemberId = member.memberId;
+                user.error = null;
+                user.retryCount = 0;
+                user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                global.db.setUserInfo(user.userName, user);
+                console.log(`[REG-POLL] CONF-SYNC ${user.userName} -> connected (UUID match)`);
+                fixes++;
+                continue;
+            }
+
+            // Check by SIP URI in caller_id_number
+            const sipUser = user.userName.replace('sip:', '');
+            for (const [uuid, member] of activeByUuid) {
+                if (member.callerIdNumber === sipUser) {
+                    user.connectionState = 'connected';
+                    user.fsChannelUUID = uuid;
+                    user.fsMemberId = member.memberId;
+                    user.error = null;
+                    user.retryCount = 0;
+                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                    global.db.setUserInfo(user.userName, user);
+                    console.log(`[REG-POLL] CONF-SYNC ${user.userName} -> connected (SIP match)`);
+                    fixes++;
+                    break;
+                }
+            }
+        }
+
+        if (fixes > 0) {
+            console.log(`[REG-POLL] CONF-SYNC fixed ${fixes} stale connection states`);
+        }
+    });
 }
 
 function _cleanupDeadHandlers(allUsers) {
