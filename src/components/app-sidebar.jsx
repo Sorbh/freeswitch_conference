@@ -48,13 +48,13 @@ const data = {
         { title: "Conference Rooms", url: "/rooms", icon: <AudioLinesIcon /> },
         { title: "Broadcasts", url: "/broadcasts", icon: <RadioIcon /> },
         { title: "Online History", url: "/history", icon: <ClockIcon /> },
-        { title: "System Health", url: "/system", icon: <ServerIcon /> },
         { title: "Live Events", url: "/events", icon: <ActivityIcon /> },
       ],
     },
     {
       label: "Developer",
       items: [
+        { title: "System Health", url: "/system", icon: <ServerIcon /> },
         { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon /> },
         { title: "Phone Log", url: "/dev/phone-logs", icon: <PhoneIcon /> },
       ],

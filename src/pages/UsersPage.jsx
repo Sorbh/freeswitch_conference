@@ -68,6 +68,7 @@ import {
   PhoneIncomingIcon,
   BanIcon,
   FilterIcon,
+  Volume2Icon,
 } from "lucide-react";
 
 function useTalkingUsers() {
@@ -77,6 +78,10 @@ function useTalkingUsers() {
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
+        if (data.type === "connected") {
+          setTalking(new Set());
+          return;
+        }
         if (data.type === "state_change" && data.scope === "talking") {
           setTalking(prev => {
             const next = new Set(prev);
@@ -535,9 +540,9 @@ export default function UsersPage() {
                           {user.account?.display_name || user.callerIdName || user.userName}
                         </CopyableCell>
                         {(talkingUsers.has(user.userName) || user.talking) && (
-                          <Badge className="text-[10px] px-1.5 py-0 gap-1 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 animate-pulse">
-                            <AudioLinesIcon className="size-2.5" />Speaking
-                          </Badge>
+                          <Tip label="Speaking">
+                            <Volume2Icon className="size-4 text-cyan-400 animate-pulse" />
+                          </Tip>
                         )}
                         {user.account && !user.account.active && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactive</Badge>

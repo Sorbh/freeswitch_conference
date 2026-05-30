@@ -262,6 +262,9 @@ function _handleConferenceEvent(event) {
                 const users = global.db.filter(u => u.fsChannelUUID === uuid);
                 if (users.length > 0) {
                     const user = users[0];
+                    if (_talkingUsers.delete(user.userName)) {
+                        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: user.userName, talking: false });
+                    }
                     user.fsMemberId = null;
                     user.connectionState = 'hangup';
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
@@ -274,10 +277,13 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'mute-member': {
-            const muteUser = _findUserByMember(conferenceName, memberId);
+            const muteUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
             if (muteUser) {
                 muteUser.mute = true;
                 global.db.setUserInfo(muteUser.userName, muteUser);
+                if (_talkingUsers.delete(muteUser.userName)) {
+                    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: muteUser.userName, talking: false });
+                }
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: muteUser.userName });
                 console.log(`[CONF] MUTE ${muteUser.userName} (member ${memberId})`);
             }
@@ -285,18 +291,20 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'start-talking': {
-            const talkUser = _findUserByMember(conferenceName, memberId);
+            const talkUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
             if (talkUser) {
                 _talkingUsers.add(talkUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
+                console.log(`[CONF] TALKING ${talkUser.userName} in ${roomName}`);
             }
             break;
         }
         case 'stop-talking': {
-            const stopUser = _findUserByMember(conferenceName, memberId);
+            const stopUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
             if (stopUser) {
                 _talkingUsers.delete(stopUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
+                console.log(`[CONF] SILENT ${stopUser.userName} in ${roomName}`);
             }
             break;
         }
@@ -327,6 +335,12 @@ function _updateMemberMapping(conferenceName, memberId, callerIdName, event) {
     }
 
     getMemberIdMap().set(`${conferenceName}:${memberId}`, { uuid, callerIdName });
+}
+
+function _findUserByUuid(uuid) {
+    if (!uuid) return null;
+    const users = global.db.filter(u => u.fsChannelUUID === uuid);
+    return users.length > 0 ? users[0] : null;
 }
 
 function _findUserByMember(conferenceName, memberId) {

@@ -62,20 +62,30 @@ function useAnimatedNumber(target, duration = 600) {
 function useTimeline() {
   const [segments, setSegments] = useState({});
 
-  const record = useCallback((room) => {
-    if (!room) return;
-    const now = Date.now();
-    setSegments((prev) => {
-      const roomSegs = prev[room] || [];
-      const last = roomSegs[roomSegs.length - 1];
-      if (last && now - last.end < 60000) {
-        return { ...prev, [room]: [...roomSegs.slice(0, -1), { ...last, end: now }] };
-      }
-      return { ...prev, [room]: [...roomSegs.slice(-30), { start: now, end: now }] };
-    });
+  const fetchTimeline = useCallback(() => {
+    fetch("/api/v1/admin/broadcasts/activity?minutes=30")
+      .then(r => r.json())
+      .then(res => {
+        const rows = res?.data || [];
+        const grouped = {};
+        for (const row of rows) {
+          if (!grouped[row.room]) grouped[row.room] = [];
+          const startMs = row.created_at * 1000;
+          const endMs = startMs + (row.duration_ms || 5000);
+          grouped[row.room].push({ start: startMs, end: endMs, answered: !!row.answered });
+        }
+        setSegments(grouped);
+      })
+      .catch(() => {});
   }, []);
 
-  return { segments, record };
+  useEffect(() => {
+    fetchTimeline();
+    const id = setInterval(fetchTimeline, 30000);
+    return () => clearInterval(id);
+  }, [fetchTimeline]);
+
+  return { segments, refetch: fetchTimeline };
 }
 
 // ─── Stat Card with Animated Number ───
@@ -277,7 +287,7 @@ function RoomCard({ room, speakers }) {
 }
 
 // ─── Conference Timeline ───
-function ConferenceTimeline({ roomId, segments, roomName }) {
+function ConferenceTimeline({ roomId, segments }) {
   const now = Date.now();
   const windowMs = 30 * 60 * 1000;
   const start = now - windowMs;
@@ -286,20 +296,199 @@ function ConferenceTimeline({ roomId, segments, roomName }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-[10px] font-mono text-muted-foreground w-[32px] shrink-0">{ROOM_SHORT[roomId]}</span>
-      <div className="flex-1 h-[6px] bg-muted/30 rounded-full overflow-hidden relative">
+      <div className="flex-1 h-[6px] bg-muted/30 overflow-hidden relative">
         {roomSegs.filter((s) => s.end > start).map((seg, i) => {
           const l = Math.max(0, ((seg.start - start) / windowMs) * 100);
           const r = Math.min(100, ((seg.end - start) / windowMs) * 100);
           return (
             <div
               key={i}
-              className="absolute top-0 h-full bg-emerald-500 rounded-full"
-              style={{ left: `${l}%`, width: `${Math.max(1, r - l)}%`, opacity: 0.7 }}
+              className={`absolute top-0 h-full ${seg.answered ? "bg-emerald-500" : "bg-red-500"}`}
+              style={{ left: `${l}%`, width: `${Math.max(0.5, r - l)}%`, opacity: 0.7 }}
             />
           );
         })}
-        {/* Current time marker */}
-        <div className="absolute top-0 right-0 w-[2px] h-full bg-foreground/30 rounded-full" />
+        <div className="absolute top-0 right-0 w-[2px] h-full bg-foreground/30" />
+      </div>
+    </div>
+  );
+}
+
+function BroadcastChart() {
+  const views = [
+    { key: "12h", label: "12h", hours: 12 },
+    { key: "24h", label: "24h", hours: 24 },
+    { key: "week", label: "7d", hours: 168 },
+  ];
+  const [active, setActive] = useState("12h");
+  const [cache, setCache] = useState({});
+
+  useEffect(() => {
+    const h = views.find(v => v.key === active)?.hours || 12;
+    fetch(`/api/v1/admin/broadcasts/hourly?hours=${h}`)
+      .then(r => r.json())
+      .then(res => setCache(prev => ({ ...prev, [active]: res?.data || [] })))
+      .catch(() => {});
+  }, [active]);
+
+  const rawData = cache[active] || [];
+  const now = new Date();
+
+  const bars = useMemo(() => {
+    if (active === "week") {
+      const dayMap = {};
+      for (const row of rawData) {
+        const d = new Date(row.created_at * 1000);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        if (!dayMap[key]) dayMap[key] = { answered: 0, unanswered: 0, date: d };
+        if (row.answered) dayMap[key].answered++;
+        else dayMap[key].unanswered++;
+      }
+      const result = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 86400000);
+        const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const entry = dayMap[key];
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        result.push({
+          label: dayNames[d.getDay()],
+          sublabel: `${d.getMonth() + 1}/${d.getDate()}`,
+          answered: entry?.answered || 0,
+          unanswered: entry?.unanswered || 0,
+        });
+      }
+      return result;
+    }
+
+    const numHours = active === "24h" ? 24 : 12;
+    const hourMap = {};
+    for (const row of rawData) {
+      const d = new Date(row.created_at * 1000);
+      const hourKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+      if (!hourMap[hourKey]) hourMap[hourKey] = { answered: 0, unanswered: 0, hour: d.getHours() };
+      if (row.answered) hourMap[hourKey].answered++;
+      else hourMap[hourKey].unanswered++;
+    }
+
+    const result = [];
+    for (let i = numHours - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 3600000);
+      const hourKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
+      const entry = hourMap[hourKey];
+      const h = d.getHours();
+      const label = h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`;
+      result.push({
+        label,
+        answered: entry?.answered || 0,
+        unanswered: entry?.unanswered || 0,
+      });
+    }
+    return result;
+  }, [rawData, active]);
+
+  const maxVal = Math.max(1, ...bars.map(b => b.answered + b.unanswered));
+  const totalAnswered = bars.reduce((s, b) => s + b.answered, 0);
+  const totalUnanswered = bars.reduce((s, b) => s + b.unanswered, 0);
+  const gridLines = 4;
+
+  return (
+    <div>
+      {/* Header: tabs + summary */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex bg-muted/20 p-0.5 gap-0.5">
+          {views.map(v => (
+            <button
+              key={v.key}
+              onClick={() => setActive(v.key)}
+              className={`px-3 py-1 text-[11px] font-mono font-medium tracking-wide transition-all cursor-pointer ${
+                active === v.key
+                  ? "bg-foreground/10 text-foreground shadow-sm"
+                  : "text-muted-foreground/50 hover:text-muted-foreground"
+              }`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-emerald-500/80" />
+            <span className="text-muted-foreground/60">{totalAnswered}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-red-500/80" />
+            <span className="text-muted-foreground/60">{totalUnanswered}</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Chart area */}
+      <div className="flex gap-2">
+        {/* Y-axis labels */}
+        <div className="flex flex-col justify-between shrink-0 w-6" style={{ height: "120px" }}>
+          {Array.from({ length: gridLines + 1 }).map((_, i) => (
+            <span key={i} className="text-[9px] font-mono tabular-nums text-muted-foreground/30 text-right leading-none">
+              {Math.round(maxVal - (maxVal / gridLines) * i)}
+            </span>
+          ))}
+        </div>
+
+        {/* Chart + labels */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Bar area with gridlines */}
+          <div className="relative" style={{ height: "120px" }}>
+            {/* Gridlines */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+              {Array.from({ length: gridLines + 1 }).map((_, i) => (
+                <div key={i} className="border-t border-dashed border-muted-foreground/8" />
+              ))}
+            </div>
+
+            {/* Bars */}
+            <div className="relative flex items-end gap-[3px] h-full">
+              {bars.map((bar, i) => {
+                const total = bar.answered + bar.unanswered;
+                const barHeight = total > 0 ? (total / maxVal) * 100 : 0;
+                const answeredRatio = total > 0 ? (bar.answered / total) * 100 : 0;
+
+                return (
+                  <div key={i} className="flex-1 h-full relative group" style={{ minWidth: 0 }}>
+                    <div className="absolute bottom-0 w-full flex flex-col" style={{ height: `${barHeight}%` }}>
+                      {bar.unanswered > 0 && (
+                        <div className="w-full bg-red-500/70 flex-shrink-0" style={{ height: `${100 - answeredRatio}%` }} />
+                      )}
+                      {bar.answered > 0 && (
+                        <div className="w-full bg-emerald-500/70 flex-shrink-0" style={{ height: `${answeredRatio}%` }} />
+                      )}
+                    </div>
+                    {total > 0 && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                        <span className="text-[9px] font-mono tabular-nums text-foreground/80 bg-foreground/10 px-1.5 py-0.5 whitespace-nowrap">{total}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* X-axis labels */}
+          <div className="flex gap-[3px] mt-1.5">
+            {bars.map((bar, i) => {
+              const showEvery = active === "24h" ? 2 : 1;
+              return (
+                <div key={i} className="flex-1 text-center" style={{ minWidth: 0 }}>
+                  {i % showEvery === 0 ? (
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] font-mono text-muted-foreground/40 leading-none">{bar.label}</span>
+                      {bar.sublabel && <span className="text-[8px] font-mono text-muted-foreground/25 leading-tight">{bar.sublabel}</span>}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -352,30 +541,78 @@ function LiveTicker({ events }) {
 }
 
 // ─── Top Broadcasters ───
-function TopBroadcasters({ broadcasters }) {
-  if (!broadcasters || broadcasters.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-6">No broadcasts yet</p>;
-  }
+function TopBroadcasters() {
+  const tabs = [
+    { key: "today", label: "Today", days: 1 },
+    { key: "week", label: "This Week", days: 7 },
+    { key: "month", label: "This Month", days: 30 },
+  ];
+  const [active, setActive] = useState("today");
+  const [data, setData] = useState({});
 
+  useEffect(() => {
+    const days = tabs.find(t => t.key === active)?.days || 1;
+    fetch(`/api/v1/admin/broadcasts?days=${days}`)
+      .then(r => r.json())
+      .then(res => {
+        const d = res?.data ?? res;
+        setData(prev => ({ ...prev, [active]: d?.topBroadcasters || [] }));
+      })
+      .catch(() => {});
+  }, [active]);
+
+  const broadcasters = data[active] || [];
   const medals = ["bg-amber-500/20 text-amber-400", "bg-zinc-400/20 text-zinc-400", "bg-orange-500/20 text-orange-400"];
 
   return (
-    <div className="space-y-2">
-      {broadcasters.slice(0, 5).map((b, i) => {
-        const name = b.display_name || b.user_name || "Unknown";
-        const shortName = name.split("/")[0]?.trim() || name;
-        return (
-          <div key={b.user_name || i} className="flex items-center gap-3">
-            <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
-              {i + 1}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{shortName}</p>
-            </div>
-            <span className="text-xs font-mono tabular-nums text-muted-foreground">{b.count}</span>
-          </div>
-        );
-      })}
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-1">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setActive(t.key)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                active === t.key
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-[11px] text-foreground/80 font-medium tabular-nums underline underline-offset-2 decoration-foreground/30">
+          {(() => {
+            const now = new Date();
+            const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            const days = tabs.find(t => t.key === active)?.days || 1;
+            if (days === 1) return fmt(now);
+            const from = new Date(now.getTime() - (days - 1) * 86400000);
+            return `${fmt(from)} – ${fmt(now)}`;
+          })()}
+        </span>
+      </div>
+      {broadcasters.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">No broadcasts yet</p>
+      ) : (
+        <div className="space-y-2">
+          {broadcasters.slice(0, 10).map((b, i) => {
+            const shortName = b.display_name || b.user_name || "Unknown";
+            return (
+              <div key={b.user_name || i} className="flex items-center gap-3">
+                <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{shortName}</p>
+                </div>
+                <span className="text-xs font-mono tabular-nums text-muted-foreground">{b.count}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -505,14 +742,7 @@ export default function DashboardPage() {
 
   // Live SSE stream for ticker + broadcast detection
   const { events: liveEvents } = useSSE("/api/v1/admin/events/stream");
-  const { segments, record: recordTimeline } = useTimeline();
-
-  // Record timeline activity from SSE events
-  useEffect(() => {
-    const last = liveEvents[liveEvents.length - 1];
-    if (!last) return;
-    if (last.room || last.roomId) recordTimeline(last.room || last.roomId);
-  }, [liveEvents.length]);
+  const { segments } = useTimeline();
 
   // Ticker events (only meaningful ones)
   const tickerEvents = useMemo(() => {
@@ -592,7 +822,7 @@ export default function DashboardPage() {
       icon: <WifiIcon className="size-4" />,
       color: "#22c55e",
       subtitle: `${activeRooms} active rooms`,
-      pulse: onlineUsers > 0,
+      pulse: false,
     },
     {
       title: "In Conference",
@@ -642,7 +872,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <OpenMics speakers={allSpeakers} />
 
-        {/* Conference Timeline */}
+        {/* 30-min Timeline */}
         <Card className="border-0">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -650,15 +880,32 @@ export default function DashboardPage() {
                 <ActivityIcon className="size-3.5 text-emerald-400" />
                 Activity Timeline
               </CardTitle>
-              <span className="text-[10px] text-muted-foreground/50 font-mono">30 min window</span>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50"><span className="size-2 rounded-full bg-emerald-500 opacity-70" />Answered</span>
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50"><span className="size-2 rounded-full bg-red-500 opacity-70" />Unanswered</span>
+                <span className="text-[10px] text-muted-foreground/30 font-mono">30 min</span>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0 space-y-1.5">
-            {activeRoomIds.length > 0 ? activeRoomIds.map((rid) => (
-              <ConferenceTimeline key={rid} roomId={rid} segments={segments} />
+            {Object.keys(segments).length > 0 ? Object.keys(segments).map((rid) => (
+              <ConferenceTimeline key={rid} roomId={parseInt(rid)} segments={segments} />
             )) : (
-              <p className="text-[11px] text-muted-foreground/40 font-mono text-center py-4">No active rooms</p>
+              <p className="text-[11px] text-muted-foreground/40 font-mono text-center py-4">No broadcasts in last 30 min</p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Broadcast Activity Chart */}
+        <Card className="border-0">
+          <CardHeader className="pb-1">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <ActivityIcon className="size-3.5 text-emerald-400" />
+              Broadcast Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <BroadcastChart />
           </CardContent>
         </Card>
       </div>
@@ -687,7 +934,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <TopBroadcasters broadcasters={broadcastData?.topBroadcasters} />
+            <TopBroadcasters />
           </CardContent>
         </Card>
 

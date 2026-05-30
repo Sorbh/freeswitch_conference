@@ -40,6 +40,11 @@ async function _handleRegistration(event) {
     const mac = macMatch ? macMatch[0].toLowerCase() : null;
     const clientType = _detectClientType(userAgent);
 
+    if (!_isAllowedUserAgent(userAgent)) {
+        console.log(`[REG] BLOCKED ${fromUser}@${fromHost} — unknown UA: ${userAgent || 'empty'} | IP: ${networkIp}`);
+        return;
+    }
+
     const userName = `sip:${email}`;
     console.log('');
     console.log(`[REG] ${email} | ${clientType} | MAC: ${mac || 'none'} | IP: ${networkIp}:${networkPort} | UA: ${userAgent.split(' ')[0] || 'unknown'}`);
@@ -175,6 +180,17 @@ async function _handleExpire(event) {
             console.error(`[REG] Failed to hangup ${userName}: ${e.message}`);
         }
     }
+}
+
+const ALLOWED_UA_PATTERNS = [
+    'yealink',
+    'redline-webclient',
+];
+
+function _isAllowedUserAgent(userAgent) {
+    if (!userAgent) return false;
+    const ua = userAgent.toLowerCase();
+    return ALLOWED_UA_PATTERNS.some(pattern => ua.includes(pattern));
 }
 
 function _detectClientType(userAgent) {

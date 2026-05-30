@@ -418,6 +418,26 @@ function getRecentBroadcasts(limit = 10) {
     `).all(limit);
 }
 
+function getHourlyBroadcasts(hours = 12) {
+    const since = Math.floor(Date.now() / 1000) - (hours * 3600);
+    return sqlite.prepare(`
+        SELECT
+            created_at,
+            answered
+        FROM broadcast_log WHERE created_at >= ?
+        ORDER BY created_at ASC
+    `).all(since);
+}
+
+function getTimelineBroadcasts(minutes = 30) {
+    const since = Math.floor(Date.now() / 1000) - (minutes * 60);
+    return sqlite.prepare(`
+        SELECT room, created_at, duration_ms, answered
+        FROM broadcast_log WHERE created_at >= ?
+        ORDER BY created_at ASC
+    `).all(since);
+}
+
 function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName }) {
     sqlite.prepare(`
         INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name)
@@ -492,5 +512,7 @@ db.getAllAccounts = getAllAccounts;
 db.updateAccount = updateAccount;
 db.deleteAccount = deleteAccount;
 db.touchLastSeen = touchLastSeen;
+db.getTimelineBroadcasts = getTimelineBroadcasts;
+db.getHourlyBroadcasts = getHourlyBroadcasts;
 
 export default { db };
