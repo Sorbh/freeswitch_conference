@@ -53,7 +53,7 @@
     <!-- Keep-alive: ping registered devices, unregister if they stop responding -->
     <param name="nat-options-ping" value="true"/>
     <param name="all-reg-options-ping" value="true"/>
-    <param name="unregister-on-options-fail" value="true"/>
+    <param name="unregister-on-options-fail" value="false"/>
     <param name="options-ping-interval" value="30"/>
 
     <!-- Route SIP MESSAGE via chatplan instead of dialplan -->

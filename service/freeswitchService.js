@@ -3,6 +3,7 @@ import { ensureInConference } from './freeswitch/registration.js';
 import { initiateCall, canInitiateCall, lockCalls, unlockCalls } from './freeswitch/callGate.js';
 import {
     hangupCall,
+    conferenceKick,
     muteUser,
     unmuteUser,
     muteByMemberId,
@@ -21,6 +22,7 @@ const freeswitch = {};
 freeswitch.isConnected = isConnected;
 freeswitch.connect = connect;
 freeswitch.hangupCall = hangupCall;
+freeswitch.conferenceKick = conferenceKick;
 freeswitch.muteUser = muteUser;
 freeswitch.unmuteUser = unmuteUser;
 freeswitch.muteByMemberId = muteByMemberId;

@@ -95,7 +95,6 @@ function _applyRegSync(allUsers, fsUsers) {
             global.db.logOnlineStatus(user.userName, 'online');
             console.log(`[REG-POLL] ${user.userName} -> online (registered)`);
             changed = true;
-            // Trigger call after saving
             global.db.setUserInfo(user.userName, user);
             initiateCall(user.userName);
             changes++;
@@ -128,7 +127,7 @@ function _applyRegSync(allUsers, fsUsers) {
     }
 
     if (changes > 0) {
-        console.log(`[REG-POLL] Synced: ${registeredUsers.size} registered, ${changes} changes`);
+        console.log(`[REG-POLL] Synced: ${fsUsers.size} registered, ${changes} changes`);
     }
 
     _cleanupDeadHandlers(allUsers);
@@ -157,8 +156,8 @@ function _cleanupDeadHandlers(allUsers) {
 }
 
 onMessageEvent((event) => {
-    const fromUser = event.getHeader('from_user') || '';
-    const fromHost = event.getHeader('from_host') || '';
+    const fromUser = event.getHeader('from_user') || event.getHeader('from-user') || '';
+    const fromHost = event.getHeader('from_host') || event.getHeader('from-host') || '';
 
     const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(fromHost);
     const email = fromUser.includes('.at.') ? fromUser.replace('.at.', '@') : (isIp ? fromUser : `${fromUser}@${fromHost}`);

@@ -1,20 +1,100 @@
 #!/bin/bash
+#
+# FreeSWITCH Installer for Redline Conference Bridge
+#
+# Installs FreeSWITCH 1.10.12 inside this repo folder and copies all
+# config files so it's ready to use immediately after the script finishes.
+#
+# Directory layout (all inside the repo):
+#   freeswitch_build/       — source code, support libs (build artifacts)
+#   freeswitch_install/     — the running FreeSWITCH installation
+#     ├── bin/              — freeswitch, fs_cli binaries
+#     ├── etc/freeswitch/   — live config (synced from config/freeswitch/)
+#     ├── lib/              — modules (.so files)
+#     └── var/log/          — runtime logs
+#
+# Usage:
+#   ./install_freeswitch.sh            Full build + install (first time)
+#   ./install_freeswitch.sh --debug    Full build with verbose output
+#   ./install_freeswitch.sh --sync     Sync repo configs to live FS + restart
+#
+# After install:
+#   freeswitch_install/bin/freeswitch -nc     Start FreeSWITCH
+#   freeswitch_install/bin/fs_cli             Connect to CLI
+#   freeswitch_install/bin/freeswitch -stop   Stop FreeSWITCH
+#
 set -e
+
+FREESWITCH_VERSION=1.10.12
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_DIR=$SCRIPT_DIR/freeswitch_build
+SUPPORT_LIB_DIR=$BUILD_DIR/support_libs
+INSTALL_DIR=$SCRIPT_DIR/freeswitch_install
+CONFIG_SRC="$SCRIPT_DIR/config/freeswitch"
+FS_CONF="$INSTALL_DIR/etc/freeswitch"
+LOG_FILE="$BUILD_DIR/install_freeswitch.log"
 
 DEBUG=false
 if [[ "$1" == "--debug" ]]; then
     DEBUG=true
 fi
 
-FREESWITCH_VERSION=1.10.12
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_FOLDER=$SCRIPT_DIR/freeswitch_build
-SUPPORT_LIB_DIR=$ROOT_FOLDER/support_libs
-INSTALL_DIR=$SCRIPT_DIR/freeswitch_install
-LOG_FILE="$ROOT_FOLDER/install_freeswitch.log"
+# ─── Sync configs to live FreeSWITCH ─────────────────────────────────────────
+sync_configs() {
+    if [ ! -d "$CONFIG_SRC" ]; then
+        echo "ERROR: Config source not found at $CONFIG_SRC"
+        return 1
+    fi
+    if [ ! -d "$FS_CONF" ]; then
+        echo "ERROR: FreeSWITCH config dir not found at $FS_CONF. Run full install first."
+        return 1
+    fi
 
-mkdir -p $ROOT_FOLDER/support_libs
-cd $ROOT_FOLDER
+    echo "Syncing repo configs → $FS_CONF ..."
+
+    # SIP profiles
+    cp -f $CONFIG_SRC/sip_profiles/internal.xml $FS_CONF/sip_profiles/internal.xml
+
+    # Dialplan
+    cp -f $CONFIG_SRC/dialplan/default.xml $FS_CONF/dialplan/default.xml
+    rm -f $FS_CONF/dialplan/default/*.xml 2>/dev/null || true
+    mkdir -p $FS_CONF/dialplan/default
+    cp -f $CONFIG_SRC/dialplan/redline.xml $FS_CONF/dialplan/default/01_redline.xml
+
+    # Chatplan (if exists)
+    if [ -d "$CONFIG_SRC/chatplan" ]; then
+        mkdir -p $FS_CONF/chatplan
+        cp -f $CONFIG_SRC/chatplan/*.xml $FS_CONF/chatplan/ 2>/dev/null || true
+    fi
+
+    # Autoload configs
+    for f in modules.conf.xml conference.conf.xml event_socket.conf.xml xml_curl.conf.xml; do
+        if [ -f "$CONFIG_SRC/autoload_configs/$f" ]; then
+            cp -f "$CONFIG_SRC/autoload_configs/$f" "$FS_CONF/autoload_configs/$f"
+        fi
+    done
+
+    echo "Config sync complete."
+}
+
+if [[ "$1" == "--sync" ]]; then
+    sync_configs || exit 1
+
+    # Restart FreeSWITCH if running
+    if $INSTALL_DIR/bin/freeswitch -stop 2>/dev/null; then
+        echo "Stopping FreeSWITCH..."
+        sleep 3
+    fi
+    echo "Starting FreeSWITCH..."
+    $INSTALL_DIR/bin/freeswitch -nc
+    echo "Done. Use '$INSTALL_DIR/bin/fs_cli' to verify."
+    exit 0
+fi
+
+# ─── Full install starts here ─────────────────────────────────────────────────
+
+mkdir -p $BUILD_DIR/support_libs
+cd $BUILD_DIR
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -35,10 +115,11 @@ CURRENT_STEP=0
 progress() {
     CURRENT_STEP=$((CURRENT_STEP + 1))
     PERCENT=$((CURRENT_STEP * 100 / TOTAL_STEPS))
-    echo "[Progress: $PERCENT%] $1"
+    echo "[Step $CURRENT_STEP/$TOTAL_STEPS — $PERCENT%] $1"
 }
 
 log "Starting FreeSWITCH $FREESWITCH_VERSION installation..."
+log "Build directory:   $BUILD_DIR"
 log "Install directory: $INSTALL_DIR"
 
 # Step 1: Enable repos
@@ -67,7 +148,7 @@ if ! autoconf --version 2>/dev/null | grep -q "2.71"; then
     run_cmd "./configure"
     run_cmd "make"
     run_cmd "sudo make install"
-    cd $ROOT_FOLDER
+    cd $BUILD_DIR
 else
     log "autoconf 2.71 already installed, skipping."
 fi
@@ -82,7 +163,7 @@ run_cmd "sh bootstrap.sh"
 run_cmd "./configure --prefix=$SUPPORT_LIB_DIR"
 run_cmd "make -j$(nproc)"
 run_cmd "sudo make install"
-cd $ROOT_FOLDER
+cd $BUILD_DIR
 
 # Step 5: Build SpanDSP (telephony DSP library)
 progress "Building SpanDSP from source..."
@@ -94,7 +175,7 @@ run_cmd "sh bootstrap.sh"
 run_cmd "./configure --prefix=$SUPPORT_LIB_DIR"
 run_cmd "make -j$(nproc)"
 run_cmd "sudo make install"
-cd $ROOT_FOLDER
+cd $BUILD_DIR
 
 # Step 6: Update linker
 progress "Updating linker settings..."
@@ -123,25 +204,25 @@ fi
 cd freeswitch-src
 run_cmd "git checkout v$FREESWITCH_VERSION"
 
-# Step 10: Configure modules.conf
-progress "Configuring modules..."
+# Step 10: Configure build modules (modules.conf controls what gets compiled)
+progress "Configuring build modules..."
 run_cmd "sh bootstrap.sh"
 
-# Disable modules we don't need
+# Disable modules we don't need (won't compile)
 sed -i 's/^applications\/mod_signalwire/#applications\/mod_signalwire/' modules.conf
 sed -i 's/^applications\/mod_verto/#applications\/mod_verto/' modules.conf
 sed -i 's/^applications\/mod_av$/#applications\/mod_av/' modules.conf
 sed -i 's/^applications\/mod_spandsp/#applications\/mod_spandsp/' modules.conf
-sed -i 's/^#xml_int\/mod_xml_curl/xml_int\/mod_xml_curl/' modules.conf
 sed -i 's/^endpoints\/mod_verto/#endpoints\/mod_verto/' modules.conf
 sed -i 's/^endpoints\/mod_skinny/#endpoints\/mod_skinny/' modules.conf
 
-# Ensure required modules are enabled
+# Enable modules we need
+sed -i 's/^#xml_int\/mod_xml_curl/xml_int\/mod_xml_curl/' modules.conf
 sed -i 's/^#\(applications\/mod_conference\)/\1/' modules.conf
 sed -i 's/^#\(codecs\/mod_opus\)/\1/' modules.conf
 sed -i 's/^#\(formats\/mod_sndfile\)/\1/' modules.conf
 
-log "Enabled modules: mod_sofia, mod_conference, mod_event_socket, mod_opus, mod_dptools, mod_commands, mod_sndfile"
+log "Key modules: mod_sofia, mod_conference, mod_event_socket, mod_xml_curl, mod_opus, mod_dptools, mod_commands, mod_sndfile"
 
 # Step 11: Build FreeSWITCH
 progress "Configuring FreeSWITCH build (this may take a few minutes)..."
@@ -155,57 +236,56 @@ progress "Installing FreeSWITCH..."
 run_cmd "make install"
 run_cmd "make cd-sounds-install cd-moh-install"
 
-# Step 13: Copy POC configs
-progress "Copying POC configuration files..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_SRC="$SCRIPT_DIR/config/freeswitch"
-FS_CONF="$INSTALL_DIR/etc/freeswitch"
+# Step 13: Copy project configs from repo → live FreeSWITCH
+progress "Deploying project configuration files..."
+sync_configs
 
-if [ -d "$CONFIG_SRC" ]; then
-    # SIP profiles
-    yes | cp -f $CONFIG_SRC/sip_profiles/internal.xml $FS_CONF/sip_profiles/internal.xml 2>/dev/null || true
-
-    # Dialplan — replace default with minimal config, keep only our conference routing
-    yes | cp -f $CONFIG_SRC/dialplan/default.xml $FS_CONF/dialplan/default.xml 2>/dev/null || true
-    rm -f $FS_CONF/dialplan/default/*.xml 2>/dev/null || true
-    mkdir -p $FS_CONF/dialplan/default
-    yes | cp -f $CONFIG_SRC/dialplan/redline.xml $FS_CONF/dialplan/default/01_redline.xml 2>/dev/null || true
-
-    # Autoload configs
-    yes | cp -f $CONFIG_SRC/autoload_configs/conference.conf.xml $FS_CONF/autoload_configs/conference.conf.xml 2>/dev/null || true
-    yes | cp -f $CONFIG_SRC/autoload_configs/event_socket.conf.xml $FS_CONF/autoload_configs/event_socket.conf.xml 2>/dev/null || true
-    yes | cp -f $CONFIG_SRC/autoload_configs/xml_curl.conf.xml $FS_CONF/autoload_configs/xml_curl.conf.xml 2>/dev/null || true
-
-    log "POC configs copied to $FS_CONF/"
+# Step 14: Generate self-signed TLS certs (for WSS and SIP-TLS)
+progress "Setting up TLS certificates..."
+TLS_DIR="$FS_CONF/tls"
+mkdir -p "$TLS_DIR"
+if [ ! -f "$TLS_DIR/wss.pem" ]; then
+    PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "127.0.0.1")
+    openssl req -x509 -nodes -days 1095 -newkey rsa:2048 \
+        -keyout "$TLS_DIR/dtls-srtp.pem" \
+        -out "$TLS_DIR/wss.pem" \
+        -subj "/CN=$PUBLIC_IP" 2>/dev/null
+    cat "$TLS_DIR/wss.pem" "$TLS_DIR/dtls-srtp.pem" > "$TLS_DIR/agent.pem"
+    cat "$TLS_DIR/wss.pem" "$TLS_DIR/dtls-srtp.pem" > "$TLS_DIR/dtls-srtp.pem.tmp"
+    mv "$TLS_DIR/dtls-srtp.pem.tmp" "$TLS_DIR/dtls-srtp.pem"
+    log "Generated self-signed TLS certs for $PUBLIC_IP"
 else
-    log "WARNING: Config source directory not found at $CONFIG_SRC. Using default configs."
+    log "TLS certs already exist, skipping."
 fi
 
-# Step 14: Add to PATH
-progress "Finalizing installation..."
-if ! grep -q "$INSTALL_DIR/bin" ~/.bashrc; then
-    echo "export PATH=\$PATH:$INSTALL_DIR/bin" >> ~/.bashrc
-    log "Added $INSTALL_DIR/bin to PATH in ~/.bashrc"
-fi
-
+log ""
 log "============================================"
-log "FreeSWITCH $FREESWITCH_VERSION installed successfully!"
+log " FreeSWITCH $FREESWITCH_VERSION — READY"
+log "============================================"
+log ""
 log "Install path: $INSTALL_DIR"
-log "Binary: $INSTALL_DIR/bin/freeswitch"
-log "Config: $INSTALL_DIR/etc/freeswitch/"
-log "============================================"
 log ""
-log "To start FreeSWITCH:"
-log "  $INSTALL_DIR/bin/freeswitch -nc"
+log "  Start:   $INSTALL_DIR/bin/freeswitch -nc"
+log "  CLI:     $INSTALL_DIR/bin/fs_cli -H 127.0.0.1 -P 8021 -p <password>"
+log "  Stop:    $INSTALL_DIR/bin/freeswitch -stop"
+log "  Sync:    $0 --sync"
 log ""
-log "To connect to CLI:"
-log "  $INSTALL_DIR/bin/fs_cli"
+log "Ports:"
+log "  5070  SIP (UDP/TCP)"
+log "  5071  SIP-TLS (Yealink phones)"
+log "  5072  WSS (web clients)"
+log "  8021  Event Socket (ESL, localhost only)"
 log ""
-log "To stop FreeSWITCH:"
-log "  $INSTALL_DIR/bin/freeswitch -stop"
+log "Config source:  $CONFIG_SRC/"
+log "Live config:    $FS_CONF/"
+log ""
+log "After editing config/freeswitch/*, run:"
+log "  $0 --sync"
+log "to deploy changes and restart FreeSWITCH."
+log ""
 
 if $DEBUG; then
-    log "Debug mode enabled. Full logs were displayed during installation."
+    log "Debug mode was enabled. Full build logs were displayed."
 else
-    log "Run the script with --debug for full logs."
+    log "Run with --debug for verbose build output."
 fi

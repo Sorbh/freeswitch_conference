@@ -16,6 +16,7 @@ onCustomEvent((event) => {
 
 function _parseEmailFromEvent(event) {
     const fromUser = event.getHeader('from-user');
+    if (!fromUser) return null;
     const fromHost = event.getHeader('from-host');
     const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(fromHost);
     return fromUser.includes('.at.') ? fromUser.replace('.at.', '@') : (isIp ? fromUser : `${fromUser}@${fromHost}`);
@@ -103,6 +104,7 @@ async function _handleRegistration(event) {
 
 async function _handleUnregister(event) {
     const email = _parseEmailFromEvent(event);
+    if (!email) return;
     const userName = `sip:${email}`;
 
     const userInfo = global.db.getUserInfo(userName);
@@ -138,6 +140,7 @@ async function _handleUnregister(event) {
 
 async function _handleExpire(event) {
     const email = _parseEmailFromEvent(event);
+    if (!email) return;
     const userName = `sip:${email}`;
 
     const userInfo = global.db.getUserInfo(userName);

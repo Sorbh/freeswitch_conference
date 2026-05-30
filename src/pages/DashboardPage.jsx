@@ -382,6 +382,35 @@ function TopBroadcasters({ broadcasters }) {
 
 // ─── Recent Broadcasts ───
 function RecentBroadcasts({ broadcasts }) {
+  const [playingId, setPlayingId] = useState(null);
+  const audioRef = useRef(null);
+  const playingIdRef = useRef(null);
+
+  useEffect(() => { playingIdRef.current = playingId; }, [playingId]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onEnded = () => setPlayingId(null);
+    audio.addEventListener("ended", onEnded);
+    return () => audio.removeEventListener("ended", onEnded);
+  }, []);
+
+  const toggle = useCallback((id, url) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playingIdRef.current === id) {
+      audio.pause();
+      setPlayingId(null);
+    } else {
+      audio.pause();
+      audio.src = url;
+      audio.load();
+      audio.play().catch(() => {});
+      setPlayingId(id);
+    }
+  }, []);
+
   if (!broadcasts || broadcasts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -394,49 +423,27 @@ function RecentBroadcasts({ broadcasts }) {
   return (
     <div className="space-y-1.5">
       {broadcasts.slice(0, 8).map((b) => (
-        <BroadcastRow key={b.id} broadcast={b} />
+        <BroadcastRow key={b.id} broadcast={b} playing={playingId === b.id} onToggle={toggle} />
       ))}
+      <audio ref={audioRef} preload="none" />
+      <style>{`
+        @keyframes eqBar {
+          from { height: 3px; }
+          to { height: 14px; }
+        }
+      `}</style>
     </div>
   );
 }
 
-function BroadcastRow({ broadcast: b }) {
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef(null);
-
+function BroadcastRow({ broadcast: b, playing, onToggle }) {
   const name = b.display_name || b.user_name || "Unknown";
   const room = b.room_name || ROOM_NAMES[b.room] || "";
   const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
 
-  const toggle = () => {
-    if (!audioRef.current) return;
-    if (playing) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-  };
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onPlay = () => setPlaying(true);
-    const onPause = () => setPlaying(false);
-    const onEnded = () => setPlaying(false);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-    return () => {
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
-    };
-  }, []);
-
   return (
     <div className="rounded-lg bg-muted/15 border border-border/30 px-3 py-2.5 hover:bg-muted/25 transition-colors">
       <div className="flex items-center gap-2">
-        {/* Name + status */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold truncate">{name}</span>
@@ -455,10 +462,9 @@ function BroadcastRow({ broadcast: b }) {
           <p className="text-[10px] text-muted-foreground mt-0.5">{room}</p>
         </div>
 
-        {/* Play button */}
         {url && (
           <button
-            onClick={toggle}
+            onClick={() => onToggle(b.id, url)}
             className={`flex size-9 shrink-0 items-center justify-center rounded-full border transition-all ${
               playing
                 ? "bg-cyan-500/15 border-cyan-500/30 text-cyan-400"
@@ -484,15 +490,6 @@ function BroadcastRow({ broadcast: b }) {
           </button>
         )}
       </div>
-
-      {url && <audio ref={audioRef} preload="none" src={url} />}
-
-      <style>{`
-        @keyframes eqBar {
-          from { height: 3px; }
-          to { height: 14px; }
-        }
-      `}</style>
     </div>
   );
 }

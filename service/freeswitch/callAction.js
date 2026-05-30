@@ -49,6 +49,17 @@ export function unmuteByMemberId(room, memberId, userName) {
     });
 }
 
+export function conferenceKick(room, memberId, userName) {
+    return new Promise((resolve) => {
+        if (!memberId) { resolve(); return; }
+        const roomName = global.config.ROOM_NAME[room] || room;
+        getConnection().api(`conference ${room} kick ${memberId}`, (response) => {
+            console.log(`[ACTION] KICK ${userName || 'unknown'} from ${roomName} (member ${memberId})`);
+            resolve();
+        });
+    });
+}
+
 export function honkRoom(room) {
     const audioFile = global.config.HONK_AUDIO_FILE;
     const roomName = global.config.ROOM_NAME[room] || room;
