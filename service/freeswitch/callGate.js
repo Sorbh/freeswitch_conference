@@ -196,7 +196,7 @@ function _checkUserInConference(userName, userInfo) {
 }
 
 function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
-    const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
+    const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='600;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
 
     console.log(`[CALL] ORIGINATE ${userName} -> ${roomName}`);
 

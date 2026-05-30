@@ -29,12 +29,12 @@
     <param name="inbound-zrtp-passthru" value="false"/>
 
     <!-- Speed up WebRTC connection - skip unnecessary ICE gathering -->
-    <param name="rtp-timeout-sec" value="300"/>
-    <param name="rtp-hold-timeout-sec" value="1800"/>
+    <param name="rtp-timeout-sec" value="0"/>
+    <param name="rtp-hold-timeout-sec" value="0"/>
 
     <!-- Session timers (matches current 120s in Drachtio) -->
     <param name="enable-timer" value="true"/>
-    <param name="session-timeout" value="120"/>
+    <param name="session-timeout" value="600"/>
 
     <!-- SIP TLS for Yealink phones -->
     <param name="tls-binding" value="0.0.0.0:5071"/>
