@@ -37,6 +37,10 @@ export function canInitiateCall(userName) {
         return { allowed: false, reason: 'already_in_call', message: `${userName} already ${userInfo.connectionState}` };
     }
 
+    if (userInfo.connectionState === 'error') {
+        return { allowed: false, reason: 'error', message: `${userName} in error state: ${userInfo.error || 'unknown'}` };
+    }
+
     if (userInfo.authState === 'logout') {
         return { allowed: false, reason: 'logged_out', message: `${userName} is logged out` };
     }
@@ -62,19 +66,19 @@ export function canInitiateCall(userName) {
 export async function initiateCall(userName) {
     const gate = canInitiateCall(userName);
     if (!gate.allowed) {
-        console.log(`[GATE] BLOCKED ${userName} — ${gate.reason}`);
+        if (gate.reason !== 'already_in_call') console.log(`[GATE] BLOCKED ${userName} — ${gate.reason}`);
         return false;
     }
 
     const userInfo = global.db.getUserInfo(userName);
 
     if (userInfo.connectionState === 'retry') {
-        if (userInfo.retryCount > MAX_RETRIES) {
+        if ((userInfo.retryCount || 0) >= MAX_RETRIES) {
             userInfo.connectionState = 'error';
+            userInfo.error = userInfo.error || 'Max retries exceeded';
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-            userInfo.retryCount = 0;
             global.db.setUserInfo(userName, userInfo);
-            console.log(`[GATE] ${userName} reached max retries, aborting`);
+            console.log(`[GATE] ${userName} reached max retries, aborting — ${userInfo.error}`);
             return false;
         }
         userInfo.retryCount = (userInfo.retryCount || 0) + 1;
@@ -95,12 +99,16 @@ export async function initiateCall(userName) {
 
         const updatedInfo = global.db.getUserInfo(userName);
 
+        if (err.message.includes('USER_BUSY')) {
+            const alreadyConnected = await _checkUserInConference(userName, updatedInfo);
+            if (alreadyConnected) {
+                console.log(`[GATE] ${userName} already in conference, syncing state to connected`);
+                return true;
+            }
+        }
+
         if (updatedInfo.connectionState === 'hangup') {
             console.error(`[GATE] ${userName} hung up during connect, skip retry`);
-            updatedInfo.connectionState = 'error';
-            updatedInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-            updatedInfo.error = err.message;
-            global.db.setUserInfo(userName, updatedInfo);
             return false;
         }
 
@@ -155,6 +163,38 @@ function _originateToConference(userName) {
     });
 }
 
+function _checkUserInConference(userName, userInfo) {
+    return new Promise((resolve) => {
+        const room = userInfo.room;
+        if (!room) { resolve(false); return; }
+
+        getConnection().api(`conference ${room} list`, (response) => {
+            const body = response.getBody().trim();
+            if (!body || body.startsWith('-ERR')) { resolve(false); return; }
+
+            const sipUser = userName.replace('sip:', '');
+            const lines = body.split('\n');
+            for (const line of lines) {
+                if (line.includes(sipUser)) {
+                    const parts = line.split(';');
+                    const memberId = parts[0];
+                    const uuid = parts[2];
+                    userInfo.connectionState = 'connected';
+                    userInfo.fsMemberId = memberId;
+                    userInfo.fsChannelUUID = uuid;
+                    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                    userInfo.error = null;
+                    userInfo.retryCount = 0;
+                    global.db.setUserInfo(userName, userInfo);
+                    resolve(true);
+                    return;
+                }
+            }
+            resolve(false);
+        });
+    });
+}
+
 function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
     const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
 
@@ -170,8 +210,8 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
             userInfo.fsChannelUUID = uuid;
             userInfo.connectionState = 'connected';
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-            delete userInfo.error;
-            delete userInfo.retryCount;
+            userInfo.error = null;
+            userInfo.retryCount = 0;
             global.db.setUserInfo(userName, userInfo);
 
             resolve(userInfo);

@@ -170,6 +170,8 @@ function _handleChannelAnswer(event) {
             userInfo.authState = 'login';
             userInfo.login_expire = Math.floor(Date.now() / 1000) + global.config.loginExpireTime;
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            userInfo.error = null;
+            userInfo.retryCount = 0;
             global.db.setUserInfo(userName, userInfo);
             console.log(`[CALL] TRACK ${userName}`);
 
@@ -221,7 +223,8 @@ function _onCallHangup(userName, _uuid, cause) {
     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
     userInfo.fsChannelUUID = null;
     userInfo.fsMemberId = null;
-    delete userInfo.error;
+    userInfo.error = null;
+    userInfo.retryCount = 0;
     global.db.setUserInfo(userName, userInfo);
 
     if (userInfo.online) {
