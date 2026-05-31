@@ -482,7 +482,7 @@ export default function UsersPage() {
                 filtered.map((user) => (
                   <TableRow
                     key={user.userName}
-                    className={`cursor-pointer group transition-colors ${user.account && !user.account.active ? "opacity-50" : ""}`}
+                    className={`cursor-pointer group transition-colors ${user.connectionState === "error" ? "bg-red-100 hover:bg-red-200 dark:bg-red-950/60 dark:hover:bg-red-950/80 border-l-2 border-l-red-500" : ""} ${user.account && !user.account.active ? "opacity-50" : ""}`}
                     onClick={() => {
                       setSelectedUserName(user.userName);
                       setSheetOpen(true);

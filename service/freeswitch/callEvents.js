@@ -5,6 +5,7 @@
 // ESL disconnect: resets all connected users. ESL reconnect: syncs with actual conference state.
 import { getConnection, getConnectionHandlers, getMemberIdMap, onCustomEvent, onAnswerEvent, onHangupEvent, onEslDisconnect, onEslReconnect } from './connection.js';
 import { initiateCall, canInitiateCall, unlockCalls } from './callGate.js';
+import { showMessage } from './notifications.js';
 import { logUser, logSystem } from '../logger.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
@@ -289,6 +290,7 @@ function _handleConferenceEvent(event) {
                 logUser(muteUser.userName, 'CONF', `MUTE (member ${memberId})`);
             }
             global.db.logEvent('mute', muteUser?.userName || null, room, 'Member muted');
+            _broadcastCallerIdToRoom(conferenceName);
             break;
         }
         case 'start-talking': {
@@ -357,6 +359,8 @@ function _findUserByMember(conferenceName, memberId) {
     return null;
 }
 
+const lastUnmutedCount = new Map();
+
 function _broadcastCallerIdToRoom(conferenceName) {
     const room = parseInt(conferenceName);
     if (!room) return;
@@ -365,5 +369,27 @@ function _broadcastCallerIdToRoom(conferenceName) {
         u.connectionState === 'connected' && u.room === room && !u.payment
     );
 
-    logSystem('CONF', `CALLERID-UPDATE ${global.config.ROOM_NAME[room] || conferenceName} (${connectedUsers.length} users)`);
+    const unmutedUsers = connectedUsers.filter(u => !u.mute);
+    const callerIdString = unmutedUsers.map(u => u.callerIdName || u.userName).join(', ');
+
+    const yealinkUsers = connectedUsers.filter(u => u.clientType === 'yealink');
+    const yealinkUserNames = yealinkUsers.map(u => u.userName).filter(Boolean);
+
+    if (unmutedUsers.length > 0) {
+        lastUnmutedCount.set(conferenceName, unmutedUsers.length);
+        if (yealinkUserNames.length > 0) showMessage(yealinkUserNames, callerIdString);
+        logSystem('CONF', `CALLERID -> ${global.config.ROOM_NAME[room] || conferenceName}: ${callerIdString}`);
+    } else if ((lastUnmutedCount.get(conferenceName) || 0) > 0) {
+        lastUnmutedCount.set(conferenceName, 0);
+        if (yealinkUserNames.length > 0) showMessage(yealinkUserNames, '-', 1);
+        logSystem('CONF', `CALLERID -> ${global.config.ROOM_NAME[room] || conferenceName}: (cleared)`);
+    }
+
+    global.db.eventEmitter.emit('STATE_CHANGE', {
+        type: 'state_change',
+        scope: 'callerid',
+        room,
+        callerIdString: unmutedUsers.length > 0 ? callerIdString : '',
+        unmutedCount: unmutedUsers.length,
+    });
 }

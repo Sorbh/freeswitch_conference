@@ -274,6 +274,28 @@ adminRouter.get("/events/stream", (req, res) => {
     });
 });
 
+// GET /events/room/:room — lightweight SSE for web clients, only callerid events for their room
+adminRouter.get("/events/room/:room", (req, res) => {
+    const room = parseInt(req.params.room);
+    if (!room) return res.status(400).end();
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+    res.write('data: {"type":"connected"}\n\n');
+
+    const onEvent = (eventData) => {
+        if (eventData.scope === 'callerid' && eventData.room === room) {
+            res.write(`data: ${JSON.stringify({ callerIdString: eventData.callerIdString, unmutedCount: eventData.unmutedCount })}\n\n`);
+        }
+    };
+
+    global.db.eventEmitter.on('STATE_CHANGE', onEvent);
+    req.on('close', () => global.db.eventEmitter.off('STATE_CHANGE', onEvent));
+});
+
 // GET /events/fs-log — SSE endpoint for FreeSWITCH log stream
 adminRouter.get("/events/fs-log", (req, res) => {
     res.writeHead(200, {
@@ -387,6 +409,13 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
             // Wait for FreeSWITCH to send BYE to client
             await new Promise(r => setTimeout(r, 1000));
         }
+
+        // Reset state so callGate doesn't block on stale error/retry
+        userInfo.connectionState = 'ideal';
+        userInfo.error = null;
+        userInfo.retryCount = 0;
+        userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+        global.db.setUserInfo(userName, userInfo);
 
         const result = await global.freeswitch.initiateCall(userName);
         global.db.logEvent('reconnect', userName, userInfo.room, 'Reconnect from client');

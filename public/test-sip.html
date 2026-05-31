@@ -45,6 +45,7 @@
         .btn-join { background: #27ae60; color: #fff; padding: 14px 36px; }
         .btn-join:hover { background: #219a52; }
 
+        .conf-callerid { font-size: 13px; color: #f1c40f; background: #f1c40f18; padding: 6px 16px; border-radius: 12px; margin-bottom: 12px; font-weight: 500; letter-spacing: 0.3px; }
         .conf-timer { font-size: 48px; font-weight: 700; font-family: 'JetBrains Mono', 'Courier New', monospace; letter-spacing: 2px; margin-bottom: 32px; color: #fff; }
 
         .conf-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -94,6 +95,7 @@
             <div class="conf-room" id="confRoom">-</div>
             <div class="conf-reg" id="confReg"><span class="dot yellow"></span> <span>Registering...</span></div>
             <div class="conf-status disconnected" id="confStatus">Connecting...</div>
+            <div class="conf-callerid" id="confCallerId" style="display:none"></div>
             <div class="conf-timer" id="confTimer">00:00</div>
             <div class="conf-actions" id="confActions">
                 <button class="conf-btn btn-mute" id="btnMute" onclick="toggleMute()" disabled>
@@ -122,6 +124,25 @@
         let sipUserGlobal = null;
         let loggingOut = false;
         let regRetryTimer = null;
+        let callerIdSSE = null;
+        let lastHeartbeat = Date.now();
+
+        // Detect sleep/wake: if the interval fires and >15s have passed, system was asleep
+        setInterval(() => {
+            const now = Date.now();
+            if (now - lastHeartbeat > 15000 && ua && !loggingOut) {
+                console.warn('[SIP] Sleep/wake detected, forcing reconnect');
+                try {
+                    ua.stop();
+                    setTimeout(() => {
+                        if (!loggingOut) ua.start();
+                    }, 1000);
+                } catch (e) {
+                    console.error('[SIP] Reconnect after wake failed:', e);
+                }
+            }
+            lastHeartbeat = now;
+        }, 5000);
 
         const host = window.location.hostname || 'localhost';
         const wsServer = `wss://${host}:5072`;
@@ -178,6 +199,35 @@
                 clearInterval(keepAliveTimer);
                 keepAliveTimer = null;
             }
+        }
+
+        function startCallerIdSSE(room) {
+            stopCallerIdSSE();
+            const es = new EventSource(`/api/v1/admin/events/room/${room}`);
+            es.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'connected') return;
+                    const el = document.getElementById('confCallerId');
+                    if (data.callerIdString) {
+                        el.textContent = '🎙 ' + data.callerIdString;
+                        el.style.display = 'block';
+                    } else {
+                        el.textContent = '';
+                        el.style.display = 'none';
+                    }
+                } catch {}
+            };
+            callerIdSSE = es;
+        }
+
+        function stopCallerIdSSE() {
+            if (callerIdSSE) {
+                callerIdSSE.close();
+                callerIdSSE = null;
+            }
+            const el = document.getElementById('confCallerId');
+            if (el) { el.textContent = ''; el.style.display = 'none'; }
         }
 
         async function doLogin() {
@@ -258,6 +308,7 @@
                         console.log('Account loaded:', accountData.display_name, 'Room:', accountData.room);
 
                         showConfScreen();
+                        startCallerIdSSE(accountData.room);
 
                         if (!accountData.active) {
                             showDeactivatedState();
@@ -490,6 +541,7 @@
         function logout() {
             loggingOut = true;
             stopKeepAlive();
+            stopCallerIdSSE();
             if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
             if (currentSession) {
                 currentSession.terminate();
