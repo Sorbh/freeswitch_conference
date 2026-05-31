@@ -1,4 +1,12 @@
 <include>
+  <!-- Block SIP spam: reject calls without a whitelisted User-Agent -->
+  <extension name="block-unknown-ua" continue="false">
+    <condition field="${sip_user_agent}" expression="^(?!.*(Yealink|Redline-WebClient)).*$" break="on-true">
+      <action application="log" data="WARNING [SPAM] Rejected unknown UA: ${sip_user_agent} from ${sip_from_uri}"/>
+      <action application="respond" data="403 Forbidden"/>
+    </condition>
+  </extension>
+
   <extension name="redline-conference">
     <condition field="destination_number" expression="^(12345670\d+)$">
       <action application="answer"/>

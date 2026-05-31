@@ -106,6 +106,17 @@ setInterval(() => {
     fetch(`http://127.0.0.1:4070/api/v1/test/test`).catch(() => { });
 }, 30000);
 
+// Room snapshots every 5 minutes
+setInterval(() => {
+    try { global.db.snapshotRoomCounts(); } catch {}
+}, 5 * 60 * 1000);
+global.db.snapshotRoomCounts();
+
+// Clean old snapshots once a day
+setInterval(() => {
+    try { global.db.cleanOldSnapshots(14); } catch {}
+}, 24 * 60 * 60 * 1000);
+
 process.stdin.resume();
 
 process

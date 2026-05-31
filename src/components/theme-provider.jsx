@@ -8,7 +8,7 @@ const ThemeProviderContext = createContext({
 export function ThemeProvider({
   children,
   defaultTheme = "dark",
-  storageKey = "redline-ui-theme",
+  storageKey = "bjs-ui-theme",
   ...props
 }) {
   const [theme, setTheme] = useState(

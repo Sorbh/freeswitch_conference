@@ -2,15 +2,25 @@ import express from "express";
 
 export let freeswitchRouter = express.Router();
 
+const ALLOWED_UA_PATTERNS = ['yealink', 'redline-webclient'];
+
 freeswitchRouter.post("/directory", async (req, res) => {
-    const { user, domain, action, section, sip_auth_username } = req.body;
-    // console.log(`[XML-CURL] section=${section} action=${action} user=${user} auth_user=${sip_auth_username} domain=${domain}`);
+    const { user, domain, action, section, sip_auth_username, sip_user_agent, sip_auth_realm } = req.body;
 
     if (section !== 'directory') {
         return res.type('xml').send(_notFoundXml());
     }
 
     if (!user || !domain) {
+        return res.type('xml').send(_notFoundXml());
+    }
+
+    const ua = (sip_user_agent || '').toLowerCase();
+    const viaProto = (req.body.sip_via_protocol || '').toLowerCase();
+    const isWebSocket = viaProto === 'ws' || viaProto === 'wss';
+    const isInternalLookup = !sip_user_agent && !req.body.ip;
+    if (!isInternalLookup && !isWebSocket && !ALLOWED_UA_PATTERNS.some(p => ua.includes(p))) {
+        console.log(`[XML-CURL] BLOCKED unknown UA="${sip_user_agent}" user=${user} ip=${req.body.ip}`);
         return res.type('xml').send(_notFoundXml());
     }
 
@@ -45,14 +55,14 @@ freeswitchRouter.post("/directory", async (req, res) => {
         // No match — return a dummy user so FreeSWITCH sends 401 challenge instead of 403
         // The challenge will make the phone re-send with proper auth credentials
         // console.log(`[XML-CURL] no account found, returning challenge-able dummy for user=${user}`);
-        return res.type('xml').send(_userXml(user, domain, '__challenge_dummy_' + Date.now()));
+        return res.type('xml').send(_userXml(user, sip_auth_realm || domain, '__challenge_dummy_' + Date.now()));
     }
 
     if (action === 'message-count') {
-        return res.type('xml').send(_userXml(resolvedUser, domain, account.password));
+        return res.type('xml').send(_userXml(resolvedUser, sip_auth_realm || domain, account.password));
     }
 
-    return res.type('xml').send(_userXml(resolvedUser, domain, account.password));
+    return res.type('xml').send(_userXml(resolvedUser, sip_auth_realm || domain, account.password));
 });
 
 function _userXml(user, domain, password) {

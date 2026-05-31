@@ -29,12 +29,12 @@ import {
 const data = {
   user: {
     name: "Admin",
-    email: "admin@redline.com",
+    email: "admin@bjshotline.com",
     avatar: "",
   },
   teams: [
     {
-      name: "Redline SIP",
+      name: "BJS Hotline",
       logo: <PhoneIcon />,
       plan: "Conference Admin",
     },

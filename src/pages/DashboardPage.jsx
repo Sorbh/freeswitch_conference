@@ -6,6 +6,8 @@ import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
 import { ROOM_NAMES, EVENT_COLORS, timeAgo } from "@/lib/constants";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   UsersIcon,
   WifiIcon,
@@ -314,6 +316,11 @@ function ConferenceTimeline({ roomId, segments }) {
   );
 }
 
+const broadcastChartConfig = {
+  answered: { label: "Answered", color: "var(--color-emerald-800)" },
+  unanswered: { label: "Unanswered", color: "var(--color-red-800)" },
+};
+
 function BroadcastChart() {
   const views = [
     { key: "12h", label: "12h", hours: 12 },
@@ -334,25 +341,24 @@ function BroadcastChart() {
   const rawData = cache[active] || [];
   const now = new Date();
 
-  const bars = useMemo(() => {
+  const chartData = useMemo(() => {
     if (active === "week") {
       const dayMap = {};
       for (const row of rawData) {
         const d = new Date(row.created_at * 1000);
         const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-        if (!dayMap[key]) dayMap[key] = { answered: 0, unanswered: 0, date: d };
+        if (!dayMap[key]) dayMap[key] = { answered: 0, unanswered: 0 };
         if (row.answered) dayMap[key].answered++;
         else dayMap[key].unanswered++;
       }
       const result = [];
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 86400000);
         const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
         const entry = dayMap[key];
-        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         result.push({
-          label: dayNames[d.getDay()],
-          sublabel: `${d.getMonth() + 1}/${d.getDate()}`,
+          label: `${dayNames[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`,
           answered: entry?.answered || 0,
           unanswered: entry?.unanswered || 0,
         });
@@ -365,7 +371,7 @@ function BroadcastChart() {
     for (const row of rawData) {
       const d = new Date(row.created_at * 1000);
       const hourKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
-      if (!hourMap[hourKey]) hourMap[hourKey] = { answered: 0, unanswered: 0, hour: d.getHours() };
+      if (!hourMap[hourKey]) hourMap[hourKey] = { answered: 0, unanswered: 0 };
       if (row.answered) hourMap[hourKey].answered++;
       else hourMap[hourKey].unanswered++;
     }
@@ -376,34 +382,27 @@ function BroadcastChart() {
       const hourKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
       const entry = hourMap[hourKey];
       const h = d.getHours();
-      const label = h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`;
-      result.push({
-        label,
-        answered: entry?.answered || 0,
-        unanswered: entry?.unanswered || 0,
-      });
+      const label = h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM`;
+      result.push({ label, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 });
     }
     return result;
   }, [rawData, active]);
 
-  const maxVal = Math.max(1, ...bars.map(b => b.answered + b.unanswered));
-  const totalAnswered = bars.reduce((s, b) => s + b.answered, 0);
-  const totalUnanswered = bars.reduce((s, b) => s + b.unanswered, 0);
-  const gridLines = 4;
+  const totalAnswered = chartData.reduce((s, b) => s + b.answered, 0);
+  const totalUnanswered = chartData.reduce((s, b) => s + b.unanswered, 0);
 
   return (
     <div>
-      {/* Header: tabs + summary */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex bg-muted/20 p-0.5 gap-0.5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-1">
           {views.map(v => (
             <button
               key={v.key}
               onClick={() => setActive(v.key)}
-              className={`px-3 py-1 text-[11px] font-mono font-medium tracking-wide transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 active === v.key
-                  ? "bg-foreground/10 text-foreground shadow-sm"
-                  : "text-muted-foreground/50 hover:text-muted-foreground"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50"
               }`}
             >
               {v.label}
@@ -412,84 +411,162 @@ function BroadcastChart() {
         </div>
         <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-emerald-500/80" />
+            <span className="w-2.5 h-2.5 bg-emerald-800 rounded-sm" />
             <span className="text-muted-foreground/60">{totalAnswered}</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-red-500/80" />
+            <span className="w-2.5 h-2.5 bg-red-800 rounded-sm" />
             <span className="text-muted-foreground/60">{totalUnanswered}</span>
           </span>
         </div>
       </div>
 
-      {/* Chart area */}
-      <div className="flex gap-2">
-        {/* Y-axis labels */}
-        <div className="flex flex-col justify-between shrink-0 w-6" style={{ height: "120px" }}>
-          {Array.from({ length: gridLines + 1 }).map((_, i) => (
-            <span key={i} className="text-[9px] font-mono tabular-nums text-muted-foreground/30 text-right leading-none">
-              {Math.round(maxVal - (maxVal / gridLines) * i)}
-            </span>
+      <ChartContainer config={broadcastChartConfig} className="h-[160px] w-full [&_.recharts-cartesian-axis-line]:stroke-border [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground">
+        <BarChart data={chartData} barGap={1}>
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.1)" />
+          <XAxis dataKey="label" tickLine={false} axisLine={true} fontSize={10} interval={active === "24h" ? 2 : 0} />
+          <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} />
+          <ChartTooltip content={<ChartTooltipContent />} />
+          <Bar dataKey="answered" stackId="a" fill="#065f46" radius={0} />
+          <Bar dataKey="unanswered" stackId="a" fill="#991b1b" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ChartContainer>
+    </div>
+  );
+}
+
+// ─── Room Availability Chart ───
+const ROOM_COLORS = {
+  123456701: "#22c55e", 123456702: "#3b82f6", 123456703: "#f59e0b",
+  123456704: "#ef4444", 123456705: "#8b5cf6", 123456706: "#06b6d4",
+  123456707: "#ec4899", 123456708: "#f97316", 123456709: "#14b8a6",
+  123456710: "#a855f7", 123456711: "#6366f1", 123456712: "#84cc16",
+};
+
+function RoomAvailabilityChart() {
+  const views = [
+    { key: "12h", label: "12h", hours: 12 },
+    { key: "24h", label: "24h", hours: 24 },
+    { key: "week", label: "7d", hours: 168 },
+  ];
+  const [active, setActive] = useState("12h");
+  const [cache, setCache] = useState({});
+
+  useEffect(() => {
+    const h = views.find(v => v.key === active)?.hours || 12;
+    fetch(`/api/v1/admin/broadcasts/availability?hours=${h}`)
+      .then(r => r.json())
+      .then(res => setCache(prev => ({ ...prev, [active]: res?.data || [] })))
+      .catch(() => {});
+  }, [active]);
+
+  const rawData = cache[active] || [];
+
+  const { chartData, roomIds } = useMemo(() => {
+    if (!rawData.length) return { chartData: [], roomIds: [] };
+
+    const isWeek = active === "week";
+    const numBuckets = isWeek ? 7 : (active === "24h" ? 24 : 12);
+    const now = new Date();
+
+    const getBucket = (ts) => {
+      const d = new Date(ts * 1000);
+      if (isWeek) return Math.max(0, numBuckets - 1 - Math.floor((now.getTime() - d.getTime()) / 86400000));
+      return Math.max(0, numBuckets - 1 - Math.floor((now.getTime() - d.getTime()) / 3600000));
+    };
+
+    const roomBuckets = {};
+    const allRooms = new Set();
+    for (const row of rawData) {
+      const b = getBucket(row.created_at);
+      if (b < 0 || b >= numBuckets) continue;
+      const room = row.room;
+      allRooms.add(room);
+      if (!roomBuckets[room]) roomBuckets[room] = Array(numBuckets).fill(null).map(() => ({ sum: 0, count: 0 }));
+      roomBuckets[room][b].sum += row.online_count;
+      roomBuckets[room][b].count++;
+    }
+
+    const data = [];
+    for (let i = 0; i < numBuckets; i++) {
+      let label;
+      if (isWeek) {
+        const d = new Date(now.getTime() - (numBuckets - 1 - i) * 86400000);
+        label = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
+      } else {
+        const d = new Date(now.getTime() - (numBuckets - 1 - i) * 3600000);
+        const h = d.getHours();
+        label = h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM`;
+      }
+      const point = { label };
+      for (const room of allRooms) {
+        const b = roomBuckets[room]?.[i];
+        point[room] = b && b.count > 0 ? Math.round(b.sum / b.count) : 0;
+      }
+      data.push(point);
+    }
+
+    return { chartData: data, roomIds: [...allRooms].sort((a, b) => a - b) };
+  }, [rawData, active]);
+
+  const lineChartConfig = Object.fromEntries(
+    roomIds.map(id => [id, { label: ROOM_SHORT[id] || id, color: ROOM_COLORS[id] || "#71717a" }])
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-1">
+          {views.map(v => (
+            <button
+              key={v.key}
+              onClick={() => setActive(v.key)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                active === v.key
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50"
+              }`}
+            >
+              {v.label}
+            </button>
           ))}
         </div>
-
-        {/* Chart + labels */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Bar area with gridlines */}
-          <div className="relative" style={{ height: "120px" }}>
-            {/* Gridlines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-              {Array.from({ length: gridLines + 1 }).map((_, i) => (
-                <div key={i} className="border-t border-dashed border-muted-foreground/8" />
-              ))}
-            </div>
-
-            {/* Bars */}
-            <div className="relative flex items-end gap-[3px] h-full">
-              {bars.map((bar, i) => {
-                const total = bar.answered + bar.unanswered;
-                const barHeight = total > 0 ? (total / maxVal) * 100 : 0;
-                const answeredRatio = total > 0 ? (bar.answered / total) * 100 : 0;
-
-                return (
-                  <div key={i} className="flex-1 h-full relative group" style={{ minWidth: 0 }}>
-                    <div className="absolute bottom-0 w-full flex flex-col" style={{ height: `${barHeight}%` }}>
-                      {bar.unanswered > 0 && (
-                        <div className="w-full bg-red-500/70 flex-shrink-0" style={{ height: `${100 - answeredRatio}%` }} />
-                      )}
-                      {bar.answered > 0 && (
-                        <div className="w-full bg-emerald-500/70 flex-shrink-0" style={{ height: `${answeredRatio}%` }} />
-                      )}
-                    </div>
-                    {total > 0 && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        <span className="text-[9px] font-mono tabular-nums text-foreground/80 bg-foreground/10 px-1.5 py-0.5 whitespace-nowrap">{total}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* X-axis labels */}
-          <div className="flex gap-[3px] mt-1.5">
-            {bars.map((bar, i) => {
-              const showEvery = active === "24h" ? 2 : 1;
-              return (
-                <div key={i} className="flex-1 text-center" style={{ minWidth: 0 }}>
-                  {i % showEvery === 0 ? (
-                    <div className="flex flex-col items-center">
-                      <span className="text-[9px] font-mono text-muted-foreground/40 leading-none">{bar.label}</span>
-                      {bar.sublabel && <span className="text-[8px] font-mono text-muted-foreground/25 leading-tight">{bar.sublabel}</span>}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       </div>
+
+      {chartData.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground/40 font-mono text-center py-8">No data available</p>
+      ) : (
+        <>
+          <ChartContainer config={lineChartConfig} className="h-[160px] w-full [&_.recharts-cartesian-axis-line]:stroke-border [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground">
+            <LineChart data={chartData}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.1)" />
+              <XAxis dataKey="label" tickLine={false} axisLine={true} fontSize={10} interval={active === "24h" ? 2 : 0} />
+              <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              {roomIds.map(roomId => (
+                <Line
+                  key={roomId}
+                  type="monotone"
+                  dataKey={String(roomId)}
+                  name={ROOM_SHORT[roomId] || String(roomId)}
+                  stroke={ROOM_COLORS[roomId] || "#71717a"}
+                  strokeWidth={1.5}
+                  dot={false}
+                  activeDot={{ r: 3 }}
+                />
+              ))}
+            </LineChart>
+          </ChartContainer>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+            {roomIds.map(roomId => (
+              <span key={roomId} className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+                <span className="w-3 h-[2px] rounded-full" style={{ backgroundColor: ROOM_COLORS[roomId] || "#71717a" }} />
+                {ROOM_SHORT[roomId] || roomId}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -619,6 +696,7 @@ function TopBroadcasters() {
 
 // ─── Recent Broadcasts ───
 function RecentBroadcasts({ broadcasts }) {
+  const [filter, setFilter] = useState("all");
   const [playingId, setPlayingId] = useState(null);
   const audioRef = useRef(null);
   const playingIdRef = useRef(null);
@@ -657,9 +735,61 @@ function RecentBroadcasts({ broadcasts }) {
     );
   }
 
+  const filtered = filter === "all" ? broadcasts
+    : filter === "answered" ? broadcasts.filter(b => b.answered)
+    : broadcasts.filter(b => !b.answered);
+
+  if (filtered.length === 0) {
+    return (
+      <>
+        <div className="flex bg-muted/20 p-0.5 gap-0.5 mb-2">
+          {[
+            { key: "all", label: "All" },
+            { key: "answered", label: "Answered" },
+            { key: "unanswered", label: "Unanswered" },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setFilter(t.key)}
+              className={`flex-1 px-2 py-1 text-[11px] font-mono font-medium tracking-wide transition-all cursor-pointer ${
+                filter === t.key
+                  ? "bg-foreground/10 text-foreground shadow-sm"
+                  : "text-muted-foreground/50 hover:text-muted-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+          <p className="text-xs">No {filter} broadcasts</p>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
-      {broadcasts.slice(0, 8).map((b) => (
+      <div className="flex gap-1 mb-2">
+        {[
+          { key: "all", label: "All" },
+          { key: "answered", label: "Answered" },
+          { key: "unanswered", label: "Unanswered" },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setFilter(t.key)}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+              filter === t.key
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/50"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {filtered.slice(0, 8).map((b) => (
         <BroadcastRow key={b.id} broadcast={b} playing={playingId === b.id} onToggle={toggle} />
       ))}
       <audio ref={audioRef} preload="none" />
@@ -906,6 +1036,19 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <BroadcastChart />
+          </CardContent>
+        </Card>
+
+        {/* User Availability */}
+        <Card className="border-0">
+          <CardHeader className="pb-1">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <UsersIcon className="size-3.5 text-blue-400" />
+              User Availability
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <RoomAvailabilityChart />
           </CardContent>
         </Card>
       </div>

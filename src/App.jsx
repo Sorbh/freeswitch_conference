@@ -43,7 +43,7 @@ function BreadcrumbNav() {
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbPage className="text-muted-foreground">Redline SIP</BreadcrumbPage>
+          <BreadcrumbPage className="text-muted-foreground">BJS Hotline</BreadcrumbPage>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
@@ -80,7 +80,7 @@ function AppLayout() {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="redline-ui-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
       <BrowserRouter>
         <AppLayout />
       </BrowserRouter>

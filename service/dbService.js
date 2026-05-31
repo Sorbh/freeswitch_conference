@@ -87,6 +87,16 @@ function init() {
         CREATE INDEX IF NOT EXISTS idx_event_log_created ON event_log(created_at);
         CREATE INDEX IF NOT EXISTS idx_online_history_user ON online_history(user_name);
         CREATE INDEX IF NOT EXISTS idx_online_history_created ON online_history(created_at);
+
+        CREATE TABLE IF NOT EXISTS room_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room INTEGER NOT NULL,
+            online_count INTEGER NOT NULL,
+            in_call_count INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_room_snapshots_room ON room_snapshots(room);
+        CREATE INDEX IF NOT EXISTS idx_room_snapshots_created ON room_snapshots(created_at);
     `);
 
     const broadcastCols = sqlite.prepare("PRAGMA table_info(broadcast_log)").all().map(c => c.name);
@@ -429,6 +439,48 @@ function getHourlyBroadcasts(hours = 12) {
     `).all(since);
 }
 
+function snapshotRoomCounts() {
+    const rows = sqlite.prepare(`
+        SELECT room,
+            SUM(CASE WHEN online = 1 THEN 1 ELSE 0 END) as online_count,
+            SUM(CASE WHEN connection_state = 'connected' THEN 1 ELSE 0 END) as in_call_count
+        FROM users
+        WHERE room IS NOT NULL
+        GROUP BY room
+    `).all();
+
+    const insert = sqlite.prepare('INSERT INTO room_snapshots (room, online_count, in_call_count) VALUES (?, ?, ?)');
+    for (const row of rows) {
+        insert.run(row.room, row.online_count, row.in_call_count);
+    }
+    return rows.length;
+}
+
+function getRoomSnapshots(hours = 12) {
+    const since = Math.floor(Date.now() / 1000) - (hours * 3600);
+    return sqlite.prepare(`
+        SELECT room, online_count, in_call_count, created_at
+        FROM room_snapshots
+        WHERE created_at >= ?
+        ORDER BY created_at ASC
+    `).all(since);
+}
+
+function cleanOldSnapshots(days = 14) {
+    const cutoff = Math.floor(Date.now() / 1000) - (days * 86400);
+    sqlite.prepare('DELETE FROM room_snapshots WHERE created_at < ?').run(cutoff);
+}
+
+function getRoomAvailability(hours = 12) {
+    const since = Math.floor(Date.now() / 1000) - (hours * 3600);
+    return sqlite.prepare(`
+        SELECT room, created_at, participant_count
+        FROM broadcast_log
+        WHERE created_at >= ?
+        ORDER BY created_at ASC
+    `).all(since);
+}
+
 function getTimelineBroadcasts(minutes = 30) {
     const since = Math.floor(Date.now() / 1000) - (minutes * 60);
     return sqlite.prepare(`
@@ -514,5 +566,9 @@ db.deleteAccount = deleteAccount;
 db.touchLastSeen = touchLastSeen;
 db.getTimelineBroadcasts = getTimelineBroadcasts;
 db.getHourlyBroadcasts = getHourlyBroadcasts;
+db.getRoomAvailability = getRoomAvailability;
+db.snapshotRoomCounts = snapshotRoomCounts;
+db.getRoomSnapshots = getRoomSnapshots;
+db.cleanOldSnapshots = cleanOldSnapshots;
 
 export default { db };

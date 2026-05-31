@@ -202,6 +202,17 @@ adminRouter.get("/broadcasts/timeline", (req, res) => {
     }
 });
 
+// GET /broadcasts/availability — room user availability over time
+adminRouter.get("/broadcasts/availability", (req, res) => {
+    try {
+        const hours = parseInt(req.query.hours) || 12;
+        const data = global.db.getRoomSnapshots(hours);
+        res.json({ status: true, data });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /broadcasts/hourly — stacked bar chart data
 adminRouter.get("/broadcasts/hourly", (req, res) => {
     try {
