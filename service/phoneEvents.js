@@ -3,6 +3,7 @@
 // 2. HTTP POST from web client — receives { userName, event: 'off_hook'|'on_hook' }
 // Both call callAction.muteByMemberId / unmuteByMemberId via FreeSWITCH conference API.
 import SyslogServer from 'syslog-server';
+import { logUser, logSystem } from './logger.js';
 
 let syslogServer = null;
 const sipBlocks = new Map();
@@ -143,7 +144,7 @@ export function startSyslogServer(port = 515) {
             const match = logMessage.match(keyRegex);
             if (!match || !match[1]) return;
             const keyEvent = match[1];
-            console.log(`[PHONE] SYSLOG ${macAddress} key=${keyEvent}`);
+            logSystem('PHONE', `SYSLOG ${macAddress} key=${keyEvent}`);
             if (keyEvent === 'off hook') {
                 _handleHookEvent(macAddress, 'off_hook');
             } else if (keyEvent === 'on hook') {
@@ -153,7 +154,7 @@ export function startSyslogServer(port = 515) {
     });
 
     syslogServer.start({ port });
-    console.log(`[PHONE] Syslog server listening on port ${port}`);
+    logSystem('PHONE', `Syslog server listening on port ${port}`);
 }
 
 function _linkMacToUser(mac, fromHeader) {
@@ -168,27 +169,27 @@ function _linkMacToUser(mac, fromHeader) {
 
     userInfo.mac = mac;
     global.db.setUserInfo(userName, userInfo);
-    console.log(`[PHONE] MAC ${mac} linked to ${email} via syslog`);
+    logUser(userName, 'PHONE', `MAC ${mac} linked via syslog`);
 }
 
 export function handleHttpHookEvent(userName, event) {
     if (event !== 'off_hook' && event !== 'on_hook') {
-        console.log(`[PHONE] HTTP unknown event: ${event} for ${userName}`);
+        logUser(userName, 'PHONE', `HTTP unknown event: ${event}`);
         return false;
     }
 
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) {
-        console.log(`[PHONE] HTTP ${userName} not found`);
+        logUser(userName, 'PHONE', 'HTTP not found');
         return false;
     }
 
     if (!userInfo.fsMemberId) {
-        console.log(`[PHONE] HTTP ${userName} not in conference`);
+        logUser(userName, 'PHONE', 'HTTP not in conference');
         return false;
     }
 
-    console.log(`[PHONE] HTTP ${userName} event=${event}`);
+    logUser(userName, 'PHONE', `HTTP event=${event}`);
     _applyMuteState(userName, userInfo, event);
     return true;
 }
@@ -196,12 +197,12 @@ export function handleHttpHookEvent(userName, event) {
 function _handleHookEvent(macAddress, event) {
     const userInfo = global.db.findUserInfo('mac', macAddress);
     if (Object.keys(userInfo).length === 0) {
-        console.log(`[PHONE] MAC ${macAddress} not found in user table`);
+        logSystem('PHONE', `MAC ${macAddress} not found in user table`);
         return;
     }
 
     if (!userInfo.fsMemberId) {
-        console.log(`[PHONE] ${userInfo.userName} not in conference, skipping ${event}`);
+        logUser(userInfo.userName, 'PHONE', `not in conference, skipping ${event}`);
         return;
     }
 
@@ -220,13 +221,13 @@ function _applyMuteState(userName, userInfo, event) {
     userInfo.mute = mute;
     global.db.setUserInfo(userName, userInfo);
     global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
-    console.log(`[PHONE] ${userName} -> ${mute ? 'MUTED' : 'UNMUTED'} (${event})`);
+    logUser(userName, 'PHONE', `${mute ? 'MUTED' : 'UNMUTED'} (${event})`);
 }
 
 export function stopSyslogServer() {
     if (syslogServer) {
         syslogServer.stop();
         syslogServer = null;
-        console.log('[PHONE] Syslog server stopped');
+        logSystem('PHONE', 'Syslog server stopped');
     }
 }

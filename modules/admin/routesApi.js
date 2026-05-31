@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
+import { logUser } from "../../service/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -390,7 +391,7 @@ adminRouter.get("/system", async (req, res) => {
 adminRouter.post("/users/:userName/reconnect", async (req, res) => {
     try {
         const userName = req.params.userName;
-        console.log(`[API] RECONNECT ${userName}`);
+        logUser(userName, 'API', 'RECONNECT');
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
@@ -432,7 +433,7 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
 adminRouter.post("/users/:userName/kickout", async (req, res) => {
     try {
         const userName = req.params.userName;
-        console.log(`[API] KICKOUT ${userName}`);
+        logUser(userName, 'API', 'KICKOUT');
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
@@ -477,7 +478,7 @@ adminRouter.post("/users/:userName/kickout", async (req, res) => {
 // POST /users/kickout-all — kickout all users and disconnect all calls
 adminRouter.post("/users/kickout-all", async (req, res) => {
     try {
-        console.log('[API] KICKOUT-ALL');
+        logUser('ALL', 'API', 'KICKOUT-ALL');
         const accounts = global.db.getAllAccounts();
         const users = global.db.getAllUserInfo();
         let kicked = 0;
@@ -522,7 +523,7 @@ adminRouter.post("/users/kickout-all", async (req, res) => {
 adminRouter.post("/users/:userName/mute", (req, res) => {
     try {
         const userName = req.params.userName;
-        console.log(`[API] MUTE ${userName}`);
+        logUser(userName, 'API', 'MUTE');
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
@@ -545,7 +546,7 @@ adminRouter.post("/users/:userName/mute", (req, res) => {
 adminRouter.post("/users/:userName/unmute", (req, res) => {
     try {
         const userName = req.params.userName;
-        console.log(`[API] UNMUTE ${userName}`);
+        logUser(userName, 'API', 'UNMUTE');
         const userInfo = global.db.getUserInfo(userName);
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
@@ -569,7 +570,7 @@ adminRouter.post("/users/:userName/hook", (req, res) => {
     try {
         const userName = req.params.userName;
         const { event } = req.body;
-        console.log(`[API] HOOK ${userName} event=${event}`);
+        logUser(userName, 'HOOK', `event=${event}`);
 
         if (!event) {
             return res.status(400).json({ status: false, error: "event is required (off_hook or on_hook)" });
@@ -591,7 +592,7 @@ adminRouter.post("/users/:userName/hook", (req, res) => {
 adminRouter.post("/users/:userName/room", (req, res) => {
     try {
         const userName = req.params.userName;
-        console.log(`[API] ROOM-CHANGE ${userName} -> ${req.body.room}`);
+        logUser(userName, 'API', `ROOM-CHANGE -> ${req.body.room}`);
         const { room } = req.body;
         if (room === undefined || room === null) {
             return res.status(400).json({ status: false, error: "Room is required" });
@@ -641,7 +642,7 @@ adminRouter.get("/accounts/:id", (req, res) => {
 // POST /accounts — create account
 adminRouter.post("/accounts", (req, res) => {
     try {
-        console.log(`[API] CREATE-ACCOUNT ${req.body.email}`);
+        logUser(req.body.email, 'API', 'CREATE-ACCOUNT');
         const { email, password, display_name, company_name, company_address, city, state, zip, room } = req.body;
         if (!email || !password) {
             return res.status(400).json({ status: false, error: "Email and password are required" });
@@ -693,7 +694,7 @@ adminRouter.post("/accounts", (req, res) => {
 adminRouter.put("/accounts/:id", async (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        console.log(`[API] UPDATE-ACCOUNT id=${id}`);
+        logUser(`account:${id}`, 'API', 'UPDATE-ACCOUNT');
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
 
@@ -749,7 +750,7 @@ adminRouter.put("/accounts/:id", async (req, res) => {
 adminRouter.delete("/accounts/:id", (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        console.log(`[API] DELETE-ACCOUNT id=${id}`);
+        logUser(`account:${id}`, 'API', 'DELETE-ACCOUNT');
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
 
@@ -767,7 +768,7 @@ adminRouter.delete("/accounts/:id", (req, res) => {
 adminRouter.post("/rooms/:roomId/honk", (req, res) => {
     try {
         const roomId = parseInt(req.params.roomId);
-        console.log(`[API] HONK room=${roomId}`);
+        logUser(`room:${roomId}`, 'API', 'HONK');
         global.freeswitch.honkRoom(roomId);
         global.db.logEvent('honk', null, roomId, 'Admin honked room');
         emitStateChange('rooms');

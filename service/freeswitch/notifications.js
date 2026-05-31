@@ -2,6 +2,7 @@
 // execute commands, and action URIs to Yealink phones through FreeSWITCH.
 // Uses sendevent NOTIFY with contact-uri for reliable delivery through NAT.
 import { getConnection } from './connection.js';
+import { logSystem } from '../logger.js';
 import modesl from 'modesl';
 
 function _resolveContactLookups(userName) {
@@ -51,7 +52,7 @@ function _sendNotify(userName, eventString, contentType, xmlBody) {
             e.addBody(xmlBody);
 
             conn.sendEvent(e, () => {
-                console.log(`[NOTIFY] ${eventString} -> ${contactUri}`);
+                logSystem('NOTIFY', `${eventString} -> ${contactUri}`);
             });
         });
     };

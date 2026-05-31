@@ -83,6 +83,7 @@ export async function connect() {
                     reconnectTimer = null;
                 }
 
+                _handleEslReconnect();
                 resolve();
             }
         );

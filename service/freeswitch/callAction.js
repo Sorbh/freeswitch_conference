@@ -1,6 +1,7 @@
 // Call action commands sent to FreeSWITCH via ESL.
 // Hangup, mute/unmute, honk, conference list query.
 import { getConnection } from './connection.js';
+import { logUser, logSystem } from '../logger.js';
 
 export function hangupCall(uuid, userName) {
     return new Promise((resolve) => {
@@ -13,7 +14,7 @@ export function hangupCall(uuid, userName) {
             userName = users.length > 0 ? users[0].userName : null;
         }
         getConnection().api(`uuid_kill ${uuid}`, (response) => {
-            console.log(`[ACTION] KILL ${userName || 'unknown'}`);
+            logUser(userName || 'unknown', 'ACTION', 'KILL');
             resolve();
         });
     });
@@ -38,14 +39,14 @@ export function unmuteUser(mac) {
 export function muteByMemberId(room, memberId, userName) {
     const roomName = global.config.ROOM_NAME[room] || room;
     getConnection().api(`conference ${room} mute ${memberId}`, (response) => {
-        console.log(`[ACTION] MUTE ${userName || 'unknown'} -> ${roomName} (member ${memberId})`);
+        logUser(userName || 'unknown', 'ACTION', `MUTE -> ${roomName} (member ${memberId})`);
     });
 }
 
 export function unmuteByMemberId(room, memberId, userName) {
     const roomName = global.config.ROOM_NAME[room] || room;
     getConnection().api(`conference ${room} unmute ${memberId}`, (response) => {
-        console.log(`[ACTION] UNMUTE ${userName || 'unknown'} -> ${roomName} (member ${memberId})`);
+        logUser(userName || 'unknown', 'ACTION', `UNMUTE -> ${roomName} (member ${memberId})`);
     });
 }
 
@@ -54,7 +55,7 @@ export function conferenceKick(room, memberId, userName) {
         if (!memberId) { resolve(); return; }
         const roomName = global.config.ROOM_NAME[room] || room;
         getConnection().api(`conference ${room} kick ${memberId}`, (response) => {
-            console.log(`[ACTION] KICK ${userName || 'unknown'} from ${roomName} (member ${memberId})`);
+            logUser(userName || 'unknown', 'ACTION', `KICK from ${roomName} (member ${memberId})`);
             resolve();
         });
     });
@@ -64,7 +65,7 @@ export function honkRoom(room) {
     const audioFile = global.config.HONK_AUDIO_FILE;
     const roomName = global.config.ROOM_NAME[room] || room;
     getConnection().api(`conference ${room} play ${audioFile}`, (response) => {
-        console.log(`[ACTION] HONK ${roomName}`);
+        logSystem('ACTION', `HONK ${roomName}`);
         global.db.logEvent('honk', null, room, `Honk played in ${roomName}`);
     });
 }
@@ -72,7 +73,7 @@ export function honkRoom(room) {
 export function getConferenceList() {
     return new Promise((resolve) => {
         getConnection().api('conference list', (response) => {
-            console.log('[ACTION] Conference list queried');
+            logSystem('ACTION', 'Conference list queried');
             resolve(response.getBody().trim());
         });
     });

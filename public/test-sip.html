@@ -120,7 +120,6 @@
         let callTimer = null;
         let callSeconds = 0;
         let accountData = null;
-        let keepAliveTimer = null;
         let sipUserGlobal = null;
         let loggingOut = false;
         let regRetryTimer = null;
@@ -179,27 +178,8 @@
             return bytes.join(':');
         }
 
-        function startKeepAlive() {
-            if (keepAliveTimer) return;
-            keepAliveTimer = setInterval(() => {
-                if (!ua || !ua.isRegistered()) return;
-                const target = `sip:${sipUserGlobal}@${sipDomain}`;
-                ua.sendMessage(target, 'keep-alive', {
-                    contentType: 'text/plain',
-                    eventHandlers: {
-                        succeeded: () => { console.log('[KEEP-ALIVE] sent MESSAGE -> 200 OK'); },
-                        failed: (e) => { console.warn('[KEEP-ALIVE] sent MESSAGE -> failed', e.cause); },
-                    }
-                });
-            }, 30000);
-        }
-
-        function stopKeepAlive() {
-            if (keepAliveTimer) {
-                clearInterval(keepAliveTimer);
-                keepAliveTimer = null;
-            }
-        }
+        function startKeepAlive() {}
+        function stopKeepAlive() {}
 
         function startCallerIdSSE(room) {
             stopCallerIdSSE();

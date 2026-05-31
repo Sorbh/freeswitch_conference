@@ -28,9 +28,6 @@ function stopRegPoll() {
 onEslReconnect(() => { startRegPoll(); _pollRegistrations(); });
 onEslDisconnect(() => stopRegPoll());
 
-// Start polling on module load if already connected
-setTimeout(() => { if (isConnected()) startRegPoll(); }, 5000);
-
 function _pollRegistrations() {
     if (!isConnected()) return;
 
