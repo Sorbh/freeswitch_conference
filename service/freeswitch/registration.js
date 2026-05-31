@@ -4,6 +4,7 @@
 import { onCustomEvent } from './connection.js';
 import { clearOnlineTimer } from './onlineSync.js';
 import { initiateCall } from './callGate.js';
+import { logUser, logBlocked } from '../logger.js';
 
 const registrationFailures = new Map();
 
@@ -41,18 +42,17 @@ async function _handleRegistration(event) {
     const clientType = _detectClientType(userAgent);
 
     if (!_isAllowedUserAgent(userAgent)) {
-        console.log(`[REG] BLOCKED ${fromUser}@${fromHost} — unknown UA: ${userAgent || 'empty'} | IP: ${networkIp}`);
+        logBlocked('UA', `"${userAgent || 'empty'}" user=${fromUser}@${fromHost} ip=${networkIp}`);
         return;
     }
 
     const userName = `sip:${email}`;
-    console.log('');
-    console.log(`[REG] ${email} | ${clientType} | MAC: ${mac || 'none'} | IP: ${networkIp}:${networkPort} | UA: ${userAgent.split(' ')[0] || 'unknown'}`);
+    logUser(userName, 'REG', `${clientType} │ MAC: ${mac || 'none'} │ IP: ${networkIp}:${networkPort}`);
 
     const account = global.db.getAccountByEmail(email);
     if (!account || !account.active) {
         _trackFailure(userName);
-        console.log(`[REG] REJECTED ${email} — no active account`);
+        logUser(userName, 'REG', `REJECTED — no active account`);
         return;
     }
 
@@ -104,7 +104,7 @@ async function _handleRegistration(event) {
     global.db.touchLastSeen(userName);
     global.db.logEvent('registration', userName, null, 'User registered');
     global.db.logOnlineStatus(userName, 'online');
-    console.log(`[REG] NEW ${email} -> ${global.config.ROOM_NAME[room] || room}`);
+    logUser(userName, 'REG', `NEW -> ${global.config.ROOM_NAME[room] || room}`);
 
     ensureInConference(userName);
 }
@@ -117,7 +117,7 @@ async function _handleUnregister(event) {
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
 
-    console.log(`[REG] UNREGISTER ${email}`);
+    logUser(userName, 'REG', 'UNREGISTER');
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
     const wasConnected = userInfo.connectionState === global.ConnectionState.CONNECTED ||
@@ -153,7 +153,7 @@ async function _handleExpire(event) {
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
 
-    console.log(`[REG] EXPIRED ${email}`);
+    logUser(userName, 'REG', 'EXPIRED');
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
     const wasConnected = userInfo.connectionState === global.ConnectionState.CONNECTED ||

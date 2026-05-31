@@ -5,7 +5,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuAction,
+
 } from "@/components/ui/sidebar"
 
 function NavItem({ item }) {
@@ -19,11 +19,16 @@ function NavItem({ item }) {
         {item.icon}
         <span>{item.title}</span>
       </SidebarMenuButton>
-      <SidebarMenuAction asChild>
-        <a href={item.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
-          <ExternalLinkIcon className="size-3 text-muted-foreground/50" />
-        </a>
-      </SidebarMenuAction>
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Open in new tab"
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 opacity-0 group-hover/menu-item:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <ExternalLinkIcon className="size-3 text-muted-foreground/50" />
+      </a>
     </SidebarMenuItem>
   )
 }

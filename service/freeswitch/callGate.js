@@ -2,21 +2,22 @@
 // Validates eligibility (online, active, kickout, connectionState),
 // originates the call to FreeSWITCH conference, and handles retry logic.
 import { getConnection } from './connection.js';
+import { logUser, logSystem } from '../logger.js';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 5000;
 
 let _locked = true;
-console.log('[GATE] LOCKED — startup (waiting for ESL sync)');
+logSystem('GATE', 'LOCKED — startup (waiting for ESL sync)');
 
 export function lockCalls(reason) {
     _locked = true;
-    console.log(`[GATE] LOCKED — ${reason}`);
+    logSystem('GATE', `LOCKED — ${reason}`);
 }
 
 export function unlockCalls() {
     _locked = false;
-    console.log('[GATE] UNLOCKED — system ready');
+    logSystem('GATE', 'UNLOCKED — system ready');
 }
 
 export function canInitiateCall(userName) {
@@ -66,7 +67,7 @@ export function canInitiateCall(userName) {
 export async function initiateCall(userName) {
     const gate = canInitiateCall(userName);
     if (!gate.allowed) {
-        if (gate.reason !== 'already_in_call') console.log(`[GATE] BLOCKED ${userName} — ${gate.reason}`);
+        if (gate.reason !== 'already_in_call') logUser(userName, 'GATE', `BLOCKED — ${gate.reason}`);
         return false;
     }
 
@@ -78,7 +79,7 @@ export async function initiateCall(userName) {
             userInfo.error = userInfo.error || 'Max retries exceeded';
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             global.db.setUserInfo(userName, userInfo);
-            console.log(`[GATE] ${userName} reached max retries, aborting — ${userInfo.error}`);
+            logUser(userName, 'GATE', `max retries, aborting — ${userInfo.error}`);
             return false;
         }
         userInfo.retryCount = (userInfo.retryCount || 0) + 1;
@@ -89,26 +90,26 @@ export async function initiateCall(userName) {
     global.db.setUserInfo(userName, userInfo);
 
     const roomName = global.config.ROOM_NAME[userInfo.room] || userInfo.room;
-    console.log(`[GATE] ALLOW ${userName} -> ${roomName}${userInfo.retryCount ? ` (retry ${userInfo.retryCount}/${MAX_RETRIES})` : ''}`);
+    logUser(userName, 'GATE', `ALLOW -> ${roomName}${userInfo.retryCount ? ` (retry ${userInfo.retryCount}/${MAX_RETRIES})` : ''}`);
 
     try {
         await _originateToConference(userName);
         return true;
     } catch (err) {
-        console.error(`[GATE] FAILED ${userName}: ${err.message}`);
+        logUser(userName, 'GATE', `FAILED: ${err.message}`);
 
         const updatedInfo = global.db.getUserInfo(userName);
 
         if (err.message.includes('USER_BUSY')) {
             const alreadyConnected = await _checkUserInConference(userName, updatedInfo);
             if (alreadyConnected) {
-                console.log(`[GATE] ${userName} already in conference, syncing state to connected`);
+                logUser(userName, 'GATE', 'already in conference, syncing to connected');
                 return true;
             }
         }
 
         if (updatedInfo.connectionState === 'hangup') {
-            console.error(`[GATE] ${userName} hung up during connect, skip retry`);
+            logUser(userName, 'GATE', 'hung up during connect, skip retry');
             return false;
         }
 
@@ -117,7 +118,7 @@ export async function initiateCall(userName) {
         updatedInfo.error = err.message;
         global.db.setUserInfo(userName, updatedInfo);
 
-        console.log(`[GATE] Retrying ${userName} in ${RETRY_DELAY / 1000}s`);
+        logUser(userName, 'GATE', `retrying in ${RETRY_DELAY / 1000}s`);
         setTimeout(() => initiateCall(userName), RETRY_DELAY);
 
         return false;
@@ -198,14 +199,14 @@ function _checkUserInConference(userName, userInfo) {
 function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
     const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='600;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
 
-    console.log(`[CALL] ORIGINATE ${userName} -> ${roomName}`);
+    logUser(userName, 'CALL', `ORIGINATE -> ${roomName}`);
 
     conn.api(originateCmd, (response) => {
         const body = response.getBody().trim();
 
         if (body.startsWith('+OK')) {
             const uuid = body.replace('+OK ', '').trim();
-            console.log(`[CALL] OK ${userName}`);
+            logUser(userName, 'CALL', 'OK');
 
             userInfo.fsChannelUUID = uuid;
             userInfo.connectionState = 'connected';
@@ -216,7 +217,7 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
 
             resolve(userInfo);
         } else {
-            console.error(`[CALL] FAILED ${userName}: ${body}`);
+            logUser(userName, 'CALL', `FAILED: ${body}`);
             reject(new Error(body));
         }
     });

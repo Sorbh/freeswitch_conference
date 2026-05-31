@@ -15,7 +15,9 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 import config from './config/config.js';
 global.config = config;
-console.log('Config loaded');
+import { logStartup, logSystem } from './service/logger.js';
+
+const _startupLines = ['Config loaded'];
 
 // Database (SQLite)
 const dataDir = path.join(__dirname, 'data');
@@ -24,7 +26,7 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 const { default: dbService } = await import('./service/dbService.js');
 global.db = dbService.db;
 global.db.init();
-console.log('Database initialized');
+_startupLines.push('Database initialized');
 
 // Express — start HTTP servers first so FreeSWITCH xml_curl can always reach us
 import ApiRouter from "./routes/api.js";
@@ -50,15 +52,14 @@ if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDi
     }, app);
     httpsServer.listen(PORT, () => {
         ViteExpress.bind(app, httpsServer);
-        console.log(`HTTPS server listening at https://localhost:${PORT}/`);
-        console.log(`Test page: https://${config.FREESWITCH_PUBLIC_IP}:${PORT}/test-sip.html`);
+        _startupLines.push(`HTTPS listening at https://localhost:${PORT}/`);
     });
     app.listen(4070, '127.0.0.1', () => {
-        console.log(`Internal HTTP listening at http://127.0.0.1:4070/`);
+        _startupLines.push('Internal HTTP listening at http://127.0.0.1:4070/');
     });
 } else {
     ViteExpress.listen(app, PORT, () => {
-        console.log(`Server listening at http://localhost:${PORT} (no TLS certs found)`);
+        _startupLines.push(`Server listening at http://localhost:${PORT} (no TLS certs found)`);
     });
 }
 
@@ -68,10 +69,9 @@ global.freeswitch = freeswitchService.freeswitch;
 
 try {
     await global.freeswitch.connect();
-    console.log('FreeSWITCH ESL connected');
+    _startupLines.push('FreeSWITCH ESL connected');
 } catch (err) {
-    console.error(`FreeSWITCH ESL connection failed: ${err.message}`);
-    console.log('Continuing without FreeSWITCH — API will work but calls will fail');
+    _startupLines.push(`FreeSWITCH ESL FAILED: ${err.message} — API only`);
 }
 
 // Call service (depends on freeswitch + db)
@@ -86,7 +86,7 @@ global.alerting = { checkCriticalUser, startCriticalAlert, stopCriticalAlert };
 import { startSyslogServer } from './service/phoneEvents.js';
 startSyslogServer(global.config.SYSLOG_PORT || 515);
 
-console.log('Call service loaded');
+_startupLines.push('Call service loaded');
 
 // On startup: reset all connection states (previous server session is gone)
 global.db.resetAllConnectionStates();
@@ -98,8 +98,9 @@ try {
     });
 } catch { }
 
-console.log(`DB Debug: https://localhost:${PORT}/api/v1/debug/tables`);
-console.log(`Conferences: https://localhost:${PORT}/api/v1/debug/conferences`);
+_startupLines.push(`DB Debug: https://localhost:${PORT}/api/v1/debug/tables`);
+_startupLines.push(new Date().toLocaleString());
+logStartup(_startupLines);
 
 // Keep-alive
 setInterval(() => {
@@ -157,5 +158,3 @@ function shutdown(signal) {
     };
 }
 
-const nDate = new Date().toLocaleString('en-US', { timeZone: 'Asia/Calcutta' });
-console.log(nDate);

@@ -5,6 +5,7 @@
 //    stale registrations and update online/registrationState accordingly.
 import { onMessageEvent, getConnection, isConnected, onEslReconnect, onEslDisconnect, getConnectionHandlers } from './connection.js';
 import { initiateCall } from './callGate.js';
+import { logSystem, logUser } from '../logger.js';
 
 const onlineTimers = new Map();
 let regPollTimer = null;
@@ -13,14 +14,14 @@ let regPollTimer = null;
 function startRegPoll() {
     if (regPollTimer) return;
     regPollTimer = setInterval(() => _pollRegistrations(), 30000);
-    console.log('[REG-POLL] Started (30s interval)');
+    logSystem('REG-POLL', 'Started (30s interval)');
 }
 
 function stopRegPoll() {
     if (regPollTimer) {
         clearInterval(regPollTimer);
         regPollTimer = null;
-        console.log('[REG-POLL] Stopped');
+        logSystem('REG-POLL', 'Stopped');
     }
 }
 
@@ -93,7 +94,7 @@ function _applyRegSync(allUsers, fsUsers) {
             user.online = true;
             user.registrationState = 'registered';
             global.db.logOnlineStatus(user.userName, 'online');
-            console.log(`[REG-POLL] ${user.userName} -> online (registered)`);
+            logUser(user.userName, 'POLL', 'online (registered)');
             changed = true;
             global.db.setUserInfo(user.userName, user);
             initiateCall(user.userName);
@@ -106,7 +107,7 @@ function _applyRegSync(allUsers, fsUsers) {
             user.online = false;
             user.registrationState = 'unregistered';
             global.db.logOnlineStatus(user.userName, 'offline');
-            console.log(`[REG-POLL] ${user.userName} -> offline (unregistered)`);
+            logUser(user.userName, 'POLL', 'offline (unregistered)');
             changed = true;
         } else if (!isRegistered && user.registrationState === 'registered') {
             user.registrationState = 'unregistered';
@@ -116,7 +117,7 @@ function _applyRegSync(allUsers, fsUsers) {
         // Reachability
         if (isReachable !== !!user.reachable) {
             user.reachable = isReachable;
-            if (!changed) console.log(`[REG-POLL] ${user.userName} reachable=${isReachable}`);
+            if (!changed) logUser(user.userName, 'POLL', `reachable=${isReachable}`);
             changed = true;
         }
 
@@ -127,7 +128,7 @@ function _applyRegSync(allUsers, fsUsers) {
     }
 
     if (changes > 0) {
-        console.log(`[REG-POLL] Synced: ${fsUsers.size} registered, ${changes} changes`);
+        logSystem('REG-POLL', `Synced: ${fsUsers.size} registered, ${changes} changes`);
     }
 
     _syncConferenceState(allUsers);
@@ -168,7 +169,7 @@ function _syncConferenceState(allUsers) {
                 user.retryCount = 0;
                 user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                 global.db.setUserInfo(user.userName, user);
-                console.log(`[REG-POLL] CONF-SYNC ${user.userName} -> connected (UUID match)`);
+                logSystem('REG-POLL', `CONF-SYNC ${user.userName} -> connected (UUID match)`);
                 fixes++;
                 continue;
             }
@@ -184,7 +185,7 @@ function _syncConferenceState(allUsers) {
                     user.retryCount = 0;
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     global.db.setUserInfo(user.userName, user);
-                    console.log(`[REG-POLL] CONF-SYNC ${user.userName} -> connected (SIP match)`);
+                    logSystem('REG-POLL', `CONF-SYNC ${user.userName} -> connected (SIP match)`);
                     fixes++;
                     break;
                 }
@@ -192,7 +193,7 @@ function _syncConferenceState(allUsers) {
         }
 
         if (fixes > 0) {
-            console.log(`[REG-POLL] CONF-SYNC fixed ${fixes} stale connection states`);
+            logSystem('REG-POLL', `CONF-SYNC fixed ${fixes} stale connection states`);
         }
     });
 }
@@ -215,7 +216,7 @@ function _cleanupDeadHandlers(allUsers) {
     }
 
     if (cleaned > 0) {
-        console.log(`[REG-POLL] Cleaned ${cleaned} dead connection handlers`);
+        logSystem('REG-POLL', `Cleaned ${cleaned} dead connection handlers`);
     }
 }
 
@@ -230,7 +231,7 @@ onMessageEvent((event) => {
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
 
-    console.log(`[KEEP-ALIVE] ${email}`);
+    logUser(`sip:${email}`, 'ALIVE', 'keep-alive');
 
     global.db.touchLastSeen(userName);
     _checkLoginExpiry(userName, userInfo);
@@ -251,7 +252,7 @@ function _checkLoginExpiry(userName, userInfo) {
     const now = Math.floor(Date.now() / 1000);
     if (now < userInfo.login_expire) return;
 
-    console.log(`[KEEP-ALIVE] EXPIRED login for ${userName}`);
+    logUser(userName, 'ALIVE', 'EXPIRED login');
 
     if (userInfo.connectionState === global.ConnectionState.CONNECTED) {
         const service = global.callService;
@@ -274,7 +275,7 @@ function _resetOnlineTimer(userName) {
         const userInfo = global.db.getUserInfo(userName);
         if (Object.keys(userInfo).length === 0) return;
 
-        console.log(`[KEEP-ALIVE] TIMEOUT ${userName} — marking offline`);
+        logUser(userName, 'ALIVE', 'TIMEOUT — marking offline');
         userInfo.online = false;
         global.db.setUserInfo(userName, userInfo);
         global.db.logEvent('offline', userName, null, 'Keep-alive timeout');

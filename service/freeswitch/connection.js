@@ -1,6 +1,7 @@
 // ESL connection to FreeSWITCH. Manages connect/reconnect and dispatches events
 // (CHANNEL_ANSWER, CHANNEL_HANGUP, CUSTOM, MESSAGE) to registered handlers.
 import esl from 'modesl';
+import { logSystem } from '../logger.js';
 
 let eslConnection = null;
 let reconnectTimer = null;
@@ -35,7 +36,7 @@ export async function connect() {
             FREESWITCH_ESL_PORT,
             FREESWITCH_ESL_PASSWORD,
             () => {
-                console.log('ESL connected to FreeSWITCH');
+                logSystem('ESL', 'connected to FreeSWITCH');
 
                 eslConnection.subscribe('CHANNEL_ANSWER CHANNEL_HANGUP_COMPLETE');
                 eslConnection.subscribe('CUSTOM sofia::register sofia::unregister sofia::expire sofia::keepalive conference::maintenance');
@@ -64,17 +65,17 @@ export async function connect() {
                 });
 
                 eslConnection.sendRecv('log notice', () => {
-                    console.log('ESL log subscription enabled (level: notice)');
+                    logSystem('ESL', 'log subscription enabled (level: notice)');
                 });
                 eslConnection.on('esl::event::logdata', (event) => {
                     for (const fn of eventHandlers.log) fn(event);
                 });
 
-                console.log('ESL event subscriptions registered');
+                logSystem('ESL', 'event subscriptions registered');
 
                 // Kill all orphaned calls immediately on connect
                 eslConnection.api('hupall MANAGER_REQUEST', () => {
-                    console.log('[ESL] CLEANUP — hupall complete (cleared orphaned calls)');
+                    logSystem('ESL', 'CLEANUP — hupall complete (cleared orphaned calls)');
                 });
 
                 if (reconnectTimer) {
@@ -93,7 +94,7 @@ export async function connect() {
         });
 
         eslConnection.on('esl::end', () => {
-            console.log('ESL connection closed');
+            logSystem('ESL', 'connection closed');
             _scheduleReconnect();
         });
     });
@@ -123,7 +124,7 @@ function _handleEslReconnect() {
 
 function _scheduleReconnect() {
     if (reconnectTimer) return;
-    console.log('ESL reconnecting in 2 seconds...');
+    logSystem('ESL', 'reconnecting in 2 seconds...');
     _handleEslDisconnect();
     reconnectTimer = setTimeout(async () => {
         reconnectTimer = null;

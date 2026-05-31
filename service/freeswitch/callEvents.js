@@ -5,6 +5,7 @@
 // ESL disconnect: resets all connected users. ESL reconnect: syncs with actual conference state.
 import { getConnection, getConnectionHandlers, getMemberIdMap, onCustomEvent, onAnswerEvent, onHangupEvent, onEslDisconnect, onEslReconnect } from './connection.js';
 import { initiateCall, canInitiateCall, unlockCalls } from './callGate.js';
+import { logUser, logSystem } from '../logger.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
 const uuidUserMap = new Map();
@@ -19,7 +20,7 @@ onCustomEvent((event) => {
 });
 
 onEslDisconnect(() => {
-    console.log('[ESL] Disconnected — marking all connected users as hangup');
+    logSystem('ESL', 'Disconnected — marking all connected users as hangup');
     const connectedUsers = global.db.filter(u =>
         u.connectionState === 'connected' || u.connectionState === 'connecting'
     );
@@ -30,7 +31,7 @@ onEslDisconnect(() => {
         user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
         global.db.setUserInfo(user.userName, user);
         global.db.logEvent('esl_disconnect', user.userName, user.room, 'ESL disconnected — call state unknown');
-        console.log(`[ESL] RESET ${user.userName} -> hangup`);
+        logSystem('ESL', `RESET ${user.userName} -> hangup`);
     }
     getConnectionHandlers().clear();
     getMemberIdMap().clear();
@@ -39,7 +40,7 @@ onEslDisconnect(() => {
 });
 
 onEslReconnect(() => {
-    console.log('[ESL] Reconnected — syncing state with FreeSWITCH');
+    logSystem('ESL', 'Reconnected — syncing state with FreeSWITCH');
     setTimeout(() => _syncConferenceState(), 3000);
 });
 
@@ -56,7 +57,7 @@ function _syncConferenceState() {
         const body = response.getBody().trim();
 
         if (!body || body.includes('No active conferences') || body.startsWith('-ERR')) {
-            console.log('[ESL] SYNC no active conferences');
+            logSystem('ESL', 'SYNC no active conferences');
             // Mark any users showing connected as hangup
             const allUsers = global.db.getAllUserInfo();
             for (const user of allUsers) {
@@ -66,7 +67,7 @@ function _syncConferenceState() {
                     user.fsMemberId = null;
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     global.db.setUserInfo(user.userName, user);
-                    console.log(`[ESL] SYNC ${user.userName} -> hangup (no conferences)`);
+                    logSystem('ESL', `SYNC ${user.userName} -> hangup (no conferences)`);
                 }
             }
             unlockCalls();
@@ -91,7 +92,7 @@ function _syncConferenceState() {
             activeMembers.set(uuid, { callerIdName, callerIdNumber, memberId });
         }
 
-        console.log(`[ESL] SYNC found ${activeMembers.size} active members in conferences`);
+        logSystem('ESL', `SYNC found ${activeMembers.size} active members in conferences`);
 
         const allUsers = global.db.getAllUserInfo();
         const matchedUuids = new Set();
@@ -107,7 +108,7 @@ function _syncConferenceState() {
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     global.db.setUserInfo(user.userName, user);
                     uuidUserMap.set(user.fsChannelUUID, user.userName);
-                    console.log(`[ESL] SYNC ${user.userName} -> connected (UUID match)`);
+                    logSystem('ESL', `SYNC ${user.userName} -> connected (UUID match)`);
                 }
                 continue;
             }
@@ -123,7 +124,7 @@ function _syncConferenceState() {
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     global.db.setUserInfo(user.userName, user);
                     uuidUserMap.set(uuid, user.userName);
-                    console.log(`[ESL] SYNC ${user.userName} -> connected (callerIdName match, uuid=${uuid.slice(0, 8)})`);
+                    logSystem('ESL', `SYNC ${user.userName} -> connected (callerIdName match)`);
                     break;
                 }
             }
@@ -135,7 +136,7 @@ function _syncConferenceState() {
                 user.fsMemberId = null;
                 user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                 global.db.setUserInfo(user.userName, user);
-                console.log(`[ESL] SYNC ${user.userName} -> hangup (not in conference)`);
+                logSystem('ESL', `SYNC ${user.userName} -> hangup (not in conference)`);
             }
         }
 
@@ -151,13 +152,13 @@ function _handleChannelAnswer(event) {
     const userName = users.length > 0 ? users[0].userName : null;
 
     if (userName) uuidUserMap.set(uuid, userName);
-    console.log(`[CALL] ANSWER ${userName || 'unknown'}`);
+    logUser(userName, 'CALL', 'ANSWER');
 
     // Check if this call should be allowed (catches in-flight originates after kickout/deactivation)
     if (userName) {
         const gate = canInitiateCall(userName);
         if (!gate.allowed && gate.reason !== 'already_in_call' && gate.reason !== 'not_found') {
-            console.log(`[CALL] REJECT ${userName} — ${gate.reason} (in-flight originate)`);
+            logUser(userName, 'CALL', `REJECT — ${gate.reason} (in-flight originate)`);
             getConnection().api(`uuid_kill ${uuid}`, () => {});
             return;
         }
@@ -176,7 +177,7 @@ function _handleChannelAnswer(event) {
             userInfo.error = null;
             userInfo.retryCount = 0;
             global.db.setUserInfo(userName, userInfo);
-            console.log(`[CALL] TRACK ${userName}`);
+            logUser(userName, 'CALL', 'TRACK');
 
             connectionHandlers.set(uuid, (_hangupUuid, cause) => {
                 _onCallHangup(userName, _hangupUuid, cause);
@@ -203,20 +204,18 @@ function _handleChannelHangup(event) {
     // Try DB lookup by UUID
     const users = global.db.filter(u => u.fsChannelUUID === uuid);
     if (users.length > 0) {
-        console.log(`[CALL] HANGUP ${users[0].userName} cause=${cause}`);
+        logUser(users[0].userName, 'CALL', `HANGUP cause=${cause}`);
         uuidUserMap.delete(uuid);
         _onCallHangup(users[0].userName, uuid, cause);
         return;
     }
 
-    // UUID already cleared from DB — use the cached userName
-    console.log(`[CALL] HANGUP ${knownUser || 'unknown'} cause=${cause} (already cleaned up)`);
     uuidUserMap.delete(uuid);
+    if (knownUser) logUser(knownUser, 'CALL', `HANGUP cause=${cause} (already cleaned up)`);
 }
 
 function _onCallHangup(userName, _uuid, cause) {
-    console.log('');
-    console.log(`[CALL] END ${userName} cause=${cause}`);
+    logUser(userName, 'CALL', `END cause=${cause}`);
 
     const userInfo = global.db.getUserInfo(userName);
     if (Object.keys(userInfo).length === 0) return;
@@ -245,7 +244,9 @@ function _handleConferenceEvent(event) {
 
     switch (action) {
         case 'add-member': {
-            console.log(`[CONF] JOIN ${callerIdName} -> ${roomName} (member ${memberId})`);
+            const joinUuid2 = event.getHeader('Unique-ID');
+            const joinUserName = uuidUserMap.get(joinUuid2) || null;
+            logUser(joinUserName, 'CONF', `JOIN ${callerIdName} -> ${roomName} (member ${memberId})`);
             _updateMemberMapping(conferenceName, memberId, callerIdName, event);
             const joinUuid = event.getHeader('Unique-ID');
             if (joinUuid) {
@@ -256,7 +257,7 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'del-member': {
-            console.log(`[CONF] LEAVE ${callerIdName} <- ${roomName} (member ${memberId})`);
+            logUser(null, 'CONF', `LEAVE ${callerIdName} <- ${roomName} (member ${memberId})`);
             const uuid = event.getHeader('Unique-ID');
             if (uuid) {
                 const users = global.db.filter(u => u.fsChannelUUID === uuid);
@@ -269,7 +270,7 @@ function _handleConferenceEvent(event) {
                     user.connectionState = 'hangup';
                     user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     global.db.setUserInfo(user.userName, user);
-                    console.log(`[CONF] LEAVE updated ${user.userName} -> hangup`);
+                    logUser(user.userName, 'CONF', 'LEAVE -> hangup');
                 }
             }
             getMemberIdMap().delete(`${conferenceName}:${memberId}`);
@@ -285,7 +286,7 @@ function _handleConferenceEvent(event) {
                     global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: muteUser.userName, talking: false });
                 }
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: muteUser.userName });
-                console.log(`[CONF] MUTE ${muteUser.userName} (member ${memberId})`);
+                logUser(muteUser.userName, 'CONF', `MUTE (member ${memberId})`);
             }
             global.db.logEvent('mute', muteUser?.userName || null, room, 'Member muted');
             break;
@@ -295,7 +296,7 @@ function _handleConferenceEvent(event) {
             if (talkUser) {
                 _talkingUsers.add(talkUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
-                console.log(`[CONF] TALKING ${talkUser.userName} in ${roomName}`);
+                logUser(talkUser.userName, 'CONF', `TALKING in ${roomName}`);
             }
             break;
         }
@@ -304,7 +305,7 @@ function _handleConferenceEvent(event) {
             if (stopUser) {
                 _talkingUsers.delete(stopUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
-                console.log(`[CONF] SILENT ${stopUser.userName} in ${roomName}`);
+                logUser(stopUser.userName, 'CONF', `SILENT in ${roomName}`);
             }
             break;
         }
@@ -314,7 +315,7 @@ function _handleConferenceEvent(event) {
                 unmuteUser.mute = false;
                 global.db.setUserInfo(unmuteUser.userName, unmuteUser);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: unmuteUser.userName });
-                console.log(`[CONF] UNMUTE ${unmuteUser.userName} (member ${memberId})`);
+                logUser(unmuteUser.userName, 'CONF', `UNMUTE (member ${memberId})`);
             }
             global.db.logEvent('unmute', unmuteUser?.userName || null, room, 'Member unmuted');
             _broadcastCallerIdToRoom(conferenceName);
@@ -364,5 +365,5 @@ function _broadcastCallerIdToRoom(conferenceName) {
         u.connectionState === 'connected' && u.room === room && !u.payment
     );
 
-    console.log(`[CONF] CALLERID-UPDATE ${global.config.ROOM_NAME[room] || conferenceName} (${connectedUsers.length} users)`);
+    logSystem('CONF', `CALLERID-UPDATE ${global.config.ROOM_NAME[room] || conferenceName} (${connectedUsers.length} users)`);
 }
