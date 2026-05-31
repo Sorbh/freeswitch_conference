@@ -34,6 +34,10 @@ function _finalizeSipBlock(block) {
         if (!to) { const m = line.match(/^To:\s*(.+)/i); if (m) to = m[1].trim(); }
     }
 
+    if (block.mac && method === 'REGISTER' && from) {
+        _linkMacToUser(block.mac, from);
+    }
+
     global.db.eventEmitter.emit('PHONE_LOG', {
         type: 'phone_log',
         timestamp: block.timestamp,
@@ -150,6 +154,21 @@ export function startSyslogServer(port = 515) {
 
     syslogServer.start({ port });
     console.log(`[PHONE] Syslog server listening on port ${port}`);
+}
+
+function _linkMacToUser(mac, fromHeader) {
+    const emailMatch = fromHeader.match(/sip:([^>;@]+@[^>;]+)/);
+    if (!emailMatch) return;
+    const email = emailMatch[1];
+    const userName = `sip:${email}`;
+
+    const userInfo = global.db.getUserInfo(userName);
+    if (Object.keys(userInfo).length === 0) return;
+    if (userInfo.mac === mac) return;
+
+    userInfo.mac = mac;
+    global.db.setUserInfo(userName, userInfo);
+    console.log(`[PHONE] MAC ${mac} linked to ${email} via syslog`);
 }
 
 export function handleHttpHookEvent(userName, event) {

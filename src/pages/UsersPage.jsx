@@ -69,6 +69,7 @@ import {
   BanIcon,
   FilterIcon,
   Volume2Icon,
+  BugIcon,
 } from "lucide-react";
 
 function useTalkingUsers() {
@@ -843,18 +844,31 @@ export default function UsersPage() {
                   </>
                 )}
 
-                {/* Delete zone */}
-                {acc?.id && (
+                {/* Debug + Delete zone */}
+                {(selectedUser.mac || acc?.id) && (
                   <>
                     <div className="h-px bg-border/60" />
-                    <div className="px-6 py-5">
-                      <button
-                        onClick={() => { setDeleteTarget(selectedUser); setDeleteDialogOpen(true); }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-destructive/80 border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
-                      >
-                        <Trash2Icon className="size-3.5" />
-                        Delete User
-                      </button>
+                    <div className="px-6 py-5 space-y-2">
+                      {selectedUser.mac && (
+                        <a
+                          href={`/dev/phone-logs?mac=${encodeURIComponent(selectedUser.mac)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground border border-border/40 bg-muted/30 hover:bg-muted/50 hover:text-foreground hover:border-border/60 transition-all cursor-pointer"
+                        >
+                          <BugIcon className="size-3.5" />
+                          Phone Debug
+                        </a>
+                      )}
+                      {acc?.id && (
+                        <button
+                          onClick={() => { setDeleteTarget(selectedUser); setDeleteDialogOpen(true); }}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-destructive/80 border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all cursor-pointer"
+                        >
+                          <Trash2Icon className="size-3.5" />
+                          Delete User
+                        </button>
+                      )}
                     </div>
                   </>
                 )}

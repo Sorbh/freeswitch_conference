@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
+let _sseIdCounter = 0;
+
 export function useSSE(url, active = true) {
   const [events, setEvents] = useState([]);
   const esRef = useRef(null);
@@ -13,7 +15,7 @@ export function useSSE(url, active = true) {
     es.onmessage = (e) => {
       try {
         const parsed = JSON.parse(e.data);
-        setEvents((prev) => [...prev, { ...parsed, _id: Date.now() + Math.random() }]);
+        setEvents((prev) => [...prev, { ...parsed, _id: ++_sseIdCounter }]);
       } catch {
         // ignore non-JSON messages
       }

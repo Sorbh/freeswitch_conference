@@ -95,7 +95,10 @@ export default function PhoneLogsPage() {
   const [sipOnly, setSipOnly] = useState(false);
   const [levelFilter, setLevelFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
-  const [macFilter, setMacFilter] = useState("all");
+  const [macFilter, setMacFilter] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("mac")?.toLowerCase() || "all";
+  });
   const [search, setSearch] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [expanded, setExpanded] = useState(null);
