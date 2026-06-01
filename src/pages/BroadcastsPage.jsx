@@ -10,7 +10,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
-import { ROOM_NAMES } from "@/lib/constants";
+import { useRooms } from "@/hooks/useRooms";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
@@ -83,7 +83,7 @@ function StatCard({ label, value, icon, color, mono = true }) {
 }
 
 // ── Live Broadcast Banner ──
-function LiveBroadcastBanner({ events }) {
+function LiveBroadcastBanner({ events, ROOM_NAMES = {} }) {
   const activeBroadcasts = useMemo(() => {
     const active = new Map();
     for (const evt of events) {
@@ -468,6 +468,7 @@ const barChartConfig = {
 
 // ── Main Page ──
 export default function BroadcastsPage() {
+  const { names: ROOM_NAMES } = useRooms();
   const ranges = [
     { key: "today", label: "Today", days: 1 },
     { key: "week", label: "7 Days", days: 7 },
@@ -587,7 +588,7 @@ export default function BroadcastsPage() {
       </div>
 
       {/* Live Broadcast Banner */}
-      <LiveBroadcastBanner events={sseEvents} />
+      <LiveBroadcastBanner events={sseEvents} ROOM_NAMES={ROOM_NAMES} />
 
       {/* Stat Cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">

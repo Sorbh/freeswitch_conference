@@ -3,33 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
-import { ROOM_NAMES } from "@/lib/constants";
+import { useRooms } from "@/hooks/useRooms";
 import {
-  Volume2Icon,
-  MicIcon,
-  MicOffIcon,
-  PhoneOffIcon,
-  RefreshCwIcon,
-  UsersIcon,
-  WifiIcon,
-  PhoneCallIcon,
-  ActivityIcon,
-  ChevronLeftIcon,
-  VolumeXIcon,
-  ZapIcon,
-  RadioIcon,
+  Volume2Icon, MicIcon, MicOffIcon, PhoneOffIcon, RefreshCwIcon,
+  UsersIcon, WifiIcon, PhoneCallIcon, ActivityIcon, VolumeXIcon,
+  RadioIcon, ChevronRightIcon, BanIcon, PlusIcon, PencilIcon, Trash2Icon,
 } from "lucide-react";
-
-const ROOM_ABBREV = {
-  123456701: "CA", 123456702: "TX", 123456703: "FL", 123456704: "MX",
-  123456705: "ENS", 123456706: "AZ", 123456707: "OH", 123456708: "NY",
-  123456709: "GA", 123456710: "IN", 123456711: "MI", 123456712: "CR",
-};
 
 function useAnimatedNumber(target, dur = 500) {
   const [val, setVal] = useState(target);
@@ -39,8 +34,7 @@ function useAnimatedNumber(target, dur = 500) {
     const t0 = performance.now();
     const tick = (now) => {
       const p = Math.min((now - t0) / dur, 1);
-      const e = 1 - Math.pow(1 - p, 3);
-      setVal(Math.round(start + (target - start) * e));
+      setVal(Math.round(start + (target - start) * (1 - Math.pow(1 - p, 3))));
       if (p < 1) ref.current = requestAnimationFrame(tick);
     };
     ref.current = requestAnimationFrame(tick);
@@ -69,242 +63,42 @@ function getAvatarColor(name) {
   return colors[Math.abs(hash) % colors.length];
 }
 
-// ── Stat Mini Card ──
-function MiniStat({ icon, label, value, color }) {
-  const animated = useAnimatedNumber(value);
+function Tip({ label, children }) {
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-card/50 border border-border/40">
-      <div className="size-7 rounded-md flex items-center justify-center" style={{ backgroundColor: `${color}15`, color }}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-lg font-mono font-bold tabular-nums leading-none">{animated}</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
-      </div>
-    </div>
+    <Tooltip>
+      <TooltipTrigger render={<span className="inline-flex" />}>{children}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
-// ── Room Card (Grid View) ──
-function RoomCard({ room, isSelected, onClick }) {
-  const total = room.total ?? 0;
-  const online = room.online ?? 0;
-  const inCall = room.inCall ?? 0;
-  const unmuted = room.unmuted ?? 0;
-  const isEmpty = online === 0 && inCall === 0;
-  const hasActivity = unmuted > 0;
-
+function StatCard({ title, value, icon, color, subtitle }) {
+  const animated = useAnimatedNumber(typeof value === "number" ? value : 0);
   return (
-    <button
-      onClick={onClick}
-      className={`relative w-full text-left rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden group ${
-        isSelected
-          ? "border-sky-500/50 bg-sky-500/[0.04] ring-1 ring-sky-500/20"
-          : isEmpty
-            ? "border-border/30 bg-card/30 opacity-50 hover:opacity-75 hover:border-border/60"
-            : "border-border/50 bg-card/60 hover:border-sky-500/30 hover:bg-card/80"
-      }`}
-    >
-      {hasActivity && (
-        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-emerald-500/0 via-emerald-500/80 to-emerald-500/0" />
-      )}
-
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">{ROOM_NAMES[room.room] || room.room}</span>
-            <span className="text-[10px] font-mono text-muted-foreground/50">{ROOM_ABBREV[room.room]}</span>
+    <Card className="relative overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: `${color}15`, color }}
+          >
+            {icon}
           </div>
-          {hasActivity && (
-            <span className="relative flex size-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
-              <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
-            </span>
-          )}
-        </div>
-
-        {isEmpty ? (
-          <p className="text-xs text-muted-foreground/40 py-2">Empty</p>
-        ) : (
-          <div className="space-y-2.5">
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-mono font-bold tabular-nums">{total}</span>
-              <span className="text-[10px] text-muted-foreground">members</span>
-            </div>
-            <div className="flex gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                {online}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-sky-500" />
-                {inCall}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-amber-500" />
-                {unmuted}
-              </span>
-            </div>
-
-            {/* Capacity bar */}
-            <div className="h-1 w-full rounded-full bg-muted/20 overflow-hidden">
-              <div className="h-full flex">
-                {inCall > 0 && (
-                  <div
-                    className="h-full bg-sky-500/70 transition-all duration-500"
-                    style={{ width: `${(inCall / Math.max(total, 1)) * 100}%` }}
-                  />
-                )}
-                {online - inCall > 0 && (
-                  <div
-                    className="h-full bg-emerald-500/40 transition-all duration-500"
-                    style={{ width: `${((online - inCall) / Math.max(total, 1)) * 100}%` }}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Member avatars */}
-            {room.members && room.members.filter(m => m.online).length > 0 && (
-              <div className="flex -space-x-1.5 pt-0.5">
-                {room.members.filter(m => m.online).slice(0, 6).map((m) => (
-                  <div
-                    key={m.userName}
-                    className={`size-6 rounded-full flex items-center justify-center text-[8px] font-bold border-2 border-card/80 ${getAvatarColor(m.userName)} ${!m.mute ? "ring-1 ring-emerald-500/50" : ""}`}
-                    title={m.callerIdName || m.userName}
-                  >
-                    {getInitials(m.callerIdName || m.userName)}
-                  </div>
-                ))}
-                {room.members.filter(m => m.online).length > 6 && (
-                  <div className="size-6 rounded-full flex items-center justify-center text-[8px] font-mono bg-muted/50 text-muted-foreground border-2 border-card/80">
-                    +{room.members.filter(m => m.online).length - 6}
-                  </div>
-                )}
-              </div>
-            )}
+          <div className="min-w-0">
+            <p className="text-2xl font-bold leading-none tracking-tight font-mono tabular-nums">
+              {typeof value === "number" ? animated.toLocaleString() : value}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1 truncate">{title}</p>
           </div>
-        )}
-      </div>
-    </button>
-  );
-}
-
-// ── User Row in Mixer ──
-function MixerUser({ member, onMute, onUnmute, onKick, onReconnect }) {
-  const isTalking = member.talking;
-  const isConnected = member.connectionState === "connected";
-  const isOnline = member.online;
-  const isMuted = member.mute;
-  const hasError = member.connectionState === "error";
-  const displayName = member.callerIdName || member.userName?.replace("sip:", "") || "Unknown";
-
-  return (
-    <div
-      className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-lg border transition-all duration-200 ${
-        hasError
-          ? "border-red-500/30 bg-red-500/[0.04]"
-          : isTalking
-            ? "border-emerald-500/30 bg-emerald-500/[0.04]"
-            : isConnected
-              ? "border-border/40 bg-card/40 hover:bg-card/70"
-              : "border-border/20 bg-card/20 opacity-60"
-      }`}
-    >
-      {/* Talking indicator bar */}
-      {isTalking && (
-        <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-emerald-500 animate-pulse" />
-      )}
-
-      {/* Avatar */}
-      <div className={`relative size-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(member.userName)}`}>
-        {getInitials(displayName)}
-        {/* Status dot */}
-        <span className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card ${
-          hasError ? "bg-red-500" : isConnected ? "bg-emerald-500" : isOnline ? "bg-sky-500" : "bg-zinc-500"
-        }`} />
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium truncate">{displayName}</span>
-          {isTalking && (
-            <div className="flex items-end gap-[2px] h-3 ml-1">
-              {[0, 1, 2].map(i => (
-                <div
-                  key={i}
-                  className="w-[2px] bg-emerald-400 rounded-full"
-                  style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }}
-                />
-              ))}
-            </div>
-          )}
         </div>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={`text-[10px] font-mono ${
-            hasError ? "text-red-400" : isConnected ? "text-emerald-400/70" : isOnline ? "text-sky-400/70" : "text-muted-foreground/40"
-          }`}>
-            {hasError ? "error" : isConnected ? "in-call" : isOnline ? "online" : "offline"}
-          </span>
-          {isMuted && isConnected && (
-            <Badge className="bg-amber-500/10 text-amber-400/80 border-amber-500/20 text-[9px] px-1 py-0 h-3.5">
-              muted
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {isConnected && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => isMuted ? onUnmute(member.userName) : onMute(member.userName)}
-                className={`size-7 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
-                  isMuted
-                    ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
-                    : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-                }`}
-              >
-                {isMuted ? <MicOffIcon className="size-3.5" /> : <MicIcon className="size-3.5" />}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">{isMuted ? "Unmute" : "Mute"}</TooltipContent>
-          </Tooltip>
-        )}
-        {(hasError || isConnected) && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => onReconnect(member.userName)}
-                className="size-7 rounded-md flex items-center justify-center bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 transition-colors cursor-pointer"
-              >
-                <RefreshCwIcon className="size-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">Reconnect</TooltipContent>
-          </Tooltip>
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => onKick(member.userName)}
-              className="size-7 rounded-md flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
-            >
-              <PhoneOffIcon className="size-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="top">Kick</TooltipContent>
-        </Tooltip>
-      </div>
-    </div>
+      </CardContent>
+      <div className="absolute inset-x-0 bottom-0 h-[2px]" style={{ backgroundColor: `${color}25` }} />
+    </Card>
   );
 }
 
 // ── Speaker Timeline ──
-function SpeakerTimeline({ events }) {
+function SpeakerTimeline({ events, roomCodes = {} }) {
   const windowMs = 30 * 60 * 1000;
   const now = Date.now();
   const start = now - windowMs;
@@ -345,40 +139,37 @@ function SpeakerTimeline({ events }) {
 
   if (segments.length === 0) {
     return (
-      <div className="text-center py-6 text-sm text-muted-foreground/40">
+      <p className="text-center py-8 text-sm text-muted-foreground">
         No broadcast activity in the last 30 minutes
-      </div>
+      </p>
     );
   }
 
   return (
-    <div className="space-y-1">
-      {/* Time axis */}
-      <div className="relative h-5 mb-1">
+    <div className="space-y-1.5">
+      <div className="relative h-5 mb-1 ml-10">
         {timeMarkers.map((m, i) => (
           <span
             key={i}
-            className="absolute text-[9px] font-mono text-muted-foreground/40 -translate-x-1/2"
+            className="absolute text-[9px] font-mono text-muted-foreground/50 -translate-x-1/2"
             style={{ left: `${m.left}%` }}
           >
             {m.label}
           </span>
         ))}
       </div>
-
-      {/* Room rows */}
       {Object.entries(roomGroups).map(([roomId, segs]) => (
         <div key={roomId} className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-muted-foreground/50 w-8 shrink-0 text-right">
-            {ROOM_ABBREV[roomId] || roomId}
+          <span className="text-[10px] font-mono text-muted-foreground w-9 shrink-0 text-right">
+            {roomCodes[roomId] || roomId}
           </span>
-          <div className="relative flex-1 h-5 rounded-sm bg-muted/10">
+          <div className="relative flex-1 h-6 rounded bg-muted/20">
             {segs.map((seg, i) => (
               <Tooltip key={i}>
                 <TooltipTrigger asChild>
                   <div
-                    className={`absolute top-0.5 bottom-0.5 rounded-sm transition-all cursor-default ${
-                      seg.answered ? "bg-emerald-500/50 hover:bg-emerald-500/70" : "bg-red-500/40 hover:bg-red-500/60"
+                    className={`absolute top-1 bottom-1 rounded-sm transition-all cursor-default ${
+                      seg.answered ? "bg-emerald-500/60 hover:bg-emerald-500/80" : "bg-red-500/50 hover:bg-red-500/70"
                     }`}
                     style={{ left: `${seg.left}%`, width: `${Math.max(seg.width, 0.8)}%` }}
                   />
@@ -395,35 +186,93 @@ function SpeakerTimeline({ events }) {
           </div>
         </div>
       ))}
-
-      <div className="flex items-center justify-end gap-3 pt-1 text-[9px] text-muted-foreground/40">
-        <span className="flex items-center gap-1">
-          <span className="size-2 rounded-sm bg-emerald-500/50" /> Answered
+      <div className="flex items-center justify-end gap-4 pt-1 text-[10px] text-muted-foreground/50">
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 rounded-sm bg-emerald-500/60" /> Answered
         </span>
-        <span className="flex items-center gap-1">
-          <span className="size-2 rounded-sm bg-red-500/40" /> Unanswered
+        <span className="flex items-center gap-1.5">
+          <span className="size-2.5 rounded-sm bg-red-500/50" /> Unanswered
         </span>
       </div>
     </div>
   );
 }
 
+const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "" };
+
 // ── Main Page ──
 export default function RoomsPage() {
+  const { names: ROOM_NAMES, codes: ROOM_CODES, refetch: refetchRoomConfig } = useRooms();
   const { data: roomsRaw, loading, refetch } = useFetch("/api/v1/admin/rooms");
   const { data: timelineRaw, refetch: refetchTimeline } = useFetch("/api/v1/admin/broadcasts/activity?minutes=30");
   useSSERefresh(() => { refetch(); refetchTimeline(); }, ["rooms", "users", "broadcasts"]);
-
   const { events: sseEvents } = useSSE("/api/v1/admin/events/stream");
 
   const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [roomDialogOpen, setRoomDialogOpen] = useState(false);
+  const [editingRoom, setEditingRoom] = useState(null);
+  const [roomForm, setRoomForm] = useState(EMPTY_ROOM_FORM);
+  const [saving, setSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  function openCreateRoom() {
+    setEditingRoom(null);
+    setRoomForm(EMPTY_ROOM_FORM);
+    setRoomDialogOpen(true);
+  }
+
+  function openEditRoom(room) {
+    setEditingRoom(room);
+    setRoomForm({ id: String(room.room), name: ROOM_NAMES[room.room] || "", short_code: ROOM_CODES[room.room] || "" });
+    setRoomDialogOpen(true);
+  }
+
+  async function handleSaveRoom() {
+    setSaving(true);
+    try {
+      if (editingRoom) {
+        await fetch(`/api/v1/admin/rooms/${editingRoom.room}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: roomForm.name, short_code: roomForm.short_code }),
+        });
+      } else {
+        await fetch("/api/v1/admin/rooms/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: parseInt(roomForm.id), name: roomForm.name, short_code: roomForm.short_code }),
+        });
+      }
+      setRoomDialogOpen(false);
+      refetch();
+      refetchRoomConfig();
+    } catch (e) {
+      console.error("Save room failed:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteRoom() {
+    if (!deleteTarget) return;
+    try {
+      await fetch(`/api/v1/admin/rooms/${deleteTarget.room}/delete`, { method: "DELETE" });
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
+      refetch();
+      refetchRoomConfig();
+    } catch (e) {
+      console.error("Delete room failed:", e);
+    }
+  }
 
   const rooms = useMemo(() => {
     if (!Array.isArray(roomsRaw)) return [];
-    return roomsRaw.sort((a, b) => (b.online || 0) - (a.online || 0));
+    return [...roomsRaw].sort((a, b) => (b.online || 0) - (a.online || 0));
   }, [roomsRaw]);
 
-  // Enrich members with talking state from SSE
   const talkingUsers = useMemo(() => {
     const talking = new Set();
     for (const evt of sseEvents) {
@@ -449,14 +298,11 @@ export default function RoomsPage() {
   }, [rooms, selectedRoomId, talkingUsers]);
 
   const timeline = timelineRaw || [];
-
-  // Stats
   const totalOnline = rooms.reduce((s, r) => s + (r.online || 0), 0);
   const totalInCall = rooms.reduce((s, r) => s + (r.inCall || 0), 0);
   const totalUnmuted = rooms.reduce((s, r) => s + (r.unmuted || 0), 0);
   const totalMembers = rooms.reduce((s, r) => s + (r.total || 0), 0);
 
-  // Actions
   const apiAction = useCallback(async (userName, action) => {
     try {
       await fetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/${action}`, { method: "POST" });
@@ -469,30 +315,29 @@ export default function RoomsPage() {
   }, [apiAction]);
 
   const honk = useCallback(async (roomId) => {
-    try {
-      await fetch(`/api/v1/admin/rooms/${roomId}/honk`, { method: "POST" });
-    } catch {}
+    try { await fetch(`/api/v1/admin/rooms/${roomId}/honk`, { method: "POST" }); } catch {}
   }, []);
+
+  function openRoom(room) {
+    setSelectedRoomId(room.room);
+    setSheetOpen(true);
+  }
 
   if (loading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
         <Skeleton className="h-8 w-56" />
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
-        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <div className="space-y-2">
-            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24" />)}
-          </div>
-          <Skeleton className="h-[500px]" />
-        </div>
+        <Skeleton className="h-[400px]" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-300">
+    <TooltipProvider>
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -503,128 +348,166 @@ export default function RoomsPage() {
             <span className="font-mono tabular-nums">{totalInCall}</span> in call
           </p>
         </div>
+        <Button onClick={openCreateRoom}>
+          <PlusIcon className="size-4 mr-2" />
+          Add Room
+        </Button>
       </div>
 
-      {/* Quick Stats */}
+      {/* Stat Cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <MiniStat icon={<UsersIcon className="size-3.5" />} label="Total Members" value={totalMembers} color="#06b6d4" />
-        <MiniStat icon={<WifiIcon className="size-3.5" />} label="Online" value={totalOnline} color="#22c55e" />
-        <MiniStat icon={<PhoneCallIcon className="size-3.5" />} label="In Call" value={totalInCall} color="#3b82f6" />
-        <MiniStat icon={<ActivityIcon className="size-3.5" />} label="Unmuted" value={totalUnmuted} color="#f59e0b" />
+        <StatCard title="Total Members" value={totalMembers} icon={<UsersIcon className="size-4" />} color="#06b6d4" />
+        <StatCard title="Online" value={totalOnline} icon={<WifiIcon className="size-4" />} color="#22c55e" />
+        <StatCard title="In Call" value={totalInCall} icon={<PhoneCallIcon className="size-4" />} color="#3b82f6" />
+        <StatCard title="Unmuted" value={totalUnmuted} icon={<ActivityIcon className="size-4" />} color="#f59e0b" />
       </div>
 
-      {/* Main Content: Room Grid + Mixer Panel */}
-      <div className={`grid gap-4 transition-all duration-300 ${selectedRoom ? "lg:grid-cols-[260px_1fr]" : "lg:grid-cols-1"}`}>
-        {/* Room Grid */}
-        <div className={selectedRoom ? "" : ""}>
-          <div className={`grid gap-2 ${selectedRoom ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"}`}>
-            {rooms.map(room => (
-              <RoomCard
-                key={room.room}
-                room={room}
-                isSelected={selectedRoomId === room.room}
-                onClick={() => setSelectedRoomId(selectedRoomId === room.room ? null : room.room)}
-              />
-            ))}
-          </div>
-        </div>
+      {/* Rooms Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
+                <TableHead>Room</TableHead>
+                <TableHead>Members</TableHead>
+                <TableHead className="hidden md:table-cell">Online</TableHead>
+                <TableHead className="hidden md:table-cell">In Call</TableHead>
+                <TableHead className="hidden md:table-cell">Unmuted</TableHead>
+                <TableHead className="hidden lg:table-cell">Capacity</TableHead>
+                <TableHead className="hidden lg:table-cell">Active Speakers</TableHead>
+                <TableHead className="text-right w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rooms.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+                    No rooms configured
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rooms.map(room => {
+                  const total = room.total ?? 0;
+                  const online = room.online ?? 0;
+                  const inCall = room.inCall ?? 0;
+                  const unmuted = room.unmuted ?? 0;
+                  const isEmpty = online === 0 && inCall === 0;
+                  const onlineMembers = (room.members || []).filter(m => m.online);
+                  const speakingMembers = onlineMembers.filter(m => !m.mute || talkingUsers.has(m.userName));
 
-        {/* Mixer Panel */}
-        {selectedRoom && (
-          <Card className="border-border/40 animate-in slide-in-from-right-4 duration-300">
-            <CardHeader className="pb-3 border-b border-border/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setSelectedRoomId(null)}
-                    className="size-7 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors cursor-pointer lg:hidden"
-                  >
-                    <ChevronLeftIcon className="size-4" />
-                  </button>
-                  <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {ROOM_NAMES[selectedRoom.room] || selectedRoom.room}
-                      {selectedRoom.unmuted > 0 && (
-                        <span className="relative flex size-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
-                          <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+                  return (
+                    <TableRow
+                      key={room.room}
+                      className={`cursor-pointer group transition-colors ${isEmpty ? "opacity-50" : ""}`}
+                      onClick={() => openRoom(room)}
+                    >
+                      <TableCell>
+                        {unmuted > 0 ? (
+                          <span className="relative flex size-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                            <span className="relative inline-flex rounded-full size-2.5 bg-emerald-500" />
+                          </span>
+                        ) : online > 0 ? (
+                          <span className="inline-flex rounded-full size-2.5 bg-sky-500" />
+                        ) : (
+                          <span className="inline-flex rounded-full size-2.5 bg-zinc-500/30" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {ROOM_NAMES[room.room] || room.room}
+                          <span className="text-[10px] font-mono text-muted-foreground/40">{ROOM_CODES[room.room]}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono tabular-nums text-sm">
+                        {total}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className={`inline-flex items-center gap-1.5 text-sm font-mono tabular-nums ${online > 0 ? "text-emerald-400" : "text-muted-foreground/40"}`}>
+                          {online > 0 && <span className="size-1.5 rounded-full bg-emerald-500" />}
+                          {online}
                         </span>
-                      )}
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-0.5 font-mono tabular-nums">
-                      {selectedRoom.total} members · {selectedRoom.online} online · {selectedRoom.inCall} in call
-                    </p>
-                  </div>
-                </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className={`inline-flex items-center gap-1.5 text-sm font-mono tabular-nums ${inCall > 0 ? "text-sky-400" : "text-muted-foreground/40"}`}>
+                          {inCall > 0 && <span className="size-1.5 rounded-full bg-sky-500" />}
+                          {inCall}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className={`inline-flex items-center gap-1.5 text-sm font-mono tabular-nums ${unmuted > 0 ? "text-amber-400" : "text-muted-foreground/40"}`}>
+                          {unmuted > 0 && <span className="size-1.5 rounded-full bg-amber-500" />}
+                          {unmuted}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex items-center gap-2 w-24">
+                          <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                            <div className="h-full flex">
+                              {inCall > 0 && (
+                                <div className="h-full bg-sky-500/70" style={{ width: `${(inCall / Math.max(total, 1)) * 100}%` }} />
+                              )}
+                              {online - inCall > 0 && (
+                                <div className="h-full bg-emerald-500/40" style={{ width: `${((online - inCall) / Math.max(total, 1)) * 100}%` }} />
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono text-muted-foreground/40 tabular-nums">{Math.round((online / Math.max(total, 1)) * 100)}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {speakingMembers.length > 0 ? (
+                          <div className="flex -space-x-1.5">
+                            {speakingMembers.slice(0, 4).map(m => (
+                              <div
+                                key={m.userName}
+                                className={`size-6 rounded-full flex items-center justify-center text-[8px] font-bold border-2 border-card ${getAvatarColor(m.userName)}`}
+                                title={m.callerIdName || m.userName}
+                              >
+                                {getInitials(m.callerIdName || m.userName)}
+                              </div>
+                            ))}
+                            {speakingMembers.length > 4 && (
+                              <div className="size-6 rounded-full flex items-center justify-center text-[8px] font-mono bg-muted/50 text-muted-foreground border-2 border-card">
+                                +{speakingMembers.length - 4}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/30">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          <Tip label="Edit Room">
+                            <Button size="icon" variant="ghost" className="size-7" onClick={() => openEditRoom(room)}>
+                              <PencilIcon className="size-3.5" />
+                            </Button>
+                          </Tip>
+                          <Tip label="Honk">
+                            <Button size="icon" variant="ghost" className="size-7" onClick={() => honk(room.room)}>
+                              <Volume2Icon className="size-3.5" />
+                            </Button>
+                          </Tip>
+                          <Tip label="Delete Room">
+                            <Button size="icon" variant="ghost" className="size-7 text-destructive" onClick={() => { setDeleteTarget(room); setDeleteDialogOpen(true); }}>
+                              <Trash2Icon className="size-3.5" />
+                            </Button>
+                          </Tip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-                {/* Room Controls */}
-                <div className="flex items-center gap-1.5">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2.5 text-xs gap-1.5 border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-                        onClick={() => muteAll(selectedRoom)}
-                      >
-                        <VolumeXIcon className="size-3" />
-                        Mute All
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Mute all unmuted users</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2.5 text-xs gap-1.5"
-                        onClick={() => honk(selectedRoom.room)}
-                      >
-                        <Volume2Icon className="size-3" />
-                        Honk
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Sound alert in room</TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-3 px-3">
-              <ScrollArea className="h-[calc(100vh-380px)] pr-2">
-                <div className="space-y-1.5">
-                  {/* Connected users first, then online, then offline */}
-                  {[...selectedRoom.members]
-                    .sort((a, b) => {
-                      const order = { connected: 0, error: 1 };
-                      const aScore = a.talking ? -1 : (order[a.connectionState] ?? (a.online ? 2 : 3));
-                      const bScore = b.talking ? -1 : (order[b.connectionState] ?? (b.online ? 2 : 3));
-                      return aScore - bScore;
-                    })
-                    .map(m => (
-                      <MixerUser
-                        key={m.userName}
-                        member={m}
-                        onMute={(u) => apiAction(u, "mute")}
-                        onUnmute={(u) => apiAction(u, "unmute")}
-                        onKick={(u) => apiAction(u, "kickout")}
-                        onReconnect={(u) => apiAction(u, "reconnect")}
-                      />
-                    ))
-                  }
-                  {selectedRoom.members.length === 0 && (
-                    <p className="text-center text-sm text-muted-foreground/40 py-8">No members in this room</p>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Speaker Timeline */}
-      <Card className="border-border/40">
+      {/* Broadcast Timeline */}
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
             <RadioIcon className="size-3.5 text-cyan-400" />
@@ -633,9 +516,259 @@ export default function RoomsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <SpeakerTimeline events={timeline} />
+          <SpeakerTimeline events={timeline} roomCodes={ROOM_CODES} />
         </CardContent>
       </Card>
+
+      {/* Room Detail Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent showCloseButton={false} className="sm:max-w-[480px] p-0 overflow-y-auto border-l border-border/50 bg-background/95 backdrop-blur-xl">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Room Details</SheetTitle>
+            <SheetDescription>Conference room members and controls</SheetDescription>
+          </SheetHeader>
+          {selectedRoom && (() => {
+            const sorted = [...selectedRoom.members].sort((a, b) => {
+              const order = { connected: 0, error: 1 };
+              const aScore = a.talking ? -1 : (order[a.connectionState] ?? (a.online ? 2 : 3));
+              const bScore = b.talking ? -1 : (order[b.connectionState] ?? (b.online ? 2 : 3));
+              return aScore - bScore;
+            });
+            const connectedCount = sorted.filter(m => m.connectionState === "connected").length;
+            const onlineCount = sorted.filter(m => m.online).length;
+
+            return (
+              <div className="flex flex-col">
+                {/* Header */}
+                <div className="relative px-6 pt-8 pb-5">
+                  <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.04] to-transparent" />
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+                        {ROOM_NAMES[selectedRoom.room] || selectedRoom.room}
+                        {selectedRoom.unmuted > 0 && (
+                          <span className="relative flex size-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                            <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+                          </span>
+                        )}
+                      </h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground font-mono tabular-nums">
+                      {selectedRoom.total} members · {onlineCount} online · {connectedCount} in call
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick actions */}
+                <div className="px-6 pb-5">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-9"
+                      onClick={() => muteAll(selectedRoom)}
+                    >
+                      <VolumeXIcon className="size-3.5 mr-1.5" />
+                      Mute All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-9"
+                      onClick={() => honk(selectedRoom.room)}
+                    >
+                      <Volume2Icon className="size-3.5 mr-1.5" />
+                      Honk
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="h-px bg-border/60" />
+
+                {/* Members */}
+                <div className="px-6 py-5 space-y-3">
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
+                    Members ({selectedRoom.members.length})
+                  </p>
+                  <div className="space-y-1">
+                    {sorted.length === 0 ? (
+                      <p className="text-center text-sm text-muted-foreground py-8">No members in this room</p>
+                    ) : (
+                      sorted.map(m => {
+                        const isTalking = m.talking;
+                        const isConnected = m.connectionState === "connected";
+                        const isOnline = m.online;
+                        const isMuted = m.mute;
+                        const hasError = m.connectionState === "error";
+                        const displayName = m.callerIdName || m.userName?.replace("sip:", "") || "Unknown";
+
+                        return (
+                          <div
+                            key={m.userName}
+                            className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-muted/40 ${
+                              hasError ? "bg-red-950/30" : isTalking ? "bg-emerald-500/[0.04]" : ""
+                            }`}
+                          >
+                            {/* Avatar */}
+                            <div className={`relative size-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarColor(m.userName)}`}>
+                              {getInitials(displayName)}
+                              <span className={`absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-background ${
+                                hasError ? "bg-red-500" : isConnected ? "bg-emerald-500" : isOnline ? "bg-sky-500" : "bg-zinc-500"
+                              }`} />
+                            </div>
+
+                            {/* Name + status */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium truncate">{displayName}</span>
+                                {isTalking && (
+                                  <div className="flex items-end gap-[2px] h-3 ml-0.5">
+                                    {[0, 1, 2].map(i => (
+                                      <div
+                                        key={i}
+                                        className="w-[2px] bg-emerald-400 rounded-full"
+                                        style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className={`text-[10px] font-mono ${
+                                  hasError ? "text-red-400" : isConnected ? "text-emerald-400/70" : isOnline ? "text-sky-400/70" : "text-muted-foreground/40"
+                                }`}>
+                                  {hasError ? "error" : isConnected ? "in-call" : isOnline ? "online" : "offline"}
+                                </span>
+                                {isMuted && isConnected && (
+                                  <Badge className="bg-amber-500/10 text-amber-400/80 border-amber-500/20 text-[9px] px-1 py-0 h-3.5">
+                                    muted
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {isConnected && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="size-7"
+                                  title={isMuted ? "Unmute" : "Mute"}
+                                  onClick={() => apiAction(m.userName, isMuted ? "unmute" : "mute")}
+                                >
+                                  {isMuted ? <MicOffIcon className="size-3.5 text-amber-400" /> : <MicIcon className="size-3.5 text-emerald-400" />}
+                                </Button>
+                              )}
+                              {(hasError || isConnected) && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="size-7"
+                                  title="Reconnect"
+                                  onClick={() => apiAction(m.userName, "reconnect")}
+                                >
+                                  <RefreshCwIcon className="size-3.5" />
+                                </Button>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="size-7 text-destructive"
+                                title="Kick"
+                                onClick={() => apiAction(m.userName, "kickout")}
+                              >
+                                <PhoneOffIcon className="size-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
+      {/* Create / Edit Room Dialog */}
+      <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingRoom ? "Edit Room" : "Add Room"}</DialogTitle>
+            <DialogDescription>
+              {editingRoom ? "Update the room name and short code." : "Create a new conference room."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 mt-2">
+            {!editingRoom && (
+              <div className="space-y-2">
+                <Label>Room ID *</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 123456713"
+                  value={roomForm.id}
+                  onChange={e => setRoomForm(f => ({ ...f, id: e.target.value }))}
+                />
+                <p className="text-[11px] text-muted-foreground">Numeric ID used as FreeSWitch conference name</p>
+              </div>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Room Name *</Label>
+                <Input
+                  placeholder="e.g. Pennsylvania"
+                  value={roomForm.name}
+                  onChange={e => setRoomForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Short Code *</Label>
+                <Input
+                  placeholder="e.g. PA"
+                  maxLength={4}
+                  value={roomForm.short_code}
+                  onChange={e => setRoomForm(f => ({ ...f, short_code: e.target.value.toUpperCase() }))}
+                />
+              </div>
+            </div>
+            <Button
+              className="w-full mt-2"
+              onClick={handleSaveRoom}
+              disabled={saving || !roomForm.name || !roomForm.short_code || (!editingRoom && !roomForm.id)}
+            >
+              {saving ? "Saving..." : editingRoom ? "Update Room" : "Create Room"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Room Confirmation */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Room</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-foreground">
+                {ROOM_NAMES[deleteTarget?.room] || deleteTarget?.room}
+              </span>
+              ? Users assigned to this room will need to be reassigned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={handleDeleteRoom}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @keyframes eqBar {
@@ -644,5 +777,6 @@ export default function RoomsPage() {
         }
       `}</style>
     </div>
+    </TooltipProvider>
   );
 }

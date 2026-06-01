@@ -5,7 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
-import { ROOM_NAMES, EVENT_COLORS, timeAgo } from "@/lib/constants";
+import { EVENT_COLORS, timeAgo } from "@/lib/constants";
+import { useRooms } from "@/hooks/useRooms";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
@@ -23,11 +24,6 @@ import {
   PlayIcon,
 } from "lucide-react";
 
-const ROOM_SHORT = {
-  123456701: "CA", 123456702: "TX", 123456703: "FL", 123456704: "MX",
-  123456705: "ENS", 123456706: "AZ", 123456707: "OH", 123456708: "NY",
-  123456709: "GA", 123456710: "IN", 123456711: "MI", 123456712: "CR",
-};
 
 // ─── Animated Counter Hook ───
 function useAnimatedNumber(target, duration = 600) {
@@ -130,6 +126,7 @@ function StatCard({ title, value, icon, color, subtitle, pulse }) {
 
 // ─── Open Mics ───
 function OpenMics({ speakers }) {
+  const { names: ROOM_NAMES, codes: ROOM_SHORT } = useRooms();
   return (
     <Card className="border-0 relative overflow-hidden">
       <CardHeader className="pb-2">
@@ -183,6 +180,7 @@ function OpenMics({ speakers }) {
 
 // ─── Room Card with Heatmap Glow + Active Speakers ───
 function RoomCard({ room, speakers }) {
+  const { names: ROOM_NAMES, codes: ROOM_SHORT } = useRooms();
   const name = ROOM_NAMES[room.room] || `Room ${room.room}`;
   const shortCode = ROOM_SHORT[room.room] || "??";
   const total = room.total || 0;
@@ -290,6 +288,7 @@ function RoomCard({ room, speakers }) {
 
 // ─── Conference Timeline ───
 function ConferenceTimeline({ roomId, segments }) {
+  const { codes: ROOM_SHORT } = useRooms();
   const now = Date.now();
   const windowMs = 30 * 60 * 1000;
   const start = now - windowMs;
@@ -322,6 +321,7 @@ const broadcastChartConfig = {
 };
 
 function BroadcastChart() {
+  const { codes: ROOM_SHORT } = useRooms();
   const views = [
     { key: "12h", label: "12h", hours: 12 },
     { key: "24h", label: "24h", hours: 24 },
@@ -444,6 +444,7 @@ const ROOM_COLORS = {
 };
 
 function RoomAvailabilityChart() {
+  const { codes: ROOM_SHORT } = useRooms();
   const views = [
     { key: "12h", label: "12h", hours: 12 },
     { key: "24h", label: "24h", hours: 24 },
@@ -573,6 +574,7 @@ function RoomAvailabilityChart() {
 
 // ─── Live Ticker ───
 function LiveTicker({ events }) {
+  const { names: ROOM_NAMES } = useRooms();
   const recent = events.slice(-12).reverse();
 
   if (recent.length === 0) return null;
@@ -804,6 +806,7 @@ function RecentBroadcasts({ broadcasts }) {
 }
 
 function BroadcastRow({ broadcast: b, playing, onToggle }) {
+  const { names: ROOM_NAMES } = useRooms();
   const name = b.display_name || b.user_name || "Unknown";
   const room = b.room_name || ROOM_NAMES[b.room] || "";
   const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
@@ -863,6 +866,7 @@ function BroadcastRow({ broadcast: b, playing, onToggle }) {
 
 // ─── Main Dashboard ───
 export default function DashboardPage() {
+  const { names: ROOM_NAMES, codes: ROOM_SHORT } = useRooms();
   const { data: dashRaw, loading, refetch: refetchDash } = useFetch("/api/v1/admin/dashboard");
   const { data: broadcastRaw, refetch: refetchBroadcasts } = useFetch("/api/v1/admin/broadcasts");
   const { data: recentBcastRaw, loading: bcastLoading, refetch: refetchRecentBcast } = useFetch("/api/v1/admin/broadcasts/recent?limit=8");

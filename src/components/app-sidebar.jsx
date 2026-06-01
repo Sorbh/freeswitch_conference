@@ -18,7 +18,6 @@ import {
   UsersIcon,
   AudioLinesIcon,
   RadioIcon,
-  ClockIcon,
   ServerIcon,
   ActivityIcon,
   PhoneIcon,
@@ -47,13 +46,12 @@ const data = {
         { title: "Users", url: "/users", icon: <UsersIcon /> },
         { title: "Conference Rooms", url: "/rooms", icon: <AudioLinesIcon /> },
         { title: "Broadcasts", url: "/broadcasts", icon: <RadioIcon /> },
-        { title: "Online History", url: "/history", icon: <ClockIcon /> },
-        { title: "Live Events", url: "/events", icon: <ActivityIcon /> },
       ],
     },
     {
       label: "Developer",
       items: [
+        { title: "Live Events", url: "/events", icon: <ActivityIcon /> },
         { title: "System Health", url: "/system", icon: <ServerIcon /> },
         { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon /> },
         { title: "Phone Log", url: "/dev/phone-logs", icon: <PhoneIcon /> },

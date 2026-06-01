@@ -39,7 +39,8 @@ import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
-import { ROOM_NAMES, timeAgo } from "@/lib/constants";
+import { timeAgo } from "@/lib/constants";
+import { useRooms } from "@/hooks/useRooms";
 import {
   MicIcon,
   MicOffIcon,
@@ -196,6 +197,7 @@ function CopyableCell({ text, children, className = "" }) {
 }
 
 export default function UsersPage() {
+  const { names: ROOM_NAMES } = useRooms();
   const { data, loading, refetch } = useFetch("/api/v1/admin/users");
   useSSERefresh(refetch, ["users"]);
   const talkingUsers = useTalkingUsers();

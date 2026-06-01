@@ -9,7 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSSE } from "@/hooks/useSSE";
-import { ROOM_NAMES, EVENT_COLORS } from "@/lib/constants";
+import { EVENT_COLORS } from "@/lib/constants";
+import { useRooms } from "@/hooks/useRooms";
 import { PlayIcon, PauseIcon, Trash2Icon } from "lucide-react";
 
 function formatTime(d) {
@@ -18,6 +19,7 @@ function formatTime(d) {
 }
 
 export default function EventsPage() {
+  const { names: ROOM_NAMES } = useRooms();
   const [active, setActive] = useState(true);
   const [filter, setFilter] = useState("all");
   const { events, clear } = useSSE("/api/v1/admin/events/stream", active);

@@ -150,6 +150,22 @@ adminRouter.get("/rooms", (req, res) => {
     }
 });
 
+// GET /rooms/config — returns room names/codes for frontend
+adminRouter.get("/rooms/config", (req, res) => {
+    try {
+        const rooms = global.db.getAllRooms();
+        const names = {};
+        const codes = {};
+        for (const r of rooms) {
+            names[r.id] = r.name;
+            codes[r.id] = r.short_code;
+        }
+        res.json({ status: true, data: { rooms, names, codes } });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /rooms/:roomId — returns room detail with timeline
 adminRouter.get("/rooms/:roomId", (req, res) => {
     try {
@@ -759,6 +775,57 @@ adminRouter.delete("/accounts/:id", (req, res) => {
         emitStateChange('users');
         emitStateChange('dashboard');
         res.json({ status: true, message: `Account ${account.email} deleted` });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /rooms/create — create a new room
+adminRouter.post("/rooms/create", (req, res) => {
+    try {
+        const { id, name, short_code } = req.body;
+        if (!id || !name || !short_code) {
+            return res.status(400).json({ status: false, error: "id, name, and short_code are required" });
+        }
+        const roomId = parseInt(id);
+        const existing = global.db.getRoom(roomId);
+        if (existing) {
+            return res.status(409).json({ status: false, error: "Room with this ID already exists" });
+        }
+        const room = global.db.createRoom(roomId, name, short_code);
+        global.db.logEvent('room_created', null, roomId, `Room ${name} (${short_code}) created`);
+        emitStateChange('rooms');
+        res.status(201).json({ status: true, data: room });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// PUT /rooms/:roomId — update room name/code
+adminRouter.put("/rooms/:roomId", (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        const existing = global.db.getRoom(roomId);
+        if (!existing) return res.status(404).json({ status: false, error: "Room not found" });
+        const updated = global.db.updateRoom(roomId, req.body);
+        global.db.logEvent('room_updated', null, roomId, `Room updated`);
+        emitStateChange('rooms');
+        res.json({ status: true, data: updated });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// DELETE /rooms/:roomId/delete — delete a room
+adminRouter.delete("/rooms/:roomId/delete", (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        const existing = global.db.getRoom(roomId);
+        if (!existing) return res.status(404).json({ status: false, error: "Room not found" });
+        global.db.deleteRoom(roomId);
+        global.db.logEvent('room_deleted', null, roomId, `Room ${existing.name} deleted`);
+        emitStateChange('rooms');
+        res.json({ status: true, message: `Room ${existing.name} deleted` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

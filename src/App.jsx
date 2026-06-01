@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/theme-provider";
+import { RoomsProvider } from "@/hooks/useRooms";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -16,7 +17,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import UsersPage from "@/pages/UsersPage";
 import RoomsPage from "@/pages/RoomsPage";
 import BroadcastsPage from "@/pages/BroadcastsPage";
-import HistoryPage from "@/pages/HistoryPage";
+
 import SystemPage from "@/pages/SystemPage";
 import EventsPage from "@/pages/EventsPage";
 import FsLogsPage from "@/pages/FsLogsPage";
@@ -26,7 +27,6 @@ const routes = [
   { path: "/users", element: <UsersPage />, title: "Users" },
   { path: "/rooms", element: <RoomsPage />, title: "Conference Rooms" },
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcasts" },
-  { path: "/history", element: <HistoryPage />, title: "Online History" },
   { path: "/system", element: <SystemPage />, title: "System Health" },
   { path: "/events", element: <EventsPage />, title: "Live Events" },
   { path: "/dev/fs-logs", element: <FsLogsPage />, title: "FS Logs" },
@@ -82,7 +82,9 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
       <BrowserRouter>
-        <AppLayout />
+        <RoomsProvider>
+          <AppLayout />
+        </RoomsProvider>
       </BrowserRouter>
     </ThemeProvider>
   );

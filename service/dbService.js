@@ -153,7 +153,74 @@ function init() {
         if (!accountCols.includes(col)) sqlite.exec(sql);
     }
 
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS rooms (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            short_code TEXT NOT NULL,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+    `);
+
+    _seedRoomsFromConfig();
+
     console.log(`SQLite database initialized at ${DB_PATH}`);
+}
+
+function _seedRoomsFromConfig() {
+    const count = sqlite.prepare('SELECT COUNT(*) as c FROM rooms').get().c;
+    if (count > 0) return;
+    const names = global.config?.ROOM_NAME || {};
+    const codes = global.config?.ROOM_SHORT_CODE || {};
+    const insert = sqlite.prepare('INSERT OR IGNORE INTO rooms (id, name, short_code) VALUES (?, ?, ?)');
+    for (const [id, name] of Object.entries(names)) {
+        insert.run(parseInt(id), name, codes[id] || name.slice(0, 2).toUpperCase());
+    }
+}
+
+function getAllRooms() {
+    return sqlite.prepare('SELECT * FROM rooms ORDER BY id').all();
+}
+
+function getRoom(id) {
+    return sqlite.prepare('SELECT * FROM rooms WHERE id = ?').get(id);
+}
+
+function createRoom(id, name, shortCode) {
+    sqlite.prepare('INSERT INTO rooms (id, name, short_code) VALUES (?, ?, ?)').run(id, name, shortCode);
+    _refreshRoomConfig();
+    return getRoom(id);
+}
+
+function updateRoom(id, fields) {
+    const sets = [];
+    const vals = [];
+    if (fields.name !== undefined) { sets.push('name = ?'); vals.push(fields.name); }
+    if (fields.short_code !== undefined) { sets.push('short_code = ?'); vals.push(fields.short_code); }
+    if (sets.length === 0) return null;
+    vals.push(id);
+    sqlite.prepare(`UPDATE rooms SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+    _refreshRoomConfig();
+    return getRoom(id);
+}
+
+function deleteRoom(id) {
+    sqlite.prepare('DELETE FROM rooms WHERE id = ?').run(id);
+    _refreshRoomConfig();
+}
+
+function _refreshRoomConfig() {
+    const rows = getAllRooms();
+    const names = {};
+    const codes = {};
+    for (const r of rows) {
+        names[r.id] = r.name;
+        codes[r.id] = r.short_code;
+    }
+    if (global.config) {
+        global.config.ROOM_NAME = names;
+        global.config.ROOM_SHORT_CODE = codes;
+    }
 }
 
 function getUserInfo(userName) {
@@ -570,5 +637,10 @@ db.getRoomAvailability = getRoomAvailability;
 db.snapshotRoomCounts = snapshotRoomCounts;
 db.getRoomSnapshots = getRoomSnapshots;
 db.cleanOldSnapshots = cleanOldSnapshots;
+db.getAllRooms = getAllRooms;
+db.getRoom = getRoom;
+db.createRoom = createRoom;
+db.updateRoom = updateRoom;
+db.deleteRoom = deleteRoom;
 
 export default { db };
