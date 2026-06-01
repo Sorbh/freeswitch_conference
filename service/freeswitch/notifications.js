@@ -2,7 +2,7 @@
 // execute commands, and action URIs to Yealink phones through FreeSWITCH.
 // Uses sendevent NOTIFY with contact-uri for reliable delivery through NAT.
 import { getConnection } from './connection.js';
-import { logSystem } from '../logger.js';
+import { logUser } from '../logger.js';
 import modesl from 'modesl';
 
 function _resolveContactLookups(userName) {
@@ -24,39 +24,60 @@ function _extractContactUri(sofiaContact) {
     return base;
 }
 
-function _sendNotify(userName, eventString, contentType, xmlBody) {
-    const lookups = _resolveContactLookups(userName);
-    const email = userName.startsWith('sip:') ? userName.replace('sip:', '') : userName;
+const _contactCache = new Map();
+const CACHE_TTL_MS = 60_000;
 
+function _resolveContact(userName, cb) {
+    const cached = _contactCache.get(userName);
+    if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+        return cb(cached.uri);
+    }
+
+    const lookups = _resolveContactLookups(userName);
     const tryLookup = (idx) => {
-        if (idx >= lookups.length) return;
+        if (idx >= lookups.length) return cb(null);
         const conn = getConnection();
-        if (!conn) return;
+        if (!conn) return cb(null);
         conn.api(`sofia_contact ${lookups[idx]}`, (res) => {
             const raw = (res.getBody() || '').trim();
             if (!raw || raw.startsWith('-ERR') || raw.startsWith('error/')) {
-                tryLookup(idx + 1);
-                return;
+                return tryLookup(idx + 1);
             }
             const contactUri = _extractContactUri(raw);
-            if (!contactUri) return;
-
-            const profile = global.config.FREESWITCH_SOFIA_PROFILE || 'internal';
-            const e = new modesl.Event('NOTIFY');
-            e.addHeader('profile', profile);
-            e.addHeader('event-string', eventString);
-            e.addHeader('content-type', contentType);
-            e.addHeader('contact-uri', contactUri);
-            e.addHeader('to-uri', `sip:${email}`);
-            e.addHeader('from-uri', `sip:${email}`);
-            e.addBody(xmlBody);
-
-            conn.sendEvent(e, () => {
-                logSystem('NOTIFY', `${eventString} -> ${contactUri}`);
-            });
+            if (contactUri) _contactCache.set(userName, { uri: contactUri, ts: Date.now() });
+            cb(contactUri);
         });
     };
     tryLookup(0);
+}
+
+export function invalidateContactCache(userName) {
+    if (userName) _contactCache.delete(userName);
+    else _contactCache.clear();
+}
+
+function _sendNotify(userName, eventString, contentType, xmlBody) {
+    const email = userName.startsWith('sip:') ? userName.replace('sip:', '') : userName;
+
+    _resolveContact(userName, (contactUri) => {
+        if (!contactUri) return;
+        const conn = getConnection();
+        if (!conn) return;
+
+        const profile = global.config.FREESWITCH_SOFIA_PROFILE || 'internal';
+        const e = new modesl.Event('NOTIFY');
+        e.addHeader('profile', profile);
+        e.addHeader('event-string', eventString);
+        e.addHeader('content-type', contentType);
+        e.addHeader('contact-uri', contactUri);
+        e.addHeader('to-uri', `sip:${email}`);
+        e.addHeader('from-uri', `sip:${email}`);
+        e.addBody(xmlBody);
+
+        conn.sendEvent(e, () => {
+            logUser(userName, 'NOTIFY', `${eventString} -> ${contactUri}`);
+        });
+    });
 }
 
 export function showMessage(targets, message, timeout = 4) {

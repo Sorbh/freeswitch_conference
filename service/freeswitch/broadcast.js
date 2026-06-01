@@ -81,7 +81,7 @@ function _handleUnmute(conferenceName, memberId, room, event) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const recordingFile = path.join(recordingDir, `${roomName}_${timestamp}.wav`);
 
-        logSystem('BCAST', `SESSION START in ${roomName} by ${member.displayName} — recording`);
+        logUser(roomName, 'BCAST', `SESSION START by ${member.displayName} — recording`);
         getConnection().api(`conference ${conferenceName} record ${recordingFile}`, () => {});
 
         session = {
@@ -119,10 +119,10 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
     getConnection().api(`conference ${conferenceName} norecord ${session.recordingPath}`, () => {});
 
     const roomName = global.config.ROOM_NAME[room] || conferenceName;
-    logSystem('BCAST', `SESSION END in ${roomName} (${durationMs}ms, ${session.allParticipants.length} participants)`);
+    logUser(roomName, 'BCAST', `SESSION END (${durationMs}ms, ${session.allParticipants.length} participants)`);
 
     if (durationMs < BROADCAST_MIN_DURATION_MS) {
-        logSystem('BCAST', `TOO SHORT (${durationMs}ms) — discarding`);
+        logUser(roomName, 'BCAST', `TOO SHORT (${durationMs}ms) — discarding`);
         try { fs.unlinkSync(session.recordingPath); } catch {}
         return;
     }
@@ -137,11 +137,11 @@ function _evaluateSession(conferenceName, room, session, durationMs) {
     if (participants.length <= 1) {
         const firstSpeaker = participants[0] || { userName: 'Unknown', displayName: 'Unknown' };
 
-        logSystem('BCAST', `${firstSpeaker.displayName} in ${roomName} (${durationMs}ms) — waiting for response`);
+        logUser(roomName, 'BCAST', `${firstSpeaker.displayName} (${durationMs}ms) — waiting for response`);
 
         const timer = setTimeout(() => {
             pendingBroadcasts.delete(conferenceName);
-            logSystem('BCAST', `UNANSWERED in ${roomName} by ${firstSpeaker.displayName}`);
+            logUser(roomName, 'BCAST', `UNANSWERED by ${firstSpeaker.displayName}`);
             _finalizeBroadcast(conferenceName, room, {
                 firstSpeaker,
                 allParticipants: participants,
@@ -162,7 +162,7 @@ function _evaluateSession(conferenceName, room, session, durationMs) {
     } else {
         const firstSpeaker = participants[0];
         const responders = participants.slice(1).map(p => p.displayName).join(', ');
-        logSystem('BCAST', `ANSWERED in ${roomName} by ${firstSpeaker.displayName}, responders: ${responders}`);
+        logUser(roomName, 'BCAST', `ANSWERED by ${firstSpeaker.displayName}, responders: ${responders}`);
 
         _finalizeBroadcast(conferenceName, room, {
             firstSpeaker,

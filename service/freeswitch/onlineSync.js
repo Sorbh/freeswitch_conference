@@ -5,6 +5,7 @@
 //    stale registrations and update online/registrationState accordingly.
 import { onMessageEvent, getConnection, isConnected, onEslReconnect, onEslDisconnect, getConnectionHandlers } from './connection.js';
 import { initiateCall } from './callGate.js';
+import { invalidateContactCache } from './notifications.js';
 import { logSystem, logUser } from '../logger.js';
 
 const onlineTimers = new Map();
@@ -90,6 +91,7 @@ function _applyRegSync(allUsers, fsUsers) {
         if (isRegistered && !user.online) {
             user.online = true;
             user.registrationState = 'registered';
+            invalidateContactCache(user.userName);
             global.db.logOnlineStatus(user.userName, 'online');
             logUser(user.userName, 'POLL', 'online (registered)');
             changed = true;
@@ -99,15 +101,18 @@ function _applyRegSync(allUsers, fsUsers) {
             continue;
         } else if (isRegistered && user.registrationState !== 'registered') {
             user.registrationState = 'registered';
+            invalidateContactCache(user.userName);
             changed = true;
         } else if (!isRegistered && user.online) {
             user.online = false;
             user.registrationState = 'unregistered';
+            invalidateContactCache(user.userName);
             global.db.logOnlineStatus(user.userName, 'offline');
             logUser(user.userName, 'POLL', 'offline (unregistered)');
             changed = true;
         } else if (!isRegistered && user.registrationState === 'registered') {
             user.registrationState = 'unregistered';
+            invalidateContactCache(user.userName);
             changed = true;
         }
 
@@ -124,12 +129,15 @@ function _applyRegSync(allUsers, fsUsers) {
         }
     }
 
-    if (changes > 0) {
-        logSystem('REG-POLL', `Synced: ${fsUsers.size} registered, ${changes} changes`);
-    }
-
     _syncConferenceState(allUsers);
-    _cleanupDeadHandlers(allUsers);
+    const cleaned = _cleanupDeadHandlers(allUsers);
+
+    if (changes > 0 || cleaned > 0) {
+        const parts = [];
+        if (changes > 0) parts.push(`${fsUsers.size} registered, ${changes} changes`);
+        if (cleaned > 0) parts.push(`cleaned ${cleaned} dead handlers`);
+        logUser('REG-POLL', 'SYNC', parts.join(' | '));
+    }
 }
 
 function _syncConferenceState(allUsers) {
@@ -197,7 +205,7 @@ function _syncConferenceState(allUsers) {
 
 function _cleanupDeadHandlers(allUsers) {
     const handlers = getConnectionHandlers();
-    if (handlers.size === 0) return;
+    if (handlers.size === 0) return 0;
 
     const activeUuids = new Set();
     for (const user of allUsers) {
@@ -212,9 +220,7 @@ function _cleanupDeadHandlers(allUsers) {
         }
     }
 
-    if (cleaned > 0) {
-        logSystem('REG-POLL', `Cleaned ${cleaned} dead connection handlers`);
-    }
+    return cleaned;
 }
 
 onMessageEvent((event) => {

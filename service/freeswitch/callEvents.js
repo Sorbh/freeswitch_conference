@@ -298,7 +298,7 @@ function _handleConferenceEvent(event) {
             if (talkUser) {
                 _talkingUsers.add(talkUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
-                logUser(talkUser.userName, 'CONF', `TALKING in ${roomName}`);
+
             }
             break;
         }
@@ -307,7 +307,7 @@ function _handleConferenceEvent(event) {
             if (stopUser) {
                 _talkingUsers.delete(stopUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
-                logUser(stopUser.userName, 'CONF', `SILENT in ${roomName}`);
+
             }
             break;
         }
@@ -364,6 +364,7 @@ const lastUnmutedCount = new Map();
 function _broadcastCallerIdToRoom(conferenceName) {
     const room = parseInt(conferenceName);
     if (!room) return;
+    const roomName = global.config.ROOM_NAME[room] || conferenceName;
 
     const connectedUsers = global.db.filter(u =>
         u.connectionState === 'connected' && u.room === room && !u.payment
@@ -378,11 +379,11 @@ function _broadcastCallerIdToRoom(conferenceName) {
     if (unmutedUsers.length > 0) {
         lastUnmutedCount.set(conferenceName, unmutedUsers.length);
         if (yealinkUserNames.length > 0) showMessage(yealinkUserNames, callerIdString);
-        logSystem('CONF', `CALLERID -> ${global.config.ROOM_NAME[room] || conferenceName}: ${callerIdString}`);
+        logUser(roomName, 'CONF', `CALLERID ${callerIdString}`);
     } else if ((lastUnmutedCount.get(conferenceName) || 0) > 0) {
         lastUnmutedCount.set(conferenceName, 0);
         if (yealinkUserNames.length > 0) showMessage(yealinkUserNames, '-', 1);
-        logSystem('CONF', `CALLERID -> ${global.config.ROOM_NAME[room] || conferenceName}: (cleared)`);
+        logUser(roomName, 'CONF', `CALLERID (cleared)`);
     }
 
     global.db.eventEmitter.emit('STATE_CHANGE', {
