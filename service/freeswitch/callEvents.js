@@ -371,7 +371,12 @@ function _broadcastCallerIdToRoom(conferenceName) {
     );
 
     const unmutedUsers = connectedUsers.filter(u => !u.mute);
-    const callerIdString = unmutedUsers.map(u => u.callerIdName || u.userName).join(', ');
+    const callerIdString = unmutedUsers.map(u => {
+        const email = u.userName?.replace('sip:', '');
+        const account = email ? global.db.getAccountByEmail(email) : null;
+        if (account) return `${account.company_name || ''} / ${account.display_name || email}`;
+        return u.callerIdName || u.userName;
+    }).join(', ');
 
     const yealinkUsers = connectedUsers.filter(u => u.clientType === 'yealink');
     const yealinkUserNames = yealinkUsers.map(u => u.userName).filter(Boolean);

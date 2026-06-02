@@ -301,11 +301,38 @@ adminRouter.get("/events/room/:room", (req, res) => {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive'
     });
-    res.write('data: {"type":"connected"}\n\n');
+    function buildRoomSnapshot() {
+        const connectedUsers = global.db.filter(u =>
+            u.connectionState === 'connected' && u.room === room && !u.payment
+        );
+        const unmutedUsers = connectedUsers.filter(u => !u.mute);
+        const callerIds = unmutedUsers.map(u => {
+            const email = u.userName?.replace('sip:', '');
+            const account = email ? global.db.getAccountByEmail(email) : null;
+            return account
+                ? `${account.company_name || ''} / ${account.display_name || email}`
+                : (u.callerIdName || u.userName);
+        });
+        return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds };
+    }
+
+    function buildOnlineCounts() {
+        const online = {};
+        const rooms = global.db.getAllRooms();
+        for (const r of rooms) {
+            const count = global.db.filter(u =>
+                u.connectionState === 'connected' && u.room === r.id && !u.payment
+            ).length;
+            online[r.id] = count;
+        }
+        return online;
+    }
+
+    res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(), online: buildOnlineCounts() })}\n\n`);
 
     const onEvent = (eventData) => {
         if (eventData.scope === 'callerid' && eventData.room === room) {
-            res.write(`data: ${JSON.stringify({ callerIdString: eventData.callerIdString, unmutedCount: eventData.unmutedCount })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'callerid', ...buildRoomSnapshot(), online: buildOnlineCounts() })}\n\n`);
         }
     };
 

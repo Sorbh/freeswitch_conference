@@ -45,6 +45,7 @@
         .btn-join { background: #27ae60; color: #fff; padding: 14px 36px; }
         .btn-join:hover { background: #219a52; }
 
+        .conf-online { font-size: 13px; color: #3498db; background: #3498db18; padding: 6px 16px; border-radius: 12px; margin-bottom: 8px; font-weight: 500; }
         .conf-callerid { font-size: 13px; color: #f1c40f; background: #f1c40f18; padding: 6px 16px; border-radius: 12px; margin-bottom: 12px; font-weight: 500; letter-spacing: 0.3px; }
         .conf-timer { font-size: 48px; font-weight: 700; font-family: 'JetBrains Mono', 'Courier New', monospace; letter-spacing: 2px; margin-bottom: 32px; color: #fff; }
 
@@ -95,6 +96,7 @@
             <div class="conf-room" id="confRoom">-</div>
             <div class="conf-reg" id="confReg"><span class="dot yellow"></span> <span>Registering...</span></div>
             <div class="conf-status disconnected" id="confStatus">Connecting...</div>
+            <div class="conf-online" id="confOnline" style="display:none"></div>
             <div class="conf-callerid" id="confCallerId" style="display:none"></div>
             <div class="conf-timer" id="confTimer">00:00</div>
             <div class="conf-actions" id="confActions">
@@ -187,10 +189,15 @@
             es.onmessage = (e) => {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.type === 'connected') return;
+                    if (data.online) {
+                        const total = Object.values(data.online).reduce((s, n) => s + n, 0);
+                        const onlineEl = document.getElementById('confOnline');
+                        onlineEl.textContent = '👥 ' + total + ' online';
+                        onlineEl.style.display = 'block';
+                    }
                     const el = document.getElementById('confCallerId');
-                    if (data.callerIdString) {
-                        el.textContent = '🎙 ' + data.callerIdString;
+                    if (data.callerIds && data.callerIds.length > 0) {
+                        el.textContent = '🎙 ' + data.callerIds.join(', ');
                         el.style.display = 'block';
                     } else {
                         el.textContent = '';
@@ -208,6 +215,8 @@
             }
             const el = document.getElementById('confCallerId');
             if (el) { el.textContent = ''; el.style.display = 'none'; }
+            const onlineEl = document.getElementById('confOnline');
+            if (onlineEl) { onlineEl.textContent = ''; onlineEl.style.display = 'none'; }
         }
 
         async function doLogin() {
