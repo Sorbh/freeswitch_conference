@@ -19,7 +19,7 @@ async function deleteAccounts(accountIds) {
 }
 
 async function bindAccounts(deviceId, accounts) {
-    return ymcs.post(`/v2/dm/devices/${deviceId}/bindAccounts`, { accounts });
+    return ymcs.post(`/v2/dm/devices/${deviceId}/bindAccounts`, accounts);
 }
 
 async function unbindAccounts(deviceId, accountIds) {

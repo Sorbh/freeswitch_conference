@@ -789,6 +789,399 @@ adminRouter.put("/accounts/:id", async (req, res) => {
     }
 });
 
+// POST /accounts/:id/refresh-account-id — fetch ymcs_account_id from YMCS API
+adminRouter.post("/accounts/:id/refresh-account-id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        const { listAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+        const result = await listAccounts({ filter: { username: account.email }, limit: 1 });
+        const items = result?.items || result?.data || [];
+        if (!items.length) {
+            return res.status(404).json({ status: false, error: "Account not found in YMCS" });
+        }
+
+        const ymcsAccountId = String(items[0].id);
+        global.db.updateAccount(id, { ymcs_account_id: ymcsAccountId });
+
+        logUser(`account:${id}`, 'API', `REFRESH-ACCOUNT-ID → ${ymcsAccountId}`);
+        res.json({ status: true, ymcs_account_id: ymcsAccountId });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /accounts/:id/refresh-device-id — find ymcs device ID by MAC from user info
+adminRouter.post("/accounts/:id/refresh-device-id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        const userName = `sip:${account.email}`;
+        const userInfo = global.db.getUserInfo(userName);
+        const mac = userInfo?.mac?.replace(/[:-]/g, '');
+        if (!mac) {
+            return res.status(400).json({ status: false, error: "No MAC address — device must register first" });
+        }
+
+        const { listDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const result = await listDevices({ filter: { mac }, limit: 1 });
+        const device = result?.data?.[0];
+        if (!device) {
+            return res.status(404).json({ status: false, error: `No device found for MAC ${mac}` });
+        }
+
+        global.db.updateAccount(id, { ymcs_device_id: device.id });
+        logUser(`account:${id}`, 'API', `REFRESH-DEVICE-ID → ${device.id} (MAC: ${mac})`);
+        res.json({ status: true, ymcs_device_id: device.id });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /accounts/:id/ymcs/reboot — reboot the device bound to this account
+adminRouter.post("/accounts/:id/ymcs/reboot", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
+
+        const { rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const result = await rebootDevices([account.ymcs_device_id], 1);
+
+        logUser(`account:${id}`, 'API', `REBOOT device ${account.ymcs_device_id}`);
+        res.json({ status: true, result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /accounts/:id/ymcs/update-sip-server — update SIP server on this account's YMCS SIP account
+adminRouter.post("/accounts/:id/ymcs/update-sip-server", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        if (!account.ymcs_account_id) return res.status(400).json({ status: false, error: "No YMCS Account ID" });
+
+        const { host, port } = req.body;
+        if (!host || !port) return res.status(400).json({ status: false, error: "host and port required" });
+
+        const { updateAccount: updateYmcsAccount } = await import("../../service/yealink/yealinkSipAccounts.js");
+        const password = process.env.SIP_DEFAULT_PASSWORD || '12345678';
+
+        await updateYmcsAccount(account.ymcs_account_id, {
+            registerName: account.email,
+            username: account.email,
+            password,
+            sipServer1: { host, port: parseInt(port) },
+        });
+
+        global.db.updateAccount(id, { sip_server_host: host, sip_server_port: parseInt(port) });
+        logUser(`account:${id}`, 'API', `UPDATE-SIP-SERVER → ${host}:${port}`);
+        res.json({ status: true, message: `Updated to ${host}:${port}` });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /accounts/:id/ymcs/rebind — unbind+rebind account on device
+adminRouter.post("/accounts/:id/ymcs/rebind", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        if (!account.ymcs_account_id) return res.status(400).json({ status: false, error: "No YMCS Account ID" });
+        if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
+
+        const { getBoundAccounts, unbindAccounts, bindAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+
+        const bound = await getBoundAccounts(account.ymcs_device_id);
+        const boundList = Array.isArray(bound) ? bound : (bound?.data || []);
+
+        if (boundList.length > 0) {
+            await unbindAccounts(account.ymcs_device_id, boundList.map(a => a.accountId));
+        }
+
+        await bindAccounts(account.ymcs_device_id, [{ accountId: account.ymcs_account_id, lineId: 1, accountType: 0 }]);
+
+        logUser(`account:${id}`, 'API', `REBIND ${account.ymcs_account_id} to device ${account.ymcs_device_id}`);
+        res.json({ status: true, message: "Account rebound to device" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /ymcs/sync-all-device-ids — SSE: list all YMCS devices, match email to DB, save device ID
+adminRouter.get("/ymcs/sync-all-device-ids", async (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+        const { listDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const { getBoundAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+
+        const allAccounts = global.db.getAllAccounts();
+        const accountByEmail = {};
+        for (const acc of allAccounts) {
+            if (acc.email) accountByEmail[acc.email.toLowerCase().trim()] = acc;
+        }
+
+        send({ type: "info", message: "Fetching all devices from YMCS..." });
+        const allDevices = [];
+        let skip = 0;
+        const limit = 100;
+        let total = null;
+        while (true) {
+            const page = await listDevices({ filter: {}, limit, skip, autoCount: total === null });
+            const devices = page?.data || [];
+            if (total === null) total = page.total || 0;
+            allDevices.push(...devices);
+            skip += limit;
+            if (devices.length < limit || skip >= total) break;
+        }
+        send({ type: "info", message: `Found ${allDevices.length} devices in YMCS` });
+
+        let success = 0, failed = 0, skipped = 0;
+
+        for (let i = 0; i < allDevices.length; i++) {
+            const device = allDevices[i];
+            const prefix = `[${i + 1}/${allDevices.length}] ${device.name || device.mac}`;
+
+            try {
+                const bound = await getBoundAccounts(device.id);
+                const boundList = Array.isArray(bound) ? bound : (bound?.data || []);
+
+                if (!boundList.length) {
+                    skipped++;
+                    send({ type: "skip", message: `${prefix} — no account bound` });
+                    continue;
+                }
+
+                const email = boundList[0].registerName?.toLowerCase()?.trim();
+                if (!email) {
+                    skipped++;
+                    send({ type: "skip", message: `${prefix} — no registerName` });
+                    continue;
+                }
+
+                const localAccount = accountByEmail[email];
+                if (!localAccount) {
+                    skipped++;
+                    send({ type: "skip", message: `${prefix} — ${email} not in our DB` });
+                    continue;
+                }
+
+                global.db.updateAccount(localAccount.id, {
+                    ymcs_device_id: device.id,
+                    ymcs_account_id: boundList[0].accountId,
+                    sip_server_host: boundList[0].accountServer || null,
+                });
+                success++;
+                logUser(`account:${localAccount.id}`, 'API', `SYNC-DEVICE-ID → ${device.id}`);
+                send({ type: "success", message: `${prefix} — ${email} → ${device.id}` });
+            } catch (err) {
+                failed++;
+                send({ type: "error", message: `${prefix} — ${err.message}` });
+            }
+        }
+
+        send({ type: "done", success, failed, skipped, total: allDevices.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
+// GET /ymcs/update-all-device-accounts — SSE: for each account with account+device ID, unbind+rebind
+adminRouter.get("/ymcs/update-all-device-accounts", async (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+        const { unbindAccounts, bindAccounts, getBoundAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+
+        const allAccounts = global.db.getAllAccounts();
+        const eligible = allAccounts.filter(a => a.ymcs_account_id && a.ymcs_device_id);
+        send({ type: "info", message: `Found ${allAccounts.length} accounts, ${eligible.length} eligible for rebind` });
+
+        let success = 0, failed = 0;
+
+        for (let i = 0; i < eligible.length; i++) {
+            const acc = eligible[i];
+            const prefix = `[${i + 1}/${eligible.length}] ${acc.email}`;
+
+            try {
+                const bound = await getBoundAccounts(acc.ymcs_device_id);
+                const boundList = Array.isArray(bound) ? bound : (bound?.data || []);
+
+                if (boundList.length > 0) {
+                    const oldIds = boundList.map(a => a.accountId);
+                    await unbindAccounts(acc.ymcs_device_id, oldIds);
+                }
+
+                await bindAccounts(acc.ymcs_device_id, [{ accountId: acc.ymcs_account_id, lineId: 1, accountType: 0 }]);
+
+                success++;
+                logUser(`account:${acc.id}`, 'API', `REBIND ${acc.ymcs_account_id} to device ${acc.ymcs_device_id}`);
+                send({ type: "success", message: `${prefix} — rebound (unbound ${boundList.length} old)` });
+            } catch (err) {
+                failed++;
+                send({ type: "error", message: `${prefix} — ${err.message}` });
+            }
+        }
+
+        send({ type: "done", success, failed, skipped: 0, total: eligible.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
+// GET /ymcs/update-all-sip-server — SSE: update SIP server host+port on all YMCS accounts
+adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
+    const host = req.query.host;
+    const port = parseInt(req.query.port);
+    if (!host || !port) {
+        return res.status(400).json({ status: false, error: "host and port query params required" });
+    }
+
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+        const { updateAccount: updateYmcsAccount, getBoundAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+        const { listDevices } = await import("../../service/yealink/yealinkDevices.js");
+
+        // Collect all bound accounts from all devices
+        send({ type: "info", message: "Fetching all devices from YMCS..." });
+        const allDevices = [];
+        let skip = 0;
+        const limit = 100;
+        let total = null;
+        while (true) {
+            const page = await listDevices({ filter: {}, limit, skip, autoCount: total === null });
+            const devices = page?.data || [];
+            if (total === null) total = page.total || 0;
+            allDevices.push(...devices);
+            skip += limit;
+            if (devices.length < limit || skip >= total) break;
+        }
+        send({ type: "info", message: `Found ${allDevices.length} devices, collecting bound accounts...` });
+
+        // Get all unique accounts from all devices
+        const accountMap = new Map();
+        for (const device of allDevices) {
+            try {
+                const bound = await getBoundAccounts(device.id);
+                const boundList = Array.isArray(bound) ? bound : (bound?.data || []);
+                for (const acc of boundList) {
+                    if (acc.accountId && !accountMap.has(acc.accountId)) {
+                        accountMap.set(acc.accountId, { accountId: acc.accountId, email: acc.registerName || acc.username });
+                    }
+                }
+            } catch {}
+        }
+
+        const accounts = Array.from(accountMap.values());
+        send({ type: "info", message: `Found ${accounts.length} unique accounts, updating SIP server to ${host}:${port}...` });
+
+        const password = process.env.SIP_DEFAULT_PASSWORD || '12345678';
+        let success = 0, failed = 0;
+
+        for (let i = 0; i < accounts.length; i++) {
+            const acc = accounts[i];
+            const prefix = `[${i + 1}/${accounts.length}] ${acc.email || acc.accountId}`;
+
+            try {
+                await updateYmcsAccount(acc.accountId, {
+                    registerName: acc.email,
+                    username: acc.email,
+                    password,
+                    sipServer1: { host, port },
+                });
+                success++;
+                send({ type: "success", message: `${prefix} — updated to ${host}:${port}` });
+            } catch (err) {
+                failed++;
+                send({ type: "error", message: `${prefix} — ${err.message}` });
+            }
+        }
+
+        send({ type: "done", success, failed, skipped: 0, total: accounts.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
+// GET /ymcs/reboot-all-devices — SSE: reboot all YMCS devices
+adminRouter.get("/ymcs/reboot-all-devices", async (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+        const { listDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const { rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
+
+        send({ type: "info", message: "Fetching all devices from YMCS..." });
+        const allDevices = [];
+        let skip = 0;
+        const limit = 100;
+        let total = null;
+        while (true) {
+            const page = await listDevices({ filter: {}, limit, skip, autoCount: total === null });
+            const devices = page?.data || [];
+            if (total === null) total = page.total || 0;
+            allDevices.push(...devices);
+            skip += limit;
+            if (devices.length < limit || skip >= total) break;
+        }
+        send({ type: "info", message: `Found ${allDevices.length} devices, sending reboot commands...` });
+
+        let success = 0, failed = 0;
+
+        // Reboot in batches of 50
+        const batchSize = 50;
+        for (let i = 0; i < allDevices.length; i += batchSize) {
+            const batch = allDevices.slice(i, i + batchSize);
+            const deviceIds = batch.map(d => d.id);
+            const batchNum = Math.floor(i / batchSize) + 1;
+            const totalBatches = Math.ceil(allDevices.length / batchSize);
+
+            try {
+                const result = await rebootDevices(deviceIds, 1);
+                const s = result?.successCount || 0;
+                const f = result?.failureCount || 0;
+                success += s;
+                failed += f;
+                send({ type: "success", message: `Batch ${batchNum}/${totalBatches} — ${s} rebooted, ${f} failed` });
+                if (result?.errors?.length) {
+                    for (const err of result.errors) {
+                        send({ type: "error", message: `  ${err.field} — ${err.msg}` });
+                    }
+                }
+            } catch (err) {
+                failed += batch.length;
+                send({ type: "error", message: `Batch ${batchNum}/${totalBatches} — ${err.message}` });
+            }
+        }
+
+        send({ type: "done", success, failed, skipped: 0, total: allDevices.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
 // DELETE /accounts/:id — delete account
 adminRouter.delete("/accounts/:id", (req, res) => {
     try {

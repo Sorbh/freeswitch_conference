@@ -70,6 +70,11 @@ import {
   BanIcon,
   Volume2Icon,
   BugIcon,
+  HashIcon,
+  Loader2Icon,
+  RotateCwIcon,
+  LinkIcon,
+  ServerIcon,
 } from "lucide-react";
 
 function useTalkingUsers() {
@@ -216,6 +221,11 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [refreshingAccountId, setRefreshingAccountId] = useState(false);
+  const [refreshingDeviceId, setRefreshingDeviceId] = useState(false);
+  const [ymcsAction, setYmcsAction] = useState(null);
+  const [sipEditHost, setSipEditHost] = useState("");
+  const [sipEditPort, setSipEditPort] = useState("");
 
   const users = Array.isArray(data) ? data : [];
   const selectedUser = useMemo(
@@ -340,6 +350,79 @@ export default function UsersPage() {
     }
   }
 
+  async function refreshAccountId(accountId) {
+    setRefreshingAccountId(true);
+    try {
+      const res = await fetch(`/api/v1/admin/accounts/${accountId}/refresh-account-id`, { method: "POST" });
+      const json = await res.json();
+      if (!json.status) console.error("Refresh failed:", json.error);
+      refetch();
+    } catch (e) {
+      console.error("Refresh account ID failed:", e);
+    } finally {
+      setRefreshingAccountId(false);
+    }
+  }
+
+  async function refreshDeviceId(accountId) {
+    setRefreshingDeviceId(true);
+    try {
+      const res = await fetch(`/api/v1/admin/accounts/${accountId}/refresh-device-id`, { method: "POST" });
+      const json = await res.json();
+      if (!json.status) console.error("Refresh failed:", json.error);
+      refetch();
+    } catch (e) {
+      console.error("Refresh device ID failed:", e);
+    } finally {
+      setRefreshingDeviceId(false);
+    }
+  }
+
+  async function ymcsReboot(accountId) {
+    setYmcsAction("reboot");
+    try {
+      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/reboot`, { method: "POST" });
+      const json = await res.json();
+      if (!json.status) console.error("Reboot failed:", json.error);
+    } catch (e) {
+      console.error("YMCS reboot failed:", e);
+    } finally {
+      setYmcsAction(null);
+    }
+  }
+
+  async function ymcsRebind(accountId) {
+    setYmcsAction("rebind");
+    try {
+      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/rebind`, { method: "POST" });
+      const json = await res.json();
+      if (!json.status) console.error("Rebind failed:", json.error);
+      refetch();
+    } catch (e) {
+      console.error("YMCS rebind failed:", e);
+    } finally {
+      setYmcsAction(null);
+    }
+  }
+
+  async function ymcsUpdateSipServer(accountId, host, port) {
+    setYmcsAction("sip");
+    try {
+      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/update-sip-server`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ host, port: parseInt(port) }),
+      });
+      const json = await res.json();
+      if (!json.status) console.error("SIP update failed:", json.error);
+      refetch();
+    } catch (e) {
+      console.error("YMCS SIP update failed:", e);
+    } finally {
+      setYmcsAction(null);
+    }
+  }
+
   async function doAction(userName, action, body = null) {
     try {
       await fetch(`/api/v1/admin/users/${userName}/${action}`, {
@@ -387,17 +470,17 @@ export default function UsersPage() {
           <Button
             variant="destructive"
             onClick={async () => {
-              if (!confirm("Disconnect all active calls across the hotline network?")) return;
+              if (!confirm("Kickout all active calls across the hotline network?")) return;
               try {
                 await fetch("/api/v1/admin/users/kickout-all", { method: "POST" });
                 refetch();
               } catch (e) {
-                console.error("Disconnect all failed:", e);
+                console.error("Kickout all failed:", e);
               }
             }}
           >
             <BanIcon className="size-4 mr-2" />
-            Disconnect All
+            Kickout All
           </Button>
         </div>
       </div>
@@ -487,6 +570,8 @@ export default function UsersPage() {
                     onClick={() => {
                       setSelectedUserName(user.userName);
                       setSheetOpen(true);
+                      const a = user.account;
+                      if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); }
                     }}
                   >
                     <TableCell>
@@ -796,6 +881,8 @@ export default function UsersPage() {
                         { icon: <BuildingIcon className="size-3.5" />, label: "Company", value: acc.company_name },
                         { icon: <MapPinIcon className="size-3.5" />, label: "Address", value: [acc.company_address, [acc.city, acc.state, acc.zip].filter(Boolean).join(", ")].filter(Boolean).join(", ") },
                         { icon: <AudioLinesIcon className="size-3.5" />, label: "Channel", value: ROOM_NAMES[acc.room] || acc.room },
+                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Account ID", value: acc.ymcs_account_id || "—", refreshKey: "account" },
+                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Device ID", value: acc.ymcs_device_id || "—", refreshKey: "device" },
                       ].filter(f => f.value).map((field) => (
                         <div key={field.label} className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors group">
                           <span className="text-muted-foreground/60 mt-0.5 group-hover:text-muted-foreground transition-colors">{field.icon}</span>
@@ -803,9 +890,75 @@ export default function UsersPage() {
                             <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
                             <p className="text-sm truncate">{field.value}</p>
                           </div>
+                          {field.refreshKey && (
+                            <button
+                              onClick={() => field.refreshKey === "account" ? refreshAccountId(acc.id) : refreshDeviceId(acc.id)}
+                              disabled={field.refreshKey === "account" ? refreshingAccountId : refreshingDeviceId}
+                              className="mt-1 text-muted-foreground/50 hover:text-foreground transition-colors disabled:opacity-50"
+                            >
+                              {(field.refreshKey === "account" ? refreshingAccountId : refreshingDeviceId)
+                                ? <Loader2Icon className="size-3.5 animate-spin" />
+                                : <RefreshCwIcon className="size-3.5" />}
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {/* YMCS Controls */}
+                    {(acc.ymcs_account_id || acc.ymcs_device_id) && (() => {
+                      const inCall = selectedUser.connectionState === "connected" || selectedUser.connectionState === "connecting";
+                      return (
+                      <>
+                        <div className="h-px bg-border/40 my-2" />
+                        <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold px-3 pt-1">YMCS Controls</p>
+                        {inCall && (
+                          <div className="mx-3 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center gap-2">
+                            <PhoneCallIcon className="size-3.5 text-orange-400 shrink-0" />
+                            <p className="text-[11px] text-orange-400">User is in an active call. YMCS actions are disabled.</p>
+                          </div>
+                        )}
+                        <div className="px-3 space-y-2 pb-1">
+                          <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                              <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider mb-1">SIP Server</p>
+                              <Input value={sipEditHost} onChange={(e) => setSipEditHost(e.target.value)} placeholder="50.28.84.57" disabled={inCall || !!ymcsAction} className="h-8 text-xs" />
+                            </div>
+                            <div className="w-20">
+                              <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider mb-1">Port</p>
+                              <Input value={sipEditPort} onChange={(e) => setSipEditPort(e.target.value)} placeholder="5070" disabled={inCall || !!ymcsAction} className="h-8 text-xs" />
+                            </div>
+                            <button
+                              onClick={() => ymcsUpdateSipServer(acc.id, sipEditHost, sipEditPort)}
+                              disabled={inCall || !!ymcsAction || !acc.ymcs_account_id || !sipEditHost || !sipEditPort}
+                              className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-xs font-medium border border-border/40 bg-muted/30 hover:bg-muted/50 hover:border-border/60 transition-all disabled:opacity-40 shrink-0"
+                            >
+                              {ymcsAction === "sip" ? <Loader2Icon className="size-3 animate-spin" /> : <ServerIcon className="size-3" />}
+                              Update
+                            </button>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => ymcsRebind(acc.id)}
+                              disabled={inCall || !!ymcsAction || !acc.ymcs_account_id || !acc.ymcs_device_id}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-border/40 bg-muted/30 hover:bg-muted/50 hover:border-border/60 transition-all disabled:opacity-40"
+                            >
+                              {ymcsAction === "rebind" ? <Loader2Icon className="size-3 animate-spin" /> : <LinkIcon className="size-3" />}
+                              Rebind
+                            </button>
+                            <button
+                              onClick={() => ymcsReboot(acc.id)}
+                              disabled={inCall || !!ymcsAction || !acc.ymcs_device_id}
+                              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-destructive/80 border border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:border-destructive/30 transition-all disabled:opacity-40"
+                            >
+                              {ymcsAction === "reboot" ? <Loader2Icon className="size-3 animate-spin" /> : <RotateCwIcon className="size-3" />}
+                              Reboot
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                      );
+                    })()}
                   </div>
                 )}
 

@@ -584,7 +584,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'sip_server_host', 'sip_server_port'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {

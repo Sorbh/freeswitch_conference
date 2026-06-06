@@ -1,7 +1,7 @@
 import { ymcs } from './yealinkApi.js';
 
-async function listDevices({ filter = {}, limit = 100 } = {}) {
-    return ymcs.post('/v2/dm/listDevices', { filter, limit });
+async function listDevices({ filter = {}, limit = 100, skip = 0, autoCount = true } = {}) {
+    return ymcs.post('/v2/dm/listDevices', { filter, limit, skip, autoCount });
 }
 
 async function getDevice(deviceId) {

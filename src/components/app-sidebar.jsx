@@ -23,6 +23,7 @@ import {
   ActivityIcon,
   CodeIcon,
   ScrollTextIcon,
+  CloudIcon,
 } from "lucide-react"
 
 const data = {
@@ -55,6 +56,7 @@ const data = {
         { title: "System Health", url: "/system", icon: <ServerIcon /> },
         { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon /> },
         { title: "Phone Log", url: "/dev/phone-logs", icon: <PhoneIcon /> },
+        { title: "YMCS Control", url: "/dev/ymcs", icon: <CloudIcon /> },
       ],
     },
   ],

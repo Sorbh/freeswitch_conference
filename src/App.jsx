@@ -19,12 +19,22 @@ import DashboardPage from "@/pages/DashboardPage";
 import UsersPage from "@/pages/UsersPage";
 import RoomsPage from "@/pages/RoomsPage";
 import BroadcastsPage from "@/pages/BroadcastsPage";
+import EventsPage from "@/pages/EventsPage";
+import SystemPage from "@/pages/SystemPage";
+import FsLogsPage from "@/pages/FsLogsPage";
+import PhoneLogsPage from "@/pages/PhoneLogsPage";
+import YmcsControlPage from "@/pages/YmcsControlPage";
 
 const dashboardRoutes = [
   { path: "/dashboard", element: <DashboardPage />, title: "Dashboard" },
   { path: "/users", element: <UsersPage />, title: "Connected Yards" },
   { path: "/rooms", element: <RoomsPage />, title: "Voice Channels" },
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcast History" },
+  { path: "/events", element: <EventsPage />, title: "Live Events" },
+  { path: "/system", element: <SystemPage />, title: "System Health" },
+  { path: "/dev/fs-logs", element: <FsLogsPage />, title: "FS Logs" },
+  { path: "/dev/phone-logs", element: <PhoneLogsPage />, title: "Phone Log" },
+  { path: "/dev/ymcs", element: <YmcsControlPage />, title: "YMCS Control" },
 ];
 
 function BreadcrumbNav() {
@@ -59,7 +69,7 @@ function AppLayout() {
             <Separator orientation="vertical" className="mr-2 !h-4" />
             <BreadcrumbNav />
           </header>
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-6 min-w-0">
             <Outlet />
           </div>
         </SidebarInset>
