@@ -10,6 +10,10 @@ data/*.db-shm
 # Node
 node_modules/
 package-lock.json
+.npm-cache/
+
+# Editor
+.vscode/
 
 # Env
 .env
@@ -22,6 +26,10 @@ public/jssip.bundle.js
 
 # Vite build output
 dist/
+out/
+
+# Yealink backup data
+data/yealink-backup/
 
 # Broadcast recordings
 recordings/*.wav

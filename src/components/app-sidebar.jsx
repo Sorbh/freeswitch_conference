@@ -18,9 +18,9 @@ import {
   UsersIcon,
   AudioLinesIcon,
   RadioIcon,
+  PhoneIcon,
   ServerIcon,
   ActivityIcon,
-  PhoneIcon,
   CodeIcon,
   ScrollTextIcon,
 } from "lucide-react"
@@ -28,24 +28,24 @@ import {
 const data = {
   user: {
     name: "Admin",
-    email: "admin@bjshotline.com",
+    email: "admin@hotlinehq.com",
     avatar: "",
   },
   teams: [
     {
-      name: "BJS Hotline",
-      logo: <PhoneIcon />,
-      plan: "Conference Admin",
+      name: "HotlineHQ",
+      logo: <PhoneIcon className="text-indigo-400" />,
+      plan: "Hotline Console Admin",
     },
   ],
   navGroups: [
     {
-      label: "Platform",
+      label: "Console",
       items: [
-        { title: "Dashboard", url: "/", icon: <LayoutDashboardIcon /> },
-        { title: "Users", url: "/users", icon: <UsersIcon /> },
-        { title: "Conference Rooms", url: "/rooms", icon: <AudioLinesIcon /> },
-        { title: "Broadcasts", url: "/broadcasts", icon: <RadioIcon /> },
+        { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+        { title: "Connected Yards", url: "/users", icon: <UsersIcon /> },
+        { title: "Voice Channels", url: "/rooms", icon: <AudioLinesIcon /> },
+        { title: "Broadcast History", url: "/broadcasts", icon: <RadioIcon /> },
       ],
     },
     {

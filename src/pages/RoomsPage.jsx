@@ -23,7 +23,7 @@ import { useRooms } from "@/hooks/useRooms";
 import {
   Volume2Icon, MicIcon, MicOffIcon, PhoneOffIcon, RefreshCwIcon,
   UsersIcon, WifiIcon, PhoneCallIcon, ActivityIcon, VolumeXIcon,
-  RadioIcon, ChevronRightIcon, BanIcon, PlusIcon, PencilIcon, Trash2Icon,
+  RadioIcon, PlusIcon, PencilIcon, Trash2Icon,
 } from "lucide-react";
 
 function useAnimatedNumber(target, dur = 500) {
@@ -341,16 +341,16 @@ export default function RoomsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Conference Rooms</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Voice Channels</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-mono tabular-nums">{rooms.length}</span> rooms,{" "}
+            <span className="font-mono tabular-nums">{rooms.length}</span> channels,{" "}
             <span className="font-mono tabular-nums">{totalOnline}</span> online,{" "}
             <span className="font-mono tabular-nums">{totalInCall}</span> in call
           </p>
         </div>
         <Button onClick={openCreateRoom}>
           <PlusIcon className="size-4 mr-2" />
-          Add Room
+          Add Channel
         </Button>
       </div>
 
@@ -369,7 +369,7 @@ export default function RoomsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40px]"></TableHead>
-                <TableHead>Room</TableHead>
+                <TableHead>Channel</TableHead>
                 <TableHead>Members</TableHead>
                 <TableHead className="hidden md:table-cell">Online</TableHead>
                 <TableHead className="hidden md:table-cell">In Call</TableHead>
@@ -525,7 +525,7 @@ export default function RoomsPage() {
         <SheetContent showCloseButton={false} className="sm:max-w-[480px] p-0 overflow-y-auto border-l border-border/50 bg-background/95 backdrop-blur-xl">
           <SheetHeader className="sr-only">
             <SheetTitle>Room Details</SheetTitle>
-            <SheetDescription>Conference room members and controls</SheetDescription>
+            <SheetDescription>Voice channel members and controls</SheetDescription>
           </SheetHeader>
           {selectedRoom && (() => {
             const sorted = [...selectedRoom.members].sort((a, b) => {
@@ -700,7 +700,7 @@ export default function RoomsPage() {
           <DialogHeader>
             <DialogTitle>{editingRoom ? "Edit Room" : "Add Room"}</DialogTitle>
             <DialogDescription>
-              {editingRoom ? "Update the room name and short code." : "Create a new conference room."}
+              {editingRoom ? "Update the room name and short code." : "Create a new voice channel."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 mt-2">
@@ -713,12 +713,12 @@ export default function RoomsPage() {
                   value={roomForm.id}
                   onChange={e => setRoomForm(f => ({ ...f, id: e.target.value }))}
                 />
-                <p className="text-[11px] text-muted-foreground">Numeric ID used as FreeSWitch conference name</p>
+                <p className="text-[11px] text-muted-foreground">Unique numeric identifier for the voice channel</p>
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Room Name *</Label>
+                <Label>Channel Name *</Label>
                 <Input
                   placeholder="e.g. Pennsylvania"
                   value={roomForm.name}

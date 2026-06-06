@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
   TrendingUpIcon, PlayIcon, PauseIcon, ClockIcon, UserIcon,
-  ZapIcon, ActivityIcon, Volume2Icon,
+  ZapIcon,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -117,7 +117,7 @@ function LiveBroadcastBanner({ events, ROOM_NAMES = {} }) {
           {activeBroadcasts.length} Live Broadcast{activeBroadcasts.length > 1 ? "s" : ""}
         </span>
         <span className="text-xs text-muted-foreground">
-          {activeBroadcasts.map(b => `${b.displayName} in ${ROOM_NAMES[b.room] || "Room"}`).join(" · ")}
+          {activeBroadcasts.map(b => `${b.displayName} in ${ROOM_NAMES[b.room] || "Channel"}`).join(" · ")}
         </span>
       </div>
     </div>
@@ -376,7 +376,7 @@ function RecentTable({ broadcasts }) {
             <TableHead className="pl-6 w-12"></TableHead>
             <TableHead>Time</TableHead>
             <TableHead>User</TableHead>
-            <TableHead>Room</TableHead>
+            <TableHead>Channel</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Participants</TableHead>
             <TableHead>Status</TableHead>
@@ -650,7 +650,7 @@ export default function BroadcastsPage() {
         </Card>
       </div>
 
-      {/* Two Column: Broadcasters + Room Activity */}
+      {/* Two Column: Broadcasters + Channel Activity */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Top Broadcasters */}
         <Card className="border-border/40">
@@ -701,12 +701,12 @@ export default function BroadcastsPage() {
           </CardContent>
         </Card>
 
-        {/* Room Activity */}
+        {/* Channel Activity */}
         <Card className="border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <RadioIcon className="size-3.5 text-cyan-400" />
-              Room Activity
+              Channel Activity
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-2">

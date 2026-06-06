@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Outlet, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RoomsProvider } from "@/hooks/useRooms";
+import { Toaster } from "@/components/ui/sonner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,37 +14,30 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+import LandingPage from "@/pages/LandingPage";
 import DashboardPage from "@/pages/DashboardPage";
 import UsersPage from "@/pages/UsersPage";
 import RoomsPage from "@/pages/RoomsPage";
 import BroadcastsPage from "@/pages/BroadcastsPage";
 
-import SystemPage from "@/pages/SystemPage";
-import EventsPage from "@/pages/EventsPage";
-import FsLogsPage from "@/pages/FsLogsPage";
-import PhoneLogsPage from "@/pages/PhoneLogsPage";
-const routes = [
-  { path: "/", element: <DashboardPage />, title: "Dashboard" },
-  { path: "/users", element: <UsersPage />, title: "Users" },
-  { path: "/rooms", element: <RoomsPage />, title: "Conference Rooms" },
-  { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcasts" },
-  { path: "/system", element: <SystemPage />, title: "System Health" },
-  { path: "/events", element: <EventsPage />, title: "Live Events" },
-  { path: "/dev/fs-logs", element: <FsLogsPage />, title: "FS Logs" },
-  { path: "/dev/phone-logs", element: <PhoneLogsPage />, title: "Phone Log" },
+const dashboardRoutes = [
+  { path: "/dashboard", element: <DashboardPage />, title: "Dashboard" },
+  { path: "/users", element: <UsersPage />, title: "Connected Yards" },
+  { path: "/rooms", element: <RoomsPage />, title: "Voice Channels" },
+  { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcast History" },
 ];
 
 function BreadcrumbNav() {
   const location = useLocation();
-  const currentRoute = routes.find(
+  const currentRoute = dashboardRoutes.find(
     (r) => r.path === location.pathname || (r.path !== "/" && location.pathname.startsWith(r.path))
-  ) || routes[0];
+  ) || dashboardRoutes[0];
 
   return (
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbPage className="text-muted-foreground">BJS Hotline</BreadcrumbPage>
+          <BreadcrumbPage className="text-muted-foreground">HotlineHQ</BreadcrumbPage>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
@@ -66,11 +60,7 @@ function AppLayout() {
             <BreadcrumbNav />
           </header>
           <div className="flex-1 overflow-auto p-6">
-            <Routes>
-              {routes.map((r) => (
-                <Route key={r.path} path={r.path} element={r.element} />
-              ))}
-            </Routes>
+            <Outlet />
           </div>
         </SidebarInset>
       </SidebarProvider>
@@ -83,7 +73,21 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
       <BrowserRouter>
         <RoomsProvider>
-          <AppLayout />
+          <Routes>
+            {/* Public route */}
+            <Route path="/" element={<LandingPage />} />
+            
+            {/* Dashboard app routes */}
+            <Route element={<AppLayout />}>
+              {dashboardRoutes.map((r) => (
+                <Route key={r.path} path={r.path} element={r.element} />
+              ))}
+            </Route>
+
+            {/* Redirect fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          <Toaster />
         </RoomsProvider>
       </BrowserRouter>
     </ThemeProvider>

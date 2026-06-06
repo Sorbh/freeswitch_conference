@@ -148,6 +148,8 @@ function init() {
         ['critical', "ALTER TABLE accounts ADD COLUMN critical INTEGER DEFAULT 0"],
         ['user_name', "ALTER TABLE accounts ADD COLUMN user_name TEXT"],
         ['kickout', "ALTER TABLE accounts ADD COLUMN kickout INTEGER DEFAULT 0"],
+        ['company_phone', "ALTER TABLE accounts ADD COLUMN company_phone TEXT"],
+        ['ymcs_account_id', "ALTER TABLE accounts ADD COLUMN ymcs_account_id TEXT"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);
@@ -557,11 +559,11 @@ function getTimelineBroadcasts(minutes = 30) {
     `).all(since);
 }
 
-function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName }) {
+function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName, companyPhone, ymcsAccountId }) {
     sqlite.prepare(`
-        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null);
+        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name, company_phone, ymcs_account_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null, companyPhone || null, ymcsAccountId || null);
     return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email);
 }
 
@@ -582,7 +584,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {

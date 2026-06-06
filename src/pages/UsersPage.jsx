@@ -68,7 +68,6 @@ import {
   PhoneOffIcon,
   PhoneIncomingIcon,
   BanIcon,
-  FilterIcon,
   Volume2Icon,
   BugIcon,
 } from "lucide-react";
@@ -373,9 +372,9 @@ export default function UsersPage() {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Users</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Connected Yards</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-mono tabular-nums">{users.length}</span> total,{" "}
+            <span className="font-mono tabular-nums">{users.length}</span> yards total,{" "}
             <span className="font-mono tabular-nums">{onlineCount}</span> online
             {anyFilterActive && <span className="ml-2 text-primary">({filtered.length} shown)</span>}
           </p>
@@ -383,22 +382,22 @@ export default function UsersPage() {
         <div className="flex items-center gap-2">
           <Button onClick={openCreate}>
             <PlusIcon className="size-4 mr-2" />
-            Add User
+            Add Yard
           </Button>
           <Button
             variant="destructive"
             onClick={async () => {
-              if (!confirm("Kick out ALL users and disconnect all calls?")) return;
+              if (!confirm("Disconnect all active calls across the hotline network?")) return;
               try {
                 await fetch("/api/v1/admin/users/kickout-all", { method: "POST" });
                 refetch();
               } catch (e) {
-                console.error("Kickout all failed:", e);
+                console.error("Disconnect all failed:", e);
               }
             }}
           >
             <BanIcon className="size-4 mr-2" />
-            Kickout All
+            Disconnect All
           </Button>
         </div>
       </div>
@@ -415,10 +414,10 @@ export default function UsersPage() {
         </div>
         <Select value={roomFilter} onValueChange={setRoomFilter}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All Rooms" />
+            <SelectValue placeholder="All Channels" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Rooms</SelectItem>
+            <SelectItem value="all">All Channels</SelectItem>
             {Object.entries(ROOM_NAMES).map(([id, name]) => (
               <SelectItem key={id} value={id}>{name}</SelectItem>
             ))}
@@ -467,7 +466,7 @@ export default function UsersPage() {
                 <TableHead>Name</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden lg:table-cell">Company</TableHead>
-                <TableHead className="hidden md:table-cell">Room</TableHead>
+                <TableHead className="hidden md:table-cell">Channel</TableHead>
                 <TableHead className="hidden md:table-cell">Account</TableHead>
                 <TableHead>Last Seen</TableHead>
                 <TableHead className="text-right w-[120px]"></TableHead>
@@ -477,7 +476,7 @@ export default function UsersPage() {
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    No users found
+                    No yards found
                   </TableCell>
                 </TableRow>
               ) : (
@@ -777,7 +776,7 @@ export default function UsersPage() {
                         <BanIcon className={`size-4 ${acc.kickout ? "text-red-500" : "text-muted-foreground/50"}`} />
                         <div>
                           <p className="text-sm font-medium">Kicked Out</p>
-                          <p className="text-[11px] text-muted-foreground/60">Block from joining conferences</p>
+                          <p className="text-[11px] text-muted-foreground/60">Block from joining voice channels</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2.5">
@@ -796,7 +795,7 @@ export default function UsersPage() {
                         { icon: <MailIcon className="size-3.5" />, label: "Email", value: acc.email },
                         { icon: <BuildingIcon className="size-3.5" />, label: "Company", value: acc.company_name },
                         { icon: <MapPinIcon className="size-3.5" />, label: "Address", value: [acc.company_address, [acc.city, acc.state, acc.zip].filter(Boolean).join(", ")].filter(Boolean).join(", ") },
-                        { icon: <AudioLinesIcon className="size-3.5" />, label: "Room", value: ROOM_NAMES[acc.room] || acc.room },
+                        { icon: <AudioLinesIcon className="size-3.5" />, label: "Channel", value: ROOM_NAMES[acc.room] || acc.room },
                       ].filter(f => f.value).map((field) => (
                         <div key={field.label} className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors group">
                           <span className="text-muted-foreground/60 mt-0.5 group-hover:text-muted-foreground transition-colors">{field.icon}</span>
@@ -963,13 +962,13 @@ export default function UsersPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Conference Room</Label>
+              <Label>Voice Channel</Label>
               <Select
                 value={form.room}
                 onValueChange={(val) => updateField("room", val)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select room" />
+                  <SelectValue placeholder="Select channel" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROOM_NAMES).map(([id, name]) => (
@@ -1027,17 +1026,17 @@ export default function UsersPage() {
       <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Room</DialogTitle>
+            <DialogTitle>Change Channel</DialogTitle>
             <DialogDescription>
-              Move {actionUser?.userName} to a different conference room
+              Move {actionUser?.userName} to a different voice channel
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
-              <Label>Select Room</Label>
+              <Label>Select Channel</Label>
               <Select value={newRoom} onValueChange={setNewRoom}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a room" />
+                  <SelectValue placeholder="Choose a channel" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROOM_NAMES).map(([id, name]) => (
@@ -1057,7 +1056,7 @@ export default function UsersPage() {
                 }
               }}
             >
-              Move User
+              Move Yard
             </Button>
           </div>
         </DialogContent>
