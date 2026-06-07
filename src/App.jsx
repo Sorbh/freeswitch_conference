@@ -28,7 +28,7 @@ import YmcsControlPage from "@/pages/YmcsControlPage";
 const dashboardRoutes = [
   { path: "/dashboard", element: <DashboardPage />, title: "Dashboard" },
   { path: "/users", element: <UsersPage />, title: "Connected Yards" },
-  { path: "/rooms", element: <RoomsPage />, title: "Voice Channels" },
+  { path: "/rooms", element: <RoomsPage />, title: "Rooms" },
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcast History" },
   { path: "/events", element: <EventsPage />, title: "Live Events" },
   { path: "/system", element: <SystemPage />, title: "System Health" },
@@ -63,7 +63,7 @@ function AppLayout() {
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className="overflow-hidden">
           <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 !h-4" />

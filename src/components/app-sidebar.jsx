@@ -45,7 +45,7 @@ const data = {
       items: [
         { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
         { title: "Connected Yards", url: "/users", icon: <UsersIcon /> },
-        { title: "Voice Channels", url: "/rooms", icon: <AudioLinesIcon /> },
+        { title: "Rooms", url: "/rooms", icon: <AudioLinesIcon /> },
         { title: "Broadcast History", url: "/broadcasts", icon: <RadioIcon /> },
       ],
     },

@@ -225,7 +225,7 @@ export default function RoomsPage() {
 
   function openEditRoom(room) {
     setEditingRoom(room);
-    setRoomForm({ id: String(room.room), name: ROOM_NAMES[room.room] || "", short_code: ROOM_CODES[room.room] || "" });
+    setRoomForm({ id: String(room.room), name: room.roomName || "", short_code: room.shortCode || "" });
     setRoomDialogOpen(true);
   }
 
@@ -270,7 +270,7 @@ export default function RoomsPage() {
 
   const rooms = useMemo(() => {
     if (!Array.isArray(roomsRaw)) return [];
-    return [...roomsRaw].sort((a, b) => (b.online || 0) - (a.online || 0));
+    return [...roomsRaw].filter(r => (r.accountCount || 0) > 0).sort((a, b) => (b.online || 0) - (a.online || 0));
   }, [roomsRaw]);
 
   const talkingUsers = useMemo(() => {
@@ -301,7 +301,7 @@ export default function RoomsPage() {
   const totalOnline = rooms.reduce((s, r) => s + (r.online || 0), 0);
   const totalInCall = rooms.reduce((s, r) => s + (r.inCall || 0), 0);
   const totalUnmuted = rooms.reduce((s, r) => s + (r.unmuted || 0), 0);
-  const totalMembers = rooms.reduce((s, r) => s + (r.total || 0), 0);
+  const totalAccounts = rooms.reduce((s, r) => s + (r.accountCount || 0), 0);
 
   const apiAction = useCallback(async (userName, action) => {
     try {
@@ -341,25 +341,25 @@ export default function RoomsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Voice Channels</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Rooms</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-mono tabular-nums">{rooms.length}</span> channels,{" "}
+            <span className="font-mono tabular-nums">{rooms.length}</span> rooms,{" "}
             <span className="font-mono tabular-nums">{totalOnline}</span> online,{" "}
             <span className="font-mono tabular-nums">{totalInCall}</span> in call
           </p>
         </div>
         <Button onClick={openCreateRoom}>
           <PlusIcon className="size-4 mr-2" />
-          Add Channel
+          Add Room
         </Button>
       </div>
 
       {/* Stat Cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Members" value={totalMembers} icon={<UsersIcon className="size-4" />} color="#06b6d4" />
-        <StatCard title="Online" value={totalOnline} icon={<WifiIcon className="size-4" />} color="#22c55e" />
-        <StatCard title="In Call" value={totalInCall} icon={<PhoneCallIcon className="size-4" />} color="#3b82f6" />
-        <StatCard title="Unmuted" value={totalUnmuted} icon={<ActivityIcon className="size-4" />} color="#f59e0b" />
+        <StatCard title="Active Rooms" value={rooms.filter(r => (r.online || 0) > 0).length} icon={<RadioIcon className="size-4" />} color="#6366f1" subtitle={`${rooms.length} total`} />
+        <StatCard title="Total Accounts" value={totalAccounts} icon={<UsersIcon className="size-4" />} color="#06b6d4" subtitle={`across ${rooms.length} rooms`} />
+        <StatCard title="Avg Accounts / Room" value={rooms.length ? Math.round(totalAccounts / rooms.length) : 0} icon={<ActivityIcon className="size-4" />} color="#f59e0b" subtitle={`max ${Math.max(...rooms.map(r => r.accountCount || 0))}`} />
+        <StatCard title="Empty Rooms" value={rooms.filter(r => (r.online || 0) === 0).length} icon={<VolumeXIcon className="size-4" />} color="#8b8b8b" subtitle={`${rooms.filter(r => (r.online || 0) > 0).length} with users online`} />
       </div>
 
       {/* Rooms Table */}
@@ -369,8 +369,8 @@ export default function RoomsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[40px]"></TableHead>
-                <TableHead>Channel</TableHead>
-                <TableHead>Members</TableHead>
+                <TableHead>Room</TableHead>
+                <TableHead>Accounts</TableHead>
                 <TableHead className="hidden md:table-cell">Online</TableHead>
                 <TableHead className="hidden md:table-cell">In Call</TableHead>
                 <TableHead className="hidden md:table-cell">Unmuted</TableHead>
@@ -416,12 +416,12 @@ export default function RoomsPage() {
                       </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {ROOM_NAMES[room.room] || room.room}
-                          <span className="text-[10px] font-mono text-muted-foreground/40">{ROOM_CODES[room.room]}</span>
+                          {room.roomName}
+                          <span className="text-[10px] font-mono text-muted-foreground/40">{room.shortCode}</span>
                         </div>
                       </TableCell>
                       <TableCell className="font-mono tabular-nums text-sm">
-                        {total}
+                        {room.accountCount || total}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <span className={`inline-flex items-center gap-1.5 text-sm font-mono tabular-nums ${online > 0 ? "text-emerald-400" : "text-muted-foreground/40"}`}>
@@ -443,17 +443,21 @@ export default function RoomsPage() {
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex items-center gap-2 w-24">
+                          {(() => { const cap = room.accountCount || total || 1; return (
+                          <>
                           <div className="flex-1 h-1.5 rounded-full bg-muted/30 overflow-hidden">
                             <div className="h-full flex">
                               {inCall > 0 && (
-                                <div className="h-full bg-sky-500/70" style={{ width: `${(inCall / Math.max(total, 1)) * 100}%` }} />
+                                <div className="h-full bg-sky-500/70" style={{ width: `${(inCall / cap) * 100}%` }} />
                               )}
                               {online - inCall > 0 && (
-                                <div className="h-full bg-emerald-500/40" style={{ width: `${((online - inCall) / Math.max(total, 1)) * 100}%` }} />
+                                <div className="h-full bg-emerald-500/40" style={{ width: `${((online - inCall) / cap) * 100}%` }} />
                               )}
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono text-muted-foreground/40 tabular-nums">{Math.round((online / Math.max(total, 1)) * 100)}%</span>
+                          <span className="text-[10px] font-mono text-muted-foreground/40 tabular-nums">{Math.round((online / cap) * 100)}%</span>
+                          </>
+                          ); })()}
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
@@ -525,7 +529,7 @@ export default function RoomsPage() {
         <SheetContent showCloseButton={false} className="sm:max-w-[480px] p-0 overflow-y-auto border-l border-border/50 bg-background/95 backdrop-blur-xl">
           <SheetHeader className="sr-only">
             <SheetTitle>Room Details</SheetTitle>
-            <SheetDescription>Voice channel members and controls</SheetDescription>
+            <SheetDescription>Room members and controls</SheetDescription>
           </SheetHeader>
           {selectedRoom && (() => {
             const sorted = [...selectedRoom.members].sort((a, b) => {
@@ -545,7 +549,7 @@ export default function RoomsPage() {
                   <div className="relative">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                        {ROOM_NAMES[selectedRoom.room] || selectedRoom.room}
+                        {selectedRoom.roomName || selectedRoom.room}
                         {selectedRoom.unmuted > 0 && (
                           <span className="relative flex size-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
@@ -700,7 +704,7 @@ export default function RoomsPage() {
           <DialogHeader>
             <DialogTitle>{editingRoom ? "Edit Room" : "Add Room"}</DialogTitle>
             <DialogDescription>
-              {editingRoom ? "Update the room name and short code." : "Create a new voice channel."}
+              {editingRoom ? "Update the room name and short code." : "Create a new room."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 mt-2">
@@ -713,12 +717,12 @@ export default function RoomsPage() {
                   value={roomForm.id}
                   onChange={e => setRoomForm(f => ({ ...f, id: e.target.value }))}
                 />
-                <p className="text-[11px] text-muted-foreground">Unique numeric identifier for the voice channel</p>
+                <p className="text-[11px] text-muted-foreground">Unique numeric identifier for the room</p>
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Channel Name *</Label>
+                <Label>Room Name *</Label>
                 <Input
                   placeholder="e.g. Pennsylvania"
                   value={roomForm.name}
@@ -754,7 +758,7 @@ export default function RoomsPage() {
             <DialogDescription>
               Are you sure you want to delete{" "}
               <span className="font-medium text-foreground">
-                {ROOM_NAMES[deleteTarget?.room] || deleteTarget?.room}
+                {deleteTarget?.roomName || deleteTarget?.room}
               </span>
               ? Users assigned to this room will need to be reassigned.
             </DialogDescription>

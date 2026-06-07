@@ -117,19 +117,47 @@ adminRouter.get("/users/:userName", (req, res) => {
 // GET /rooms — returns room stats + member list per room
 adminRouter.get("/rooms", (req, res) => {
     try {
-        const users = global.db.getAllUserInfo();
+        const dbRooms = global.db.getAllRooms();
         const rooms = {};
+        for (const r of dbRooms) {
+            rooms[r.id] = {
+                room: r.id,
+                roomName: r.name,
+                shortCode: r.short_code,
+                total: 0,
+                online: 0,
+                inCall: 0,
+                unmuted: 0,
+                members: [],
+                accountCount: 0,
+            };
+        }
+
+        const accounts = global.db.getAllAccounts();
+        const accountCountByRoom = {};
+        for (const acc of accounts) {
+            if (acc.room) {
+                accountCountByRoom[acc.room] = (accountCountByRoom[acc.room] || 0) + 1;
+            }
+        }
+        for (const [roomId, count] of Object.entries(accountCountByRoom)) {
+            if (rooms[roomId]) rooms[roomId].accountCount = count;
+        }
+
+        const users = global.db.getAllUserInfo();
         for (const user of users) {
             const room = user.room;
             if (!rooms[room]) {
                 rooms[room] = {
                     room,
-                    roomName: global.config.ROOM_NAME?.[room] || `Room ${room}`,
+                    roomName: `Room ${room}`,
+                    shortCode: '',
                     total: 0,
                     online: 0,
                     inCall: 0,
                     unmuted: 0,
-                    members: []
+                    members: [],
+                    accountCount: accountCountByRoom[room] || 0,
                 };
             }
             rooms[room].total++;
@@ -306,14 +334,31 @@ adminRouter.get("/events/room/:room", (req, res) => {
             u.connectionState === 'connected' && u.room === room && !u.payment
         );
         const unmutedUsers = connectedUsers.filter(u => !u.mute);
-        const callerIds = unmutedUsers.map(u => {
+        const callerIds = [];
+        const callerIdHtml = [];
+        const roomData = global.db.getRoom(room);
+        const template = roomData?.caller_id_template || '';
+
+        for (const u of unmutedUsers) {
             const email = u.userName?.replace('sip:', '');
             const account = email ? global.db.getAccountByEmail(email) : null;
-            return account
+            const name = account
                 ? `${account.company_name || ''} / ${account.display_name || email}`
                 : (u.callerIdName || u.userName);
-        });
-        return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds };
+            callerIds.push(name);
+
+            if (template && account) {
+                callerIdHtml.push(template
+                    .replace(/\{\{name\}\}/g, name)
+                    .replace(/\{\{city\}\}/g, account.city || '')
+                    .replace(/\{\{phone\}\}/g, account.company_phone || '')
+                    .replace(/\{\{userId\}\}/g, account.id || '')
+                );
+            } else {
+                callerIdHtml.push(name);
+            }
+        }
+        return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds, callerIdHtml };
     }
 
     function buildOnlineCounts() {

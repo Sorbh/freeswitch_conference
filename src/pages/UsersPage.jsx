@@ -533,7 +533,7 @@ export default function UsersPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -861,7 +861,7 @@ export default function UsersPage() {
                         <BanIcon className={`size-4 ${acc.kickout ? "text-red-500" : "text-muted-foreground/50"}`} />
                         <div>
                           <p className="text-sm font-medium">Kicked Out</p>
-                          <p className="text-[11px] text-muted-foreground/60">Block from joining voice channels</p>
+                          <p className="text-[11px] text-muted-foreground/60">Block from joining rooms</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2.5">
@@ -1115,7 +1115,7 @@ export default function UsersPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Voice Channel</Label>
+              <Label>Room</Label>
               <Select
                 value={form.room}
                 onValueChange={(val) => updateField("room", val)}
@@ -1181,7 +1181,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Change Channel</DialogTitle>
             <DialogDescription>
-              Move {actionUser?.userName} to a different voice channel
+              Move {actionUser?.userName} to a different room
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
