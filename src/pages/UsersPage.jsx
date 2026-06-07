@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, memo, useDeferredValue } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { useFetch } from "@/hooks/useFetch";
-import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { timeAgo } from "@/lib/constants";
 import { useRooms } from "@/hooks/useRooms";
 import {
@@ -80,8 +79,12 @@ import {
   ArrowDownIcon,
 } from "lucide-react";
 
-function useTalkingUsers() {
+function useUsersSSE(refetch) {
   const [talking, setTalking] = useState(new Set());
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+  const timerRef = useRef(null);
+
   useEffect(() => {
     const es = new EventSource("/api/v1/admin/events/stream");
     es.onmessage = (e) => {
@@ -98,11 +101,17 @@ function useTalkingUsers() {
             else next.delete(data.userName);
             return next;
           });
+          return;
+        }
+        if ((data.type === "state_change" && data.scope === "users") || data.type === "user_update") {
+          clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => refetchRef.current(), 2000);
         }
       } catch {}
     };
-    return () => es.close();
+    return () => { clearTimeout(timerRef.current); es.close(); };
   }, []);
+
   return talking;
 }
 
@@ -206,9 +215,9 @@ function CopyableCell({ text, children, className = "" }) {
 export default function UsersPage() {
   const { names: ROOM_NAMES, codes: ROOM_CODES } = useRooms();
   const { data, loading, refetch } = useFetch("/api/v1/admin/users");
-  useSSERefresh(refetch, ["users"]);
-  const talkingUsers = useTalkingUsers();
+  const talkingUsers = useUsersSSE(refetch);
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
   const [selectedUserName, setSelectedUserName] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
@@ -252,50 +261,52 @@ export default function UsersPage() {
     [users, selectedUserName]
   );
   const anyFilterActive = Object.values(filters).some(Boolean) || roomFilter !== "all";
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    if (q && !(
-      (u.userName || "").toLowerCase().includes(q) ||
-      (u.callerIdName || "").toLowerCase().includes(q) ||
-      (u.mac || "").toLowerCase().includes(q) ||
-      (u.account?.email || "").toLowerCase().includes(q) ||
-      (u.account?.company_name || "").toLowerCase().includes(q) ||
-      (u.account?.display_name || "").toLowerCase().includes(q)
-    )) return false;
+  const filtered = useMemo(() => {
+    return users.filter((u) => {
+      const q = deferredSearch.toLowerCase();
+      if (q && !(
+        (u.userName || "").toLowerCase().includes(q) ||
+        (u.callerIdName || "").toLowerCase().includes(q) ||
+        (u.mac || "").toLowerCase().includes(q) ||
+        (u.account?.email || "").toLowerCase().includes(q) ||
+        (u.account?.company_name || "").toLowerCase().includes(q) ||
+        (u.account?.display_name || "").toLowerCase().includes(q)
+      )) return false;
 
-    if (roomFilter !== "all" && String(u.room || u.account?.room) !== roomFilter) return false;
+      if (roomFilter !== "all" && String(u.room || u.account?.room) !== roomFilter) return false;
 
-    if (Object.values(filters).some(Boolean)) {
-      let match = false;
-      if (filters.online && u.online) match = true;
-      if (filters.offline && !u.online) match = true;
-      if (filters.muted && !u.mute) match = true;
-      if (filters.inCall && u.connectionState === "connected") match = true;
-      if (filters.talking && (talkingUsers.has(u.userName) || u.talking)) match = true;
-      if (filters.error && u.connectionState === "error") match = true;
-      if (!match) return false;
-    }
+      if (Object.values(filters).some(Boolean)) {
+        let match = false;
+        if (filters.online && u.online) match = true;
+        if (filters.offline && !u.online) match = true;
+        if (filters.muted && !u.mute) match = true;
+        if (filters.inCall && u.connectionState === "connected") match = true;
+        if (filters.talking && (talkingUsers.has(u.userName) || u.talking)) match = true;
+        if (filters.error && u.connectionState === "error") match = true;
+        if (!match) return false;
+      }
 
-    return true;
-  }).sort((a, b) => {
-    if (sortCol) {
-      const getVal = (u) => {
-        if (sortCol === "name") return (u.account?.display_name || u.callerIdName || u.userName || "").toLowerCase();
-        if (sortCol === "email") return (u.account?.email || u.userName || "").toLowerCase();
-        if (sortCol === "company") return (u.account?.company_name || "").toLowerCase();
-        return "";
-      };
-      const va = getVal(a), vb = getVal(b);
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-      if (cmp !== 0) return sortDir === "asc" ? cmp : -cmp;
-    }
-    const score = (u) =>
-      (u.reachable ? 4 : 0) +
-      (u.connectionState === "connected" ? 3 : 0) +
-      (u.online ? 2 : 0) +
-      (u.registrationState === "registered" ? 1 : 0);
-    return score(b) - score(a);
-  });
+      return true;
+    }).sort((a, b) => {
+      if (sortCol) {
+        const getVal = (u) => {
+          if (sortCol === "name") return (u.account?.display_name || u.callerIdName || u.userName || "").toLowerCase();
+          if (sortCol === "email") return (u.account?.email || u.userName || "").toLowerCase();
+          if (sortCol === "company") return (u.account?.company_name || "").toLowerCase();
+          return "";
+        };
+        const va = getVal(a), vb = getVal(b);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        if (cmp !== 0) return sortDir === "asc" ? cmp : -cmp;
+      }
+      const score = (u) =>
+        (u.reachable ? 4 : 0) +
+        (u.connectionState === "connected" ? 3 : 0) +
+        (u.online ? 2 : 0) +
+        (u.registrationState === "registered" ? 1 : 0);
+      return score(b) - score(a);
+    });
+  }, [users, deferredSearch, roomFilter, filters, talkingUsers, sortCol, sortDir]);
 
   const onlineCount = users.filter((u) => u.connectionState === "connected" || u.online).length;
 

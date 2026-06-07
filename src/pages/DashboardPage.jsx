@@ -871,8 +871,7 @@ export default function DashboardPage() {
   const { data: broadcastRaw, refetch: refetchBroadcasts } = useFetch("/api/v1/admin/broadcasts");
   const { data: recentBcastRaw, loading: bcastLoading, refetch: refetchRecentBcast } = useFetch("/api/v1/admin/broadcasts/recent?limit=8");
   const { data: usersRaw, refetch: refetchUsers } = useFetch("/api/v1/admin/users");
-  useSSERefresh(() => { refetchDash(); refetchUsers(); }, ["dashboard", "users", "events"]);
-  useSSERefresh(() => { refetchBroadcasts(); refetchRecentBcast(); }, ["broadcasts"]);
+  useSSERefresh(() => { refetchDash(); refetchUsers(); refetchBroadcasts(); refetchRecentBcast(); }, ["dashboard", "users", "events", "broadcasts"]);
 
   // Live SSE stream for ticker + broadcast detection
   const { events: liveEvents } = useSSE("/api/v1/admin/events/stream");

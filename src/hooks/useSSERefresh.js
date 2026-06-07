@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const DEBOUNCE_MS = 500;
+const DEBOUNCE_MS = 2000;
 
 export function useSSERefresh(refetch, scopes = []) {
   const timerRef = useRef(null);
