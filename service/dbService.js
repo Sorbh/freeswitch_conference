@@ -274,7 +274,18 @@ function setUserInfo(userName, userInfo) {
         );
     }
 
-    eventEmitter.emit('USER_UPDATE', { type: 'user_update', userName, ...userInfo });
+    const now = Math.floor(Date.now() / 1000);
+    const talkingUsers = global.freeswitch?.getTalkingUsers?.() || new Set();
+    const email = userName.replace(/^sip:/, '');
+    const acct = getAccountByEmail(email);
+    eventEmitter.emit('USER_UPDATE', {
+        type: 'user_update', userName, ...userInfo,
+        talking: talkingUsers.has(userName),
+        last_seen: userInfo.lastSeen || userInfo.updatedAt || userInfo.createdAt,
+        online_duration: userInfo.online && userInfo.lastConnectionStateUpdate ? now - userInfo.lastConnectionStateUpdate : 0,
+        _kickout: acct?.kickout ?? null,
+        _active: acct?.active ?? null,
+    });
 }
 
 function touchLastSeen(userName) {

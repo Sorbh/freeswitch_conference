@@ -79,40 +79,56 @@ import {
   ArrowDownIcon,
 } from "lucide-react";
 
-function useUsersSSE(refetch) {
-  const [talking, setTalking] = useState(new Set());
-  const refetchRef = useRef(refetch);
-  refetchRef.current = refetch;
-  const timerRef = useRef(null);
+function useUsersLive(initialData) {
+  const [users, setUsers] = useState([]);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initialData && !initializedRef.current) {
+      setUsers(initialData);
+      initializedRef.current = true;
+    } else if (initialData) {
+      setUsers(prev => {
+        const prevMap = new Map(prev.map(u => [u.userName, u]));
+        return initialData.map(u => {
+          const existing = prevMap.get(u.userName);
+          return existing ? { ...u, account: u.account || existing.account } : u;
+        });
+      });
+    }
+  }, [initialData]);
 
   useEffect(() => {
     const es = new EventSource("/api/v1/admin/events/stream");
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        if (data.type === "connected") {
-          setTalking(new Set());
-          return;
-        }
-        if (data.type === "state_change" && data.scope === "talking") {
-          setTalking(prev => {
-            const next = new Set(prev);
-            if (data.talking) next.add(data.userName);
-            else next.delete(data.userName);
+        if (data.type === "user_update" && data.userName) {
+          setUsers(prev => {
+            const idx = prev.findIndex(u => u.userName === data.userName);
+            if (idx === -1) return prev;
+            const existing = prev[idx];
+            const updated = { ...existing };
+            for (const key of Object.keys(data)) {
+              if (key === "type" || key === "_kickout" || key === "_active") continue;
+              updated[key] = data[key];
+            }
+            if (existing.account && (data._kickout !== undefined || data._active !== undefined)) {
+              updated.account = { ...existing.account };
+              if (data._kickout !== null && data._kickout !== undefined) updated.account.kickout = data._kickout;
+              if (data._active !== null && data._active !== undefined) updated.account.active = data._active;
+            }
+            const next = [...prev];
+            next[idx] = updated;
             return next;
           });
-          return;
-        }
-        if ((data.type === "state_change" && data.scope === "users") || data.type === "user_update") {
-          clearTimeout(timerRef.current);
-          timerRef.current = setTimeout(() => refetchRef.current(), 2000);
         }
       } catch {}
     };
-    return () => { clearTimeout(timerRef.current); es.close(); };
+    return () => es.close();
   }, []);
 
-  return talking;
+  return users;
 }
 
 function CallDuration({ since }) {
@@ -215,7 +231,7 @@ function CopyableCell({ text, children, className = "" }) {
 export default function UsersPage() {
   const { names: ROOM_NAMES, codes: ROOM_CODES } = useRooms();
   const { data, loading, refetch } = useFetch("/api/v1/admin/users");
-  const talkingUsers = useUsersSSE(refetch);
+  const liveUsers = useUsersLive(data);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [selectedUserName, setSelectedUserName] = useState(null);
@@ -255,7 +271,7 @@ export default function UsersPage() {
     return sortDir === "asc" ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />;
   }
 
-  const users = Array.isArray(data) ? data : [];
+  const users = liveUsers;
   const selectedUser = useMemo(
     () => users.find((u) => u.userName === selectedUserName) || null,
     [users, selectedUserName]
@@ -281,7 +297,7 @@ export default function UsersPage() {
         if (filters.offline && !u.online) match = true;
         if (filters.muted && !u.mute) match = true;
         if (filters.inCall && u.connectionState === "connected") match = true;
-        if (filters.talking && (talkingUsers.has(u.userName) || u.talking)) match = true;
+        if (filters.talking && (u.talking)) match = true;
         if (filters.error && u.connectionState === "error") match = true;
         if (!match) return false;
       }
@@ -306,7 +322,7 @@ export default function UsersPage() {
         (u.registrationState === "registered" ? 1 : 0);
       return score(b) - score(a);
     });
-  }, [users, deferredSearch, roomFilter, filters, talkingUsers, sortCol, sortDir]);
+  }, [users, deferredSearch, roomFilter, filters, sortCol, sortDir]);
 
   const onlineCount = users.filter((u) => u.connectionState === "connected" || u.online).length;
 
@@ -472,7 +488,6 @@ export default function UsersPage() {
         headers: body ? { "Content-Type": "application/json" } : {},
         body: body ? JSON.stringify(body) : null,
       });
-      refetch();
     } catch (e) {
       console.error("Action failed:", e);
     }
@@ -679,7 +694,7 @@ export default function UsersPage() {
                     <TableCell className="font-medium max-w-[120px] pl-2">
                       <div className="flex items-center gap-1.5">
                         <CopyableCell text={user.account?.display_name || user.callerIdName || user.userName} className="text-sm" />
-                        {(talkingUsers.has(user.userName) || user.talking) && (
+                        {user.talking && (
                           <Volume2Icon className="size-3 text-cyan-400 animate-pulse shrink-0" />
                         )}
                         {user.account && !user.account.active && (

@@ -552,11 +552,9 @@ adminRouter.post("/users/:userName/kickout", async (req, res) => {
             }
         } else {
             global.db.logEvent('kickout_removed', userName, userInfo.room, 'Kickout removed');
+            global.db.setUserInfo(userName, userInfo);
         }
 
-        emitStateChange('users', { userName });
-        emitStateChange('rooms');
-        emitStateChange('dashboard');
         res.json({ status: true, kickout: !!kickout });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -838,7 +836,7 @@ adminRouter.put("/accounts/:id", async (req, res) => {
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
 
         const fields = {};
-        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout'];
+        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_phone', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout'];
         for (const key of allowed) {
             if (req.body[key] !== undefined) {
                 fields[key] = key === 'room' ? parseInt(req.body[key]) : req.body[key];
