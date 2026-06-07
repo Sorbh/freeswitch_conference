@@ -1,478 +1,547 @@
 /* eslint-disable */
-// HotlineHQ Client — SIP + CallerID SSE
-// Requires: jssip.bundle.js loaded before this script
-// Requires DOM elements: #loginScreen, #confScreen, #caller_grid, #remoteAudio, etc.
-// Config: window.HOTLINE_CONFIG = { wsPort: 5072, apiBase: '' }
+// ═══════════════════════════════════════════════════════════════════════════
+// Redline SIP Client — Drop-in replacement for audiobridge_sip.js
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// WHAT IT DOES:
+//   1. Reads user email from localStorage("user_data") — same as audiobridge.js
+//   2. Registers with FreeSWITCH via JsSIP WebSocket
+//   3. Receives incoming calls (INVITE from FreeSWITCH) and attaches audio
+//   4. Connects to SSE for real-time CallerID and renders into #caller_grid
+//   5. Handles mute/unmute via Ctrl+L (sends hook events to server)
+//   6. Auto-reconnects on sleep/wake and WebSocket drops
+//
+// REQUIRED HTML ELEMENTS:
+//   <audio id="remoteAudio" autoplay hidden></audio>
+//   <div id="caller_grid"></div>
+//
+// HOW TO USE (single script tag, no function calls needed):
+//   <script src="/redline_sip_client.js"></script>
+//
+//   That's it. JsSIP is auto-loaded from /jssip.bundle.js.
+//   If localStorage has "user_data" with is_sip=1, it auto-connects.
+//
+//   To load JsSIP from a custom path:
+//   window.HOTLINE_CONFIG = { jssipUrl: '/path/to/jssip.bundle.js' };
+//
+// LOCALSTORAGE FORMAT (set by Vue app on login):
+//   localStorage.setItem("user_data", JSON.stringify({
+//     id: 201,
+//     email: "phoenix.blueyellowline@gmail.com",
+//     is_sip: 1,
+//     user_type: 2,
+//     name: "Phoenix SB",                    // used if parent_id set
+//     parent_id: null,
+//     parent_city: "",
+//     user_detail: {
+//       company_name: "Phoenix SB",
+//       representative_name: "LOUIE",
+//       company_phone: "(909) 889 1400",
+//       city: "San Bernardino",
+//       email: "phoenix.blueyellowline@gmail.com"
+//     }
+//   }));
+//   localStorage.setItem("room", "123456701");
+//
+// OPTIONAL CONFIG (set before loading this script):
+//   window.HOTLINE_CONFIG = {
+//     wsPort: 5072,              // WebSocket port for SIP
+//     apiBase: '',               // API base URL (empty = same origin)
+//     defaultPassword: '12345678' // SIP password
+//   };
+//
+// OPTIONAL CALLBACKS (set before or after loading):
+//   window.onHotlineReady = function(accountData) { ... }     // fired when registered + account loaded
+//   window.onHotlineCallState = function(state) { ... }       // 'connected' or 'disconnected'
+//   window.updateOnlineCounts = function(onlineMap) { ... }   // { roomId: count, ... }
+//
+// MANUAL CONTROL (if needed):
+//   window.hotlineClient.login('email@example.com')  // login with specific email
+//   window.hotlineClient.toggleMute()                // Ctrl+L equivalent
+//   window.hotlineClient.joinConference()            // request server to call this user
+//   window.hotlineClient.hangup()                    // end current call
+//   window.hotlineClient.logout()                    // disconnect everything
+//   window.hotlineClient.getAccount()                // get loaded account data
+//   window.hotlineClient.isConnected()               // true if in active call
+//   window.hotlineClient.isMuted()                   // true if muted
+//
+// ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
-    var config = window.HOTLINE_CONFIG || {};
-    var host = window.location.hostname || 'localhost';
-    var wsServer = 'wss://' + host + ':' + (config.wsPort || 5072);
-    var sipDomain = host;
-    var apiBase = config.apiBase || '';
+    // ── Load JsSIP if not already loaded ──
+    function loadJsSIPAndInit() {
+        if (typeof JsSIP !== 'undefined') { init(); return; }
+        var script = document.createElement('script');
+        script.src = (window.HOTLINE_CONFIG && window.HOTLINE_CONFIG.jssipUrl) || '/jssip.bundle.js';
+        script.onload = function () { init(); };
+        script.onerror = function () { console.error('[SIP] Failed to load jssip.bundle.js'); };
+        document.head.appendChild(script);
+    }
 
-    var ua = null;
-    var currentSession = null;
-    var isMuted = true;
-    var callTimer = null;
-    var callSeconds = 0;
-    var accountData = null;
-    var loggingOut = false;
-    var regRetryTimer = null;
-    var callerIdSource = null;
-    var lastHeartbeat = Date.now();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadJsSIPAndInit);
+    } else {
+        loadJsSIPAndInit();
+    }
 
-    // ── Sleep/wake detection ──
-    setInterval(function () {
-        var now = Date.now();
-        if (now - lastHeartbeat > 15000 && ua && !loggingOut) {
-            console.warn('[SIP] Sleep/wake detected, forcing reconnect');
+    function init() {
+        var config = window.HOTLINE_CONFIG || {};
+        var host = '50.28.84.57';
+        var sipDomain = '50.28.84.57';
+        var wsServer = 'wss://' + host + ':' + (config.wsPort || 5072);
+        var apiBase = config.apiBase || '';
+        var defaultPassword = config.defaultPassword || '12345678';
+
+        var ua = null;
+        var currentSession = null;
+        var isMuted = true;
+        var accountData = null;
+        var loggingOut = false;
+        var regRetryTimer = null;
+        var callerIdSource = null;
+        var lastHeartbeat = Date.now();
+        var callerIdReconnectAttempts = 0;
+
+        // ── Sleep/wake detection ──
+        setInterval(function () {
             try {
-                ua.stop();
-                setTimeout(function () { if (!loggingOut) ua.start(); }, 1000);
-            } catch (e) {
-                console.error('[SIP] Reconnect after wake failed:', e);
-            }
-        }
-        lastHeartbeat = now;
-    }, 5000);
-
-    // ── UI helpers ──
-    function $(id) { return document.getElementById(id); }
-
-    function showStatus(msg) {
-        var s = $('loginStatus'); if (s) s.textContent = msg;
-        var e = $('loginError'); if (e) e.textContent = '';
-    }
-
-    function showError(msg) {
-        var e = $('loginError'); if (e) e.textContent = msg;
-        var s = $('loginStatus'); if (s) s.textContent = '';
-    }
-
-    function setRegStatus(state, text) {
-        var el = $('confReg');
-        if (!el) return;
-        var colors = { registered: 'green', registering: 'yellow', unregistered: 'red' };
-        el.innerHTML = '<span class="dot ' + (colors[state] || 'red') + '"></span> <span>' + text + '</span>';
-    }
-
-    function generateMac(email) {
-        var hash = 0;
-        for (var i = 0; i < email.length; i++) {
-            hash = ((hash << 5) - hash + email.charCodeAt(i)) | 0;
-        }
-        var bytes = [];
-        var h = Math.abs(hash);
-        for (var i = 0; i < 6; i++) {
-            bytes.push(((h >> (i * 4)) & 0xFF).toString(16).padStart(2, '0'));
-        }
-        bytes[0] = (parseInt(bytes[0], 16) & 0xFE | 0x02).toString(16).padStart(2, '0');
-        return bytes.join(':');
-    }
-
-    // ── CallerID SSE ──
-    function startCallerIdSSE(room) {
-        stopCallerIdSSE();
-        callerIdSource = new EventSource(apiBase + '/api/v1/admin/events/room/' + room);
-
-        callerIdSource.onmessage = function (event) {
-            try {
-                var data = JSON.parse(event.data);
-
-                // Render caller ID HTML into grid
-                var grid = $('caller_grid');
-                if (grid && data.callerIdHtml) {
-                    grid.innerHTML = (data.callerIdHtml || []).join('');
-                }
-
-                // Update online counts
-                if (data.online) {
-                    var total = Object.values(data.online).reduce(function (s, n) { return s + n; }, 0);
-                    var onlineEl = $('confOnline');
-                    if (onlineEl) {
-                        onlineEl.textContent = '👥 ' + total + ' online';
-                        onlineEl.style.display = 'block';
+                var now = Date.now();
+                if (now - lastHeartbeat > 15000 && ua && !loggingOut) {
+                    console.warn('[SIP] Sleep/wake detected, forcing reconnect');
+                    try {
+                        ua.stop();
+                        setTimeout(function () { if (!loggingOut && ua) ua.start(); }, 1000);
+                    } catch (e) {
+                        console.error('[SIP] Reconnect after wake failed:', e.message);
                     }
                 }
+                lastHeartbeat = now;
+            } catch (e) {
+                console.error('[SIP] Heartbeat error:', e.message);
+            }
+        }, 5000);
 
-                // Update caller names text (fallback display)
-                var callerEl = $('confCallerId');
-                if (callerEl) {
-                    if (data.callerIds && data.callerIds.length > 0) {
-                        callerEl.textContent = '🎙 ' + data.callerIds.join(', ');
-                        callerEl.style.display = 'block';
-                    } else {
-                        callerEl.textContent = '';
-                        callerEl.style.display = 'none';
+        function generateMac(email) {
+            try {
+                var hash = 0;
+                for (var i = 0; i < email.length; i++) {
+                    hash = ((hash << 5) - hash + email.charCodeAt(i)) | 0;
+                }
+                var bytes = [];
+                var h = Math.abs(hash);
+                for (var i = 0; i < 6; i++) {
+                    bytes.push(((h >> (i * 4)) & 0xFF).toString(16).padStart(2, '0'));
+                }
+                bytes[0] = (parseInt(bytes[0], 16) & 0xFE | 0x02).toString(16).padStart(2, '0');
+                return bytes.join(':');
+            } catch (e) {
+                console.error('[SIP] generateMac error:', e.message);
+                return '02:00:00:00:00:00';
+            }
+        }
+
+        // ── Read user data from localStorage (production Vue app) ──
+        function getLocalStorageUserData() {
+            try {
+                var raw = localStorage.getItem("user_data");
+                if (!raw) return null;
+                var userData = JSON.parse(raw);
+                var detail = userData.user_detail || {};
+                var companyName = userData.parent_id ? userData.name : (detail.company_name || '');
+                var repName = detail.representative_name || '';
+                var phone = detail.company_phone || '';
+                var formattedPhone = '';
+                try {
+                    var digits = phone.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
+                    formattedPhone = !digits[2] ? digits[1] : '(' + digits[1] + ') ' + digits[2] + (digits[3] ? '-' + digits[3] : '');
+                } catch (e) { formattedPhone = phone; }
+
+                return {
+                    email: userData.email || detail.email || '',
+                    userId: userData.id,
+                    username: companyName + ' / ' + repName,
+                    companyName: companyName,
+                    repName: repName,
+                    phone: formattedPhone,
+                    city: userData.parent_id ? userData.parent_city : (detail.city || ''),
+                    room: localStorage.getItem("room") || '',
+                    isSip: userData.is_sip,
+                    userType: userData.user_type,
+                };
+            } catch (e) {
+                console.warn('[SIP] Cannot read localStorage user_data:', e.message);
+                return null;
+            }
+        }
+
+        // ── CallerID SSE ──
+        function startCallerIdSSE(room) {
+            stopCallerIdSSE();
+            callerIdReconnectAttempts = 0;
+            connectCallerIdSSE(room);
+        }
+
+        function connectCallerIdSSE(room) {
+            try {
+                callerIdSource = new EventSource(apiBase + '/api/v1/admin/events/room/' + room);
+
+                callerIdSource.onopen = function () {
+                    callerIdReconnectAttempts = 0;
+                };
+
+                callerIdSource.onmessage = function (event) {
+                    try {
+                        var data = JSON.parse(event.data);
+                        var grid = document.getElementById('caller_grid');
+                        if (grid && data.callerIdHtml) {
+                            grid.innerHTML = (data.callerIdHtml || []).join('');
+                        }
+                        if (data.online && typeof window.updateOnlineCounts === 'function') {
+                            window.updateOnlineCounts(data.online);
+                        }
+                    } catch (e) {
+                        console.error('[CallerID] Message parse error:', e.message);
+                    }
+                };
+
+                callerIdSource.onerror = function () {
+                    try { if (callerIdSource) { callerIdSource.close(); callerIdSource = null; } } catch (e) { }
+                    if (loggingOut || !accountData) return;
+                    callerIdReconnectAttempts++;
+                    var delay = Math.min(1000 * Math.pow(2, callerIdReconnectAttempts), 30000);
+                    console.warn('[CallerID] Connection lost, reconnecting in ' + (delay / 1000) + 's');
+                    setTimeout(function () { if (!loggingOut && accountData) connectCallerIdSSE(room); }, delay);
+                };
+            } catch (e) {
+                console.error('[CallerID] Connect error:', e.message);
+                callerIdReconnectAttempts++;
+                var delay = Math.min(1000 * Math.pow(2, callerIdReconnectAttempts), 30000);
+                setTimeout(function () { if (!loggingOut && accountData) connectCallerIdSSE(room); }, delay);
+            }
+        }
+
+        function stopCallerIdSSE() {
+            try {
+                if (callerIdSource) { callerIdSource.close(); callerIdSource = null; }
+                var grid = document.getElementById('caller_grid');
+                if (grid) grid.innerHTML = '';
+            } catch (e) {
+                console.error('[CallerID] Stop error:', e.message);
+            }
+        }
+
+        // ── Audio ──
+        function attachRemoteAudio(session) {
+            try {
+                if (!session || !session.connection) return;
+                var tracks = session.connection.getReceivers()
+                    .filter(function (r) { return r.track && r.track.kind === 'audio'; })
+                    .map(function (r) { return r.track; });
+                if (tracks.length > 0) {
+                    var audio = document.getElementById('remoteAudio');
+                    if (audio) {
+                        audio.srcObject = new MediaStream(tracks);
+                        audio.play().catch(function (e) {
+                            console.warn('[SIP] Audio autoplay blocked:', e.message);
+                        });
                     }
                 }
             } catch (e) {
-                console.error('[CallerID] Parse error:', e);
+                console.error('[SIP] attachRemoteAudio error:', e.message);
             }
-        };
+        }
 
-        callerIdSource.onerror = function () {
-            callerIdSource.close();
-            callerIdSource = null;
-            setTimeout(function () { if (!loggingOut && accountData) startCallerIdSSE(room); }, 5000);
-        };
-    }
+        function muteAudio(mute) {
+            try {
+                if (!currentSession || !currentSession.connection) return;
+                currentSession.connection.getSenders().forEach(function (sender) {
+                    if (sender.track && sender.track.kind === 'audio') {
+                        sender.track.enabled = !mute;
+                    }
+                });
+            } catch (e) {
+                console.error('[SIP] muteAudio error:', e.message);
+            }
+        }
 
-    function stopCallerIdSSE() {
-        if (callerIdSource) { callerIdSource.close(); callerIdSource = null; }
-        var grid = $('caller_grid'); if (grid) grid.innerHTML = '';
-        var el = $('confCallerId'); if (el) { el.textContent = ''; el.style.display = 'none'; }
-        var onlineEl = $('confOnline'); if (onlineEl) { onlineEl.textContent = ''; onlineEl.style.display = 'none'; }
-    }
+        // ── SIP ──
+        function doLogin(emailArg) {
+            var lsData = getLocalStorageUserData();
+            var email = emailArg || (lsData && lsData.email) || '';
+            var password = defaultPassword;
 
-    // ── SIP ──
-    function doLogin() {
-        var email = $('email').value.trim();
-        var password = $('password').value;
-
-        if (!email || !password) { showError('Please enter email and password.'); return; }
-
-        var btnLogin = $('btnLogin');
-        if (btnLogin) btnLogin.disabled = true;
-        showStatus('Connecting...');
-
-        try {
-            if (typeof JsSIP === 'undefined') {
-                showError('SIP library not loaded.');
-                if (btnLogin) btnLogin.disabled = false;
+            if (!email) {
+                console.error('[SIP] No email provided and none found in localStorage');
                 return;
             }
 
-            var sipUser = email.replace('@', '.at.');
-            var mac = generateMac(email);
-
-            JsSIP.debug.enable('JsSIP:*');
-
-            var socket = new JsSIP.WebSocketInterface(wsServer);
-            ua = new JsSIP.UA({
-                sockets: [socket],
-                uri: 'sip:' + sipUser + '@' + sipDomain,
-                password: password,
-                display_name: email,
-                register: true,
-                register_expires: 120,
-                session_timers: false,
-                connection_recovery_min_interval: 2,
-                connection_recovery_max_interval: 30,
-                user_agent: 'Redline-WebClient/1.0 ' + mac,
-            });
-
-            ua.on('registered', function () {
-                console.log('[SIP] Registered:', email);
-                setRegStatus('registered', 'Registered');
-                if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
-                sessionStorage.setItem('sip_credentials', JSON.stringify({ email: email, password: password }));
-
-                if (accountData) { console.log('[SIP] Re-registered'); return; }
-
-                showStatus('Authenticated. Loading account...');
-                fetch(apiBase + '/api/v1/admin/account-lookup?email=' + encodeURIComponent(email))
-                    .then(function (r) { return r.json(); })
-                    .then(function (json) {
-                        accountData = json.data || json;
-
-                        if (!accountData || !accountData.room) {
-                            showError('No conference room assigned to your account.');
-                            sessionStorage.removeItem('sip_credentials');
-                            ua.unregister(); ua.stop(); ua = null;
-                            if (btnLogin) btnLogin.disabled = false;
-                            return;
-                        }
-
-                        showConfScreen();
-                        startCallerIdSSE(accountData.room);
-
-                        if (!accountData.active) {
-                            showDeactivatedState();
-                        } else {
-                            showIdleState();
-                        }
-                    })
-                    .catch(function (e) {
-                        showError('Failed to load account: ' + e.message);
-                        if (btnLogin) btnLogin.disabled = false;
-                    });
-            });
-
-            ua.on('registrationFailed', function (e) {
-                var cause = e.cause || '';
-
-                if (!accountData && (cause === 'Rejected' || cause === 'Forbidden')) {
-                    sessionStorage.removeItem('sip_credentials');
-                    setRegStatus('unregistered', 'Auth Failed');
-                    showError('Invalid email or password. (' + cause + ')');
-                    if (btnLogin) btnLogin.disabled = false;
-                    ua.stop(); ua = null;
+            try {
+                if (typeof JsSIP === 'undefined') {
+                    console.error('[SIP] JsSIP is undefined — jssip.bundle.js not loaded');
                     return;
                 }
 
-                setRegStatus('registering', 'Re-registering... (' + (cause || 'timeout') + ')');
-                if (accountData) {
-                    $('confStatus').textContent = 'Re-registering...';
-                    $('confStatus').className = 'conf-status connecting';
-                } else {
-                    showStatus('Server unavailable, retrying...');
+                var sipUser = email.replace('@', '.at.');
+                var mac = generateMac(email);
+
+                try { JsSIP.debug.enable('JsSIP:*'); } catch (e) { }
+
+                var socket;
+                try {
+                    socket = new JsSIP.WebSocketInterface(wsServer);
+                } catch (e) {
+                    console.error('[SIP] WebSocket creation error:', e.message);
+                    return;
                 }
 
-                if (!regRetryTimer && ua) {
-                    regRetryTimer = setInterval(function () {
-                        if (!ua) { clearInterval(regRetryTimer); regRetryTimer = null; return; }
-                        if (ua.isRegistered()) { clearInterval(regRetryTimer); regRetryTimer = null; return; }
-                        ua.register();
-                    }, 30000);
-                }
-            });
+                ua = new JsSIP.UA({
+                    sockets: [socket],
+                    uri: 'sip:' + sipUser + '@' + sipDomain,
+                    password: password,
+                    display_name: email,
+                    register: true,
+                    register_expires: 120,
+                    session_timers: false,
+                    connection_recovery_min_interval: 2,
+                    connection_recovery_max_interval: 30,
+                    user_agent: 'Redline-WebClient/1.0 ' + mac,
+                });
 
-            ua.on('unregistered', function () {
-                if (loggingOut) return;
-                setRegStatus('unregistered', 'Not Registered');
-                if (accountData) {
-                    $('confStatus').textContent = 'Unregistered';
-                    $('confStatus').className = 'conf-status disconnected';
-                }
-            });
+                ua.on('registered', function () {
+                    try {
+                        console.log('[SIP] Registered:', email);
+                        if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
 
-            ua.on('disconnected', function () {
-                if (loggingOut) return;
-                setRegStatus('unregistered', 'Disconnected');
-                if (accountData) {
-                    $('confStatus').textContent = 'Reconnecting...';
-                    $('confStatus').className = 'conf-status connecting';
-                } else {
-                    showStatus('Connection lost, reconnecting...');
-                }
-            });
+                        if (accountData) { console.log('[SIP] Re-registered'); return; }
 
-            ua.on('connected', function () {
-                setRegStatus('registering', 'Registering...');
-            });
+                        fetch(apiBase + '/api/v1/admin/account-lookup?email=' + encodeURIComponent(email))
+                            .then(function (r) {
+                                if (!r.ok) throw new Error('HTTP ' + r.status);
+                                return r.json();
+                            })
+                            .then(function (json) {
+                                try {
+                                    accountData = json.data || json;
 
-            ua.on('newMessage', function (data) {
-                if (data.originator === 'remote') data.message.accept();
-            });
+                                    if (!accountData.room && lsData && lsData.room) {
+                                        accountData.room = lsData.room;
+                                    }
 
-            ua.on('newRTCSession', function (data) {
-                if (data.originator === 'remote') {
-                    var session = data.session;
-                    session.on('peerconnection', function (pcData) {
-                        pcData.peerconnection.ontrack = function () { attachRemoteAudio(session); };
-                    });
-                    session.on('accepted', function () {
-                        currentSession = session;
-                        onCallConnected();
-                        attachRemoteAudio(session);
-                    });
-                    session.on('failed', function () { resetCallState(); });
-                    session.on('ended', function () { resetCallState(); });
-                    session.answer({
-                        mediaConstraints: { audio: true, video: false },
-                        pcConfig: { iceServers: [] },
-                    });
-                }
-            });
+                                    if (lsData) {
+                                        if (!accountData.display_name && lsData.repName) accountData.display_name = lsData.repName;
+                                        if (!accountData.company_name && lsData.companyName) accountData.company_name = lsData.companyName;
+                                        accountData._lsData = lsData;
+                                    }
 
-            ua.start();
-        } catch (e) {
-            showError('Connection error: ' + e.message);
-            if (btnLogin) btnLogin.disabled = false;
-        }
-    }
+                                    if (!accountData || !accountData.room) {
+                                        console.error('[SIP] Account has no room:', accountData);
+                                        if (ua) { ua.unregister(); ua.stop(); ua = null; }
+                                        return;
+                                    }
 
-    // ── Conference UI ──
-    function showConfScreen() {
-        $('loginScreen').style.display = 'none';
-        $('confScreen').style.display = 'block';
-        $('confUser').textContent = accountData.display_name || accountData.email;
-        $('confCompany').textContent = accountData.company_name || '';
-        $('confRoom').textContent = accountData.room_name || ('Room ' + accountData.room);
-        $('confStatus').textContent = 'Connecting...';
-        $('confStatus').className = 'conf-status connecting';
-        $('confActions').style.display = 'none';
-        $('confIdleActions').style.display = 'none';
-        var msg = $('confStandbyMsg'); if (msg) msg.style.display = 'none';
-    }
+                                    console.log('[SIP] Account loaded:', accountData.display_name, 'Room:', accountData.room);
+                                    startCallerIdSSE(accountData.room);
 
-    function showIdleState() {
-        $('confStatus').textContent = 'Idle';
-        $('confStatus').className = 'conf-status idle';
-        $('confTimer').textContent = '--:--';
-        $('confActions').style.display = 'none';
-        $('confIdleActions').style.display = 'flex';
-        var msg = $('confStandbyMsg'); if (msg) msg.style.display = 'none';
-    }
+                                    if (typeof window.onHotlineReady === 'function') {
+                                        window.onHotlineReady(accountData);
+                                    }
+                                } catch (e) {
+                                    console.error('[SIP] Account processing error:', e);
+                                }
+                            })
+                            .catch(function (e) {
+                                console.error('[SIP] Account lookup failed:', e);
+                            });
+                    } catch (e) {
+                        console.error('[SIP] Registration handler error:', e);
+                    }
+                });
 
-    function showDeactivatedState() {
-        $('confStatus').textContent = 'Deactivated';
-        $('confStatus').className = 'conf-status deactivated';
-        $('confTimer').textContent = '--:--';
-        $('confActions').style.display = 'none';
-        $('confIdleActions').style.display = 'none';
-        var msg = $('confStandbyMsg');
-        if (msg) { msg.style.display = 'block'; msg.textContent = 'Your account is currently deactivated. Contact your administrator to reactivate.'; }
-    }
+                ua.on('registrationFailed', function (e) {
+                    try {
+                        var cause = e.cause || 'unknown';
+                        console.error('[SIP] Registration failed:', cause);
 
-    function onCallConnected() {
-        $('confStatus').textContent = 'Connected';
-        $('confStatus').className = 'conf-status connected';
-        $('confActions').style.display = 'flex';
-        $('confIdleActions').style.display = 'none';
-        var msg = $('confStandbyMsg'); if (msg) msg.style.display = 'none';
-        $('btnMute').disabled = false;
+                        if (!accountData && (cause === 'Rejected' || cause === 'Forbidden')) {
+                            if (ua) { ua.stop(); ua = null; }
+                            return;
+                        }
 
-        isMuted = true;
-        muteAudio(true);
-        updateMuteUI();
+                        if (!regRetryTimer && ua) {
+                            regRetryTimer = setInterval(function () {
+                                try {
+                                    if (!ua) { clearInterval(regRetryTimer); regRetryTimer = null; return; }
+                                    if (ua.isRegistered()) { clearInterval(regRetryTimer); regRetryTimer = null; return; }
+                                    console.log('[SIP] Retry REGISTER');
+                                    ua.register();
+                                } catch (err) {
+                                    console.error('[SIP] Registration retry error:', err.message);
+                                }
+                            }, 30000);
+                        }
+                    } catch (err) {
+                        console.error('[SIP] registrationFailed handler error:', err);
+                    }
+                });
 
-        if (callTimer) clearInterval(callTimer);
-        callSeconds = 0;
-        callTimer = setInterval(function () {
-            callSeconds++;
-            var min = String(Math.floor(callSeconds / 60)).padStart(2, '0');
-            var sec = String(callSeconds % 60).padStart(2, '0');
-            $('confTimer').textContent = min + ':' + sec;
-        }, 1000);
+                ua.on('unregistered', function () {
+                    if (loggingOut) return;
+                    console.warn('[SIP] Unregistered');
+                });
 
-        attachRemoteAudio(currentSession);
-    }
+                ua.on('disconnected', function () {
+                    if (loggingOut) return;
+                    console.warn('[SIP] WebSocket disconnected');
+                });
 
-    function resetCallState() {
-        currentSession = null;
-        if (callTimer) clearInterval(callTimer);
-        callTimer = null;
-        $('confTimer').textContent = '00:00';
-        $('btnMute').disabled = true;
-        $('confActions').style.display = 'none';
+                ua.on('connected', function () {
+                    console.log('[SIP] WebSocket connected');
+                });
 
-        if (accountData && accountData.active) {
-            showIdleState();
-        } else {
-            $('confStatus').textContent = 'Disconnected';
-            $('confStatus').className = 'conf-status disconnected';
-        }
-    }
+                ua.on('newMessage', function (data) {
+                    try { if (data.originator === 'remote') data.message.accept(); } catch (e) { }
+                });
 
-    // ── Audio ──
-    function attachRemoteAudio(session) {
-        if (!session || !session.connection) return;
-        var tracks = session.connection.getReceivers()
-            .filter(function (r) { return r.track && r.track.kind === 'audio'; })
-            .map(function (r) { return r.track; });
-        if (tracks.length > 0) {
-            var audio = $('remoteAudio');
-            audio.srcObject = new MediaStream(tracks);
-            audio.play().catch(function () {});
-        }
-    }
+                ua.on('newRTCSession', function (data) {
+                    try {
+                        if (data.originator === 'remote') {
+                            var session = data.session;
+                            session.on('peerconnection', function (pcData) {
+                                try { pcData.peerconnection.ontrack = function () { attachRemoteAudio(session); }; } catch (e) { }
+                            });
+                            session.on('accepted', function () {
+                                try {
+                                    currentSession = session;
+                                    isMuted = true;
+                                    muteAudio(true);
+                                    attachRemoteAudio(session);
+                                    console.log('[SIP] Call connected');
+                                    if (typeof window.onHotlineCallState === 'function') {
+                                        window.onHotlineCallState('connected');
+                                    }
+                                } catch (e) {
+                                    console.error('[SIP] Session accepted error:', e.message);
+                                }
+                            });
+                            session.on('failed', function (e) {
+                                console.warn('[SIP] Session failed:', e && e.cause || 'unknown');
+                                currentSession = null;
+                                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
+                            });
+                            session.on('ended', function (e) {
+                                console.log('[SIP] Session ended:', e && e.cause || 'normal');
+                                currentSession = null;
+                                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
+                            });
+                            session.answer({
+                                mediaConstraints: { audio: true, video: false },
+                                pcConfig: { iceServers: [] },
+                            });
+                        }
+                    } catch (e) {
+                        console.error('[SIP] newRTCSession handler error:', e);
+                    }
+                });
 
-    function muteAudio(mute) {
-        if (!currentSession || !currentSession.connection) return;
-        currentSession.connection.getSenders().forEach(function (sender) {
-            if (sender.track && sender.track.kind === 'audio') {
-                sender.track.enabled = !mute;
+                console.log('[SIP] Starting UA, server:', wsServer, 'user:', sipUser);
+                ua.start();
+            } catch (e) {
+                console.error('[SIP] doLogin error:', e);
             }
-        });
-    }
-
-    function updateMuteUI() {
-        $('muteIcon').textContent = isMuted ? '🔇' : '🔊';
-        $('muteLabel').textContent = isMuted ? 'Unmute' : 'Mute';
-        $('btnMute').className = isMuted ? 'conf-btn btn-mute' : 'conf-btn btn-mute live';
-    }
-
-    // ── Actions ──
-    function toggleMute() {
-        isMuted = !isMuted;
-        muteAudio(isMuted);
-        updateMuteUI();
-
-        if (!accountData) return;
-        var userName = 'sip:' + accountData.email;
-        var hookEvent = isMuted ? 'on_hook' : 'off_hook';
-        fetch(apiBase + '/api/v1/admin/users/' + encodeURIComponent(userName) + '/hook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ event: hookEvent }),
-        }).catch(function (e) { console.error('[HOOK] Failed:', e); });
-    }
-
-    function joinConference() {
-        if (!accountData) return;
-        var userName = 'sip:' + accountData.email;
-        $('confStatus').textContent = 'Connecting...';
-        $('confStatus').className = 'conf-status connecting';
-        $('confIdleActions').style.display = 'none';
-        fetch(apiBase + '/api/v1/admin/users/' + encodeURIComponent(userName) + '/reconnect', { method: 'POST' })
-            .then(function (r) { return r.json(); })
-            .then(function (json) { if (!json.status) showIdleState(); })
-            .catch(function () { showIdleState(); });
-    }
-
-    function hangup() {
-        if (currentSession) { currentSession.terminate(); currentSession = null; }
-        resetCallState();
-        $('confStatus').textContent = 'Disconnected';
-        $('confStatus').className = 'conf-status disconnected';
-    }
-
-    function logout() {
-        loggingOut = true;
-        stopCallerIdSSE();
-        if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
-        if (currentSession) { currentSession.terminate(); currentSession = null; }
-        if (ua) { ua.unregister(); ua.stop(); ua = null; }
-        accountData = null;
-        sessionStorage.removeItem('sip_credentials');
-        $('confScreen').style.display = 'none';
-        $('loginScreen').style.display = 'block';
-        var btnLogin = $('btnLogin'); if (btnLogin) btnLogin.disabled = false;
-        $('email').value = '';
-        $('password').value = '';
-        showStatus('');
-        showError('');
-        loggingOut = false;
-    }
-
-    // ── Keyboard shortcuts ──
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && $('loginScreen').style.display !== 'none') {
-            doLogin();
         }
-        if (e.ctrlKey && e.key === 'l') {
-            e.preventDefault();
-            if (currentSession && !$('btnMute').disabled) toggleMute();
-        }
-    });
 
-    // ── Auto-reconnect on page load ──
-    (function autoReconnect() {
-        var saved = sessionStorage.getItem('sip_credentials');
-        if (!saved) return;
+        // ── Actions ──
+        function toggleMute() {
+            try {
+                isMuted = !isMuted;
+                muteAudio(isMuted);
+
+                if (!accountData) return;
+                var userName = 'sip:' + accountData.email;
+                var hookEvent = isMuted ? 'on_hook' : 'off_hook';
+                fetch(apiBase + '/api/v1/admin/users/' + encodeURIComponent(userName) + '/hook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event: hookEvent }),
+                }).catch(function (e) { console.error('[HOOK] Failed:', e.message); });
+            } catch (e) {
+                console.error('[SIP] toggleMute error:', e.message);
+            }
+        }
+
+        function joinConference() {
+            try {
+                if (!accountData) return;
+                var userName = 'sip:' + accountData.email;
+                fetch(apiBase + '/api/v1/admin/users/' + encodeURIComponent(userName) + '/reconnect', { method: 'POST' })
+                    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                    .then(function (json) { if (!json.status) console.error('[SIP] Join failed:', json.error); })
+                    .catch(function (e) { console.error('[SIP] Join request failed:', e.message); });
+            } catch (e) {
+                console.error('[SIP] joinConference error:', e.message);
+            }
+        }
+
+        function hangup() {
+            try {
+                if (currentSession) { currentSession.terminate(); currentSession = null; }
+                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
+            } catch (e) {
+                console.error('[SIP] hangup error:', e.message);
+            }
+        }
+
+        function logout() {
+            try {
+                loggingOut = true;
+                stopCallerIdSSE();
+                if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
+                if (currentSession) { try { currentSession.terminate(); } catch (e) { } currentSession = null; }
+                if (ua) { try { ua.unregister(); ua.stop(); } catch (e) { } ua = null; }
+                accountData = null;
+                loggingOut = false;
+                console.log('[SIP] Logged out');
+            } catch (e) {
+                console.error('[SIP] logout error:', e.message);
+                loggingOut = false;
+            }
+        }
+
+        // ── Keyboard shortcut: Ctrl+L to toggle mute ──
         try {
-            var creds = JSON.parse(saved);
-            if (!creds.email || !creds.password) return;
-            $('email').value = creds.email;
-            $('password').value = creds.password;
-            doLogin();
-        } catch (e) {
-            sessionStorage.removeItem('sip_credentials');
-        }
-    })();
+            document.addEventListener('keydown', function (e) {
+                try {
+                    if (e.ctrlKey && e.key === 'l') {
+                        e.preventDefault();
+                        if (currentSession) toggleMute();
+                    }
+                } catch (err) { }
+            });
+        } catch (e) { }
 
-    // ── Public API ──
-    window.hotlineClient = {
-        login: doLogin,
-        logout: logout,
-        toggleMute: toggleMute,
-        joinConference: joinConference,
-        hangup: hangup,
-        getAccount: function () { return accountData; },
-        isConnected: function () { return !!currentSession; },
-        isMuted: function () { return isMuted; },
-    };
+        // ── Public API ──
+        window.hotlineClient = {
+            login: doLogin,
+            logout: logout,
+            toggleMute: toggleMute,
+            joinConference: joinConference,
+            hangup: hangup,
+            getAccount: function () { return accountData; },
+            getLocalData: getLocalStorageUserData,
+            isConnected: function () { return !!currentSession; },
+            isMuted: function () { return isMuted; },
+        };
+
+        // ── Auto-login from localStorage (production Vue app) ──
+        try {
+            var lsAutoData = getLocalStorageUserData();
+            if (lsAutoData && lsAutoData.email && lsAutoData.isSip) {
+                console.log('[SIP] Auto-login from localStorage:', lsAutoData.email);
+                doLogin(lsAutoData.email);
+            }
+        } catch (e) {
+            console.warn('[SIP] localStorage auto-login failed:', e.message);
+        }
+
+    } // end init()
 })();

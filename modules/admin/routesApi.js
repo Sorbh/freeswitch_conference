@@ -607,6 +607,29 @@ adminRouter.post("/users/kickout-all", async (req, res) => {
     }
 });
 
+// POST /users/kickin-all — remove kickout flag from all accounts
+adminRouter.post("/users/kickin-all", (req, res) => {
+    try {
+        logUser('ALL', 'API', 'KICKIN-ALL');
+        const accounts = global.db.getAllAccounts();
+        let restored = 0;
+
+        for (const account of accounts) {
+            if (account.kickout) {
+                global.db.updateAccount(account.id, { kickout: 0 });
+                restored++;
+            }
+        }
+
+        global.db.logEvent('kickin_all', null, null, `All users restored: ${restored} accounts`);
+        emitStateChange('users');
+        emitStateChange('dashboard');
+        res.json({ status: true, restored });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // POST /users/:userName/mute — mute a user
 adminRouter.post("/users/:userName/mute", (req, res) => {
     try {
@@ -1101,41 +1124,24 @@ adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
     const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
     try {
-        const { updateAccount: updateYmcsAccount, getBoundAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
-        const { listDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const { updateAccount: updateYmcsAccount, listAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
 
-        // Collect all bound accounts from all devices
-        send({ type: "info", message: "Fetching all devices from YMCS..." });
-        const allDevices = [];
+        send({ type: "info", message: "Fetching all accounts from YMCS..." });
+        const allAccounts = [];
         let skip = 0;
-        const limit = 100;
+        const limit = 500;
         let total = null;
         while (true) {
-            const page = await listDevices({ filter: {}, limit, skip, autoCount: total === null });
-            const devices = page?.data || [];
+            const page = await listAccounts({ filter: {}, limit, skip, autoCount: total === null });
+            const data = page?.data || [];
             if (total === null) total = page.total || 0;
-            allDevices.push(...devices);
+            allAccounts.push(...data);
             skip += limit;
-            if (devices.length < limit || skip >= total) break;
-        }
-        send({ type: "info", message: `Found ${allDevices.length} devices, collecting bound accounts...` });
-
-        // Get all unique accounts from all devices
-        const accountMap = new Map();
-        for (const device of allDevices) {
-            try {
-                const bound = await getBoundAccounts(device.id);
-                const boundList = Array.isArray(bound) ? bound : (bound?.data || []);
-                for (const acc of boundList) {
-                    if (acc.accountId && !accountMap.has(acc.accountId)) {
-                        accountMap.set(acc.accountId, { accountId: acc.accountId, email: acc.registerName || acc.username });
-                    }
-                }
-            } catch {}
+            if (data.length < limit || skip >= total) break;
         }
 
-        const accounts = Array.from(accountMap.values());
-        send({ type: "info", message: `Found ${accounts.length} unique accounts, updating SIP server to ${host}:${port}...` });
+        const accounts = allAccounts.map(a => ({ accountId: a.id, email: a.username || a.registerInfo }));
+        send({ type: "info", message: `Found ${accounts.length} YMCS accounts, updating SIP server to ${host}:${port}...` });
 
         const password = process.env.SIP_DEFAULT_PASSWORD || '12345678';
         let success = 0, failed = 0;

@@ -1,7 +1,7 @@
 import { ymcs } from './yealinkApi.js';
 
-async function listAccounts({ filter = {}, limit = 100 } = {}) {
-    return ymcs.post('/v2/dm/listAccounts', { filter, limit });
+async function listAccounts({ filter = {}, limit = 100, skip = 0, autoCount = true } = {}) {
+    return ymcs.post('/v2/dm/listAccounts', { filter, limit, skip, autoCount });
 }
 
 async function createAccount({ registerName, username, password, sipServer1Host, sipServer1Port, ...rest }) {

@@ -25,11 +25,11 @@ import {
   ChevronDownIcon,
   ServerIcon,
   RotateCwIcon,
+  ShieldAlertIcon,
 } from "lucide-react";
 
 function SyncLog({ entries }) {
   const containerRef = useRef(null);
-  const visible = entries.slice(-4);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -38,7 +38,7 @@ function SyncLog({ entries }) {
   }, [entries.length]);
 
   return (
-    <div className="mt-4 rounded-lg border border-border/50 bg-muted/20 font-mono text-xs">
+    <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 font-mono text-xs">
       <div ref={containerRef} className="p-3 space-y-0.5 max-h-[120px] overflow-y-auto">
         {entries.map((entry, i) => (
           <div key={i} className={`flex items-start gap-2 py-0.5 ${entry.type === "error" ? "text-red-400" : entry.type === "success" ? "text-emerald-400" : entry.type === "skip" ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
@@ -57,7 +57,7 @@ function SyncLog({ entries }) {
 function SyncResult({ result }) {
   if (!result) return null;
   return (
-    <div className="mt-3 flex items-center gap-3">
+    <div className="mt-3 flex flex-wrap items-center gap-2">
       <Badge variant="outline" className="text-emerald-400 border-emerald-500/30">
         {result.success} synced
       </Badge>
@@ -70,6 +70,15 @@ function SyncResult({ result }) {
       <span className="text-xs text-muted-foreground">
         {result.total} total in {result.duration}s
       </span>
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3 pt-2 pb-1">
+      <p className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-semibold">{children}</p>
+      <div className="flex-1 h-px bg-border/30" />
     </div>
   );
 }
@@ -96,6 +105,7 @@ export default function YmcsControlPage() {
   const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting;
   const [confirmAction, setConfirmAction] = useState(null);
   const [stats, setStats] = useState(null);
+  const [missingDialog, setMissingDialog] = useState(null);
 
   useEffect(() => { fetchStats(); }, []);
 
@@ -105,12 +115,16 @@ export default function YmcsControlPage() {
       const json = await res.json();
       const accounts = json.data || [];
       const missingDevice = accounts.filter(a => !a.ymcs_device_id);
+      const missingAccount = accounts.filter(a => !a.ymcs_account_id);
+      const notEligible = accounts.filter(a => !a.ymcs_account_id || !a.ymcs_device_id);
       setStats({
         total: accounts.length,
-        missingAccountId: accounts.filter(a => !a.ymcs_account_id).length,
+        missingAccountId: missingAccount.length,
+        missingAccountList: missingAccount.map(a => ({ email: a.email, name: a.display_name })),
         missingDeviceId: missingDevice.length,
         missingDeviceList: missingDevice.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id })),
         eligibleRebind: accounts.filter(a => a.ymcs_account_id && a.ymcs_device_id).length,
+        notEligibleList: notEligible.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id, hasDeviceId: !!a.ymcs_device_id })),
       });
     } catch {}
   }
@@ -311,236 +325,247 @@ export default function YmcsControlPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">YMCS Control</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Sync account and device IDs from Yealink Management Cloud Service
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">YMCS Control</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Yealink Management Cloud Service operations
+          </p>
+        </div>
+        {stats && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[11px] font-mono gap-1.5">
+              <span className={`size-1.5 rounded-full ${stats.missingAccountId === 0 ? "bg-emerald-500" : "bg-amber-500"}`} />
+              {stats.total - stats.missingAccountId}/{stats.total} accounts
+            </Badge>
+            <Badge variant="outline" className="text-[11px] font-mono gap-1.5">
+              <span className={`size-1.5 rounded-full ${stats.missingDeviceId === 0 ? "bg-emerald-500" : "bg-amber-500"}`} />
+              {stats.total - stats.missingDeviceId}/{stats.total} devices
+            </Badge>
+          </div>
+        )}
       </div>
 
-      <div className="grid gap-6">
+      {/* ── Section 1: Sync ── */}
+      <SectionLabel>Sync</SectionLabel>
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Sync Account IDs */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <HashIcon className="size-5 text-primary" />
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <HashIcon className="size-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Sync All Account IDs</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Fetch YMCS account ID for each account using email lookup
+                  <h3 className="font-semibold text-sm">Sync Account IDs</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Fetch YMCS account ID via email lookup
                   </p>
                   {stats && (
-                    <p className={`text-xs mt-1 ${stats.missingAccountId > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                      {stats.missingAccountId > 0
-                        ? `${stats.missingAccountId} of ${stats.total} accounts missing YMCS Account ID`
-                        : `All ${stats.total} accounts synced`}
-                    </p>
+                    stats.missingAccountId > 0 ? (
+                      <button onClick={() => setMissingDialog({ title: "Accounts Missing YMCS Account ID", list: stats.missingAccountList, columns: ["email", "name"] })} className="text-[11px] mt-1.5 font-mono text-red-400 hover:text-red-300 transition-colors cursor-pointer underline underline-offset-2 decoration-red-400/30">
+                        {stats.missingAccountId} missing
+                      </button>
+                    ) : (
+                      <p className="text-[11px] mt-1.5 font-mono text-emerald-400">all synced</p>
+                    )
                   )}
                 </div>
               </div>
               <Button
+                size="sm"
                 onClick={() => setConfirmAction({ title: "Sync All Account IDs", description: "This will call the YMCS API for every account to fetch their YMCS Account ID. This may take a few minutes.", action: syncAllAccountIds })}
                 disabled={anySyncing}
+                className="shrink-0"
               >
                 {syncingAccounts
-                  ? <><Loader2Icon className="size-4 mr-2 animate-spin" />Syncing...</>
-                  : <><PlayIcon className="size-4 mr-2" />Start Sync</>
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
                 }
               </Button>
             </div>
             <SyncResult result={accountResult} />
             {accountLog.length > 0 && (
-              <div data-sync-log>
-                <SyncLog entries={accountLog} />
-              </div>
+              <div data-sync-log><SyncLog entries={accountLog} /></div>
             )}
           </CardContent>
         </Card>
 
+        {/* Sync Device IDs */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <CloudIcon className="size-5 text-primary" />
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <CloudIcon className="size-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Sync All Device IDs</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Fetch YMCS device ID for each device using device details
+                  <h3 className="font-semibold text-sm">Sync Device IDs</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Match devices to accounts via bound accounts
                   </p>
                   {stats && (
-                    <p className={`text-xs mt-1 ${stats.missingDeviceId > 0 ? "text-red-400" : "text-emerald-400"}`}>
-                      {stats.missingDeviceId > 0
-                        ? `${stats.missingDeviceId} of ${stats.total} accounts missing YMCS Device ID`
-                        : `All ${stats.total} accounts synced`}
-                    </p>
+                    stats.missingDeviceId > 0 ? (
+                      <button onClick={() => setMissingDialog({ title: "Accounts Missing YMCS Device ID", list: stats.missingDeviceList, columns: ["email", "name", "hasAccountId"] })} className="text-[11px] mt-1.5 font-mono text-red-400 hover:text-red-300 transition-colors cursor-pointer underline underline-offset-2 decoration-red-400/30">
+                        {stats.missingDeviceId} missing
+                      </button>
+                    ) : (
+                      <p className="text-[11px] mt-1.5 font-mono text-emerald-400">all synced</p>
+                    )
                   )}
                 </div>
               </div>
               <Button
+                size="sm"
                 onClick={() => setConfirmAction({ title: "Sync All Device IDs", description: "This will list all devices from YMCS, get each device's account details, and save the device ID to matching accounts in our DB. This may take a few minutes.", action: syncAllDeviceIds })}
                 disabled={anySyncing}
+                className="shrink-0"
               >
                 {syncingDevices
-                  ? <><Loader2Icon className="size-4 mr-2 animate-spin" />Syncing...</>
-                  : <><PlayIcon className="size-4 mr-2" />Start Sync</>
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
                 }
               </Button>
             </div>
             <SyncResult result={deviceResult} />
             {deviceLog.length > 0 && (
-              <div data-sync-log>
-                <SyncLog entries={deviceLog} />
-              </div>
-            )}
-            {stats?.missingDeviceId > 0 && (
-              <details className="mt-4">
-                <summary className="flex items-center gap-1.5 text-xs text-red-400 cursor-pointer select-none hover:text-red-300 transition-colors">
-                  <ChevronDownIcon className="size-3.5 transition-transform [details[open]>&]:rotate-180" />
-                  {stats.missingDeviceId} accounts without device — not bound to any YMCS device
-                </summary>
-                <div className="mt-2 rounded-lg border border-border/50 bg-muted/20 max-h-[250px] overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
-                      <tr className="text-muted-foreground/70 text-left">
-                        <th className="px-3 py-2 font-medium">Email</th>
-                        <th className="px-3 py-2 font-medium">Name</th>
-                        <th className="px-3 py-2 font-medium">Account ID</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/30">
-                      {stats.missingDeviceList.map((a, i) => (
-                        <tr key={i} className="text-muted-foreground hover:bg-muted/30">
-                          <td className="px-3 py-1.5 font-mono">{a.email}</td>
-                          <td className="px-3 py-1.5">{a.name || "—"}</td>
-                          <td className="px-3 py-1.5">{a.hasAccountId ? <span className="text-emerald-400">Yes</span> : <span className="text-red-400">No</span>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <LinkIcon className="size-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Update Account on All Devices</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Unbind old accounts and rebind the correct YMCS account to each device
-                  </p>
-                  {stats && (
-                    <p className="text-xs text-red-400 mt-1">{stats.eligibleRebind} of {stats.total} accounts ready to rebind</p>
-                  )}
-                </div>
-              </div>
-              <Button
-                onClick={() => setConfirmAction({ title: "Update Account on All Devices", description: `This will forcefully unbind and rebind the YMCS account on ${stats?.eligibleRebind || 0} devices that have both Account ID and Device ID. This affects live SIP phones.`, action: syncAllDeviceAccounts, destructive: true })}
-                disabled={anySyncing}
-              >
-                {syncingBind
-                  ? <><Loader2Icon className="size-4 mr-2 animate-spin" />Updating...</>
-                  : <><PlayIcon className="size-4 mr-2" />Start Update</>
-                }
-              </Button>
-            </div>
-            <SyncResult result={bindResult} />
-            {bindLog.length > 0 && (
-              <div data-sync-log>
-                <SyncLog entries={bindLog} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <ServerIcon className="size-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Update SIP Server &amp; Port</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Update SIP server address and port on all YMCS accounts
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={() => setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on all YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true })}
-                disabled={anySyncing || !sipHost || !sipPort}
-              >
-                {syncingSipServer
-                  ? <><Loader2Icon className="size-4 mr-2 animate-spin" />Updating...</>
-                  : <><PlayIcon className="size-4 mr-2" />Start Update</>
-                }
-              </Button>
-            </div>
-            <div className="mt-4 flex items-end gap-3">
-              <div className="flex-1">
-                <Label className="text-xs text-muted-foreground mb-1.5 block">SIP Server Host</Label>
-                <Input value={sipHost} onChange={(e) => setSipHost(e.target.value)} placeholder="50.28.84.57" disabled={anySyncing} />
-              </div>
-              <div className="w-28">
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Port</Label>
-                <Input value={sipPort} onChange={(e) => setSipPort(e.target.value)} placeholder="5060" disabled={anySyncing} />
-              </div>
-            </div>
-            <SyncResult result={sipServerResult} />
-            {sipServerLog.length > 0 && (
-              <div data-sync-log>
-                <SyncLog entries={sipServerLog} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center justify-center">
-                  <RotateCwIcon className="size-5 text-destructive" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Reboot All Devices</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Send reboot command to all YMCS managed devices
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="destructive"
-                onClick={() => setConfirmAction({ title: "Reboot All Devices", description: "This will send a reboot command to ALL YMCS devices. All phones will restart and temporarily go offline.", action: rebootAllDevices, destructive: true })}
-                disabled={anySyncing}
-              >
-                {rebooting
-                  ? <><Loader2Icon className="size-4 mr-2 animate-spin" />Rebooting...</>
-                  : <><RotateCwIcon className="size-4 mr-2" />Reboot All</>
-                }
-              </Button>
-            </div>
-            <SyncResult result={rebootResult} />
-            {rebootLog.length > 0 && (
-              <div data-sync-log>
-                <SyncLog entries={rebootLog} />
-              </div>
+              <div data-sync-log><SyncLog entries={deviceLog} /></div>
             )}
           </CardContent>
         </Card>
       </div>
 
+      {/* ── Section 2: Device Management ── */}
+      <SectionLabel>Device Management</SectionLabel>
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Rebind All Devices */}
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <LinkIcon className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Rebind All Devices</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Unbind and rebind YMCS account on each device
+                  </p>
+                  {stats && (
+                    <span className="flex items-center gap-2 mt-1.5">
+                      <span className="text-[11px] font-mono text-emerald-400">{stats.eligibleRebind} ready</span>
+                      {stats.notEligibleList?.length > 0 && (
+                        <button onClick={() => setMissingDialog({ title: "Accounts Not Eligible for Rebind", list: stats.notEligibleList, columns: ["email", "name", "hasAccountId", "hasDeviceId"] })} className="text-[11px] font-mono text-red-400 hover:text-red-300 transition-colors cursor-pointer underline underline-offset-2 decoration-red-400/30">
+                          {stats.total - stats.eligibleRebind} not ready
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setConfirmAction({ title: "Rebind All Devices", description: `This will forcefully unbind and rebind the YMCS account on ${stats?.eligibleRebind || 0} devices that have both Account ID and Device ID. This affects live SIP phones.`, action: syncAllDeviceAccounts, destructive: true })}
+                disabled={anySyncing}
+                className="shrink-0"
+              >
+                {syncingBind
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
+                }
+              </Button>
+            </div>
+            <SyncResult result={bindResult} />
+            {bindLog.length > 0 && (
+              <div data-sync-log><SyncLog entries={bindLog} /></div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Update SIP Server */}
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <ServerIcon className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Update SIP Server</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Change SIP server address and port on all accounts
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on all YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true })}
+                disabled={anySyncing || !sipHost || !sipPort}
+                className="shrink-0"
+              >
+                {syncingSipServer
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
+                }
+              </Button>
+            </div>
+            <div className="mt-3 flex items-end gap-2">
+              <div className="flex-1">
+                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Host</Label>
+                <Input value={sipHost} onChange={(e) => setSipHost(e.target.value)} placeholder="50.28.84.57" disabled={anySyncing} className="h-8 text-xs" />
+              </div>
+              <div className="w-20">
+                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Port</Label>
+                <Input value={sipPort} onChange={(e) => setSipPort(e.target.value)} placeholder="5070" disabled={anySyncing} className="h-8 text-xs" />
+              </div>
+            </div>
+            <SyncResult result={sipServerResult} />
+            {sipServerLog.length > 0 && (
+              <div data-sync-log><SyncLog entries={sipServerLog} /></div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Section 3: Danger Zone ── */}
+      <SectionLabel>Danger Zone</SectionLabel>
+      <Card className="border-destructive/20">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
+                <ShieldAlertIcon className="size-4 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">Reboot All Devices</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Send reboot command to all YMCS managed phones. All devices will restart and temporarily go offline.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setConfirmAction({ title: "Reboot All Devices", description: "This will send a reboot command to ALL YMCS devices. All phones will restart and temporarily go offline.", action: rebootAllDevices, destructive: true })}
+              disabled={anySyncing}
+              className="shrink-0"
+            >
+              {rebooting
+                ? <Loader2Icon className="size-3.5 animate-spin" />
+                : <RotateCwIcon className="size-3.5" />
+              }
+            </Button>
+          </div>
+          <SyncResult result={rebootResult} />
+          {rebootLog.length > 0 && (
+            <div data-sync-log><SyncLog entries={rebootLog} /></div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Confirm Dialog */}
       <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -565,6 +590,48 @@ export default function YmcsControlPage() {
               Confirm
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Missing List Dialog */}
+      <Dialog open={!!missingDialog} onOpenChange={(open) => { if (!open) setMissingDialog(null); }}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{missingDialog?.title}</DialogTitle>
+            <DialogDescription>{missingDialog?.list?.length || 0} accounts</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto rounded-lg border border-border/50 bg-muted/20">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-muted/90 backdrop-blur-sm">
+                <tr className="text-muted-foreground/70 text-left">
+                  <th className="px-3 py-2 font-medium">#</th>
+                  <th className="px-3 py-2 font-medium">Email</th>
+                  <th className="px-3 py-2 font-medium">Name</th>
+                  {missingDialog?.columns?.includes("hasAccountId") && (
+                    <th className="px-3 py-2 font-medium">Account ID</th>
+                  )}
+                  {missingDialog?.columns?.includes("hasDeviceId") && (
+                    <th className="px-3 py-2 font-medium">Device ID</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {(missingDialog?.list || []).map((a, i) => (
+                  <tr key={i} className="text-muted-foreground hover:bg-muted/30">
+                    <td className="px-3 py-1.5 font-mono text-muted-foreground/40">{i + 1}</td>
+                    <td className="px-3 py-1.5 font-mono">{a.email}</td>
+                    <td className="px-3 py-1.5">{a.name || "—"}</td>
+                    {missingDialog?.columns?.includes("hasAccountId") && (
+                      <td className="px-3 py-1.5">{a.hasAccountId ? <span className="text-emerald-400">Yes</span> : <span className="text-red-400">No</span>}</td>
+                    )}
+                    {missingDialog?.columns?.includes("hasDeviceId") && (
+                      <td className="px-3 py-1.5">{a.hasDeviceId ? <span className="text-emerald-400">Yes</span> : <span className="text-red-400">No</span>}</td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

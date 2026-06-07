@@ -468,6 +468,21 @@ export default function UsersPage() {
             Add Yard
           </Button>
           <Button
+            variant="outline"
+            onClick={async () => {
+              if (!confirm("Restore all kicked out users? This will allow them to rejoin.")) return;
+              try {
+                await fetch("/api/v1/admin/users/kickin-all", { method: "POST" });
+                refetch();
+              } catch (e) {
+                console.error("Kickin all failed:", e);
+              }
+            }}
+          >
+            <CheckIcon className="size-4 mr-2" />
+            Kickin All
+          </Button>
+          <Button
             variant="destructive"
             onClick={async () => {
               if (!confirm("Kickout all active calls across the hotline network?")) return;

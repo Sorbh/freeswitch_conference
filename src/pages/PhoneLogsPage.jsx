@@ -9,6 +9,7 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   DownloadIcon,
+  ChevronDownIcon,
 } from "lucide-react";
 
 const MAX_LINES = 5000;
@@ -88,6 +89,88 @@ function extractEmail(sipUri) {
   const uriMatch = sipUri.match(/sip:([^@;>]+(?:@[^;>]+)?)/);
   if (uriMatch) return uriMatch[1];
   return "";
+}
+
+function PhoneDropdown({ value, onChange, users, seenMacs }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  const allOptions = useMemo(() => {
+    const opts = [{ mac: "all", label: "ALL PHONES" }];
+    for (const u of users) {
+      opts.push({ mac: u.mac.toLowerCase(), label: `${u.callerIdName || u.userName} (${u.mac})` });
+    }
+    for (const m of seenMacs) {
+      if (!users.some(u => u.mac?.toLowerCase() === m)) {
+        opts.push({ mac: m, label: `Unknown (${m})` });
+      }
+    }
+    return opts;
+  }, [users, seenMacs]);
+
+  const filtered = useMemo(() => {
+    if (!query) return allOptions;
+    const q = query.toLowerCase();
+    return allOptions.filter(o => o.label.toLowerCase().includes(q) || o.mac.includes(q));
+  }, [allOptions, query]);
+
+  const selectedLabel = allOptions.find(o => o.mac === value)?.label || value;
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span>Phone:</span>
+        <button
+          onClick={() => { setOpen(!open); setQuery(""); }}
+          className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring max-w-[240px] truncate text-left flex items-center gap-1"
+        >
+          <span className="truncate">{selectedLabel}</span>
+          <ChevronDownIcon className="size-3 shrink-0 text-muted-foreground/50" />
+        </button>
+      </div>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 w-72 bg-background border border-border rounded-lg shadow-xl overflow-hidden">
+          <div className="p-1.5 border-b border-border/50">
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name or MAC..."
+              className="w-full bg-muted/30 border border-border/50 rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <div className="max-h-[250px] overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-xs text-muted-foreground/50 text-center py-4">No matches</p>
+            ) : (
+              filtered.map((opt) => (
+                <button
+                  key={opt.mac}
+                  onClick={() => { onChange(opt.mac); setOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted/40 transition-colors truncate ${value === opt.mac ? "bg-primary/10 text-primary font-semibold" : "text-foreground"}`}
+                >
+                  {opt.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PhoneLogsPage() {
@@ -182,12 +265,21 @@ export default function PhoneLogsPage() {
     return [...set].sort();
   }, [logs]);
 
+  const programmaticScroll = useRef(false);
+
   useEffect(() => {
     if (!autoScroll || !scrollRef.current) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    programmaticScroll.current = true;
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+      setTimeout(() => { programmaticScroll.current = false; }, 50);
+    });
   }, [filtered.length, autoScroll]);
 
   const handleScroll = useCallback(() => {
+    if (programmaticScroll.current) return;
     if (!scrollRef.current) return;
     const el = scrollRef.current;
     setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
@@ -242,22 +334,13 @@ export default function PhoneLogsPage() {
           ))}
         </div>
 
-        {/* User/MAC dropdown */}
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
-          <span>Phone:</span>
-          <select value={macFilter} onChange={(e) => setMacFilter(e.target.value)}
-            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring max-w-[220px]">
-            <option value="all">ALL PHONES</option>
-            {users.map((u) => (
-              <option key={u.mac} value={u.mac.toLowerCase()}>
-                {u.callerIdName || u.userName} ({u.mac})
-              </option>
-            ))}
-            {seenMacs.filter((m) => !users.some((u) => u.mac?.toLowerCase() === m)).map((m) => (
-              <option key={m} value={m}>Unknown ({m})</option>
-            ))}
-          </select>
-        </div>
+        {/* User/MAC searchable dropdown */}
+        <PhoneDropdown
+          value={macFilter}
+          onChange={setMacFilter}
+          users={users}
+          seenMacs={seenMacs}
+        />
 
         {/* Level dropdown */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">

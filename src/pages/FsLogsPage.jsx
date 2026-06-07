@@ -170,12 +170,21 @@ export default function FsLogsPage() {
     return [...set].sort();
   }, [packets]);
 
+  const programmaticScroll = useRef(false);
+
   useEffect(() => {
     if (!autoScroll || !scrollRef.current) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    programmaticScroll.current = true;
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+      setTimeout(() => { programmaticScroll.current = false; }, 50);
+    });
   }, [filtered.length, autoScroll]);
 
   const handleScroll = useCallback(() => {
+    if (programmaticScroll.current) return;
     if (!scrollRef.current) return;
     const el = scrollRef.current;
     setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
