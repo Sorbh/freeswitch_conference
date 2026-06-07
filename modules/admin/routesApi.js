@@ -699,8 +699,8 @@ adminRouter.post("/users/:userName/hook", (req, res) => {
     }
 });
 
-// POST /users/:userName/room — change user's room
-adminRouter.post("/users/:userName/room", (req, res) => {
+// POST /users/:userName/room — change user's current room and reconnect call
+adminRouter.post("/users/:userName/room", async (req, res) => {
     try {
         const userName = req.params.userName;
         logUser(userName, 'API', `ROOM-CHANGE -> ${req.body.room}`);
@@ -712,13 +712,40 @@ adminRouter.post("/users/:userName/room", (req, res) => {
         if (!userInfo || Object.keys(userInfo).length === 0) {
             return res.status(404).json({ status: false, error: "User not found" });
         }
-        const oldRoom = userInfo.room;
-        userInfo.room = parseInt(room);
+        const oldRoom = userInfo.currentRoom || userInfo.room;
+        userInfo.currentRoom = parseInt(room);
         global.db.setUserInfo(userName, userInfo);
         global.db.logEvent('room_change', userName, parseInt(room), `Moved from room ${oldRoom} to ${room}`);
+
+        // If user is in an active call, hangup and reconnect in new room
+        if (userInfo.connectionState === 'connected' && userInfo.fsChannelUUID) {
+            try {
+                getConnectionHandlers().delete(userInfo.fsChannelUUID);
+                await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName);
+                logUser(userName, 'API', `HANGUP for room change`);
+            } catch (e) {
+                console.error(`[ROOM-CHANGE] Hangup failed for ${userName}:`, e.message);
+            }
+            // Short delay then reconnect in new room
+            setTimeout(async () => {
+                try {
+                    const freshUser = global.db.getUserInfo(userName);
+                    if (freshUser && freshUser.online) {
+                        const { initiateCall } = await import("../../service/freeswitch/callGate.js");
+                        await initiateCall(userName);
+                        logUser(userName, 'API', `RECONNECT in room ${room}`);
+                    }
+                } catch (e) {
+                    console.error(`[ROOM-CHANGE] Reconnect failed for ${userName}:`, e.message);
+                }
+            }, 1500);
+        }
+
         emitStateChange('users', { userName });
         emitStateChange('rooms');
         emitStateChange('dashboard');
+        emitStateChange('callerid', { room: oldRoom });
+        emitStateChange('callerid', { room: parseInt(room) });
         res.json({ status: true, message: `User ${userName} moved to room ${room}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -754,7 +781,7 @@ adminRouter.get("/accounts/:id", (req, res) => {
 adminRouter.post("/accounts", (req, res) => {
     try {
         logUser(req.body.email, 'API', 'CREATE-ACCOUNT');
-        const { email, password, display_name, company_name, company_address, city, state, zip, room } = req.body;
+        const { email, password, display_name, company_name, company_phone, company_address, city, state, zip, room } = req.body;
         if (!email || !password) {
             return res.status(400).json({ status: false, error: "Email and password are required" });
         }
@@ -770,6 +797,7 @@ adminRouter.post("/accounts", (req, res) => {
             displayName: display_name,
             companyName: company_name,
             companyAddress: company_address,
+            companyPhone: company_phone,
             city,
             state,
             zip,

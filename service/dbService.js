@@ -164,21 +164,11 @@ function init() {
         );
     `);
 
-    _seedRoomsFromConfig();
+    _refreshRoomConfig();
 
     console.log(`SQLite database initialized at ${DB_PATH}`);
 }
 
-function _seedRoomsFromConfig() {
-    const count = sqlite.prepare('SELECT COUNT(*) as c FROM rooms').get().c;
-    if (count > 0) return;
-    const names = global.config?.ROOM_NAME || {};
-    const codes = global.config?.ROOM_SHORT_CODE || {};
-    const insert = sqlite.prepare('INSERT OR IGNORE INTO rooms (id, name, short_code) VALUES (?, ?, ?)');
-    for (const [id, name] of Object.entries(names)) {
-        insert.run(parseInt(id), name, codes[id] || name.slice(0, 2).toUpperCase());
-    }
-}
 
 function getAllRooms() {
     return sqlite.prepare('SELECT * FROM rooms ORDER BY id').all();
@@ -239,7 +229,7 @@ function setUserInfo(userName, userInfo) {
         sqlite.prepare(`
             UPDATE users SET
                 user_id = ?, contact = ?, mac = ?, ip = ?, port = ?,
-                room = ?, connection_state = ?, auth_state = ?, mute = ?,
+                room = ?, current_room = ?, connection_state = ?, auth_state = ?, mute = ?,
                 online = ?, payment = ?, retry_count = ?, login_expire = ?,
                 last_connection_state_update = ?, fs_channel_uuid = ?, fs_member_id = ?,
                 caller_id_name = ?, caller_id_html = ?, user_agent = ?, error = ?,
@@ -249,7 +239,7 @@ function setUserInfo(userName, userInfo) {
             WHERE user_name = ?
         `).run(
             userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
-            userInfo.room, userInfo.connectionState, userInfo.authState, userInfo.mute ? 1 : 0,
+            userInfo.room, userInfo.currentRoom || userInfo.room, userInfo.connectionState, userInfo.authState, userInfo.mute ? 1 : 0,
             userInfo.online ? 1 : 0, userInfo.payment ? 1 : 0, userInfo.retryCount || 0, userInfo.login_expire,
             userInfo.lastConnectionStateUpdate, userInfo.fsChannelUUID, userInfo.fsMemberId,
             userInfo.callerIdName, userInfo.callerIdHtml, userInfo.userAgent, userInfo.error,
@@ -264,15 +254,15 @@ function setUserInfo(userName, userInfo) {
         sqlite.prepare(`
             INSERT INTO users (
                 user_name, user_id, contact, mac, ip, port,
-                room, connection_state, auth_state, mute,
+                room, current_room, connection_state, auth_state, mute,
                 online, payment, retry_count, login_expire,
                 last_connection_state_update, fs_channel_uuid, fs_member_id,
                 caller_id_name, caller_id_html, user_agent, error, redline_data, client_type,
                 registration_state, reachable, last_seen
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             userName, userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
-            userInfo.room, userInfo.connectionState || 'ideal', userInfo.authState || 'logout', userInfo.mute ? 1 : 0,
+            userInfo.room, userInfo.currentRoom || userInfo.room, userInfo.connectionState || 'ideal', userInfo.authState || 'logout', userInfo.mute ? 1 : 0,
             userInfo.online ? 1 : 0, userInfo.payment ? 1 : 0, userInfo.retryCount || 0, userInfo.login_expire,
             userInfo.lastConnectionStateUpdate, userInfo.fsChannelUUID, userInfo.fsMemberId,
             userInfo.callerIdName, userInfo.callerIdHtml, userInfo.userAgent, userInfo.error,
@@ -372,6 +362,7 @@ function _rowToUserInfo(row) {
         ip: row.ip,
         port: row.port,
         room: row.room,
+        currentRoom: row.current_room,
         connectionState: row.connection_state,
         authState: row.auth_state,
         mute: !!row.mute,

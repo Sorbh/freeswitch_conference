@@ -75,6 +75,9 @@ import {
   RotateCwIcon,
   LinkIcon,
   ServerIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
 } from "lucide-react";
 
 function useTalkingUsers() {
@@ -130,7 +133,7 @@ function Tip({ label, children }) {
 
 const EMPTY_FORM = {
   email: "", password: "", display_name: "", company_name: "",
-  company_address: "", city: "", state: "", zip: "", room: "",
+  company_phone: "", company_address: "", city: "", state: "", zip: "", room: "",
 };
 
 function getStatusDot(user) {
@@ -201,7 +204,7 @@ function CopyableCell({ text, children, className = "" }) {
 }
 
 export default function UsersPage() {
-  const { names: ROOM_NAMES } = useRooms();
+  const { names: ROOM_NAMES, codes: ROOM_CODES } = useRooms();
   const { data, loading, refetch } = useFetch("/api/v1/admin/users");
   useSSERefresh(refetch, ["users"]);
   const talkingUsers = useTalkingUsers();
@@ -221,11 +224,27 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [sortCol, setSortCol] = useState(null);
+  const [sortDir, setSortDir] = useState("asc");
   const [refreshingAccountId, setRefreshingAccountId] = useState(false);
   const [refreshingDeviceId, setRefreshingDeviceId] = useState(false);
   const [ymcsAction, setYmcsAction] = useState(null);
   const [sipEditHost, setSipEditHost] = useState("");
   const [sipEditPort, setSipEditPort] = useState("");
+
+  function toggleSort(col) {
+    if (sortCol === col) {
+      if (sortDir === "asc") setSortDir("desc");
+      else { setSortCol(null); setSortDir("asc"); }
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  }
+  function SortIcon({ col }) {
+    if (sortCol !== col) return <ArrowUpDownIcon className="size-3 text-muted-foreground/30" />;
+    return sortDir === "asc" ? <ArrowUpIcon className="size-3" /> : <ArrowDownIcon className="size-3" />;
+  }
 
   const users = Array.isArray(data) ? data : [];
   const selectedUser = useMemo(
@@ -259,6 +278,17 @@ export default function UsersPage() {
 
     return true;
   }).sort((a, b) => {
+    if (sortCol) {
+      const getVal = (u) => {
+        if (sortCol === "name") return (u.account?.display_name || u.callerIdName || u.userName || "").toLowerCase();
+        if (sortCol === "email") return (u.account?.email || u.userName || "").toLowerCase();
+        if (sortCol === "company") return (u.account?.company_name || "").toLowerCase();
+        return "";
+      };
+      const va = getVal(a), vb = getVal(b);
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      if (cmp !== 0) return sortDir === "asc" ? cmp : -cmp;
+    }
     const score = (u) =>
       (u.reachable ? 4 : 0) +
       (u.connectionState === "connected" ? 3 : 0) +
@@ -287,6 +317,7 @@ export default function UsersPage() {
       password: "",
       display_name: acc?.display_name || user.callerIdName || "",
       company_name: acc?.company_name || "",
+      company_phone: acc?.company_phone || "",
       company_address: acc?.company_address || "",
       city: acc?.city || "",
       state: acc?.state || "",
@@ -512,10 +543,10 @@ export default function UsersPage() {
         </div>
         <Select value={roomFilter} onValueChange={setRoomFilter}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All Channels" />
+            <SelectValue placeholder="All Rooms" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Channels</SelectItem>
+            <SelectItem value="all">All Rooms</SelectItem>
             {Object.entries(ROOM_NAMES).map(([id, name]) => (
               <SelectItem key={id} value={id}>{name}</SelectItem>
             ))}
@@ -552,22 +583,27 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[160px]">
-                  <div className="flex items-center gap-3 text-muted-foreground/60">
-                    <Tip label="Online Status"><WifiIcon className="size-3.5" /></Tip>
-                    <Tip label="Registration"><ShieldIcon className="size-3.5" /></Tip>
-                    <Tip label="Call Status"><PhoneIcon className="size-3.5" /></Tip>
-                    <Tip label="Mute"><MicIcon className="size-3.5" /></Tip>
-                    <Tip label="Kickout"><BanIcon className="size-3.5" /></Tip>
+                <TableHead className="w-[90px] pr-0">
+                  <div className="flex items-center gap-2 text-muted-foreground/60">
+                    <Tip label="Online Status"><WifiIcon className="size-3" /></Tip>
+                    <Tip label="Registration"><ShieldIcon className="size-3" /></Tip>
+                    <Tip label="Call Status"><PhoneIcon className="size-3" /></Tip>
+                    <Tip label="Mute"><MicIcon className="size-3" /></Tip>
                   </div>
                 </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead className="hidden lg:table-cell">Company</TableHead>
-                <TableHead className="hidden md:table-cell">Channel</TableHead>
+                <TableHead className="max-w-[120px] cursor-pointer select-none" onClick={() => toggleSort("name")}>
+                  <span className="inline-flex items-center gap-1">Name <SortIcon col="name" /></span>
+                </TableHead>
+                <TableHead className="hidden md:table-cell max-w-[160px] cursor-pointer select-none" onClick={() => toggleSort("email")}>
+                  <span className="inline-flex items-center gap-1">Email <SortIcon col="email" /></span>
+                </TableHead>
+                <TableHead className="hidden lg:table-cell max-w-[120px] cursor-pointer select-none" onClick={() => toggleSort("company")}>
+                  <span className="inline-flex items-center gap-1">Company <SortIcon col="company" /></span>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">Room</TableHead>
                 <TableHead className="hidden md:table-cell">Account</TableHead>
                 <TableHead>Last Seen</TableHead>
-                <TableHead className="text-right w-[120px]"></TableHead>
+                <TableHead className="text-right w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -589,81 +625,82 @@ export default function UsersPage() {
                       if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); }
                     }}
                   >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
+                    <TableCell className="pr-0">
+                      <div className="flex items-center gap-2">
                         <Tip label={user.online ? "Online" : "Offline"}>
                           {user.online ? (
-                            <WifiIcon className="size-4 text-emerald-500" />
+                            <WifiIcon className="size-3 text-emerald-500" />
                           ) : (
-                            <WifiOffIcon className="size-4 text-zinc-500" />
+                            <WifiOffIcon className="size-3 text-zinc-500" />
                           )}
                         </Tip>
                         <Tip label={user.registrationState === "registered" ? "Registered" : user.registrationState === "expired" ? "Expired" : "Unregistered"}>
                           {user.registrationState === "registered" ? (
-                            <ShieldCheckIcon className="size-4 text-emerald-500" />
+                            <ShieldCheckIcon className="size-3 text-emerald-500" />
                           ) : user.registrationState === "expired" ? (
-                            <ShieldXIcon className="size-4 text-amber-500" />
+                            <ShieldXIcon className="size-3 text-amber-500" />
                           ) : (
-                            <ShieldXIcon className="size-4 text-zinc-500" />
+                            <ShieldXIcon className="size-3 text-zinc-500" />
                           )}
                         </Tip>
                         <Tip label={user.connectionState === "connected" ? "In Call" : user.connectionState === "connecting" ? "Connecting" : user.connectionState === "hangup" ? "Hangup" : user.connectionState === "error" ? `Error: ${user.error || "unknown"}` : "Idle"}>
                           {user.connectionState === "connected" ? (
-                            <PhoneCallIcon className="size-4 text-emerald-500" />
+                            <PhoneCallIcon className="size-3 text-emerald-500" />
                           ) : user.connectionState === "connecting" ? (
-                            <PhoneIncomingIcon className="size-4 text-amber-500 animate-pulse" />
+                            <PhoneIncomingIcon className="size-3 text-amber-500 animate-pulse" />
                           ) : user.connectionState === "hangup" ? (
-                            <PhoneOffIcon className="size-4 text-red-500" />
+                            <PhoneOffIcon className="size-3 text-red-500" />
                           ) : user.connectionState === "error" ? (
-                            <PhoneOffIcon className="size-4 text-orange-500" />
+                            <PhoneOffIcon className="size-3 text-orange-500" />
                           ) : (
-                            <PhoneIcon className="size-4 text-zinc-500" />
+                            <PhoneIcon className="size-3 text-zinc-500" />
                           )}
                         </Tip>
                         <Tip label={user.mute ? "Muted" : "Unmuted"}>
                           {user.mute ? (
-                            <MicOffIcon className="size-4 text-red-500" />
+                            <MicOffIcon className="size-3 text-red-500" />
                           ) : (
-                            <MicIcon className="size-4 text-emerald-500" />
-                          )}
-                        </Tip>
-                        <Tip label={user.account?.kickout ? "Kicked Out" : "Active"}>
-                          {user.account?.kickout ? (
-                            <BanIcon className="size-4 text-red-500" />
-                          ) : (
-                            <BanIcon className="size-4 text-zinc-500/30" />
+                            <MicIcon className="size-3 text-emerald-500" />
                           )}
                         </Tip>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <CopyableCell text={user.account?.display_name || user.callerIdName || user.userName}>
-                          {user.account?.display_name || user.callerIdName || user.userName}
-                        </CopyableCell>
+                    <TableCell className="font-medium max-w-[120px] pl-2">
+                      <div className="flex items-center gap-1.5">
+                        <CopyableCell text={user.account?.display_name || user.callerIdName || user.userName} className="text-sm" />
                         {(talkingUsers.has(user.userName) || user.talking) && (
-                          <Tip label="Speaking">
-                            <Volume2Icon className="size-4 text-cyan-400 animate-pulse" />
-                          </Tip>
+                          <Volume2Icon className="size-3 text-cyan-400 animate-pulse shrink-0" />
                         )}
                         {user.account && !user.account.active && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Inactive</Badge>
+                          <Badge variant="secondary" className="text-[9px] px-1 py-0 shrink-0">Off</Badge>
                         )}
                         {user.account?.kickout ? (
-                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 gap-1">
-                            <BanIcon className="size-2.5" />Kicked
-                          </Badge>
+                          <Badge variant="destructive" className="text-[9px] px-1 py-0 shrink-0 gap-0.5"><BanIcon className="size-2.5" />Kicked</Badge>
                         ) : null}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[160px]">
                       <CopyableCell text={user.account?.email || user.userName} />
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm">
-                      {user.account?.company_name || "-"}
+                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[120px]">
+                      <CopyableCell text={user.account?.company_name} />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                      {ROOM_NAMES[user.room] || user.room || "-"}
+                    <TableCell className="hidden md:table-cell text-sm" onClick={(e) => { e.stopPropagation(); setActionUser(user); setNewRoom(String(user.currentRoom || user.room || user.account?.room || "")); setRoomDialogOpen(true); }}>
+                      {(() => {
+                        const currentRoom = user.currentRoom || user.room;
+                        const defaultRoom = user.account?.room;
+                        const isNotDefault = currentRoom && defaultRoom && String(currentRoom) !== String(defaultRoom);
+                        const code = ROOM_CODES[currentRoom] || ROOM_NAMES[currentRoom] || currentRoom || "-";
+                        return isNotDefault ? (
+                          <span className="inline-flex items-center gap-1 text-red-400 cursor-pointer hover:text-red-300">
+                            <span className="line-through text-muted-foreground/50">{ROOM_CODES[defaultRoom]}</span>
+                            {code}
+                            <ArrowRightLeftIcon className="size-3" />
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground cursor-pointer hover:text-foreground">{code}</span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {user.account ? (
@@ -895,7 +932,13 @@ export default function UsersPage() {
                         { icon: <MailIcon className="size-3.5" />, label: "Email", value: acc.email },
                         { icon: <BuildingIcon className="size-3.5" />, label: "Company", value: acc.company_name },
                         { icon: <MapPinIcon className="size-3.5" />, label: "Address", value: [acc.company_address, [acc.city, acc.state, acc.zip].filter(Boolean).join(", ")].filter(Boolean).join(", ") },
-                        { icon: <AudioLinesIcon className="size-3.5" />, label: "Channel", value: ROOM_NAMES[acc.room] || acc.room },
+                        { icon: <AudioLinesIcon className="size-3.5" />, label: "Default Room", value: ROOM_NAMES[acc.room] || acc.room },
+                        (() => {
+                          const currentRoom = selectedUser.currentRoom || selectedUser.room || acc.room;
+                          const defaultRoom = acc.room;
+                          const isNotDefault = currentRoom && defaultRoom && String(currentRoom) !== String(defaultRoom);
+                          return { icon: <ArrowRightLeftIcon className={`size-3.5 ${isNotDefault ? "text-red-400" : ""}`} />, label: "Current Room", value: ROOM_NAMES[currentRoom] || currentRoom, hasRoomChange: true, isNotDefault };
+                        })(),
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Account ID", value: acc.ymcs_account_id || "—", refreshKey: "account" },
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Device ID", value: acc.ymcs_device_id || "—", refreshKey: "device" },
                       ].filter(f => f.value).map((field) => (
@@ -903,7 +946,7 @@ export default function UsersPage() {
                           <span className="text-muted-foreground/60 mt-0.5 group-hover:text-muted-foreground transition-colors">{field.icon}</span>
                           <div className="min-w-0 flex-1">
                             <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
-                            <p className="text-sm truncate">{field.value}</p>
+                            <p className={`text-sm truncate ${field.isNotDefault ? "text-red-400" : ""}`}>{field.value}</p>
                           </div>
                           {field.refreshKey && (
                             <button
@@ -914,6 +957,14 @@ export default function UsersPage() {
                               {(field.refreshKey === "account" ? refreshingAccountId : refreshingDeviceId)
                                 ? <Loader2Icon className="size-3.5 animate-spin" />
                                 : <RefreshCwIcon className="size-3.5" />}
+                            </button>
+                          )}
+                          {field.hasRoomChange && (
+                            <button
+                              onClick={() => { setActionUser(selectedUser); setNewRoom(String(selectedUser.currentRoom || selectedUser.room || acc.room)); setRoomDialogOpen(true); }}
+                              className={`mt-1 transition-colors ${field.isNotDefault ? "text-red-400 hover:text-red-300" : "text-muted-foreground/50 hover:text-foreground"}`}
+                            >
+                              <ArrowRightLeftIcon className="size-3.5" />
                             </button>
                           )}
                         </div>
@@ -1095,13 +1146,24 @@ export default function UsersPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Company Address</Label>
-              <Input
-                placeholder="123 Main St"
-                value={form.company_address}
-                onChange={(e) => updateField("company_address", e.target.value)}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Company Phone</Label>
+                <Input
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={form.company_phone}
+                  onChange={(e) => updateField("company_phone", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Company Address</Label>
+                <Input
+                  placeholder="123 Main St"
+                  value={form.company_address}
+                  onChange={(e) => updateField("company_address", e.target.value)}
+                />
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
@@ -1136,7 +1198,7 @@ export default function UsersPage() {
                 onValueChange={(val) => updateField("room", val)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select channel" />
+                  <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROOM_NAMES).map(([id, name]) => (
@@ -1194,17 +1256,17 @@ export default function UsersPage() {
       <Dialog open={roomDialogOpen} onOpenChange={setRoomDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Channel</DialogTitle>
+            <DialogTitle>Change Room</DialogTitle>
             <DialogDescription>
-              Move {actionUser?.userName} to a different room
+              Move {actionUser?.callerIdName || actionUser?.userName} to a different room. If in a call, it will reconnect in the new room.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
-              <Label>Select Channel</Label>
+              <Label>Select Room</Label>
               <Select value={newRoom} onValueChange={setNewRoom}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a channel" />
+                  <SelectValue placeholder="Choose a room" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.entries(ROOM_NAMES).map(([id, name]) => (

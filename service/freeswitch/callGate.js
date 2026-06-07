@@ -89,7 +89,8 @@ export async function initiateCall(userName) {
     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
     global.db.setUserInfo(userName, userInfo);
 
-    const roomName = global.config.ROOM_NAME[userInfo.room] || userInfo.room;
+    const activeRoom = userInfo.currentRoom || userInfo.room;
+    const roomName = global.config.ROOM_NAME[activeRoom] || activeRoom;
     logUser(userName, 'GATE', `ALLOW -> ${roomName}${userInfo.retryCount ? ` (retry ${userInfo.retryCount}/${MAX_RETRIES})` : ''}`);
 
     try {
@@ -133,7 +134,8 @@ function _originateToConference(userName) {
             return;
         }
 
-        const roomName = global.config.ROOM_NAME[userInfo.room] || 'Unknown';
+        const activeRoomId = userInfo.currentRoom || userInfo.room;
+        const roomName = global.config.ROOM_NAME[activeRoomId] || activeRoomId || 'Unknown';
         const profile = global.config.FREESWITCH_SOFIA_PROFILE;
         const confProfile = global.config.FREESWITCH_CONFERENCE_PROFILE;
 
@@ -166,7 +168,7 @@ function _originateToConference(userName) {
 
 function _checkUserInConference(userName, userInfo) {
     return new Promise((resolve) => {
-        const room = userInfo.room;
+        const room = userInfo.currentRoom || userInfo.room;
         if (!room) { resolve(false); return; }
 
         getConnection().api(`conference ${room} list`, (response) => {
@@ -174,9 +176,10 @@ function _checkUserInConference(userName, userInfo) {
             if (!body || body.startsWith('-ERR')) { resolve(false); return; }
 
             const sipUser = userName.replace('sip:', '');
+            const sipLocal = sipUser.split('@')[0];
             const lines = body.split('\n');
             for (const line of lines) {
-                if (line.includes(sipUser)) {
+                if (line.includes(sipLocal)) {
                     const parts = line.split(';');
                     const memberId = parts[0];
                     const uuid = parts[2];
@@ -197,7 +200,8 @@ function _checkUserInConference(userName, userInfo) {
 }
 
 function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
-    const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='600;refresher=uas'}${contact} &conference(${userInfo.room}@${confProfile}++flags{mute})`;
+    const activeRoom = userInfo.currentRoom || userInfo.room;
+    const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE',sip_h_Supported='timer',sip_h_Session-Expires='600;refresher=uas'}${contact} &conference(${activeRoom}@${confProfile}++flags{mute})`;
 
     logUser(userName, 'CALL', `ORIGINATE -> ${roomName}`);
 

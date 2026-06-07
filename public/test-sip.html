@@ -116,14 +116,105 @@
 
     <audio id="remoteAudio" autoplay></audio>
 
-    <script src="/redline_sip_client.js"></script>
     <script>
-        // Wire HTML buttons to hotlineClient API
-        function doLogin() { window.hotlineClient.login(); }
+        function doLogin() {
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value.trim() || '12345678';
+            if (!email) { document.getElementById('loginError').textContent = 'Email is required'; return; }
+
+            document.getElementById('loginStatus').textContent = 'Looking up account...';
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('btnLogin').disabled = true;
+
+            fetch('/api/v1/admin/account-lookup?email=' + encodeURIComponent(email))
+                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+                .then(function(json) {
+                    var acct = json.data || json;
+                    if (!acct || !acct.room) throw new Error('Account not found or has no room');
+
+                    localStorage.setItem('user_data', JSON.stringify({
+                        id: acct.id || 0,
+                        email: email,
+                        is_sip: 1,
+                        user_type: 2,
+                        name: acct.display_name || '',
+                        parent_id: null,
+                        parent_city: '',
+                        user_detail: {
+                            company_name: acct.company_name || '',
+                            representative_name: acct.display_name || '',
+                            company_phone: acct.phone || '',
+                            city: acct.city || '',
+                            email: email
+                        }
+                    }));
+                    localStorage.setItem('room', acct.room);
+
+                    document.getElementById('loginStatus').textContent = 'Connecting...';
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('confScreen').style.display = 'block';
+
+                    window.hotlineClient.login(email);
+                })
+                .catch(function(e) {
+                    document.getElementById('loginError').textContent = e.message;
+                    document.getElementById('loginStatus').textContent = '';
+                    document.getElementById('btnLogin').disabled = false;
+                });
+        }
+
         function toggleMute() { window.hotlineClient.toggleMute(); }
         function joinConference() { window.hotlineClient.joinConference(); }
         function hangup() { window.hotlineClient.hangup(); }
-        function logout() { window.hotlineClient.logout(); }
+        function logout() {
+            window.hotlineClient.logout();
+            localStorage.removeItem('user_data');
+            localStorage.removeItem('room');
+            document.getElementById('confScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('btnLogin').disabled = false;
+            document.getElementById('loginStatus').textContent = '';
+        }
+
+        window.onHotlineReady = function(acct) {
+            document.getElementById('confUser').textContent = acct.display_name || acct.email;
+            document.getElementById('confCompany').textContent = acct.company_name || '';
+            document.getElementById('confRoom').textContent = 'Room: ' + acct.room;
+            document.getElementById('confReg').innerHTML = '<span class="dot green"></span> <span>Registered</span>';
+            document.getElementById('confStatus').className = 'conf-status idle';
+            document.getElementById('confStatus').textContent = 'Waiting for call...';
+        };
+
+        window.onHotlineCallState = function(state) {
+            var el = document.getElementById('confStatus');
+            if (state === 'connected') {
+                el.className = 'conf-status connected';
+                el.textContent = 'Connected';
+                document.getElementById('btnMute').disabled = false;
+            } else {
+                el.className = 'conf-status disconnected';
+                el.textContent = 'Disconnected';
+                document.getElementById('btnMute').disabled = true;
+            }
+        };
+
+        // Pre-fill password
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('password').value = '12345678';
+            // Auto-login if localStorage already has data
+            var existing = localStorage.getItem('user_data');
+            if (existing) {
+                try {
+                    var d = JSON.parse(existing);
+                    if (d.email && d.is_sip) {
+                        document.getElementById('email').value = d.email;
+                        document.getElementById('loginScreen').style.display = 'none';
+                        document.getElementById('confScreen').style.display = 'block';
+                    }
+                } catch(e) {}
+            }
+        });
     </script>
+    <script src="/redline_sip_client.js"></script>
 </body>
 </html>
