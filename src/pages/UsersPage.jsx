@@ -250,7 +250,7 @@ export default function UsersPage() {
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, talking: false, error: false });
+  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false });
   const [roomFilter, setRoomFilter] = useState("all");
   const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   const [form, setForm] = useState(EMPTY_FORM);
@@ -300,16 +300,13 @@ export default function UsersPage() {
 
       if (roomFilter !== "all" && String(u.room || u.account?.room) !== roomFilter) return false;
 
-      if (Object.values(filters).some(Boolean)) {
-        let match = false;
-        if (filters.online && u.online) match = true;
-        if (filters.offline && !u.online) match = true;
-        if (filters.muted && !u.mute) match = true;
-        if (filters.inCall && u.connectionState === "connected") match = true;
-        if (filters.talking && (u.talking)) match = true;
-        if (filters.error && u.connectionState === "error") match = true;
-        if (!match) return false;
-      }
+      if (filters.online && !u.online) return false;
+      if (filters.offline && u.online) return false;
+      if (filters.muted && u.mute) return false;
+      if (filters.inCall && u.connectionState !== "connected") return false;
+      if (filters.notInCall && u.connectionState === "connected") return false;
+      if (filters.talking && !u.talking) return false;
+      if (filters.error && u.connectionState !== "error") return false;
 
       return true;
     }).sort((a, b) => {
@@ -603,6 +600,7 @@ export default function UsersPage() {
             { key: "online", label: "Online", active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
             { key: "offline", label: "Offline", active: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30", dot: "bg-zinc-400" },
             { key: "inCall", label: "In Call", active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
+            { key: "notInCall", label: "Not In Call", active: "bg-rose-500/15 text-rose-400 border-rose-500/30", dot: "bg-rose-400" },
             { key: "muted", label: "Unmuted", active: "bg-amber-500/15 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
             { key: "talking", label: "Talking", active: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30", dot: "bg-cyan-400" },
             { key: "error", label: "Error", active: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400" },

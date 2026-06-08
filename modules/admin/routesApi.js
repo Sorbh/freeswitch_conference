@@ -825,9 +825,9 @@ adminRouter.post("/accounts", (req, res) => {
 adminRouter.put("/accounts/:id", async (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        logUser(`account:${id}`, 'API', 'UPDATE-ACCOUNT');
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        logUser(account.email || `account:${id}`, 'API', 'UPDATE-ACCOUNT');
 
         const fields = {};
         const allowed = ['email', 'password', 'display_name', 'company_name', 'company_phone', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout'];
@@ -894,7 +894,7 @@ adminRouter.post("/accounts/:id/refresh-account-id", async (req, res) => {
         const ymcsAccountId = String(items[0].id);
         global.db.updateAccount(id, { ymcs_account_id: ymcsAccountId });
 
-        logUser(`account:${id}`, 'API', `REFRESH-ACCOUNT-ID → ${ymcsAccountId}`);
+        logUser(account.email || `account:${id}`, 'API', `REFRESH-ACCOUNT-ID → ${ymcsAccountId}`);
         res.json({ status: true, ymcs_account_id: ymcsAccountId });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -923,7 +923,7 @@ adminRouter.post("/accounts/:id/refresh-device-id", async (req, res) => {
         }
 
         global.db.updateAccount(id, { ymcs_device_id: device.id });
-        logUser(`account:${id}`, 'API', `REFRESH-DEVICE-ID → ${device.id} (MAC: ${mac})`);
+        logUser(account.email || `account:${id}`, 'API', `REFRESH-DEVICE-ID → ${device.id} (MAC: ${mac})`);
         res.json({ status: true, ymcs_device_id: device.id });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -941,7 +941,7 @@ adminRouter.post("/accounts/:id/ymcs/reboot", async (req, res) => {
         const { rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
         const result = await rebootDevices([account.ymcs_device_id], 1);
 
-        logUser(`account:${id}`, 'API', `REBOOT device ${account.ymcs_device_id}`);
+        logUser(account.email || `account:${id}`, 'API', `REBOOT device ${account.ymcs_device_id}`);
         res.json({ status: true, result });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -970,7 +970,7 @@ adminRouter.post("/accounts/:id/ymcs/update-sip-server", async (req, res) => {
         });
 
         global.db.updateAccount(id, { sip_server_host: host, sip_server_port: parseInt(port) });
-        logUser(`account:${id}`, 'API', `UPDATE-SIP-SERVER → ${host}:${port}`);
+        logUser(account.email || `account:${id}`, 'API', `UPDATE-SIP-SERVER → ${host}:${port}`);
         res.json({ status: true, message: `Updated to ${host}:${port}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -997,7 +997,7 @@ adminRouter.post("/accounts/:id/ymcs/rebind", async (req, res) => {
 
         await bindAccounts(account.ymcs_device_id, [{ accountId: account.ymcs_account_id, lineId: 1, accountType: 0 }]);
 
-        logUser(`account:${id}`, 'API', `REBIND ${account.ymcs_account_id} to device ${account.ymcs_device_id}`);
+        logUser(account.email || `account:${id}`, 'API', `REBIND ${account.display_name || account.email || account.ymcs_account_id} to device ${account.ymcs_device_id}`);
         res.json({ status: true, message: "Account rebound to device" });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -1070,7 +1070,7 @@ adminRouter.get("/ymcs/sync-all-device-ids", async (req, res) => {
                     sip_server_host: boundList[0].accountServer || null,
                 });
                 success++;
-                logUser(`account:${localAccount.id}`, 'API', `SYNC-DEVICE-ID → ${device.id}`);
+                logUser(localAccount.email || `account:${localAccount.id}`, 'API', `SYNC-DEVICE-ID → ${device.id}`);
                 send({ type: "success", message: `${prefix} — ${email} → ${device.id}` });
             } catch (err) {
                 failed++;
@@ -1116,7 +1116,7 @@ adminRouter.get("/ymcs/update-all-device-accounts", async (req, res) => {
                 await bindAccounts(acc.ymcs_device_id, [{ accountId: acc.ymcs_account_id, lineId: 1, accountType: 0 }]);
 
                 success++;
-                logUser(`account:${acc.id}`, 'API', `REBIND ${acc.ymcs_account_id} to device ${acc.ymcs_device_id}`);
+                logUser(acc.email || `account:${acc.id}`, 'API', `REBIND ${acc.display_name || acc.email || acc.ymcs_account_id} to device ${acc.ymcs_device_id}`);
                 send({ type: "success", message: `${prefix} — rebound (unbound ${boundList.length} old)` });
             } catch (err) {
                 failed++;
@@ -1302,9 +1302,9 @@ adminRouter.get("/ymcs/sync-room-sites", async (req, res) => {
 adminRouter.delete("/accounts/:id", async (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        logUser(`account:${id}`, 'API', 'DELETE-ACCOUNT');
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        logUser(account.email || `account:${id}`, 'API', 'DELETE-ACCOUNT');
 
         const userName = `sip:${account.email}`;
         const userInfo = global.db.getUserInfo(userName);

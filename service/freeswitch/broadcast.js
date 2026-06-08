@@ -12,6 +12,25 @@ import { logUser, logSystem } from '../logger.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
 const BROADCAST_RESPONSE_WINDOW_MS = 5000;
+const SILENCE_THRESHOLD_DB = -40;
+
+function _hasVoiceActivity(filePath) {
+    try {
+        const buf = fs.readFileSync(filePath);
+        if (buf.length <= 44) return false;
+        const samples = new Int16Array(buf.buffer, buf.byteOffset + 44, (buf.length - 44) / 2);
+        let sumSq = 0;
+        for (let i = 0; i < samples.length; i++) {
+            const n = samples[i] / 32768;
+            sumSq += n * n;
+        }
+        const rms = Math.sqrt(sumSq / samples.length);
+        const rmsDb = 20 * Math.log10(rms || 1e-10);
+        return rmsDb > SILENCE_THRESHOLD_DB;
+    } catch {
+        return true;
+    }
+}
 
 // Room-level active sessions: conferenceName -> session
 const roomSessions = new Map();
@@ -123,6 +142,12 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
 
     if (durationMs < BROADCAST_MIN_DURATION_MS) {
         logUser(roomName, 'BCAST', `TOO SHORT (${durationMs}ms) — discarding`);
+        try { fs.unlinkSync(session.recordingPath); } catch {}
+        return;
+    }
+
+    if (!_hasVoiceActivity(session.recordingPath)) {
+        logUser(roomName, 'BCAST', `NO VOICE (${durationMs}ms) — discarding`);
         try { fs.unlinkSync(session.recordingPath); } catch {}
         return;
     }
