@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Input } from "@/components/ui/input";
 import { useSSE } from "@/hooks/useSSE";
 import {
@@ -8,11 +9,12 @@ import {
   SearchIcon,
   ArrowDownIcon,
   ArrowUpIcon,
-  ChevronRightIcon,
   DownloadIcon,
 } from "lucide-react";
 
-const MAX_LINES = 5000;
+const MAX_LINES = 2000;
+const ROW_HEIGHT = 28;
+const EXPANDED_HEIGHT = 320;
 
 function localTime(iso) {
   const d = new Date(iso);
@@ -37,7 +39,6 @@ const METHOD_BADGE = {
   PUBLISH:   { bg: "#2dd4bf", fg: "#042f2e" },
 };
 
-// 16 distinct hues for Call-ID grouping
 const CALL_ID_PALETTE = [
   "#ef4444", "#f97316", "#eab308", "#22c55e",
   "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
@@ -170,21 +171,33 @@ export default function FsLogsPage() {
     return [...set].sort();
   }, [packets]);
 
-  const programmaticScroll = useRef(false);
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    getItemKey: (index) => filtered[index]?._id || index,
+    overscan: 20,
+  });
 
   useEffect(() => {
-    if (!autoScroll || !scrollRef.current) return;
-    programmaticScroll.current = true;
+    virtualizer.measure();
+  }, [expanded, virtualizer]);
+
+  const prevCountRef = useRef(filtered.length);
+  useEffect(() => {
+    if (!autoScroll || filtered.length <= prevCountRef.current) {
+      prevCountRef.current = filtered.length;
+      return;
+    }
+    prevCountRef.current = filtered.length;
     requestAnimationFrame(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
-      setTimeout(() => { programmaticScroll.current = false; }, 50);
     });
   }, [filtered.length, autoScroll]);
 
   const handleScroll = useCallback(() => {
-    if (programmaticScroll.current) return;
     if (!scrollRef.current) return;
     const el = scrollRef.current;
     setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
@@ -213,7 +226,7 @@ export default function FsLogsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] font-mono animate-in fade-in duration-300">
-      {/* Header: title + stats */}
+      {/* Header */}
       <div className="flex items-baseline justify-between px-1 pb-2 shrink-0">
         <h2 className="text-base font-bold tracking-tight font-sans">FS Logs</h2>
         <div className="text-[11px] text-muted-foreground tabular-nums">
@@ -229,7 +242,6 @@ export default function FsLogsPage() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
-        {/* Direction toggles */}
         <div className="flex rounded overflow-hidden border border-border text-[11px] shrink-0">
           {[["all", "ALL"], ["in", "↓ IN"], ["out", "↑ OUT"]].map(([val, label]) => (
             <button key={val} onClick={() => setDirFilter(val)}
@@ -238,7 +250,6 @@ export default function FsLogsPage() {
           ))}
         </div>
 
-        {/* Method dropdown */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
           <span>Method:</span>
           <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}
@@ -248,7 +259,6 @@ export default function FsLogsPage() {
           </select>
         </div>
 
-        {/* Status code dropdown */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
           <span>Status:</span>
           <select value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)}
@@ -264,14 +274,12 @@ export default function FsLogsPage() {
           </select>
         </div>
 
-        {/* Search — fills remaining space */}
         <div className="relative flex-1 min-w-[120px]">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input placeholder="Search / highlight" value={search} onChange={(e) => setSearch(e.target.value)}
             className="h-[26px] w-full pl-7 text-[11px] font-mono bg-muted/30 border-border" />
         </div>
 
-        {/* Auto-scroll */}
         <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none shrink-0">
           <input type="checkbox" checked={autoScroll}
             onChange={(e) => { setAutoScroll(e.target.checked); if (e.target.checked && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }}
@@ -279,7 +287,6 @@ export default function FsLogsPage() {
           Auto-scroll
         </label>
 
-        {/* Action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
           <button onClick={() => setActive(!active)}
             className={`flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold transition-colors ${active ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-green-500/90 text-white hover:bg-green-500"}`}>
@@ -308,140 +315,76 @@ export default function FsLogsPage() {
         <span className="w-[60px] shrink-0 text-right pr-3">Size</span>
       </div>
 
-      {/* Packet stream */}
+      {/* Packet stream — virtualized */}
       <div className="flex-1 overflow-auto min-h-0 px-1 pt-1" ref={scrollRef} onScroll={handleScroll}>
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
             {active ? "Waiting for SIP packets..." : "Stream paused."}
           </div>
         ) : (
-          <GroupedPackets filtered={filtered} expanded={expanded} setExpanded={setExpanded} search={search} />
+          <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+            {virtualizer.getVirtualItems().map((vRow) => {
+              const pkt = filtered[vRow.index];
+              const id = pkt._id || vRow.index;
+              const isExp = expanded === id;
+              return (
+                <div key={vRow.key} data-index={vRow.index}
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: isExp ? EXPANDED_HEIGHT : ROW_HEIGHT, transform: `translateY(${vRow.start}px)` }}>
+                  <PacketRow pkt={pkt} isExpanded={isExp} onToggle={() => setExpanded(isExp ? null : id)} search={search} />
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function GroupedPackets({ filtered, expanded, setExpanded, search }) {
-  // Build groups of consecutive packets with the same Call-ID
-  const groups = useMemo(() => {
-    const result = [];
-    let current = null;
-    for (const pkt of filtered) {
-      const cid = pkt.callId || pkt._id;
-      if (current && current.callId === cid) {
-        current.packets.push(pkt);
-      } else {
-        current = { callId: cid, packets: [pkt] };
-        result.push(current);
-      }
-    }
-    return result;
-  }, [filtered]);
-
-  return (
-    <div className="flex flex-col gap-[6px]">
-      {groups.map((group, gi) => {
-        const color = getCallIdColor(group.callId);
-        return (
-          <div key={group.callId + "-" + gi} className="rounded-sm overflow-hidden"
-            style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15` }}>
-            {group.packets.map((pkt, pi) => (
-              <PacketRow key={pkt._id} pkt={pkt} color={color}
-                isExpanded={expanded === pkt._id}
-                onToggle={() => setExpanded(expanded === pkt._id ? null : pkt._id)}
-                search={search}
-                isLast={pi === group.packets.length - 1} />
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function PacketRow({ pkt, color, isExpanded, onToggle, search, isLast }) {
+function PacketRow({ pkt, isExpanded, onToggle, search }) {
   const isRecv = pkt.direction === "recv";
   const parsed = parseMethod(pkt.method);
   const fromEmail = extractEmail(pkt.from);
   const ip = extractIp(pkt.transport);
+  const color = getCallIdColor(pkt.callId);
 
   return (
-    <>
-      <div
-        className={`flex items-center text-[11.5px] leading-none cursor-pointer select-none group pl-1 transition-colors ${isExpanded ? "bg-white/[0.03]" : "hover:bg-white/[0.04]"}`}
-        onClick={onToggle}
-      >
-        {/* Timestamp */}
-        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0 py-[6px]">{localTime(pkt.timestamp)}</span>
-
-        {/* Direction */}
+    <div style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15` }}>
+      <div className="flex items-center text-[11.5px] leading-none cursor-pointer select-none pl-1 hover:bg-white/[0.04]" style={{ height: ROW_HEIGHT }} onClick={onToggle}>
+        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0">{localTime(pkt.timestamp)}</span>
         <span className="w-[56px] shrink-0 flex items-center gap-1">
           {isRecv
             ? <><ArrowDownIcon className="size-3 text-green-400" /><span className="text-[10px] font-black text-green-400">IN</span></>
             : <><ArrowUpIcon className="size-3 text-blue-400" /><span className="text-[10px] font-black text-blue-400">OUT</span></>
           }
         </span>
-
-        {/* From */}
-        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">
-          {fromEmail || "—"}
-        </span>
-
-        {/* IP */}
-        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2">
-          {ip}
-        </span>
-
-        {/* Method badge */}
+        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">{fromEmail || "—"}</span>
+        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2">{ip}</span>
         <span className="w-[90px] shrink-0 pr-2">
-          {parsed.methodName && (
-            <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none"
-              style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>
-              {parsed.label}
-            </span>
-          )}
+          {parsed.methodName && <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>{parsed.label}</span>}
         </span>
-
-        {/* Response code */}
         <span className="w-[80px] shrink-0 pr-2">
-          {parsed.code && (
-            <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none"
-              style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>
-              {parsed.label}
-            </span>
-          )}
+          {parsed.code && <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>{parsed.label}</span>}
         </span>
-
-        {/* Details: status text + callId */}
         <span className="flex-1 min-w-0 truncate text-muted-foreground/70 pr-2">
           {parsed.statusText && <span className="mr-2">{parsed.statusText}</span>}
-          {pkt.callId && (
-            <span className="opacity-50" style={{ color }}>{pkt.callId.slice(0, 12)}</span>
-          )}
+          {pkt.callId && <span className="opacity-50" style={{ color }}>{pkt.callId.slice(0, 12)}</span>}
         </span>
-
-        {/* Size */}
         <span className="w-[60px] shrink-0 text-right pr-3 tabular-nums text-muted-foreground/50">{pkt.bytes}B</span>
       </div>
-
-      {/* Row divider within group */}
-      {!isLast && !isExpanded && <div className="border-b border-border/10 ml-2 mr-2" />}
-
-      {/* Expanded raw SIP */}
       {isExpanded && (
-        <div className="py-3 px-5 border-t border-border/15 bg-black/10">
+        <div className="py-3 px-5 border-t border-border/15 bg-black/10" style={{ height: EXPANDED_HEIGHT - ROW_HEIGHT, overflow: "auto" }}>
           <div className="flex items-center gap-4 text-[10px] text-muted-foreground mb-2 pb-2 border-b border-border/15">
             <span>Call-ID: <span className="text-foreground font-bold" style={{ color }}>{pkt.callId}</span></span>
             <span>Transport: <span className="text-foreground">{pkt.transport}</span></span>
             <span>Size: <span className="text-foreground">{pkt.bytes} bytes</span></span>
           </div>
-          <pre className="text-[11px] leading-[1.65] text-foreground/85 whitespace-pre-wrap break-all max-h-[400px] overflow-y-auto">
+          <pre className="text-[11px] leading-[1.65] text-foreground/85 whitespace-pre-wrap break-all">
             {highlightSip(pkt.message, search)}
           </pre>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

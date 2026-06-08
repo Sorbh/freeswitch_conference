@@ -4,7 +4,7 @@
 import { getConnection } from './connection.js';
 import { logUser, logSystem } from '../logger.js';
 
-const MAX_RETRIES = 2;
+export const MAX_RETRIES = 5;
 const RETRY_DELAY = 5000;
 
 let _locked = true;

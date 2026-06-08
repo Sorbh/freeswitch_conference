@@ -143,64 +143,62 @@ function _applyRegSync(allUsers, fsUsers) {
 function _syncConferenceState(allUsers) {
     if (!isConnected()) return;
 
-    getConnection().api('conference xml_list', (response) => {
-        const body = response.getBody().trim();
-        if (!body || body.includes('No active conferences') || body.startsWith('-ERR')) return;
+    const rooms = new Set(allUsers.map(u => u.currentRoom || u.room).filter(Boolean));
+    if (rooms.size === 0) return;
 
-        const activeByUuid = new Map();
-        const memberBlocks = body.split('<member>');
-        for (let i = 1; i < memberBlocks.length; i++) {
-            const block = memberBlocks[i];
-            const uuidMatch = block.match(/<uuid>([^<]+)<\/uuid>/);
-            const memberIdMatch = block.match(/<id>(\d+)<\/id>/);
-            const cidMatch = block.match(/<caller_id_number>([^<]+)<\/caller_id_number>/);
-            if (!uuidMatch) continue;
-            activeByUuid.set(uuidMatch[1], {
-                memberId: memberIdMatch ? memberIdMatch[1] : null,
-                callerIdNumber: cidMatch ? cidMatch[1] : '',
-            });
-        }
+    const conn = getConnection();
+    let pending = rooms.size;
+    const conferenceLines = new Map();
 
-        let fixes = 0;
-        for (const user of allUsers) {
-            if (user.connectionState === 'connected' || user.connectionState === 'connecting') continue;
+    for (const room of rooms) {
+        conn.api(`conference ${room} list`, (response) => {
+            const body = response.getBody().trim();
+            if (body && !body.startsWith('-ERR')) {
+                for (const line of body.split('\n')) {
+                    if (!line.trim()) continue;
+                    const parts = line.split(';');
+                    conferenceLines.set(line, {
+                        memberId: parts[0] || null,
+                        uuid: parts[2] || null,
+                        raw: line,
+                    });
+                }
+            }
 
-            // Check by existing UUID
-            if (user.fsChannelUUID && activeByUuid.has(user.fsChannelUUID)) {
-                const member = activeByUuid.get(user.fsChannelUUID);
+            pending--;
+            if (pending === 0) _matchUsersToConference(allUsers, conferenceLines);
+        });
+    }
+}
+
+function _matchUsersToConference(allUsers, conferenceLines) {
+    let fixes = 0;
+
+    for (const user of allUsers) {
+        if (user.connectionState === 'connected' || user.connectionState === 'connecting') continue;
+
+        const sipUser = user.userName.replace('sip:', '');
+        const sipLocal = sipUser.split('@')[0];
+
+        for (const [line, member] of conferenceLines) {
+            if (line.includes(sipLocal)) {
                 user.connectionState = 'connected';
+                user.fsChannelUUID = member.uuid;
                 user.fsMemberId = member.memberId;
                 user.error = null;
                 user.retryCount = 0;
                 user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                 global.db.setUserInfo(user.userName, user);
-                logSystem('REG-POLL', `CONF-SYNC ${user.userName} -> connected (UUID match)`);
+                logSystem('REG-POLL', `CONF-SYNC ${user.userName} -> connected (SIP match)`);
                 fixes++;
-                continue;
-            }
-
-            // Check by SIP URI in caller_id_number
-            const sipUser = user.userName.replace('sip:', '');
-            for (const [uuid, member] of activeByUuid) {
-                if (member.callerIdNumber === sipUser) {
-                    user.connectionState = 'connected';
-                    user.fsChannelUUID = uuid;
-                    user.fsMemberId = member.memberId;
-                    user.error = null;
-                    user.retryCount = 0;
-                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    global.db.setUserInfo(user.userName, user);
-                    logSystem('REG-POLL', `CONF-SYNC ${user.userName} -> connected (SIP match)`);
-                    fixes++;
-                    break;
-                }
+                break;
             }
         }
+    }
 
-        if (fixes > 0) {
-            logSystem('REG-POLL', `CONF-SYNC fixed ${fixes} stale connection states`);
-        }
-    });
+    if (fixes > 0) {
+        logSystem('REG-POLL', `CONF-SYNC fixed ${fixes} stale connection states`);
+    }
 }
 
 function _cleanupDeadHandlers(allUsers) {

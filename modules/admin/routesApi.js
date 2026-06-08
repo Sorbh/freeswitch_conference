@@ -442,11 +442,6 @@ adminRouter.get("/system", async (req, res) => {
             eslConnected = global.freeswitch.isConnected();
         } catch { }
 
-        let conferenceList = '';
-        try {
-            conferenceList = await global.freeswitch.getConferenceList();
-        } catch { }
-
         const fsStatus = eslConnected ? 'running' : 'disconnected';
 
         const users = global.db.getAllUserInfo();
@@ -461,7 +456,6 @@ adminRouter.get("/system", async (req, res) => {
                 memoryUsage: process.memoryUsage(),
                 freeswitchStatus: fsStatus,
                 eslConnected,
-                conferenceList,
                 dbSize,
                 registrationCount,
                 totalUsers,
@@ -1259,13 +1253,67 @@ adminRouter.get("/ymcs/reboot-all-devices", async (req, res) => {
     res.end();
 });
 
+// GET /ymcs/sync-room-sites — SSE: fetch YMCS sites and match to local rooms
+adminRouter.get("/ymcs/sync-room-sites", async (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+    const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+
+    try {
+        const { listSites } = await import("../../service/yealink/yealinkSites.js");
+        send({ type: "info", message: "Fetching YMCS sites..." });
+
+        const result = await listSites({ limit: 200 });
+        const sites = result?.data || [];
+        send({ type: "info", message: `Found ${sites.length} YMCS sites` });
+
+        const rooms = global.db.getAllRooms();
+        let matched = 0, skipped = 0;
+
+        for (const site of sites) {
+            const siteName = (site.name || '').toLowerCase().trim();
+            if (!siteName) { skipped++; continue; }
+
+            const room = rooms.find(r => {
+                const roomName = (r.name || '').toLowerCase().trim();
+                const shortCode = (r.short_code || '').toLowerCase().trim();
+                const roomId = String(r.id);
+                return roomName === siteName || shortCode === siteName || roomId === siteName;
+            });
+
+            if (room) {
+                global.db.updateRoom(room.id, { ymcs_site_id: site.id, ymcs_parent_site_id: site.parentId || null });
+                send({ type: "success", message: `${site.name} → Room "${room.name}" (${room.id})` });
+                matched++;
+            } else {
+                send({ type: "skip", message: `${site.name} — no matching room` });
+                skipped++;
+            }
+        }
+
+        send({ type: "done", success: matched, failed: 0, skipped, total: sites.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
 // DELETE /accounts/:id — delete account
-adminRouter.delete("/accounts/:id", (req, res) => {
+adminRouter.delete("/accounts/:id", async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         logUser(`account:${id}`, 'API', 'DELETE-ACCOUNT');
         const account = global.db.getAccountById(id);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        const userName = `sip:${account.email}`;
+        const userInfo = global.db.getUserInfo(userName);
+        if (Object.keys(userInfo).length > 0) {
+            if (userInfo.fsChannelUUID) {
+                try { await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName); } catch (_) {}
+            }
+            global.db.deleteUserInfo(userName);
+        }
 
         global.db.deleteAccount(id);
         global.db.logEvent('account_deleted', account.email, null, `Account deleted`);

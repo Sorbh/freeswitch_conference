@@ -77,6 +77,9 @@ import {
   ArrowUpDownIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  LayoutGridIcon,
+  ListIcon,
+  GlobeIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -160,6 +163,11 @@ const EMPTY_FORM = {
   email: "", password: "", display_name: "", company_name: "",
   company_phone: "", company_address: "", city: "", state: "", zip: "", room: "",
 };
+
+function ClientTypeIcon({ clientType }) {
+  if (clientType === "web") return <Tip label="Web Client"><GlobeIcon className="size-3 text-purple-500 shrink-0" /></Tip>;
+  return null;
+}
 
 function getStatusDot(user) {
   if (user.connectionState === "connected") return "bg-green-500";
@@ -256,6 +264,7 @@ export default function UsersPage() {
   const [ymcsAction, setYmcsAction] = useState(null);
   const [sipEditHost, setSipEditHost] = useState("");
   const [sipEditPort, setSipEditPort] = useState("");
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("bjs-view-mode") || "list");
 
   function toggleSort(col) {
     if (sortCol === col) {
@@ -325,6 +334,9 @@ export default function UsersPage() {
   }, [users, deferredSearch, roomFilter, filters, sortCol, sortDir]);
 
   const onlineCount = users.filter((u) => u.connectionState === "connected" || u.online).length;
+  const inCallCount = users.filter((u) => u.connectionState === "connected").length;
+  const errorCount = users.filter((u) => u.connectionState === "error").length;
+  const offlineCount = users.filter((u) => !u.online && u.connectionState !== "error").length;
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -513,10 +525,17 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Connected Yards</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-mono tabular-nums">{users.length}</span> yards total,{" "}
-            <span className="font-mono tabular-nums">{onlineCount}</span> online
-            {anyFilterActive && <span className="ml-2 text-primary">({filtered.length} shown)</span>}
+          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+            <span><span className="font-mono font-bold tabular-nums">{users.length}</span> Total</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="text-green-600 dark:text-green-400"><span className="font-mono font-bold tabular-nums">{onlineCount}</span> Online</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="text-blue-600 dark:text-blue-400"><span className="font-mono font-bold tabular-nums">{inCallCount}</span> In Call</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="text-red-600 dark:text-red-400"><span className="font-mono font-bold tabular-nums">{errorCount}</span> Error</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span><span className="font-mono font-bold tabular-nums">{offlineCount}</span> Offline</span>
+            {anyFilterActive && <><span className="text-muted-foreground/40">·</span><span className="text-primary font-bold">{filtered.length} shown</span></>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -602,8 +621,81 @@ export default function UsersPage() {
             </button>
           ))}
         </div>
+        <div className="flex items-center border rounded-md overflow-hidden ml-auto shrink-0">
+          <button
+            onClick={() => { setViewMode("list"); localStorage.setItem("bjs-view-mode", "list"); }}
+            className={`p-1.5 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            <ListIcon className="size-4" />
+          </button>
+          <button
+            onClick={() => { setViewMode("grid"); localStorage.setItem("bjs-view-mode", "grid"); }}
+            className={`p-1.5 transition-colors ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            <LayoutGridIcon className="size-4" />
+          </button>
+        </div>
       </div>
 
+      {viewMode === "grid" ? (
+        <div className="flex flex-wrap gap-1.5">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-12 w-full text-center">No yards found</p>
+          ) : filtered.map((user) => {
+            const name = user.account?.display_name || user.callerIdName || user.userName;
+            const company = user.account?.company_name;
+            const email = user.account?.email || user.userName;
+            const room = ROOM_CODES[user.currentRoom || user.room] || ROOM_NAMES[user.currentRoom || user.room] || user.currentRoom || user.room || "-";
+            const isError = user.connectionState === "error";
+            const isInCall = user.connectionState === "connected";
+            const isConnecting = user.connectionState === "connecting";
+            const isOnline = user.online;
+            const bg = isError
+              ? "bg-red-500 text-white dark:bg-red-600"
+              : isInCall
+              ? "bg-green-600 text-white dark:bg-green-700"
+              : isConnecting
+              ? "bg-amber-500 text-white dark:bg-amber-600"
+              : isOnline
+              ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 border border-amber-200 dark:border-amber-800/40"
+              : "bg-muted text-muted-foreground border border-border/50";
+            const statusLabel = isError ? "Error" : isInCall ? "In Call" : isConnecting ? "Connecting" : isOnline ? "Online" : "Offline";
+            const tooltipLines = [
+              name,
+              email !== name ? email : null,
+              company ? `Company: ${company}` : null,
+              `Room: ${room}`,
+              `Status: ${statusLabel}`,
+              user.clientType && user.clientType !== "unknown" ? `Client: ${user.clientType}` : null,
+              user.registrationState ? `Registration: ${user.registrationState}` : null,
+              user.mute ? "Muted" : "Unmuted",
+              user.talking ? "Talking" : null,
+              isError && user.error ? `Error: ${user.error}` : null,
+              `Last seen: ${timeAgo(user.last_seen || user.updatedAt)}`,
+              user.account ? (user.account.active ? "Account: Active" : "Account: Inactive") : null,
+              user.account?.kickout ? "Kicked out" : null,
+            ].filter(Boolean).join("\n");
+            return (
+              <Tooltip key={user.userName}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => { setSelectedUserName(user.userName); setSheetOpen(true); const a = user.account; if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); } }}
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-tight cursor-pointer hover:opacity-80 transition-opacity ${bg}`}
+                  >
+                    {isError && <PhoneOffIcon className="size-2.5 shrink-0" />}
+                    {isInCall && <PhoneCallIcon className="size-2.5 shrink-0" />}
+                    {user.clientType === "web" && <GlobeIcon className="size-2.5 shrink-0" />}
+                    <span className="truncate max-w-[80px]">{company || name}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[250px]">
+                  <div className="text-xs space-y-0.5 whitespace-pre-line">{tooltipLines}</div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      ) : (
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -706,7 +798,10 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[160px]">
-                      <CopyableCell text={user.account?.email || user.userName} />
+                      <div className="flex items-center gap-1.5">
+                        <CopyableCell text={user.account?.email || user.userName} />
+                        <ClientTypeIcon clientType={user.clientType} />
+                      </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[120px]">
                       <CopyableCell text={user.account?.company_name} />
@@ -811,6 +906,7 @@ export default function UsersPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

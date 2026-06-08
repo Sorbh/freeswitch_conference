@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Input } from "@/components/ui/input";
 import { useSSE } from "@/hooks/useSSE";
 import {
@@ -12,7 +13,9 @@ import {
   ChevronDownIcon,
 } from "lucide-react";
 
-const MAX_LINES = 5000;
+const MAX_LINES = 2000;
+const ROW_HEIGHT = 28;
+const EXPANDED_HEIGHT = 320;
 
 function localTime(iso) {
   const d = new Date(iso);
@@ -265,21 +268,41 @@ export default function PhoneLogsPage() {
     return [...set].sort();
   }, [logs]);
 
-  const programmaticScroll = useRef(false);
+  const getItemSize = useCallback((index) => {
+    const item = filtered[index];
+    if (!item) return ROW_HEIGHT;
+    return expanded === (item._id || index) ? EXPANDED_HEIGHT : ROW_HEIGHT;
+  }, [filtered, expanded]);
 
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    getItemKey: (index) => filtered[index]?._id || index,
+    overscan: 20,
+  });
+
+  // Re-measure when expanded changes
   useEffect(() => {
-    if (!autoScroll || !scrollRef.current) return;
-    programmaticScroll.current = true;
+    virtualizer.measure();
+  }, [expanded, virtualizer]);
+
+  // Auto-scroll to bottom
+  const prevCountRef = useRef(filtered.length);
+  useEffect(() => {
+    if (!autoScroll || filtered.length <= prevCountRef.current) {
+      prevCountRef.current = filtered.length;
+      return;
+    }
+    prevCountRef.current = filtered.length;
     requestAnimationFrame(() => {
       if (scrollRef.current) {
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
-      setTimeout(() => { programmaticScroll.current = false; }, 50);
     });
   }, [filtered.length, autoScroll]);
 
   const handleScroll = useCallback(() => {
-    if (programmaticScroll.current) return;
     if (!scrollRef.current) return;
     const el = scrollRef.current;
     setAutoScroll(el.scrollHeight - el.scrollTop - el.clientHeight < 60);
@@ -322,27 +345,16 @@ export default function PhoneLogsPage() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
-        {/* SIP Only toggle */}
         <div className="flex rounded overflow-hidden border border-border text-[11px] shrink-0">
-          {[
-            ["all", "ALL"],
-            ["sip", "SIP ONLY"],
-          ].map(([val, label]) => (
+          {[["all", "ALL"], ["sip", "SIP ONLY"]].map(([val, label]) => (
             <button key={val} onClick={() => setSipOnly(val === "sip")}
               className={`px-3 py-1 font-bold transition-colors ${(sipOnly ? "sip" : "all") === val ? "bg-foreground text-background" : "bg-muted/30 text-muted-foreground hover:bg-muted/60"}`}
             >{label}</button>
           ))}
         </div>
 
-        {/* User/MAC searchable dropdown */}
-        <PhoneDropdown
-          value={macFilter}
-          onChange={setMacFilter}
-          users={users}
-          seenMacs={seenMacs}
-        />
+        <PhoneDropdown value={macFilter} onChange={setMacFilter} users={users} seenMacs={seenMacs} />
 
-        {/* Level dropdown */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
           <span>Level:</span>
           <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)}
@@ -352,7 +364,6 @@ export default function PhoneLogsPage() {
           </select>
         </div>
 
-        {/* Method dropdown (visible when SIP only) */}
         {sipOnly && (
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
             <span>Method:</span>
@@ -364,14 +375,12 @@ export default function PhoneLogsPage() {
           </div>
         )}
 
-        {/* Search */}
         <div className="relative flex-1 min-w-[120px]">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input placeholder="Search logs..." value={search} onChange={(e) => setSearch(e.target.value)}
             className="h-[26px] w-full pl-7 text-[11px] font-mono bg-muted/30 border-border" />
         </div>
 
-        {/* Auto-scroll */}
         <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none shrink-0">
           <input type="checkbox" checked={autoScroll}
             onChange={(e) => { setAutoScroll(e.target.checked); if (e.target.checked && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }}
@@ -379,7 +388,6 @@ export default function PhoneLogsPage() {
           Auto-scroll
         </label>
 
-        {/* Action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
           <button onClick={() => setActive(!active)}
             className={`flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold transition-colors ${active ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-green-500/90 text-white hover:bg-green-500"}`}>
@@ -417,19 +425,28 @@ export default function PhoneLogsPage() {
         </div>
       )}
 
-      {/* Log stream */}
+      {/* Log stream — virtualized */}
       <div className="flex-1 overflow-auto min-h-0 px-1 pt-1" ref={scrollRef} onScroll={handleScroll}>
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
             {active ? "Waiting for phone syslog messages..." : "Stream paused."}
           </div>
-        ) : sipOnly ? (
-          <SipGroupedView filtered={filtered} expanded={expanded} setExpanded={setExpanded} search={search} macToUser={macToUser} />
         ) : (
-          <div className="flex flex-col">
-            {filtered.map((log, i) => (
-              <PlainLogRow key={log._id || i} log={log} userName={macToUser[log.mac] || ""} isExpanded={expanded === (log._id || i)} onToggle={() => setExpanded(expanded === (log._id || i) ? null : (log._id || i))} search={search} />
-            ))}
+          <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+            {virtualizer.getVirtualItems().map((vRow) => {
+              const log = filtered[vRow.index];
+              const id = log._id || vRow.index;
+              const isExp = expanded === id;
+              return (
+                <div key={vRow.key} data-index={vRow.index}
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: isExp ? EXPANDED_HEIGHT : ROW_HEIGHT, transform: `translateY(${vRow.start}px)` }}>
+                  {sipOnly
+                    ? <SipRow log={log} isExpanded={isExp} onToggle={() => setExpanded(isExp ? null : id)} search={search} macToUser={macToUser} />
+                    : <PlainLogRow log={log} userName={macToUser[log.mac] || ""} isExpanded={isExp} onToggle={() => setExpanded(isExp ? null : id)} search={search} />
+                  }
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -437,121 +454,53 @@ export default function PhoneLogsPage() {
   );
 }
 
-/* ── SIP grouped view (Call-ID grouping like FS Logs) ── */
-
-function SipGroupedView({ filtered, expanded, setExpanded, search, macToUser }) {
-  const groups = useMemo(() => {
-    const result = [];
-    let current = null;
-    for (const pkt of filtered) {
-      const cid = pkt.callId || pkt._id;
-      if (current && current.callId === cid) {
-        current.packets.push(pkt);
-      } else {
-        current = { callId: cid, packets: [pkt] };
-        result.push(current);
-      }
-    }
-    return result;
-  }, [filtered]);
+/* ── SIP row ── */
+function SipRow({ log, isExpanded, onToggle, search, macToUser }) {
+  const parsed = parseMethod(log.method);
+  const isRecv = log.direction === "recv";
+  const color = getCallIdColor(log.callId);
+  const userName = macToUser[log.mac] || "";
 
   return (
-    <div className="flex flex-col gap-[6px]">
-      {groups.map((group, gi) => {
-        const color = getCallIdColor(group.callId);
-        return (
-          <div key={group.callId + "-" + gi} className="rounded-sm overflow-hidden"
-            style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15` }}>
-            {group.packets.map((pkt, pi) => (
-              <SipPacketRow key={pkt._id} pkt={pkt} color={color}
-                userName={macToUser[pkt.mac] || ""}
-                isExpanded={expanded === pkt._id}
-                onToggle={() => setExpanded(expanded === pkt._id ? null : pkt._id)}
-                search={search}
-                isLast={pi === group.packets.length - 1} />
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function SipPacketRow({ pkt, color, userName, isExpanded, onToggle, search, isLast }) {
-  const isRecv = pkt.direction === "recv";
-  const parsed = parseMethod(pkt.method);
-
-  return (
-    <>
-      <div
-        className={`flex items-center text-[11.5px] leading-none cursor-pointer select-none group pl-1 transition-colors ${isExpanded ? "bg-white/[0.03]" : "hover:bg-white/[0.04]"}`}
-        onClick={onToggle}
-      >
-        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0 py-[6px]">{localTime(pkt.timestamp)}</span>
-
+    <div style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15` }}>
+      <div className="flex items-center text-[11.5px] leading-none cursor-pointer select-none pl-1 hover:bg-white/[0.04]" style={{ height: ROW_HEIGHT }} onClick={onToggle}>
+        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0">{localTime(log.timestamp)}</span>
         <span className="w-[56px] shrink-0 flex items-center gap-1">
-          {pkt.direction ? (
+          {log.direction ? (
             isRecv
               ? <><ArrowDownIcon className="size-3 text-green-400" /><span className="text-[10px] font-black text-green-400">IN</span></>
               : <><ArrowUpIcon className="size-3 text-blue-400" /><span className="text-[10px] font-black text-blue-400">OUT</span></>
           ) : <span className="text-[10px] text-muted-foreground/50">—</span>}
         </span>
-
-        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">
-          {userName || "—"}
-        </span>
-
-        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2 tabular-nums">
-          {pkt.mac || "—"}
-        </span>
-
+        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">{userName || "—"}</span>
+        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2 tabular-nums">{log.mac || "—"}</span>
         <span className="w-[90px] shrink-0 pr-2">
-          {parsed.methodName && (
-            <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none"
-              style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>
-              {parsed.label}
-            </span>
-          )}
+          {parsed.methodName && <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>{parsed.label}</span>}
         </span>
-
         <span className="w-[80px] shrink-0 pr-2">
-          {parsed.code && (
-            <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none"
-              style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>
-              {parsed.label}
-            </span>
-          )}
+          {parsed.code && <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>{parsed.label}</span>}
         </span>
-
         <span className="flex-1 min-w-0 truncate text-muted-foreground/70 pr-2">
           {parsed.statusText && <span className="mr-2">{parsed.statusText}</span>}
-          {pkt.callId && (
-            <span className="opacity-50" style={{ color }}>{pkt.callId.slice(0, 12)}</span>
-          )}
-          {pkt.dest && (
-            <span className="ml-2 text-muted-foreground/40">{pkt.dest}</span>
-          )}
+          {log.callId && <span className="opacity-50" style={{ color }}>{log.callId.slice(0, 12)}</span>}
+          {log.dest && <span className="ml-2 text-muted-foreground/40">{log.dest}</span>}
         </span>
       </div>
-
-      {!isLast && !isExpanded && <div className="border-b border-border/10 ml-2 mr-2" />}
-
       {isExpanded && (
-        <div className="py-3 px-5 border-t border-border/15 bg-black/10">
+        <div className="py-3 px-5 border-t border-border/15 bg-black/10" style={{ height: EXPANDED_HEIGHT - ROW_HEIGHT, overflow: "auto" }}>
           <div className="flex items-center gap-4 text-[10px] text-muted-foreground mb-2 pb-2 border-b border-border/15">
-            <span>Call-ID: <span className="text-foreground font-bold" style={{ color }}>{pkt.callId || "—"}</span></span>
-            <span>MAC: <span className="text-foreground font-bold">{pkt.mac || "—"}</span></span>
+            <span>Call-ID: <span className="text-foreground font-bold" style={{ color }}>{log.callId || "—"}</span></span>
+            <span>MAC: <span className="text-foreground font-bold">{log.mac || "—"}</span></span>
             <span>User: <span className="text-foreground font-bold">{userName || "—"}</span></span>
-            {pkt.from && <span>From: <span className="text-foreground">{extractEmail(pkt.from) || pkt.from}</span></span>}
-            {pkt.to && <span>To: <span className="text-foreground">{extractEmail(pkt.to) || pkt.to}</span></span>}
-            {pkt.dest && <span>Dest: <span className="text-foreground">{pkt.dest}</span></span>}
+            {log.from && <span>From: <span className="text-foreground">{extractEmail(log.from) || log.from}</span></span>}
+            {log.to && <span>To: <span className="text-foreground">{extractEmail(log.to) || log.to}</span></span>}
           </div>
-          <pre className="text-[11px] leading-[1.65] text-foreground/85 whitespace-pre-wrap break-all max-h-[400px] overflow-y-auto">
-            {highlightText(cleanSipText(pkt.message || ""), search)}
+          <pre className="text-[11px] leading-[1.65] text-foreground/85 whitespace-pre-wrap break-all">
+            {highlightText(cleanSipText(log.message || ""), search)}
           </pre>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -559,55 +508,37 @@ function cleanSipText(text) {
   return text.replace(/\n{2,}/g, "\n").trim();
 }
 
-/* ── Plain log row (non-SIP mode) ── */
-
+/* ── Plain log row ── */
 function PlainLogRow({ log, userName, isExpanded, onToggle, search }) {
   const badge = LEVEL_BADGE[log.level] || LEVEL_BADGE.INFO;
 
   return (
     <>
-      <div
-        className={`flex items-center text-[11.5px] leading-none cursor-pointer select-none group pl-1 transition-colors ${isExpanded ? "bg-white/[0.03]" : "hover:bg-white/[0.04]"}`}
-        onClick={onToggle}
-      >
-        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0 py-[6px]">{localTime(log.timestamp)}</span>
-
+      <div className="flex items-center text-[11.5px] leading-none cursor-pointer select-none pl-1 hover:bg-white/[0.04]" style={{ height: ROW_HEIGHT }} onClick={onToggle}>
+        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0">{localTime(log.timestamp)}</span>
         <span className="w-[70px] shrink-0 pr-2">
-          <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none"
-            style={{ backgroundColor: badge.bg, color: badge.fg }}>
-            {log.level}
-          </span>
+          <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: badge.bg, color: badge.fg }}>{log.level}</span>
         </span>
-
-        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">
-          {userName || "—"}
-        </span>
-
-        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2 tabular-nums">
-          {log.mac || "—"}
-        </span>
-
-        <span className="flex-1 min-w-0 text-foreground/80 pr-2 break-all whitespace-pre-wrap leading-snug">
+        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">{userName || "—"}</span>
+        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2 tabular-nums">{log.mac || "—"}</span>
+        <span className="flex-1 min-w-0 truncate text-foreground/80 pr-2">
           {log.isSip && <span className="inline-flex items-center px-1 py-[1px] rounded text-[9px] font-black leading-none bg-purple-500/30 text-purple-300 mr-1.5 align-middle">SIP</span>}
           {highlightText(log.message || "", search)}
         </span>
       </div>
-
       {isExpanded && (
-        <div className="py-3 px-5 border-t border-border/15 bg-black/10 mb-[2px]">
+        <div className="py-3 px-5 border-t border-border/15 bg-black/10" style={{ height: EXPANDED_HEIGHT - ROW_HEIGHT, overflow: "auto" }}>
           <div className="flex items-center gap-4 text-[10px] text-muted-foreground mb-2 pb-2 border-b border-border/15">
             <span>MAC: <span className="text-foreground font-bold">{log.mac || "—"}</span></span>
             <span>Level: <span className="text-foreground font-bold">{log.level}</span></span>
             <span>User: <span className="text-foreground font-bold">{userName || "—"}</span></span>
             {log.isSip && log.callId && <span>Call-ID: <span className="text-foreground font-bold">{log.callId}</span></span>}
           </div>
-          <pre className="text-[11px] leading-[1.65] text-foreground/85 whitespace-pre-wrap break-all max-h-[400px] overflow-y-auto">
+          <pre className="text-[11px] leading-[1.65] text-foreground/85 whitespace-pre-wrap break-all">
             {highlightText(log.raw || log.message || "", search)}
           </pre>
         </div>
       )}
-
-      {!isExpanded && <div className="border-b border-border/10 ml-2 mr-2" />}
     </>
   );
 }

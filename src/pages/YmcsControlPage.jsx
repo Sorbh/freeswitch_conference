@@ -26,6 +26,7 @@ import {
   ServerIcon,
   RotateCwIcon,
   ShieldAlertIcon,
+  MapPinIcon,
 } from "lucide-react";
 
 function SyncLog({ entries }) {
@@ -99,10 +100,13 @@ export default function YmcsControlPage() {
   const [sipServerResult, setSipServerResult] = useState(null);
   const [rebootLog, setRebootLog] = useState([]);
   const [rebootResult, setRebootResult] = useState(null);
+  const [syncingSites, setSyncingSites] = useState(false);
+  const [siteLog, setSiteLog] = useState([]);
+  const [siteResult, setSiteResult] = useState(null);
   const [sipHost, setSipHost] = useState("50.28.84.57");
   const [sipPort, setSipPort] = useState("5070");
   const abortRef = useRef(null);
-  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting;
+  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites;
   const [confirmAction, setConfirmAction] = useState(null);
   const [stats, setStats] = useState(null);
   const [missingDialog, setMissingDialog] = useState(null);
@@ -111,12 +115,16 @@ export default function YmcsControlPage() {
 
   async function fetchStats() {
     try {
-      const res = await fetch("/api/v1/admin/accounts");
-      const json = await res.json();
-      const accounts = json.data || [];
+      const [accRes, roomRes] = await Promise.all([
+        fetch("/api/v1/admin/accounts").then(r => r.json()),
+        fetch("/api/v1/admin/rooms/config").then(r => r.json()),
+      ]);
+      const accounts = accRes.data || [];
+      const rooms = roomRes.data?.rooms || [];
       const missingDevice = accounts.filter(a => !a.ymcs_device_id);
       const missingAccount = accounts.filter(a => !a.ymcs_account_id);
       const notEligible = accounts.filter(a => !a.ymcs_account_id || !a.ymcs_device_id);
+      const missingSite = rooms.filter(r => !r.ymcs_site_id);
       setStats({
         total: accounts.length,
         missingAccountId: missingAccount.length,
@@ -125,6 +133,9 @@ export default function YmcsControlPage() {
         missingDeviceList: missingDevice.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id })),
         eligibleRebind: accounts.filter(a => a.ymcs_account_id && a.ymcs_device_id).length,
         notEligibleList: notEligible.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id, hasDeviceId: !!a.ymcs_device_id })),
+        missingSiteId: missingSite.length,
+        missingSiteList: missingSite.map(r => ({ name: r.name, id: String(r.id), short_code: r.short_code })),
+        totalRooms: rooms.length,
       });
     } catch {}
   }
@@ -220,6 +231,40 @@ export default function YmcsControlPage() {
     } catch (e) {
       addLog(setDeviceLog, { type: "error", message: `Fatal: ${e.message}` });
       setSyncingDevices(false);
+    }
+  }
+
+  async function syncRoomSites() {
+    setSyncingSites(true);
+    setSiteLog([]);
+    setSiteResult(null);
+    const start = Date.now();
+
+    try {
+      const eventSource = new EventSource("/api/v1/admin/ymcs/sync-room-sites");
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "done") {
+          eventSource.close();
+          const duration = ((Date.now() - start) / 1000).toFixed(1);
+          setSiteResult({ success: data.success, failed: data.failed, skipped: data.skipped, total: data.total, duration });
+          addLog(setSiteLog, { type: "info", message: `Done — ${data.success} matched, ${data.skipped} skipped (${duration}s)` });
+          setSyncingSites(false); fetchStats();
+        } else {
+          addLog(setSiteLog, data);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        addLog(setSiteLog, { type: "error", message: "Connection lost" });
+        setSyncingSites(false);
+      };
+    } catch (e) {
+      addLog(setSiteLog, { type: "error", message: `Fatal: ${e.message}` });
+      setSyncingSites(false);
     }
   }
 
@@ -432,6 +477,49 @@ export default function YmcsControlPage() {
             <SyncResult result={deviceResult} />
             {deviceLog.length > 0 && (
               <div data-sync-log><SyncLog entries={deviceLog} /></div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sync Room Sites */}
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPinIcon className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Sync Room Sites</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Match YMCS sites to local rooms by name
+                  </p>
+                  {stats && (
+                    stats.missingSiteId > 0 ? (
+                      <button onClick={() => setMissingDialog({ title: "Rooms Missing YMCS Site ID", list: stats.missingSiteList, columns: ["name", "id", "short_code"] })} className="text-[11px] mt-1.5 font-mono text-red-400 hover:text-red-300 transition-colors cursor-pointer underline underline-offset-2 decoration-red-400/30">
+                        {stats.missingSiteId} missing
+                      </button>
+                    ) : (
+                      <p className="text-[11px] mt-1.5 font-mono text-emerald-400">all synced</p>
+                    )
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setConfirmAction({ title: "Sync Room Sites", description: "This will fetch all YMCS sites and match them to local rooms by name, short code, or room ID. Matched rooms will store the YMCS site ID.", action: syncRoomSites })}
+                disabled={anySyncing}
+                className="shrink-0"
+              >
+                {syncingSites
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
+                }
+              </Button>
+            </div>
+            <SyncResult result={siteResult} />
+            {siteLog.length > 0 && (
+              <div data-sync-log><SyncLog entries={siteLog} /></div>
             )}
           </CardContent>
         </Card>

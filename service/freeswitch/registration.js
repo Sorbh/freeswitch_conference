@@ -3,7 +3,7 @@
 // On unregister/expire: marks user offline, ends active calls, prevents reconnect loops.
 import { onCustomEvent } from './connection.js';
 import { clearOnlineTimer } from './onlineSync.js';
-import { initiateCall } from './callGate.js';
+import { initiateCall, MAX_RETRIES } from './callGate.js';
 import { logUser, logBlocked } from '../logger.js';
 
 const registrationFailures = new Map();
@@ -77,11 +77,25 @@ async function _handleRegistration(event) {
 
         if (global.alerting) global.alerting.stopCriticalAlert(userName);
 
+        if (existingUser.connectionState === 'error'
+            && (existingUser.error || '').includes('RECOVERY_ON_TIMER_EXPIRE')
+            && (existingUser.retryCount || 0) >= MAX_RETRIES) {
+            logUser(userName, 'REG', 'RECOVERY — clearing RECOVERY_ON_TIMER_EXPIRE error');
+            existingUser.connectionState = 'ideal';
+            existingUser.error = null;
+            existingUser.retryCount = 0;
+            global.db.setUserInfo(userName, existingUser);
+        }
+
         ensureInConference(userName);
         return;
     }
 
-    const room = account.room || 123456701;
+    if (!account.room) {
+        logUser(userName, 'REG', 'REJECTED — no room configured');
+        return;
+    }
+    const room = account.room;
     const userInfo = {
         userId: account.id,
         contact: contact,

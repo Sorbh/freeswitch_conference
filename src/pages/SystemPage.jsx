@@ -11,7 +11,6 @@ import {
   UsersIcon,
   CpuIcon,
   HardDriveIcon,
-  GlobeIcon,
 } from "lucide-react";
 
 function StatusDot({ status }) {
@@ -167,19 +166,6 @@ export default function SystemPage() {
         </Card>
       </div>
 
-      {data?.conferenceList && (
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-4">
-              <GlobeIcon className="size-4" />
-              <span className="text-xs uppercase tracking-wider font-medium">Active Conferences</span>
-            </div>
-            <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap bg-muted/50 rounded-md p-3 overflow-auto max-h-60">
-              {data.conferenceList || "No active conferences"}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

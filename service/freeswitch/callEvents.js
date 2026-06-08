@@ -260,19 +260,21 @@ function _handleConferenceEvent(event) {
         case 'del-member': {
             logUser(null, 'CONF', `LEAVE ${callerIdName} <- ${roomName} (member ${memberId})`);
             const uuid = event.getHeader('Unique-ID');
-            if (uuid) {
-                const users = global.db.filter(u => u.fsChannelUUID === uuid);
-                if (users.length > 0) {
-                    const user = users[0];
-                    if (_talkingUsers.delete(user.userName)) {
-                        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: user.userName, talking: false });
-                    }
-                    user.fsMemberId = null;
-                    user.connectionState = 'hangup';
-                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    global.db.setUserInfo(user.userName, user);
-                    logUser(user.userName, 'CONF', 'LEAVE -> hangup');
+            const delUser = uuid ? global.db.filter(u => u.fsChannelUUID === uuid)[0] : null;
+            if (delUser) {
+                delUser.mute = true;
+                global.db.setUserInfo(delUser.userName, delUser);
+            }
+            _broadcastCallerIdToRoom(conferenceName);
+            if (delUser) {
+                if (_talkingUsers.delete(delUser.userName)) {
+                    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: delUser.userName, talking: false });
                 }
+                delUser.fsMemberId = null;
+                delUser.connectionState = 'hangup';
+                delUser.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                global.db.setUserInfo(delUser.userName, delUser);
+                logUser(delUser.userName, 'CONF', 'LEAVE -> hangup');
             }
             getMemberIdMap().delete(`${conferenceName}:${memberId}`);
             global.db.logEvent('conference_leave', callerIdName, room, 'Left conference');

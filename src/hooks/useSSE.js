@@ -1,37 +1,53 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+const MAX_BUFFER = 2000;
+const FLUSH_INTERVAL = 250;
 
 let _sseIdCounter = 0;
 
 export function useSSE(url, active = true) {
   const [events, setEvents] = useState([]);
-  const esRef = useRef(null);
+  const bufferRef = useRef([]);
+  const timerRef = useRef(null);
+
+  const flush = useCallback(() => {
+    if (bufferRef.current.length === 0) return;
+    const batch = bufferRef.current;
+    bufferRef.current = [];
+    setEvents((prev) => {
+      const merged = prev.concat(batch);
+      return merged.length > MAX_BUFFER ? merged.slice(-MAX_BUFFER) : merged;
+    });
+  }, []);
 
   useEffect(() => {
     if (!active) return;
 
     const es = new EventSource(url);
-    esRef.current = es;
 
     es.onmessage = (e) => {
       try {
         const parsed = JSON.parse(e.data);
-        setEvents((prev) => [...prev, { ...parsed, _id: ++_sseIdCounter }]);
+        bufferRef.current.push({ ...parsed, _id: ++_sseIdCounter });
       } catch {
-        // ignore non-JSON messages
+        // ignore non-JSON
       }
     };
 
-    es.onerror = () => {
-      // EventSource will auto-reconnect
-    };
+    timerRef.current = setInterval(flush, FLUSH_INTERVAL);
 
     return () => {
       es.close();
-      esRef.current = null;
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      flush();
     };
-  }, [url, active]);
+  }, [url, active, flush]);
 
-  const clear = () => setEvents([]);
+  const clear = useCallback(() => {
+    bufferRef.current = [];
+    setEvents([]);
+  }, []);
 
   return { events, clear };
 }

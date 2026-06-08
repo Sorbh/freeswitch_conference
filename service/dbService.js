@@ -164,6 +164,15 @@ function init() {
         );
     `);
 
+    const roomCols = sqlite.prepare("PRAGMA table_info(rooms)").all().map(c => c.name);
+    const roomMigrations = [
+        ['ymcs_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_site_id TEXT"],
+        ['ymcs_parent_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_parent_site_id TEXT"],
+    ];
+    for (const [col, sql] of roomMigrations) {
+        if (!roomCols.includes(col)) sqlite.exec(sql);
+    }
+
     _refreshRoomConfig();
 
     console.log(`SQLite database initialized at ${DB_PATH}`);
@@ -190,6 +199,8 @@ function updateRoom(id, fields) {
     if (fields.name !== undefined) { sets.push('name = ?'); vals.push(fields.name); }
     if (fields.short_code !== undefined) { sets.push('short_code = ?'); vals.push(fields.short_code); }
     if (fields.caller_id_template !== undefined) { sets.push('caller_id_template = ?'); vals.push(fields.caller_id_template); }
+    if (fields.ymcs_site_id !== undefined) { sets.push('ymcs_site_id = ?'); vals.push(fields.ymcs_site_id); }
+    if (fields.ymcs_parent_site_id !== undefined) { sets.push('ymcs_parent_site_id = ?'); vals.push(fields.ymcs_parent_site_id); }
     if (sets.length === 0) return null;
     vals.push(id);
     sqlite.prepare(`UPDATE rooms SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
