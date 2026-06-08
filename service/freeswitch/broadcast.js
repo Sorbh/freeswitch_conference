@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem } from '../logger.js';
+import { notifyBroadcast } from '../notifier.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
 const BROADCAST_RESPONSE_WINDOW_MS = 5000;
@@ -223,4 +224,15 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         room,
         `${speaker.displayName} broadcast ${data.durationMs}ms in ${roomName}${answered ? ` — answered by ${respondedBy}` : ' — UNANSWERED'}`
     );
+
+    notifyBroadcast({
+        room, roomName,
+        userName: speaker.userName,
+        displayName: speaker.displayName,
+        durationMs: data.durationMs,
+        answered,
+        respondedBy,
+        participants,
+        recordingPath: data.recordingPath,
+    }).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
 }

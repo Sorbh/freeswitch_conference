@@ -175,6 +175,28 @@ function init() {
 
     _refreshRoomConfig();
 
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS notification_channels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT NOT NULL DEFAULT 'telegram',
+            label TEXT,
+            bot_token TEXT,
+            chat_id TEXT,
+            room INTEGER,
+            message_template TEXT,
+            send_answered INTEGER DEFAULT 1,
+            send_unanswered INTEGER DEFAULT 1,
+            enabled INTEGER DEFAULT 1,
+            created_at INTEGER DEFAULT (strftime('%s', 'now')),
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+    `);
+
+    const ncCols = sqlite.prepare("PRAGMA table_info(notification_channels)").all().map(c => c.name);
+    if (!ncCols.includes('message_template')) {
+        sqlite.exec("ALTER TABLE notification_channels ADD COLUMN message_template TEXT");
+    }
+
     console.log(`SQLite database initialized at ${DB_PATH}`);
 }
 
@@ -618,6 +640,53 @@ function deleteAccount(id) {
     sqlite.prepare('DELETE FROM accounts WHERE id = ?').run(id);
 }
 
+function getAllNotificationChannels() {
+    return sqlite.prepare('SELECT * FROM notification_channels ORDER BY created_at DESC').all();
+}
+
+function getNotificationChannel(id) {
+    return sqlite.prepare('SELECT * FROM notification_channels WHERE id = ?').get(id) || null;
+}
+
+function createNotificationChannel({ type, label, bot_token, chat_id, room, message_template, send_answered, send_unanswered, enabled }) {
+    sqlite.prepare(`
+        INSERT INTO notification_channels (type, label, bot_token, chat_id, room, message_template, send_answered, send_unanswered, enabled)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(type || 'telegram', label || null, bot_token, chat_id, room || null, message_template || null, send_answered ?? 1, send_unanswered ?? 1, enabled ?? 1);
+    return sqlite.prepare('SELECT * FROM notification_channels ORDER BY id DESC LIMIT 1').get();
+}
+
+function updateNotificationChannel(id, fields) {
+    const allowed = ['type', 'label', 'bot_token', 'chat_id', 'room', 'message_template', 'send_answered', 'send_unanswered', 'enabled'];
+    const sets = [];
+    const values = [];
+    for (const [key, val] of Object.entries(fields)) {
+        if (allowed.includes(key) && val !== undefined) {
+            sets.push(`${key} = ?`);
+            values.push(val);
+        }
+    }
+    if (sets.length === 0) return null;
+    sets.push("updated_at = strftime('%s', 'now')");
+    values.push(id);
+    sqlite.prepare(`UPDATE notification_channels SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+    return getNotificationChannel(id);
+}
+
+function deleteNotificationChannel(id) {
+    sqlite.prepare('DELETE FROM notification_channels WHERE id = ?').run(id);
+}
+
+function getEnabledNotificationChannels(room, answered) {
+    let rows = sqlite.prepare('SELECT * FROM notification_channels WHERE enabled = 1').all();
+    return rows.filter(ch => {
+        if (ch.room && ch.room !== room) return false;
+        if (answered && !ch.send_answered) return false;
+        if (!answered && !ch.send_unanswered) return false;
+        return true;
+    });
+}
+
 db.init = init;
 db.getUserInfo = getUserInfo;
 db.setUserInfo = setUserInfo;
@@ -658,5 +727,11 @@ db.getRoom = getRoom;
 db.createRoom = createRoom;
 db.updateRoom = updateRoom;
 db.deleteRoom = deleteRoom;
+db.getAllNotificationChannels = getAllNotificationChannels;
+db.getNotificationChannel = getNotificationChannel;
+db.createNotificationChannel = createNotificationChannel;
+db.updateNotificationChannel = updateNotificationChannel;
+db.deleteNotificationChannel = deleteNotificationChannel;
+db.getEnabledNotificationChannels = getEnabledNotificationChannels;
 
 export default { db };

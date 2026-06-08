@@ -24,6 +24,7 @@ import {
   CodeIcon,
   ScrollTextIcon,
   CloudIcon,
+  BellIcon,
 } from "lucide-react"
 
 const data = {
@@ -47,6 +48,7 @@ const data = {
         { title: "Connected Yards", url: "/users", icon: <UsersIcon /> },
         { title: "Rooms", url: "/rooms", icon: <AudioLinesIcon /> },
         { title: "Broadcast History", url: "/broadcasts", icon: <RadioIcon /> },
+        { title: "Notifications", url: "/notifications", icon: <BellIcon /> },
       ],
     },
     {

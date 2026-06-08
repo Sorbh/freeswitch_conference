@@ -24,6 +24,7 @@ import SystemPage from "@/pages/SystemPage";
 import FsLogsPage from "@/pages/FsLogsPage";
 import PhoneLogsPage from "@/pages/PhoneLogsPage";
 import YmcsControlPage from "@/pages/YmcsControlPage";
+import NotificationsPage from "@/pages/NotificationsPage";
 
 const dashboardRoutes = [
   { path: "/dashboard", element: <DashboardPage />, title: "Dashboard" },
@@ -35,6 +36,7 @@ const dashboardRoutes = [
   { path: "/dev/fs-logs", element: <FsLogsPage />, title: "FS Logs" },
   { path: "/dev/phone-logs", element: <PhoneLogsPage />, title: "Phone Log" },
   { path: "/dev/ymcs", element: <YmcsControlPage />, title: "YMCS Control" },
+  { path: "/notifications", element: <NotificationsPage />, title: "Notifications" },
 ];
 
 function BreadcrumbNav() {

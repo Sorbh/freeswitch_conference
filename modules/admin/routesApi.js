@@ -1298,6 +1298,90 @@ adminRouter.get("/ymcs/sync-room-sites", async (req, res) => {
     res.end();
 });
 
+// --- Notification Channels ---
+
+// GET /notifications — list all notification channels
+adminRouter.get("/notifications", (req, res) => {
+    try {
+        const channels = global.db.getAllNotificationChannels();
+        res.json({ status: true, data: channels });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /notifications/template-info — default template and available variables
+adminRouter.get("/notifications/template-info", async (req, res) => {
+    try {
+        const { DEFAULT_TEMPLATE, TEMPLATE_VARS } = await import("../../service/notifier.js");
+        res.json({ status: true, data: { defaultTemplate: DEFAULT_TEMPLATE, variables: TEMPLATE_VARS } });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /notifications — create a notification channel
+adminRouter.post("/notifications", (req, res) => {
+    try {
+        const { type, label, bot_token, chat_id, room, message_template, send_answered, send_unanswered, enabled } = req.body;
+        if (!bot_token || !chat_id) {
+            return res.status(400).json({ status: false, error: "bot_token and chat_id are required" });
+        }
+        const channel = global.db.createNotificationChannel({
+            type, label, bot_token, chat_id,
+            room: room ? parseInt(room) : null,
+            message_template: message_template || null,
+            send_answered: send_answered ?? 1,
+            send_unanswered: send_unanswered ?? 1,
+            enabled: enabled ?? 1,
+        });
+        res.status(201).json({ status: true, data: channel });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// PUT /notifications/:id — update a notification channel
+adminRouter.put("/notifications/:id", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const existing = global.db.getNotificationChannel(id);
+        if (!existing) return res.status(404).json({ status: false, error: "Channel not found" });
+        const updated = global.db.updateNotificationChannel(id, req.body);
+        res.json({ status: true, data: updated });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// DELETE /notifications/:id — delete a notification channel
+adminRouter.delete("/notifications/:id", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const existing = global.db.getNotificationChannel(id);
+        if (!existing) return res.status(404).json({ status: false, error: "Channel not found" });
+        global.db.deleteNotificationChannel(id);
+        res.json({ status: true, message: "Channel deleted" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /notifications/:id/test — send a test message
+adminRouter.post("/notifications/:id/test", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const channel = global.db.getNotificationChannel(id);
+        if (!channel) return res.status(404).json({ status: false, error: "Channel not found" });
+
+        const { testNotificationChannel } = await import("../../service/notifier.js");
+        const result = await testNotificationChannel(channel);
+        res.json({ status: true, data: result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // DELETE /accounts/:id — delete account
 adminRouter.delete("/accounts/:id", async (req, res) => {
     try {
