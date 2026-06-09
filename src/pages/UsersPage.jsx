@@ -81,6 +81,7 @@ import {
   ListIcon,
   GlobeIcon,
   ExternalLinkIcon,
+  FileCodeIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -265,6 +266,7 @@ export default function UsersPage() {
   const [ymcsAction, setYmcsAction] = useState(null);
   const [sipEditHost, setSipEditHost] = useState("");
   const [sipEditPort, setSipEditPort] = useState("");
+  const [configEditContent, setConfigEditContent] = useState("static.syslog.server_port=515");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("bjs-view-mode") || "list");
 
   function toggleSort(col) {
@@ -492,6 +494,23 @@ export default function UsersPage() {
       refetch();
     } catch (e) {
       console.error("YMCS SIP update failed:", e);
+    } finally {
+      setYmcsAction(null);
+    }
+  }
+
+  async function ymcsPushConfig(accountId, content) {
+    setYmcsAction("config");
+    try {
+      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/push-config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const json = await res.json();
+      if (!json.status) console.error("Config push failed:", json.error);
+    } catch (e) {
+      console.error("YMCS config push failed:", e);
     } finally {
       setYmcsAction(null);
     }
@@ -1185,6 +1204,46 @@ export default function UsersPage() {
                               {ymcsAction === "reboot" ? <Loader2Icon className="size-3 animate-spin" /> : <RotateCwIcon className="size-3" />}
                               Reboot
                             </button>
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider">Push Config</p>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={async () => {
+                                    setYmcsAction("config-load");
+                                    try {
+                                      const res = await fetch(`/api/v1/admin/accounts/${acc.id}/ymcs/device-config`);
+                                      const json = await res.json();
+                                      if (json.status && json.content) setConfigEditContent(json.content);
+                                      else if (json.status) setConfigEditContent("");
+                                    } catch (e) { console.error("Load config failed:", e); }
+                                    finally { setYmcsAction(null); }
+                                  }}
+                                  disabled={inCall || !!ymcsAction || !acc.ymcs_device_id}
+                                  className="h-8 px-2 flex items-center gap-1 rounded-lg text-xs font-medium border border-border/40 bg-muted/30 hover:bg-muted/50 hover:border-border/60 transition-all disabled:opacity-40 shrink-0"
+                                >
+                                  {ymcsAction === "config-load" ? <Loader2Icon className="size-3 animate-spin" /> : <RefreshCwIcon className="size-3" />}
+                                </button>
+                                <button
+                                  onClick={() => ymcsPushConfig(acc.id, configEditContent)}
+                                  disabled={inCall || !!ymcsAction || !acc.ymcs_device_id || !configEditContent.trim()}
+                                  className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-xs font-medium border border-border/40 bg-muted/30 hover:bg-muted/50 hover:border-border/60 transition-all disabled:opacity-40 shrink-0"
+                                >
+                                  {ymcsAction === "config" ? <Loader2Icon className="size-3 animate-spin" /> : <FileCodeIcon className="size-3" />}
+                                  Push
+                                </button>
+                              </div>
+                            </div>
+                            <textarea
+                              value={configEditContent}
+                              onChange={(e) => setConfigEditContent(e.target.value)}
+                              disabled={inCall || !!ymcsAction}
+                              placeholder={"static.syslog.server_port=515"}
+                              className="w-full rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs font-mono placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                              style={{ minHeight: "3.75rem", maxHeight: "15rem" }}
+                              rows={3}
+                            />
                           </div>
                         </div>
                       </>

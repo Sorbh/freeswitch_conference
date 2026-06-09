@@ -1004,6 +1004,70 @@ adminRouter.post("/accounts/:id/ymcs/reboot", async (req, res) => {
     }
 });
 
+// GET /accounts/:id/ymcs/device-config — fetch existing device config from YMCS
+adminRouter.get("/accounts/:id/ymcs/device-config", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
+
+        const { ymcs } = await import("../../service/yealink/yealinkApi.js");
+        const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: account.ymcs_device_id }, limit: 100 });
+        const configs = existing?.data || [];
+        let content = "";
+        if (configs.length > 0) {
+            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${configs[0].id}`);
+            content = detail?.content || "";
+        }
+        res.json({ status: true, content });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /accounts/:id/ymcs/push-config — push cfg content to this account's device
+adminRouter.post("/accounts/:id/ymcs/push-config", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
+
+        const { content } = req.body;
+        if (!content || !content.trim()) return res.status(400).json({ status: false, error: "content is required" });
+
+        const { ymcs } = await import("../../service/yealink/yealinkApi.js");
+        const { mergeConfigContent } = await import("../../service/yealink/yealinkConfigHelper.js");
+
+        const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: account.ymcs_device_id }, limit: 100 });
+        const existingConfigs = existing?.data || [];
+
+        let oldContent = "";
+        if (existingConfigs.length > 0) {
+            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${existingConfigs[0].id}`);
+            oldContent = detail?.content || "";
+            await ymcs.post('/v2/dm/delDeviceConfigs', { configIds: existingConfigs.map(c => c.id) });
+        }
+
+        const merged = mergeConfigContent(oldContent, content.trim());
+        const result = await ymcs.post('/v2/dm/deviceConfigs', {
+            deviceId: account.ymcs_device_id,
+            content: merged,
+            autoPush: true,
+        });
+        if (result?.id) {
+            await ymcs.post(`/v2/dm/deviceConfigs/${result.id}/push`);
+        }
+
+        logUser(account.email || `account:${id}`, 'API', `PUSH-CONFIG to device ${account.ymcs_device_id}`);
+        res.json({ status: true, message: "Config pushed" });
+    } catch (err) {
+        console.error('[PUSH-CONFIG]', err.message, err.response ? JSON.stringify(err.response) : '');
+        res.status(500).json({ status: false, error: err.message, detail: err.response || null });
+    }
+});
+
 // POST /accounts/:id/ymcs/update-sip-server — update SIP server on this account's YMCS SIP account
 adminRouter.post("/accounts/:id/ymcs/update-sip-server", async (req, res) => {
     try {
@@ -1348,6 +1412,73 @@ adminRouter.get("/ymcs/sync-room-sites", async (req, res) => {
         }
 
         send({ type: "done", success: matched, failed: 0, skipped, total: sites.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
+// GET /ymcs/push-config — SSE: push cfg content to all (or room-filtered) devices
+adminRouter.get("/ymcs/push-config", async (req, res) => {
+    const content = req.query.content;
+    const roomId = req.query.room ? parseInt(req.query.room) : null;
+
+    if (!content || !content.trim()) {
+        return res.status(400).json({ status: false, error: "content query param required" });
+    }
+
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    try {
+        const { ymcs } = await import("../../service/yealink/yealinkApi.js");
+        const { mergeConfigContent } = await import("../../service/yealink/yealinkConfigHelper.js");
+
+        let accounts = global.db.getAllAccounts();
+        let roomLabel = "all";
+        if (roomId) {
+            const room = global.db.getRoom(roomId);
+            roomLabel = room?.name || `Room ${roomId}`;
+            accounts = accounts.filter(a => a.room === roomId);
+        }
+        const eligible = accounts.filter(a => a.ymcs_device_id);
+        send({ type: "info", message: `Pushing config to ${eligible.length} ${roomLabel === "all" ? "" : `"${roomLabel}" `}devices...` });
+
+        let success = 0, failed = 0;
+
+        for (let i = 0; i < eligible.length; i++) {
+            const acc = eligible[i];
+            const prefix = `[${i + 1}/${eligible.length}] ${acc.email}`;
+
+            try {
+                const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: acc.ymcs_device_id }, limit: 100 });
+                const existingConfigs = existing?.data || [];
+                let oldContent = "";
+                if (existingConfigs.length > 0) {
+                    const detail = await ymcs.get(`/v2/dm/deviceConfigs/${existingConfigs[0].id}`);
+                    oldContent = detail?.content || "";
+                    await ymcs.post('/v2/dm/delDeviceConfigs', { configIds: existingConfigs.map(c => c.id) });
+                }
+                const merged = mergeConfigContent(oldContent, content.trim());
+                const result = await ymcs.post('/v2/dm/deviceConfigs', {
+                    deviceId: acc.ymcs_device_id,
+                    content: merged,
+                    autoPush: true,
+                });
+                if (result?.id) {
+                    await ymcs.post(`/v2/dm/deviceConfigs/${result.id}/push`);
+                }
+                success++;
+                logUser(acc.email || `account:${acc.id}`, 'API', `PUSH-CONFIG to device ${acc.ymcs_device_id}`);
+                send({ type: "success", message: `${prefix} — config pushed` });
+            } catch (err) {
+                failed++;
+                send({ type: "error", message: `${prefix} — ${err.message}` });
+            }
+        }
+
+        send({ type: "done", success, failed, skipped: 0, total: eligible.length });
     } catch (err) {
         send({ type: "error", message: `Fatal: ${err.message}` });
         send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });

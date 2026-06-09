@@ -33,6 +33,7 @@ import {
   ServerIcon,
   RotateCwIcon,
   ShieldAlertIcon,
+  FileCodeIcon,
   MapPinIcon,
 } from "lucide-react";
 
@@ -116,8 +117,13 @@ export default function YmcsControlPage() {
   const [rebootRoom, setRebootRoom] = useState("all");
   const [rebindRoom, setRebindRoom] = useState("all");
   const [rooms, setRooms] = useState([]);
+  const [pushingConfig, setPushingConfig] = useState(false);
+  const [configLog, setConfigLog] = useState([]);
+  const [configResult, setConfigResult] = useState(null);
+  const [configRoom, setConfigRoom] = useState("all");
+  const [configContent, setConfigContent] = useState("static.syslog.server_port=515");
   const abortRef = useRef(null);
-  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites;
+  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites || pushingConfig;
   const [confirmAction, setConfirmAction] = useState(null);
   const [stats, setStats] = useState(null);
   const [missingDialog, setMissingDialog] = useState(null);
@@ -383,6 +389,41 @@ export default function YmcsControlPage() {
     }
   }
 
+  async function pushConfigToDevices() {
+    setPushingConfig(true);
+    setConfigLog([]);
+    setConfigResult(null);
+    const start = Date.now();
+
+    try {
+      const params = new URLSearchParams({ content: configContent });
+      if (configRoom !== "all") params.set("room", configRoom);
+      const eventSource = new EventSource(`/api/v1/admin/ymcs/push-config?${params}`);
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "done") {
+          eventSource.close();
+          const duration = ((Date.now() - start) / 1000).toFixed(1);
+          setConfigResult({ success: data.success, failed: data.failed, skipped: data.skipped, total: data.total, duration });
+          addLog(setConfigLog, { type: "info", message: `Done — ${data.success} pushed, ${data.failed} failed (${duration}s)` });
+          setPushingConfig(false); fetchStats();
+        } else {
+          addLog(setConfigLog, data);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        addLog(setConfigLog, { type: "error", message: "Connection lost" });
+        setPushingConfig(false);
+      };
+    } catch (e) {
+      addLog(setConfigLog, { type: "error", message: `Fatal: ${e.message}` });
+      setPushingConfig(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
@@ -391,6 +432,7 @@ export default function YmcsControlPage() {
           <h2 className="text-2xl font-bold tracking-tight">YMCS Control</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Yealink Management Cloud Service operations
+            <span className="text-red-500 font-medium ml-2">· YMCS commands only work when the phone is in idle state</span>
           </p>
         </div>
         {stats && (
@@ -602,7 +644,7 @@ export default function YmcsControlPage() {
         {/* Update SIP Server */}
         <Card>
           <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <ServerIcon className="size-4 text-primary" />
@@ -614,29 +656,7 @@ export default function YmcsControlPage() {
                   </p>
                 </div>
               </div>
-              <Button
-                size="sm"
-                onClick={() => { const roomName = sipRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === sipRoom)?.name || sipRoom; setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on ${roomName === "ALL" ? "all" : `"${roomName}"`} YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true }); }}
-                disabled={anySyncing || !sipHost || !sipPort}
-                className="shrink-0"
-              >
-                {syncingSipServer
-                  ? <Loader2Icon className="size-3.5 animate-spin" />
-                  : <PlayIcon className="size-3.5" />
-                }
-              </Button>
-            </div>
-            <div className="mt-3 flex items-end gap-2">
-              <div className="flex-1">
-                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Host</Label>
-                <Input value={sipHost} onChange={(e) => setSipHost(e.target.value)} placeholder="50.28.84.57" disabled={anySyncing} className="h-8 text-xs" />
-              </div>
-              <div className="w-20">
-                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Port</Label>
-                <Input value={sipPort} onChange={(e) => setSipPort(e.target.value)} placeholder="5070" disabled={anySyncing} className="h-8 text-xs" />
-              </div>
-              <div>
-                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Room</Label>
+              <div className="flex items-center gap-2 shrink-0">
                 <Select value={sipRoom} onValueChange={setSipRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
                   <SelectTrigger className="h-8 text-xs !w-36">
                     <SelectValue />
@@ -648,6 +668,26 @@ export default function YmcsControlPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  size="sm"
+                  onClick={() => { const roomName = sipRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === sipRoom)?.name || sipRoom; setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on ${roomName === "ALL" ? "all" : `"${roomName}"`} YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true }); }}
+                  disabled={anySyncing || !sipHost || !sipPort}
+                >
+                  {syncingSipServer
+                    ? <Loader2Icon className="size-3.5 animate-spin" />
+                    : <PlayIcon className="size-3.5" />
+                  }
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Host</Label>
+                <Input value={sipHost} onChange={(e) => setSipHost(e.target.value)} placeholder="50.28.84.57" disabled={anySyncing} className="h-8 text-xs" />
+              </div>
+              <div className="w-20">
+                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Port</Label>
+                <Input value={sipPort} onChange={(e) => setSipPort(e.target.value)} placeholder="5070" disabled={anySyncing} className="h-8 text-xs" />
               </div>
             </div>
             <SyncResult result={sipServerResult} />

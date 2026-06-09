@@ -171,10 +171,16 @@ export default function FsLogsPage() {
     return [...set].sort();
   }, [packets]);
 
+  const getItemSize = useCallback((index) => {
+    const item = filtered[index];
+    if (!item) return ROW_HEIGHT;
+    return expanded === (item._id || index) ? EXPANDED_HEIGHT : ROW_HEIGHT;
+  }, [filtered, expanded]);
+
   const virtualizer = useVirtualizer({
     count: filtered.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: getItemSize,
     getItemKey: (index) => filtered[index]?._id || index,
     overscan: 20,
   });
@@ -349,7 +355,7 @@ function PacketRow({ pkt, isExpanded, onToggle, search }) {
   const color = getCallIdColor(pkt.callId);
 
   return (
-    <div style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15` }}>
+    <div style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15`, overflow: "hidden", height: "100%" }}>
       <div className="flex items-center text-[11.5px] leading-none cursor-pointer select-none pl-1 hover:bg-white/[0.04]" style={{ height: ROW_HEIGHT }} onClick={onToggle}>
         <span className="text-muted-foreground tabular-nums w-[110px] shrink-0">{localTime(pkt.timestamp)}</span>
         <span className="w-[56px] shrink-0 flex items-center gap-1">
