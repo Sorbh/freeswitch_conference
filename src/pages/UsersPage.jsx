@@ -250,7 +250,7 @@ export default function UsersPage() {
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false });
+  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false });
   const [roomFilter, setRoomFilter] = useState("all");
   const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   const [form, setForm] = useState(EMPTY_FORM);
@@ -307,6 +307,11 @@ export default function UsersPage() {
       if (filters.notInCall && u.connectionState === "connected") return false;
       if (filters.talking && !u.talking) return false;
       if (filters.error && u.connectionState !== "error") return false;
+      if (filters.crossRoom) {
+        const defaultRoom = u.account?.room ?? u.room;
+        const currentRoom = u.currentRoom ?? u.room;
+        if (defaultRoom == null || String(currentRoom) === String(defaultRoom)) return false;
+      }
 
       return true;
     }).sort((a, b) => {
@@ -607,6 +612,7 @@ export default function UsersPage() {
             { key: "muted", label: "Unmuted", active: "bg-amber-500/15 text-amber-400 border-amber-500/30", dot: "bg-amber-400" },
             { key: "talking", label: "Talking", active: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30", dot: "bg-cyan-400" },
             { key: "error", label: "Error", active: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400" },
+            { key: "crossRoom", label: "Cross Room", active: "bg-violet-500/15 text-violet-400 border-violet-500/30", dot: "bg-violet-400" },
           ].map(({ key, label, active, dot }) => (
             <button
               key={key}
