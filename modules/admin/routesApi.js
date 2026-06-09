@@ -896,6 +896,15 @@ adminRouter.put("/accounts/:id", async (req, res) => {
         const updated = global.db.updateAccount(id, fields);
         if (!updated) return res.status(400).json({ status: false, error: "No valid fields to update" });
 
+        if (fields.room !== undefined) {
+            const userName = `sip:${account.email}`;
+            const userInfo = global.db.getUserInfo(userName);
+            if (userInfo && Object.keys(userInfo).length > 0) {
+                userInfo.room = fields.room;
+                global.db.setUserInfo(userName, userInfo);
+            }
+        }
+
         // Disconnect call when deactivating or kicking out
         if (fields.active === 0 || fields.active === false || fields.kickout === 1 || fields.kickout === true) {
             const userName = `sip:${account.email}`;
@@ -1038,22 +1047,17 @@ adminRouter.post("/accounts/:id/ymcs/push-config", async (req, res) => {
         if (!content || !content.trim()) return res.status(400).json({ status: false, error: "content is required" });
 
         const { ymcs } = await import("../../service/yealink/yealinkApi.js");
-        const { mergeConfigContent } = await import("../../service/yealink/yealinkConfigHelper.js");
 
         const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: account.ymcs_device_id }, limit: 100 });
         const existingConfigs = existing?.data || [];
 
-        let oldContent = "";
         if (existingConfigs.length > 0) {
-            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${existingConfigs[0].id}`);
-            oldContent = detail?.content || "";
             await ymcs.post('/v2/dm/delDeviceConfigs', { configIds: existingConfigs.map(c => c.id) });
         }
 
-        const merged = mergeConfigContent(oldContent, content.trim());
         const result = await ymcs.post('/v2/dm/deviceConfigs', {
             deviceId: account.ymcs_device_id,
-            content: merged,
+            content: content.trim(),
             autoPush: true,
         });
         if (result?.id) {
@@ -1433,7 +1437,6 @@ adminRouter.get("/ymcs/push-config", async (req, res) => {
 
     try {
         const { ymcs } = await import("../../service/yealink/yealinkApi.js");
-        const { mergeConfigContent } = await import("../../service/yealink/yealinkConfigHelper.js");
 
         let accounts = global.db.getAllAccounts();
         let roomLabel = "all";
@@ -1454,16 +1457,12 @@ adminRouter.get("/ymcs/push-config", async (req, res) => {
             try {
                 const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: acc.ymcs_device_id }, limit: 100 });
                 const existingConfigs = existing?.data || [];
-                let oldContent = "";
                 if (existingConfigs.length > 0) {
-                    const detail = await ymcs.get(`/v2/dm/deviceConfigs/${existingConfigs[0].id}`);
-                    oldContent = detail?.content || "";
                     await ymcs.post('/v2/dm/delDeviceConfigs', { configIds: existingConfigs.map(c => c.id) });
                 }
-                const merged = mergeConfigContent(oldContent, content.trim());
                 const result = await ymcs.post('/v2/dm/deviceConfigs', {
                     deviceId: acc.ymcs_device_id,
-                    content: merged,
+                    content: content.trim(),
                     autoPush: true,
                 });
                 if (result?.id) {

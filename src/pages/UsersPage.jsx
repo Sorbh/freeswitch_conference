@@ -82,6 +82,7 @@ import {
   GlobeIcon,
   ExternalLinkIcon,
   FileCodeIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -1258,6 +1259,7 @@ export default function UsersPage() {
                               style={{ minHeight: "3.75rem", maxHeight: "15rem" }}
                               rows={3}
                             />
+                            <p className="flex items-center gap-1 text-[10px] text-amber-500/80"><TriangleAlertIcon className="size-3 shrink-0" />Refresh config before pushing to avoid overwriting existing settings</p>
                           </div>
                         </div>
                       </>

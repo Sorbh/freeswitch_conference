@@ -149,7 +149,6 @@ export default class ActionController {
             }
 
             // Single DB write: update room + reset state in one shot
-            userInfo.room = newRoom;
             userInfo.currentRoom = newRoom;
             userInfo.connectionState = 'ideal';
             userInfo.fsChannelUUID = null;
