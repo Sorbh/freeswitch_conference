@@ -991,10 +991,16 @@ export default function UsersPage() {
                     <div className="size-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-lg font-bold tracking-tight text-primary/80">{initials}</span>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-semibold tracking-tight truncate">{displayName}</h3>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 group/name">
+                        <h3 className="text-lg font-semibold tracking-tight truncate">{displayName}</h3>
+                        <button onClick={() => copyToClipboard(displayName)} className="opacity-0 group-hover/name:opacity-100 text-muted-foreground/40 hover:text-foreground transition-all"><CopyIcon className="size-3" /></button>
+                      </div>
                       {acc?.email && (
-                        <p className="text-sm text-muted-foreground truncate">{acc.email}</p>
+                        <div className="flex items-center gap-1.5 group/email">
+                          <p className="text-sm text-muted-foreground truncate">{acc.email}</p>
+                          <button onClick={() => copyToClipboard(acc.email)} className="opacity-0 group-hover/email:opacity-100 text-muted-foreground/40 hover:text-foreground transition-all"><CopyIcon className="size-3" /></button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1111,8 +1117,8 @@ export default function UsersPage() {
                           const isNotDefault = currentRoom && defaultRoom && String(currentRoom) !== String(defaultRoom);
                           return { icon: <ArrowRightLeftIcon className={`size-3.5 ${isNotDefault ? "text-red-400" : ""}`} />, label: "Current Room", value: ROOM_NAMES[currentRoom] || currentRoom, hasRoomChange: true, isNotDefault };
                         })(),
-                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Account ID", value: acc.ymcs_account_id || "—", refreshKey: "account" },
-                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Device ID", value: acc.ymcs_device_id || "—", refreshKey: "device" },
+                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Account ID", value: acc.ymcs_account_id || "—", refreshKey: "account", copyable: !!acc.ymcs_account_id },
+                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Device ID", value: acc.ymcs_device_id || "—", refreshKey: "device", copyable: !!acc.ymcs_device_id },
                       ].filter(f => f.value).map((field) => (
                         <div key={field.label} className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors group">
                           <span className="text-muted-foreground/60 mt-0.5 group-hover:text-muted-foreground transition-colors">{field.icon}</span>
@@ -1120,6 +1126,14 @@ export default function UsersPage() {
                             <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
                             <p className={`text-sm truncate ${field.isNotDefault ? "text-red-400" : ""}`}>{field.value}</p>
                           </div>
+                          {field.copyable && (
+                            <button
+                              onClick={() => copyToClipboard(field.value)}
+                              className="mt-1 text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <CopyIcon className="size-3" />
+                            </button>
+                          )}
                           {field.refreshKey && (
                             <button
                               onClick={() => field.refreshKey === "account" ? refreshAccountId(acc.id) : refreshDeviceId(acc.id)}
@@ -1260,15 +1274,22 @@ export default function UsersPage() {
                       <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold">Connection</p>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { icon: <NetworkIcon className="size-3.5" />, label: "MAC", value: selectedUser.mac, mono: true },
-                          { icon: <WifiIcon className="size-3.5" />, label: "IP", value: selectedUser.ip, mono: true },
+                          { icon: <NetworkIcon className="size-3.5" />, label: "MAC", value: selectedUser.mac, mono: true, copyable: true },
+                          { icon: <WifiIcon className="size-3.5" />, label: "IP", value: selectedUser.ip ? `${selectedUser.ip}${selectedUser.port ? `:${selectedUser.port}` : ""}` : null, mono: true, copyable: true },
                           { icon: <ShieldIcon className="size-3.5" />, label: "Auth", value: selectedUser.authState, mono: true },
                           { icon: <MicIcon className="size-3.5" />, label: "Muted", value: selectedUser.mute ? "Yes" : "No" },
                         ].map((field) => (
-                          <div key={field.label} className="px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span className="text-muted-foreground/50">{field.icon}</span>
-                              <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
+                          <div key={field.label} className="px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40 group/conn">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-muted-foreground/50">{field.icon}</span>
+                                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
+                              </div>
+                              {field.copyable && field.value && (
+                                <button onClick={() => copyToClipboard(field.value)} className="text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover/conn:opacity-100">
+                                  <CopyIcon className="size-2.5" />
+                                </button>
+                              )}
                             </div>
                             <p className={`text-sm truncate ${field.mono ? "font-mono text-xs" : ""}`}>
                               {field.value || "-"}
