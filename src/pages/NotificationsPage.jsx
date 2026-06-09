@@ -321,6 +321,9 @@ export default function NotificationsPage() {
                   value={form.bot_token}
                   onChange={(e) => setForm(f => ({ ...f, bot_token: e.target.value }))}
                 />
+                <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                  Message <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary underline underline-offset-2">@BotFather</a> on Telegram → /newbot → copy the token
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Chat ID *</Label>
@@ -329,6 +332,9 @@ export default function NotificationsPage() {
                   value={form.chat_id}
                   onChange={(e) => setForm(f => ({ ...f, chat_id: e.target.value }))}
                 />
+                <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                  Add the bot to your group → send a message → open <span className="font-mono text-[10px]">api.telegram.org/bot<wbr/>&lt;TOKEN&gt;/getUpdates</span> → find the <span className="font-mono text-[10px]">chat.id</span> (starts with <span className="font-mono text-[10px]">-100</span>)
+                </p>
               </div>
             </div>
             <div className="space-y-2">

@@ -204,8 +204,7 @@ const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "" };
 export default function RoomsPage() {
   const { names: ROOM_NAMES, codes: ROOM_CODES, refetch: refetchRoomConfig } = useRooms();
   const { data: roomsRaw, loading, refetch } = useFetch("/api/v1/admin/rooms");
-  const { data: timelineRaw, refetch: refetchTimeline } = useFetch("/api/v1/admin/broadcasts/activity?minutes=30");
-  useSSERefresh(() => { refetch(); refetchTimeline(); }, ["rooms", "users", "broadcasts"]);
+  useSSERefresh(() => { refetch(); }, ["rooms", "users", "broadcasts"]);
   const { events: sseEvents } = useSSE("/api/v1/admin/events/stream");
 
   const [selectedRoomId, setSelectedRoomId] = useState(null);
@@ -297,7 +296,6 @@ export default function RoomsPage() {
     };
   }, [rooms, selectedRoomId, talkingUsers]);
 
-  const timeline = timelineRaw || [];
   const totalOnline = rooms.reduce((s, r) => s + (r.online || 0), 0);
   const totalInCall = rooms.reduce((s, r) => s + (r.inCall || 0), 0);
   const totalUnmuted = rooms.reduce((s, r) => s + (r.unmuted || 0), 0);
@@ -507,20 +505,6 @@ export default function RoomsPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Broadcast Timeline */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <RadioIcon className="size-3.5 text-cyan-400" />
-            Broadcast Timeline
-            <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">last 30 min</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <SpeakerTimeline events={timeline} roomCodes={ROOM_CODES} />
         </CardContent>
       </Card>
 
