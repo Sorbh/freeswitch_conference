@@ -1,5 +1,6 @@
 import responseMessages from "./responseMessages.js";
 import service from "./service.js";
+import { logUser } from "../../service/logger.js";
 
 export default class ActionController {
 
@@ -117,8 +118,6 @@ export default class ActionController {
 
     updateRoom = async (request, response) => {
         try {
-            console.log(request.url);
-
             let macAddress = request.query.mac ? request.query.mac.match(/.{1,2}/g).join(':') : null;
 
             if (!macAddress) {
@@ -135,11 +134,21 @@ export default class ActionController {
             }
             await service.endCall(userInfo.userName);
             userInfo = global.db.getUserInfo(userInfo.userName);
-            userInfo.room = parseInt(request.query.room);
+            const oldRoom = userInfo.currentRoom || userInfo.room;
+            const newRoom = parseInt(request.query.room);
+            const oldRoomName = global.config.ROOM_NAME?.[oldRoom] || oldRoom;
+            const newRoomName = global.config.ROOM_NAME?.[newRoom] || newRoom;
+            userInfo.room = newRoom;
+            userInfo.currentRoom = newRoom;
             global.db.setUserInfo(userInfo.userName, userInfo);
+            logUser(userInfo.userName, 'ACTION', `ROOM-CHANGE ${oldRoomName} -> ${newRoomName} (softkey)`);
             await service.initiateCall(userInfo.userName);
 
-            return response.status(200).json({ message: 'Updated the room and refreshed the call' });
+            global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
+            global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'rooms' });
+            global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
+
+            return response.status(200).json({ message: `Room changed: ${oldRoomName} -> ${newRoomName}` });
         } catch (error) {
             return response.status(400).json({ message: `Unable to update room: ${error}` });
         }

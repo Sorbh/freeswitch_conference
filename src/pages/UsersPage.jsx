@@ -315,6 +315,7 @@ export default function UsersPage() {
           if (sortCol === "name") return (u.account?.display_name || u.callerIdName || u.userName || "").toLowerCase();
           if (sortCol === "email") return (u.account?.email || u.userName || "").toLowerCase();
           if (sortCol === "company") return (u.account?.company_name || "").toLowerCase();
+          if (sortCol === "room") return (ROOM_NAMES[u.currentRoom || u.room] || "").toLowerCase();
           return "";
         };
         const va = getVal(a), vb = getVal(b);
@@ -543,9 +544,10 @@ export default function UsersPage() {
           <Button
             variant="outline"
             onClick={async () => {
-              if (!confirm("Restore all kicked out users? This will allow them to rejoin.")) return;
+              const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
+              if (!confirm(`Restore ${scope === "all" ? "all" : `"${scope}"`} kicked out users? This will allow them to rejoin.`)) return;
               try {
-                await fetch("/api/v1/admin/users/kickin-all", { method: "POST" });
+                await fetch("/api/v1/admin/users/kickin-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
                 refetch();
               } catch (e) {
                 console.error("Kickin all failed:", e);
@@ -553,14 +555,15 @@ export default function UsersPage() {
             }}
           >
             <CheckIcon className="size-4 mr-2" />
-            Kickin All
+            {roomFilter !== "all" ? `Kickin ${ROOM_NAMES[roomFilter]}` : "Kickin All"}
           </Button>
           <Button
             variant="destructive"
             onClick={async () => {
-              if (!confirm("Kickout all active calls across the hotline network?")) return;
+              const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
+              if (!confirm(`Kickout ${scope === "all" ? "all active calls across the hotline network" : `all "${scope}" users`}?`)) return;
               try {
-                await fetch("/api/v1/admin/users/kickout-all", { method: "POST" });
+                await fetch("/api/v1/admin/users/kickout-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
                 refetch();
               } catch (e) {
                 console.error("Kickout all failed:", e);
@@ -568,7 +571,7 @@ export default function UsersPage() {
             }}
           >
             <BanIcon className="size-4 mr-2" />
-            Kickout All
+            {roomFilter !== "all" ? `Kickout ${ROOM_NAMES[roomFilter]}` : "Kickout All"}
           </Button>
         </div>
       </div>
@@ -583,8 +586,8 @@ export default function UsersPage() {
             className="pl-9"
           />
         </div>
-        <Select value={roomFilter} onValueChange={setRoomFilter}>
-          <SelectTrigger className="w-[160px]">
+        <Select value={roomFilter} onValueChange={setRoomFilter} items={{ all: "All Rooms", ...ROOM_NAMES }}>
+          <SelectTrigger className="!w-[160px]">
             <SelectValue placeholder="All Rooms" />
           </SelectTrigger>
           <SelectContent>
@@ -716,7 +719,9 @@ export default function UsersPage() {
                 <TableHead className="hidden lg:table-cell max-w-[120px] cursor-pointer select-none" onClick={() => toggleSort("company")}>
                   <span className="inline-flex items-center gap-1">Company <SortIcon col="company" /></span>
                 </TableHead>
-                <TableHead className="hidden md:table-cell">Room</TableHead>
+                <TableHead className="hidden md:table-cell cursor-pointer select-none" onClick={() => toggleSort("room")}>
+                  <span className="inline-flex items-center gap-1">Room <SortIcon col="room" /></span>
+                </TableHead>
                 <TableHead className="hidden md:table-cell">Account</TableHead>
                 <TableHead>Last Seen</TableHead>
                 <TableHead className="text-right w-[100px]"></TableHead>
@@ -1316,8 +1321,9 @@ export default function UsersPage() {
               <Select
                 value={form.room}
                 onValueChange={(val) => updateField("room", val)}
+                items={ROOM_NAMES}
               >
-                <SelectTrigger>
+                <SelectTrigger className="!w-full">
                   <SelectValue placeholder="Select room" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1384,8 +1390,8 @@ export default function UsersPage() {
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
               <Label>Select Room</Label>
-              <Select value={newRoom} onValueChange={setNewRoom}>
-                <SelectTrigger>
+              <Select value={newRoom} onValueChange={setNewRoom} items={ROOM_NAMES}>
+                <SelectTrigger className="!w-full">
                   <SelectValue placeholder="Choose a room" />
                 </SelectTrigger>
                 <SelectContent>

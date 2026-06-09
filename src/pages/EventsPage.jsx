@@ -66,7 +66,7 @@ export default function EventsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs">
+            <SelectTrigger className="!w-[140px] h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

@@ -150,6 +150,8 @@ function init() {
         ['kickout', "ALTER TABLE accounts ADD COLUMN kickout INTEGER DEFAULT 0"],
         ['company_phone', "ALTER TABLE accounts ADD COLUMN company_phone TEXT"],
         ['ymcs_account_id', "ALTER TABLE accounts ADD COLUMN ymcs_account_id TEXT"],
+        ['sip_server_host', "ALTER TABLE accounts ADD COLUMN sip_server_host TEXT"],
+        ['sip_server_port', "ALTER TABLE accounts ADD COLUMN sip_server_port TEXT"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);

@@ -13,6 +13,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   CloudIcon,
   PlayIcon,
   Loader2Icon,
@@ -105,6 +112,9 @@ export default function YmcsControlPage() {
   const [siteResult, setSiteResult] = useState(null);
   const [sipHost, setSipHost] = useState("50.28.84.57");
   const [sipPort, setSipPort] = useState("5070");
+  const [sipRoom, setSipRoom] = useState("all");
+  const [rebootRoom, setRebootRoom] = useState("all");
+  const [rooms, setRooms] = useState([]);
   const abortRef = useRef(null);
   const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites;
   const [confirmAction, setConfirmAction] = useState(null);
@@ -120,11 +130,12 @@ export default function YmcsControlPage() {
         fetch("/api/v1/admin/rooms/config").then(r => r.json()),
       ]);
       const accounts = accRes.data || [];
-      const rooms = roomRes.data?.rooms || [];
+      const roomsList = roomRes.data?.rooms || [];
+      setRooms(roomsList);
       const missingDevice = accounts.filter(a => !a.ymcs_device_id);
       const missingAccount = accounts.filter(a => !a.ymcs_account_id);
       const notEligible = accounts.filter(a => !a.ymcs_account_id || !a.ymcs_device_id);
-      const missingSite = rooms.filter(r => !r.ymcs_site_id);
+      const missingSite = roomsList.filter(r => !r.ymcs_site_id);
       setStats({
         total: accounts.length,
         missingAccountId: missingAccount.length,
@@ -135,7 +146,7 @@ export default function YmcsControlPage() {
         notEligibleList: notEligible.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id, hasDeviceId: !!a.ymcs_device_id })),
         missingSiteId: missingSite.length,
         missingSiteList: missingSite.map(r => ({ name: r.name, id: String(r.id), short_code: r.short_code })),
-        totalRooms: rooms.length,
+        totalRooms: roomsList.length,
       });
     } catch {}
   }
@@ -309,7 +320,8 @@ export default function YmcsControlPage() {
     const start = Date.now();
 
     try {
-      const eventSource = new EventSource(`/api/v1/admin/ymcs/update-all-sip-server?host=${encodeURIComponent(sipHost)}&port=${encodeURIComponent(sipPort)}`);
+      const roomParam = sipRoom !== "all" ? `&room=${encodeURIComponent(sipRoom)}` : "";
+      const eventSource = new EventSource(`/api/v1/admin/ymcs/update-all-sip-server?host=${encodeURIComponent(sipHost)}&port=${encodeURIComponent(sipPort)}${roomParam}`);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -342,7 +354,8 @@ export default function YmcsControlPage() {
     const start = Date.now();
 
     try {
-      const eventSource = new EventSource("/api/v1/admin/ymcs/reboot-all-devices");
+      const roomParam = rebootRoom !== "all" ? `?room=${encodeURIComponent(rebootRoom)}` : "";
+      const eventSource = new EventSource(`/api/v1/admin/ymcs/reboot-all-devices${roomParam}`);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -589,7 +602,7 @@ export default function YmcsControlPage() {
               </div>
               <Button
                 size="sm"
-                onClick={() => setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on all YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true })}
+                onClick={() => { const roomName = sipRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === sipRoom)?.name || sipRoom; setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on ${roomName === "ALL" ? "all" : `"${roomName}"`} YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true }); }}
                 disabled={anySyncing || !sipHost || !sipPort}
                 className="shrink-0"
               >
@@ -607,6 +620,20 @@ export default function YmcsControlPage() {
               <div className="w-20">
                 <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Port</Label>
                 <Input value={sipPort} onChange={(e) => setSipPort(e.target.value)} placeholder="5070" disabled={anySyncing} className="h-8 text-xs" />
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Room</Label>
+                <Select value={sipRoom} onValueChange={setSipRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
+                  <SelectTrigger className="h-8 text-xs !w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Rooms</SelectItem>
+                    {rooms.map(r => (
+                      <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <SyncResult result={sipServerResult} />
@@ -627,24 +654,36 @@ export default function YmcsControlPage() {
                 <ShieldAlertIcon className="size-4 text-destructive" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Reboot All Devices</h3>
+                <h3 className="font-semibold text-sm">Reboot Devices</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Send reboot command to all YMCS managed phones. All devices will restart and temporarily go offline.
+                  Send reboot command to YMCS managed phones. Devices will restart and temporarily go offline.
                 </p>
               </div>
             </div>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setConfirmAction({ title: "Reboot All Devices", description: "This will send a reboot command to ALL YMCS devices. All phones will restart and temporarily go offline.", action: rebootAllDevices, destructive: true })}
-              disabled={anySyncing}
-              className="shrink-0"
-            >
-              {rebooting
-                ? <Loader2Icon className="size-3.5 animate-spin" />
-                : <RotateCwIcon className="size-3.5" />
-              }
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Select value={rebootRoom} onValueChange={setRebootRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
+                <SelectTrigger className="h-8 text-xs !w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Rooms</SelectItem>
+                  {rooms.map(r => (
+                    <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => { const roomName = rebootRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === rebootRoom)?.name || rebootRoom; setConfirmAction({ title: `Reboot ${roomName === "ALL" ? "All" : `"${roomName}"`} Devices`, description: `This will send a reboot command to ${roomName === "ALL" ? "ALL" : `"${roomName}"`} YMCS devices. Phones will restart and temporarily go offline.`, action: rebootAllDevices, destructive: true }); }}
+                disabled={anySyncing}
+              >
+                {rebooting
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <RotateCwIcon className="size-3.5" />
+                }
+              </Button>
+            </div>
           </div>
           <SyncResult result={rebootResult} />
           {rebootLog.length > 0 && (

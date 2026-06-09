@@ -555,16 +555,18 @@ adminRouter.post("/users/:userName/kickout", async (req, res) => {
     }
 });
 
-// POST /users/kickout-all — kickout all users and disconnect all calls
+// POST /users/kickout-all — kickout all (or room-filtered) users and disconnect calls
 adminRouter.post("/users/kickout-all", async (req, res) => {
     try {
-        logUser('ALL', 'API', 'KICKOUT-ALL');
+        const roomId = req.body.room ? parseInt(req.body.room) : null;
+        logUser('ALL', 'API', roomId ? `KICKOUT-ROOM-${roomId}` : 'KICKOUT-ALL');
         const accounts = global.db.getAllAccounts();
         const users = global.db.getAllUserInfo();
         let kicked = 0;
         let disconnected = 0;
 
         for (const account of accounts) {
+            if (roomId && account.room !== roomId) continue;
             if (!account.kickout) {
                 global.db.updateAccount(account.id, { kickout: 1 });
                 kicked++;
@@ -572,6 +574,7 @@ adminRouter.post("/users/kickout-all", async (req, res) => {
         }
 
         for (const user of users) {
+            if (roomId && user.room !== roomId) continue;
             if (user.fsChannelUUID) {
                 try {
                     await global.freeswitch.hangupCall(user.fsChannelUUID, user.userName);
@@ -589,7 +592,8 @@ adminRouter.post("/users/kickout-all", async (req, res) => {
             }
         }
 
-        global.db.logEvent('kickout_all', null, null, `All users kicked: ${kicked} accounts, ${disconnected} calls ended`);
+        const label = roomId ? `Room ${roomId}` : 'All';
+        global.db.logEvent('kickout_all', null, roomId, `${label} users kicked: ${kicked} accounts, ${disconnected} calls ended`);
         emitStateChange('users');
         emitStateChange('rooms');
         emitStateChange('dashboard');
@@ -599,21 +603,24 @@ adminRouter.post("/users/kickout-all", async (req, res) => {
     }
 });
 
-// POST /users/kickin-all — remove kickout flag from all accounts
+// POST /users/kickin-all — remove kickout flag from all (or room-filtered) accounts
 adminRouter.post("/users/kickin-all", (req, res) => {
     try {
-        logUser('ALL', 'API', 'KICKIN-ALL');
+        const roomId = req.body.room ? parseInt(req.body.room) : null;
+        logUser('ALL', 'API', roomId ? `KICKIN-ROOM-${roomId}` : 'KICKIN-ALL');
         const accounts = global.db.getAllAccounts();
         let restored = 0;
 
         for (const account of accounts) {
+            if (roomId && account.room !== roomId) continue;
             if (account.kickout) {
                 global.db.updateAccount(account.id, { kickout: 0 });
                 restored++;
             }
         }
 
-        global.db.logEvent('kickin_all', null, null, `All users restored: ${restored} accounts`);
+        const label = roomId ? `Room ${roomId}` : 'All';
+        global.db.logEvent('kickin_all', null, roomId, `${label} users restored: ${restored} accounts`);
         emitStateChange('users');
         emitStateChange('dashboard');
         res.json({ status: true, restored });
@@ -1132,10 +1139,11 @@ adminRouter.get("/ymcs/update-all-device-accounts", async (req, res) => {
     res.end();
 });
 
-// GET /ymcs/update-all-sip-server — SSE: update SIP server host+port on all YMCS accounts
+// GET /ymcs/update-all-sip-server — SSE: update SIP server host+port on all (or room-filtered) YMCS accounts
 adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
     const host = req.query.host;
     const port = parseInt(req.query.port);
+    const roomId = req.query.room ? parseInt(req.query.room) : null;
     if (!host || !port) {
         return res.status(400).json({ status: false, error: "host and port query params required" });
     }
@@ -1146,13 +1154,28 @@ adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
     try {
         const { updateAccount: updateYmcsAccount, listAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
 
-        send({ type: "info", message: "Fetching all accounts from YMCS..." });
+        const filter = {};
+        let roomLabel = "all";
+        if (roomId) {
+            const room = global.db.getRoom(roomId);
+            if (room?.ymcs_site_id) {
+                filter.siteId = room.ymcs_site_id;
+                roomLabel = room.name || `Room ${roomId}`;
+            } else {
+                send({ type: "error", message: `Room ${roomId} has no YMCS site ID. Run "Sync Room Sites" first.` });
+                send({ type: "done", success: 0, failed: 0, skipped: 0, total: 0 });
+                res.end();
+                return;
+            }
+        }
+
+        send({ type: "info", message: `Fetching ${roomLabel === "all" ? "all" : `"${roomLabel}"`} accounts from YMCS...` });
         const allAccounts = [];
         let skip = 0;
         const limit = 500;
         let total = null;
         while (true) {
-            const page = await listAccounts({ filter: {}, limit, skip, autoCount: total === null });
+            const page = await listAccounts({ filter, limit, skip, autoCount: total === null });
             const data = page?.data || [];
             if (total === null) total = page.total || 0;
             allAccounts.push(...data);
@@ -1177,6 +1200,10 @@ adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
                     password,
                     sipServer1: { host, port },
                 });
+                const localAccount = global.db.getAccountByEmail(acc.email);
+                if (localAccount) {
+                    global.db.updateAccount(localAccount.id, { sip_server_host: host, sip_server_port: String(port) });
+                }
                 success++;
                 send({ type: "success", message: `${prefix} — updated to ${host}:${port}` });
             } catch (err) {
@@ -1193,22 +1220,38 @@ adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
     res.end();
 });
 
-// GET /ymcs/reboot-all-devices — SSE: reboot all YMCS devices
+// GET /ymcs/reboot-all-devices — SSE: reboot all (or room-filtered) YMCS devices
 adminRouter.get("/ymcs/reboot-all-devices", async (req, res) => {
+    const roomId = req.query.room ? parseInt(req.query.room) : null;
+
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
     const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
     try {
-        const { listDevices } = await import("../../service/yealink/yealinkDevices.js");
-        const { rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const { listDevices, rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
 
-        send({ type: "info", message: "Fetching all devices from YMCS..." });
+        const filter = {};
+        let roomLabel = "all";
+        if (roomId) {
+            const room = global.db.getRoom(roomId);
+            if (room?.ymcs_site_id) {
+                filter.siteId = room.ymcs_site_id;
+                roomLabel = room.name || `Room ${roomId}`;
+            } else {
+                send({ type: "error", message: `Room ${roomId} has no YMCS site ID. Run "Sync Room Sites" first.` });
+                send({ type: "done", success: 0, failed: 0, skipped: 0, total: 0 });
+                res.end();
+                return;
+            }
+        }
+
+        send({ type: "info", message: `Fetching ${roomLabel === "all" ? "all" : `"${roomLabel}"`} devices from YMCS...` });
         const allDevices = [];
         let skip = 0;
         const limit = 100;
         let total = null;
         while (true) {
-            const page = await listDevices({ filter: {}, limit, skip, autoCount: total === null });
+            const page = await listDevices({ filter, limit, skip, autoCount: total === null });
             const devices = page?.data || [];
             if (total === null) total = page.total || 0;
             allDevices.push(...devices);

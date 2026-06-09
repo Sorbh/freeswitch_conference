@@ -336,8 +336,9 @@ export default function NotificationsPage() {
               <Select
                 value={form.room || "all"}
                 onValueChange={(val) => setForm(f => ({ ...f, room: val === "all" ? "" : val }))}
+                items={{ all: "All Rooms", ...ROOM_NAMES }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="!w-full">
                   <SelectValue placeholder="All Rooms" />
                 </SelectTrigger>
                 <SelectContent>

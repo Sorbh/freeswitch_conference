@@ -60,8 +60,8 @@ export default function HistoryPage() {
         {usersLoading ? (
           <Skeleton className="h-10 w-full" />
         ) : (
-          <Select value={selectedUser} onValueChange={setSelectedUser}>
-            <SelectTrigger>
+          <Select value={selectedUser} onValueChange={setSelectedUser} items={Object.fromEntries(userList.map(u => [u.userName, `${u.userName}${u.callerIdName ? ` (${u.callerIdName})` : ""}`]))}>
+            <SelectTrigger className="!w-full">
               <SelectValue placeholder="Choose a user to view history..." />
             </SelectTrigger>
             <SelectContent>
