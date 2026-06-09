@@ -1,6 +1,8 @@
 import responseMessages from "./responseMessages.js";
 import service from "./service.js";
 import { logUser } from "../../service/logger.js";
+import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
+import { initiateCall } from "../../service/freeswitch/callGate.js";
 
 export default class ActionController {
 
@@ -132,21 +134,39 @@ export default class ActionController {
             if (this._checkValidUser(userInfo)) {
                 return response.status(400).json(responseMessages.responseMessages.userNotFound);
             }
-            await service.endCall(userInfo.userName);
-            userInfo = global.db.getUserInfo(userInfo.userName);
             const oldRoom = userInfo.currentRoom || userInfo.room;
             const newRoom = parseInt(request.query.room);
             const oldRoomName = global.config.ROOM_NAME?.[oldRoom] || oldRoom;
             const newRoomName = global.config.ROOM_NAME?.[newRoom] || newRoom;
+            const userName = userInfo.userName;
+
+            // Remove hangup handler so async ESL event won't auto-reconnect to old room
+            const oldUuid = userInfo.fsChannelUUID;
+            if (oldUuid) {
+                getConnectionHandlers().delete(oldUuid);
+                // Fire-and-forget kill — no need to await, handler is already removed
+                global.freeswitch.hangupCall(oldUuid, userName).catch(() => {});
+            }
+
+            // Single DB write: update room + reset state in one shot
             userInfo.room = newRoom;
             userInfo.currentRoom = newRoom;
-            global.db.setUserInfo(userInfo.userName, userInfo);
-            logUser(userInfo.userName, 'ACTION', `ROOM-CHANGE ${oldRoomName} -> ${newRoomName} (softkey)`);
-            await service.initiateCall(userInfo.userName);
+            userInfo.connectionState = 'ideal';
+            userInfo.fsChannelUUID = null;
+            userInfo.fsMemberId = null;
+            userInfo.error = null;
+            userInfo.retryCount = 0;
+            userInfo.errFallbackStage = 0;
+            userInfo.errFallbackAt = null;
+            userInfo.mute = true;
+            global.db.setUserInfo(userName, userInfo);
+            logUser(userName, 'ACTION', `ROOM-CHANGE ${oldRoomName} -> ${newRoomName} (softkey)`);
 
-            global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
+            global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
             global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'rooms' });
             global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
+
+            await initiateCall(userName);
 
             return response.status(200).json({ message: `Room changed: ${oldRoomName} -> ${newRoomName}` });
         } catch (error) {

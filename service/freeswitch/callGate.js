@@ -6,6 +6,8 @@ import { logUser, logSystem } from '../logger.js';
 
 export const MAX_RETRIES = 5;
 const RETRY_DELAY = 5000;
+const FALLBACK_DELAYS = [15 * 60 * 1000, 30 * 60 * 1000, 60 * 60 * 1000];
+const FALLBACK_LABELS = ['15min', '30min', '1hr'];
 
 let _locked = true;
 logSystem('GATE', 'LOCKED — startup (waiting for ESL sync)');
@@ -75,11 +77,26 @@ export async function initiateCall(userName) {
 
     if (userInfo.connectionState === 'retry') {
         if ((userInfo.retryCount || 0) >= MAX_RETRIES) {
+            const stage = userInfo.errFallbackStage || 0;
+            if (stage < FALLBACK_DELAYS.length) {
+                const delay = FALLBACK_DELAYS[stage];
+                const fallbackAt = Math.floor(Date.now() / 1000) + Math.floor(delay / 1000);
+                userInfo.connectionState = 'error';
+                userInfo.error = userInfo.error || 'Max retries exceeded';
+                userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                userInfo.errFallbackStage = stage + 1;
+                userInfo.errFallbackAt = fallbackAt;
+                global.db.setUserInfo(userName, userInfo);
+                logUser(userName, 'GATE', `max retries — fallback ${stage + 1}/${FALLBACK_DELAYS.length} in ${FALLBACK_LABELS[stage]}`);
+                _scheduleFallback(userName, delay);
+                return false;
+            }
             userInfo.connectionState = 'error';
             userInfo.error = userInfo.error || 'Max retries exceeded';
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+            userInfo.errFallbackAt = null;
             global.db.setUserInfo(userName, userInfo);
-            logUser(userName, 'GATE', `max retries, aborting — ${userInfo.error}`);
+            logUser(userName, 'GATE', `max retries — all fallbacks exhausted, giving up`);
             return false;
         }
         userInfo.retryCount = (userInfo.retryCount || 0) + 1;
@@ -189,6 +206,8 @@ function _checkUserInConference(userName, userInfo) {
                     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                     userInfo.error = null;
                     userInfo.retryCount = 0;
+                    userInfo.errFallbackStage = 0;
+                    userInfo.errFallbackAt = null;
                     global.db.setUserInfo(userName, userInfo);
                     resolve(true);
                     return;
@@ -217,6 +236,8 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             userInfo.error = null;
             userInfo.retryCount = 0;
+            userInfo.errFallbackStage = 0;
+            userInfo.errFallbackAt = null;
             global.db.setUserInfo(userName, userInfo);
 
             resolve(userInfo);
@@ -225,4 +246,43 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
             reject(new Error(body));
         }
     });
+}
+
+function _scheduleFallback(userName, delay) {
+    setTimeout(() => {
+        const userInfo = global.db.getUserInfo(userName);
+        if (!userInfo || Object.keys(userInfo).length === 0) return;
+        if (!userInfo.online) return;
+        if (userInfo.connectionState !== 'error') return;
+
+        logUser(userName, 'GATE', `FALLBACK ${userInfo.errFallbackStage}/${FALLBACK_DELAYS.length} — retrying now`);
+        userInfo.connectionState = 'ideal';
+        userInfo.retryCount = 0;
+        userInfo.error = null;
+        userInfo.errFallbackAt = null;
+        global.db.setUserInfo(userName, userInfo);
+        initiateCall(userName);
+    }, delay);
+}
+
+export function resumeFallbacks() {
+    const users = global.db.getAllUserInfo();
+    const now = Math.floor(Date.now() / 1000);
+    let resumed = 0;
+
+    for (const user of users) {
+        if (user.connectionState !== 'error' || !user.online) continue;
+        if (!user.errFallbackAt || user.errFallbackStage >= FALLBACK_DELAYS.length) continue;
+
+        const delayMs = Math.max(0, (user.errFallbackAt - now) * 1000);
+        if (delayMs > 0) {
+            logSystem('GATE', `FALLBACK resume ${user.userName} — ${Math.round(delayMs / 1000)}s remaining`);
+        } else {
+            logSystem('GATE', `FALLBACK resume ${user.userName} — overdue, retrying now`);
+        }
+        _scheduleFallback(user.userName, delayMs);
+        resumed++;
+    }
+
+    if (resumed > 0) logSystem('GATE', `FALLBACK resumed ${resumed} pending retries`);
 }

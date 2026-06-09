@@ -4,7 +4,7 @@
 // conference::maintenance: tracks member join/leave/mute/unmute.
 // ESL disconnect: resets all connected users. ESL reconnect: syncs with actual conference state.
 import { getConnection, getConnectionHandlers, getMemberIdMap, onCustomEvent, onAnswerEvent, onHangupEvent, onEslDisconnect, onEslReconnect } from './connection.js';
-import { initiateCall, canInitiateCall, unlockCalls } from './callGate.js';
+import { initiateCall, canInitiateCall, unlockCalls, resumeFallbacks } from './callGate.js';
 import { showMessage } from './notifications.js';
 import { logUser, logSystem } from '../logger.js';
 
@@ -72,6 +72,7 @@ function _syncConferenceState() {
                 }
             }
             unlockCalls();
+            resumeFallbacks();
             return;
         }
 
@@ -142,6 +143,7 @@ function _syncConferenceState() {
         }
 
         unlockCalls();
+        resumeFallbacks();
     });
 }
 
@@ -177,6 +179,8 @@ function _handleChannelAnswer(event) {
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             userInfo.error = null;
             userInfo.retryCount = 0;
+            userInfo.errFallbackStage = 0;
+            userInfo.errFallbackAt = null;
             global.db.setUserInfo(userName, userInfo);
             logUser(userName, 'CALL', 'TRACK');
 
@@ -228,6 +232,8 @@ function _onCallHangup(userName, _uuid, cause) {
     userInfo.fsMemberId = null;
     userInfo.error = null;
     userInfo.retryCount = 0;
+    userInfo.errFallbackStage = 0;
+    userInfo.errFallbackAt = null;
     global.db.setUserInfo(userName, userInfo);
 
     if (userInfo.online) {

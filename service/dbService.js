@@ -117,6 +117,8 @@ function init() {
         ['registration_state', "ALTER TABLE users ADD COLUMN registration_state TEXT DEFAULT 'unregistered'"],
         ['reachable', "ALTER TABLE users ADD COLUMN reachable INTEGER DEFAULT 0"],
         ['last_seen', "ALTER TABLE users ADD COLUMN last_seen INTEGER"],
+        ['err_fallback_stage', "ALTER TABLE users ADD COLUMN err_fallback_stage INTEGER DEFAULT 0"],
+        ['err_fallback_at', "ALTER TABLE users ADD COLUMN err_fallback_at INTEGER"],
     ];
     for (const [col, sql] of userMigrations) {
         if (!userCols.includes(col)) sqlite.exec(sql);
@@ -269,6 +271,7 @@ function setUserInfo(userName, userInfo) {
                 last_connection_state_update = ?, fs_channel_uuid = ?, fs_member_id = ?,
                 caller_id_name = ?, caller_id_html = ?, user_agent = ?, error = ?,
                 redline_data = ?, client_type = ?, registration_state = ?, reachable = ?,
+                err_fallback_stage = ?, err_fallback_at = ?,
                 last_seen = COALESCE(?, last_seen),
                 updated_at = strftime('%s', 'now')
             WHERE user_name = ?
@@ -282,6 +285,7 @@ function setUserInfo(userName, userInfo) {
             userInfo.clientType || 'unknown',
             userInfo.registrationState || 'unregistered',
             userInfo.reachable ? 1 : 0,
+            userInfo.errFallbackStage || 0, userInfo.errFallbackAt || null,
             userInfo.lastSeen || null,
             userName
         );
@@ -293,8 +297,8 @@ function setUserInfo(userName, userInfo) {
                 online, payment, retry_count, login_expire,
                 last_connection_state_update, fs_channel_uuid, fs_member_id,
                 caller_id_name, caller_id_html, user_agent, error, redline_data, client_type,
-                registration_state, reachable, last_seen
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                registration_state, reachable, err_fallback_stage, err_fallback_at, last_seen
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             userName, userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
             userInfo.room, userInfo.currentRoom || userInfo.room, userInfo.connectionState || 'ideal', userInfo.authState || 'logout', userInfo.mute ? 1 : 0,
@@ -305,6 +309,7 @@ function setUserInfo(userName, userInfo) {
             userInfo.clientType || 'unknown',
             userInfo.registrationState || 'unregistered',
             userInfo.reachable ? 1 : 0,
+            userInfo.errFallbackStage || 0, userInfo.errFallbackAt || null,
             userInfo.lastSeen || null
         );
     }
@@ -428,6 +433,8 @@ function _rowToUserInfo(row) {
         registrationState: row.registration_state || 'unregistered',
         reachable: !!row.reachable,
         lastSeen: row.last_seen,
+        errFallbackStage: row.err_fallback_stage || 0,
+        errFallbackAt: row.err_fallback_at || null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };

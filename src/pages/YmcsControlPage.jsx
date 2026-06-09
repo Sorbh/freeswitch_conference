@@ -114,6 +114,7 @@ export default function YmcsControlPage() {
   const [sipPort, setSipPort] = useState("5070");
   const [sipRoom, setSipRoom] = useState("all");
   const [rebootRoom, setRebootRoom] = useState("all");
+  const [rebindRoom, setRebindRoom] = useState("all");
   const [rooms, setRooms] = useState([]);
   const abortRef = useRef(null);
   const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites;
@@ -286,7 +287,8 @@ export default function YmcsControlPage() {
     const start = Date.now();
 
     try {
-      const eventSource = new EventSource("/api/v1/admin/ymcs/update-all-device-accounts");
+      const roomParam = rebindRoom !== "all" ? `?room=${encodeURIComponent(rebindRoom)}` : "";
+      const eventSource = new EventSource(`/api/v1/admin/ymcs/update-all-device-accounts${roomParam}`);
 
       eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -566,17 +568,29 @@ export default function YmcsControlPage() {
                   )}
                 </div>
               </div>
-              <Button
-                size="sm"
-                onClick={() => setConfirmAction({ title: "Rebind All Devices", description: `This will forcefully unbind and rebind the YMCS account on ${stats?.eligibleRebind || 0} devices that have both Account ID and Device ID. This affects live SIP phones.`, action: syncAllDeviceAccounts, destructive: true })}
-                disabled={anySyncing}
-                className="shrink-0"
-              >
-                {syncingBind
-                  ? <Loader2Icon className="size-3.5 animate-spin" />
-                  : <PlayIcon className="size-3.5" />
-                }
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Select value={rebindRoom} onValueChange={setRebindRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
+                  <SelectTrigger className="h-8 text-xs !w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Rooms</SelectItem>
+                    {rooms.map(r => (
+                      <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={() => { const roomName = rebindRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === rebindRoom)?.name || rebindRoom; setConfirmAction({ title: `Rebind ${roomName === "ALL" ? "All" : `"${roomName}"`} Devices`, description: `This will forcefully unbind and rebind the YMCS account on ${roomName === "ALL" ? "all" : `"${roomName}"`} devices that have both Account ID and Device ID. This affects live SIP phones.`, action: syncAllDeviceAccounts, destructive: true }); }}
+                  disabled={anySyncing}
+                >
+                  {syncingBind
+                    ? <Loader2Icon className="size-3.5 animate-spin" />
+                    : <PlayIcon className="size-3.5" />
+                  }
+                </Button>
+              </div>
             </div>
             <SyncResult result={bindResult} />
             {bindLog.length > 0 && (

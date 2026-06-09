@@ -80,6 +80,7 @@ import {
   LayoutGridIcon,
   ListIcon,
   GlobeIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -563,6 +564,22 @@ export default function UsersPage() {
             {roomFilter !== "all" ? `Kickin ${ROOM_NAMES[roomFilter]}` : "Kickin All"}
           </Button>
           <Button
+            variant="outline"
+            onClick={async () => {
+              const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
+              if (!confirm(`Reconnect ${scope === "all" ? "all online users" : `all "${scope}" online users`}? This will hangup and redial.`)) return;
+              try {
+                await fetch("/api/v1/admin/users/reconnect-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
+                refetch();
+              } catch (e) {
+                console.error("Reconnect all failed:", e);
+              }
+            }}
+          >
+            <RefreshCwIcon className="size-4 mr-2" />
+            {roomFilter !== "all" ? `Reconnect ${ROOM_NAMES[roomFilter]}` : "Reconnect All"}
+          </Button>
+          <Button
             variant="destructive"
             onClick={async () => {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
@@ -770,7 +787,7 @@ export default function UsersPage() {
                             <ShieldXIcon className="size-3 text-zinc-500" />
                           )}
                         </Tip>
-                        <Tip label={user.connectionState === "connected" ? "In Call" : user.connectionState === "connecting" ? "Connecting" : user.connectionState === "hangup" ? "Hangup" : user.connectionState === "error" ? `Error: ${user.error || "unknown"}` : "Idle"}>
+                        <Tip label={user.connectionState === "connected" ? "In Call" : user.connectionState === "connecting" ? "Connecting" : user.connectionState === "hangup" ? "Hangup" : user.connectionState === "error" ? `Error: ${user.error || "unknown"}${user.errFallbackAt ? ` · retrying in ${Math.max(0, Math.ceil((user.errFallbackAt - Date.now() / 1000) / 60))}m` : user.errFallbackStage >= 3 ? " · gave up" : ""}` : "Idle"}>
                           {user.connectionState === "connected" ? (
                             <PhoneCallIcon className="size-3 text-emerald-500" />
                           ) : user.connectionState === "connecting" ? (
@@ -977,6 +994,11 @@ export default function UsersPage() {
                       <PhoneOffIcon className="size-4 text-orange-500 shrink-0" />
                       <div className="flex-1">
                         <p className="text-xs text-orange-400 font-mono truncate">{selectedUser.error}</p>
+                        {selectedUser.errFallbackAt ? (
+                          <p className="text-[10px] text-orange-400/70 mt-0.5">Fallback {selectedUser.errFallbackStage}/3 · retrying in {Math.max(0, Math.ceil((selectedUser.errFallbackAt - Date.now() / 1000) / 60))}m</p>
+                        ) : selectedUser.errFallbackStage >= 3 ? (
+                          <p className="text-[10px] text-orange-400/70 mt-0.5">All fallbacks exhausted · manual reconnect needed</p>
+                        ) : null}
                       </div>
                     </div>
                   )}
@@ -1108,7 +1130,19 @@ export default function UsersPage() {
                       return (
                       <>
                         <div className="h-px bg-border/40 my-2" />
-                        <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold px-3 pt-1">YMCS Controls</p>
+                        <div className="flex items-center justify-between px-3 pt-1">
+                          <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold">YMCS Controls</p>
+                          {acc.ymcs_device_id && (
+                            <a
+                              href={`https://eu.ymcs.yealink.com/manager/sip-product/sipManage/sipManageDetail?id=${acc.ymcs_device_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground/40 hover:text-foreground transition-colors"
+                            >
+                              <ExternalLinkIcon className="size-3.5" />
+                            </a>
+                          )}
+                        </div>
                         {inCall && (
                           <div className="mx-3 px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center gap-2">
                             <PhoneCallIcon className="size-3.5 text-orange-400 shrink-0" />

@@ -497,6 +497,8 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
         userInfo.connectionState = 'ideal';
         userInfo.error = null;
         userInfo.retryCount = 0;
+        userInfo.errFallbackStage = 0;
+        userInfo.errFallbackAt = null;
         userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
         global.db.setUserInfo(userName, userInfo);
 
@@ -624,6 +626,53 @@ adminRouter.post("/users/kickin-all", (req, res) => {
         emitStateChange('users');
         emitStateChange('dashboard');
         res.json({ status: true, restored });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/reconnect-all — hangup and reconnect all (or room-filtered) online users
+adminRouter.post("/users/reconnect-all", async (req, res) => {
+    try {
+        const roomId = req.body.room ? parseInt(req.body.room) : null;
+        logUser('ALL', 'API', roomId ? `RECONNECT-ROOM-${roomId}` : 'RECONNECT-ALL');
+        const users = global.db.getAllUserInfo();
+        let reconnected = 0;
+
+        const { initiateCall } = await import("../../service/freeswitch/callGate.js");
+
+        for (const user of users) {
+            if (!user.online) continue;
+            if (roomId && (user.currentRoom || user.room) !== roomId) continue;
+
+            if (user.fsChannelUUID) {
+                try {
+                    getConnectionHandlers().delete(user.fsChannelUUID);
+                    await global.freeswitch.hangupCall(user.fsChannelUUID, user.userName);
+                } catch (e) {
+                    console.error(`[RECONNECT-ALL] Hangup failed for ${user.userName}:`, e.message);
+                }
+            }
+
+            user.connectionState = 'ideal';
+            user.fsChannelUUID = null;
+            user.fsMemberId = null;
+            user.error = null;
+            user.retryCount = 0;
+            user.errFallbackStage = 0;
+            user.errFallbackAt = null;
+            global.db.setUserInfo(user.userName, user);
+
+            initiateCall(user.userName).catch(() => {});
+            reconnected++;
+        }
+
+        const label = roomId ? `Room ${roomId}` : 'All';
+        global.db.logEvent('reconnect_all', null, roomId, `${label} users reconnected: ${reconnected}`);
+        emitStateChange('users');
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
+        res.json({ status: true, reconnected });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -1095,15 +1144,22 @@ adminRouter.get("/ymcs/sync-all-device-ids", async (req, res) => {
 
 // GET /ymcs/update-all-device-accounts — SSE: for each account with account+device ID, unbind+rebind
 adminRouter.get("/ymcs/update-all-device-accounts", async (req, res) => {
+    const roomId = req.query.room ? parseInt(req.query.room) : null;
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
     const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
     try {
         const { unbindAccounts, bindAccounts, getBoundAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
 
-        const allAccounts = global.db.getAllAccounts();
+        let allAccounts = global.db.getAllAccounts();
+        let roomLabel = "all";
+        if (roomId) {
+            const room = global.db.getRoom(roomId);
+            roomLabel = room?.name || `Room ${roomId}`;
+            allAccounts = allAccounts.filter(a => a.room === roomId);
+        }
         const eligible = allAccounts.filter(a => a.ymcs_account_id && a.ymcs_device_id);
-        send({ type: "info", message: `Found ${allAccounts.length} accounts, ${eligible.length} eligible for rebind` });
+        send({ type: "info", message: `Found ${allAccounts.length} ${roomLabel === "all" ? "" : `"${roomLabel}" `}accounts, ${eligible.length} eligible for rebind` });
 
         let success = 0, failed = 0;
 
@@ -1152,39 +1208,17 @@ adminRouter.get("/ymcs/update-all-sip-server", async (req, res) => {
     const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
     try {
-        const { updateAccount: updateYmcsAccount, listAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+        const { updateAccount: updateYmcsAccount } = await import("../../service/yealink/yealinkSipAccounts.js");
 
-        const filter = {};
         let roomLabel = "all";
+        let allLocal = global.db.getAllAccounts();
         if (roomId) {
             const room = global.db.getRoom(roomId);
-            if (room?.ymcs_site_id) {
-                filter.siteId = room.ymcs_site_id;
-                roomLabel = room.name || `Room ${roomId}`;
-            } else {
-                send({ type: "error", message: `Room ${roomId} has no YMCS site ID. Run "Sync Room Sites" first.` });
-                send({ type: "done", success: 0, failed: 0, skipped: 0, total: 0 });
-                res.end();
-                return;
-            }
+            roomLabel = room?.name || `Room ${roomId}`;
+            allLocal = allLocal.filter(a => a.room === roomId);
         }
-
-        send({ type: "info", message: `Fetching ${roomLabel === "all" ? "all" : `"${roomLabel}"`} accounts from YMCS...` });
-        const allAccounts = [];
-        let skip = 0;
-        const limit = 500;
-        let total = null;
-        while (true) {
-            const page = await listAccounts({ filter, limit, skip, autoCount: total === null });
-            const data = page?.data || [];
-            if (total === null) total = page.total || 0;
-            allAccounts.push(...data);
-            skip += limit;
-            if (data.length < limit || skip >= total) break;
-        }
-
-        const accounts = allAccounts.map(a => ({ accountId: a.id, email: a.username || a.registerInfo }));
-        send({ type: "info", message: `Found ${accounts.length} YMCS accounts, updating SIP server to ${host}:${port}...` });
+        const accounts = allLocal.filter(a => a.ymcs_account_id).map(a => ({ accountId: a.ymcs_account_id, email: a.email }));
+        send({ type: "info", message: `Found ${accounts.length} ${roomLabel === "all" ? "" : `"${roomLabel}" `}accounts, updating SIP server to ${host}:${port}...` });
 
         const password = process.env.SIP_DEFAULT_PASSWORD || '12345678';
         let success = 0, failed = 0;
@@ -1228,37 +1262,17 @@ adminRouter.get("/ymcs/reboot-all-devices", async (req, res) => {
     const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
     try {
-        const { listDevices, rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
+        const { rebootDevices } = await import("../../service/yealink/yealinkDevices.js");
 
-        const filter = {};
         let roomLabel = "all";
+        let allLocal = global.db.getAllAccounts();
         if (roomId) {
             const room = global.db.getRoom(roomId);
-            if (room?.ymcs_site_id) {
-                filter.siteId = room.ymcs_site_id;
-                roomLabel = room.name || `Room ${roomId}`;
-            } else {
-                send({ type: "error", message: `Room ${roomId} has no YMCS site ID. Run "Sync Room Sites" first.` });
-                send({ type: "done", success: 0, failed: 0, skipped: 0, total: 0 });
-                res.end();
-                return;
-            }
+            roomLabel = room?.name || `Room ${roomId}`;
+            allLocal = allLocal.filter(a => a.room === roomId);
         }
-
-        send({ type: "info", message: `Fetching ${roomLabel === "all" ? "all" : `"${roomLabel}"`} devices from YMCS...` });
-        const allDevices = [];
-        let skip = 0;
-        const limit = 100;
-        let total = null;
-        while (true) {
-            const page = await listDevices({ filter, limit, skip, autoCount: total === null });
-            const devices = page?.data || [];
-            if (total === null) total = page.total || 0;
-            allDevices.push(...devices);
-            skip += limit;
-            if (devices.length < limit || skip >= total) break;
-        }
-        send({ type: "info", message: `Found ${allDevices.length} devices, sending reboot commands...` });
+        const allDevices = allLocal.filter(a => a.ymcs_device_id).map(a => ({ id: a.ymcs_device_id, email: a.email }));
+        send({ type: "info", message: `Found ${allDevices.length} ${roomLabel === "all" ? "" : `"${roomLabel}" `}devices, sending reboot commands...` });
 
         let success = 0, failed = 0;
 
