@@ -70,6 +70,23 @@ export function honkRoom(room) {
     });
 }
 
+export function conferenceDial(room, contact) {
+    return new Promise((resolve, reject) => {
+        const roomName = global.config.ROOM_NAME[room] || room;
+        const confProfile = global.config.FREESWITCH_CONFERENCE_PROFILE;
+        const cmd = `conference ${room}@${confProfile} dial ${contact} ADMIN-LISTEN ${roomName}`;
+        getConnection().api(cmd, (response) => {
+            const body = response.getBody().trim();
+            if (body.startsWith('+OK') || body.startsWith('Call has been originated')) {
+                logSystem('ACTION', `LISTEN dial into ${roomName}`);
+                resolve(body);
+            } else {
+                reject(new Error(body));
+            }
+        });
+    });
+}
+
 export function getConferenceList() {
     return new Promise((resolve) => {
         getConnection().api('conference list', (response) => {

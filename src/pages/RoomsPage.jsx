@@ -23,8 +23,9 @@ import { useRooms } from "@/hooks/useRooms";
 import {
   Volume2Icon, MicIcon, MicOffIcon, PhoneOffIcon, RefreshCwIcon,
   UsersIcon, WifiIcon, PhoneCallIcon, ActivityIcon, VolumeXIcon,
-  RadioIcon, PlusIcon, PencilIcon, Trash2Icon,
+  RadioIcon, PlusIcon, PencilIcon, Trash2Icon, HeadphonesIcon, Loader2Icon, SquareIcon,
 } from "lucide-react";
+import { useConferenceListen } from "@/hooks/useConferenceListen";
 
 function useAnimatedNumber(target, dur = 500) {
   const [val, setVal] = useState(target);
@@ -215,6 +216,7 @@ export default function RoomsPage() {
   const [saving, setSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const { listenRoom, listenState, startListen, stopListen } = useConferenceListen();
 
   function openCreateRoom() {
     setEditingRoom(null);
@@ -360,6 +362,22 @@ export default function RoomsPage() {
         <StatCard title="Empty Rooms" value={rooms.filter(r => (r.online || 0) === 0).length} icon={<VolumeXIcon className="size-4" />} color="#8b8b8b" subtitle={`${rooms.filter(r => (r.online || 0) > 0).length} with users online`} />
       </div>
 
+      {/* Listen Indicator */}
+      {listenRoom && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm">
+          {listenState === "connected" ? (
+            <span className="relative flex size-2"><span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex size-2 rounded-full bg-emerald-500" /></span>
+          ) : (
+            <Loader2Icon className="size-3.5 animate-spin text-emerald-500" />
+          )}
+          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+            {listenState === "connected" ? "Listening to" : listenState === "registering" ? "Connecting to" : listenState === "ringing" ? "Dialing into" : "Error joining"}{" "}
+            {ROOM_NAMES[listenRoom] || `Room ${listenRoom}`}
+          </span>
+          <button onClick={stopListen} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">Stop</button>
+        </div>
+      )}
+
       {/* Rooms Table */}
       <Card>
         <CardContent className="p-0">
@@ -482,6 +500,20 @@ export default function RoomsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                          <Tip label={listenRoom === room.room ? "Stop Listening" : "Listen"}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`size-7 ${listenRoom === room.room && listenState === "connected" ? "text-emerald-500" : ""}`}
+                              onClick={() => listenRoom === room.room ? stopListen() : startListen(room.room)}
+                            >
+                              {listenRoom === room.room && (listenState === "registering" || listenState === "ringing")
+                                ? <Loader2Icon className="size-3.5 animate-spin" />
+                                : listenRoom === room.room && listenState === "connected"
+                                  ? <SquareIcon className="size-3 fill-current" />
+                                  : <HeadphonesIcon className="size-3.5" />}
+                            </Button>
+                          </Tip>
                           <Tip label="Edit Room">
                             <Button size="icon" variant="ghost" className="size-7" onClick={() => openEditRoom(room)}>
                               <PencilIcon className="size-3.5" />

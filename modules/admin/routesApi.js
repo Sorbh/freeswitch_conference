@@ -1660,3 +1660,59 @@ adminRouter.post("/rooms/:roomId/honk", (req, res) => {
         res.status(500).json({ status: false, error: err.message });
     }
 });
+
+// POST /rooms/:roomId/listen — dial an admin SIP client into the conference as listener
+adminRouter.post("/rooms/:roomId/listen", async (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ status: false, error: "email is required" });
+
+        const account = global.db.getAccountByEmail(email);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+
+        const profile = global.config.FREESWITCH_SOFIA_PROFILE;
+        const sipUser = email.includes('@') ? email.replace('@', '.at.') : email;
+        const fsIp = global.config.FREESWITCH_PUBLIC_IP;
+
+        const { getConnection } = await import("../../service/freeswitch/connection.js");
+        const conn = getConnection();
+
+        const contact = await new Promise((resolve, reject) => {
+            const lookups = [
+                `sofia_contact ${profile}/${sipUser}@${fsIp}`,
+                `sofia_contact ${profile}/${email}`,
+            ];
+            const tryLookup = (idx) => {
+                if (idx >= lookups.length) { reject(new Error("Admin SIP client not registered")); return; }
+                conn.api(lookups[idx], (resp) => {
+                    const body = resp.getBody().trim();
+                    if (!body || body.startsWith('-ERR') || body === 'error/user_not_registered') {
+                        tryLookup(idx + 1);
+                    } else {
+                        resolve(body);
+                    }
+                });
+            };
+            tryLookup(0);
+        });
+
+        const confProfile = global.config.FREESWITCH_CONFERENCE_PROFILE;
+        const roomName = global.config.ROOM_NAME[roomId] || roomId;
+        const cmd = `originate {origination_caller_id_name='LISTEN-${roomName}',origination_caller_id_number='LISTEN'}${contact} &conference(${roomId}@${confProfile}++flags{mute})`;
+
+        const result = await new Promise((resolve, reject) => {
+            conn.api(cmd, (resp) => {
+                const body = resp.getBody().trim();
+                if (body.startsWith('+OK')) resolve(body.replace('+OK ', '').trim());
+                else reject(new Error(body));
+            });
+        });
+
+        logUser(email, 'API', `LISTEN room ${roomName}`);
+        global.db.logEvent('listen', email, roomId, `Admin listening to ${roomName}`);
+        res.json({ status: true, uuid: result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
