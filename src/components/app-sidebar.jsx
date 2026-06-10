@@ -25,6 +25,7 @@ import {
   ScrollTextIcon,
   CloudIcon,
   BellIcon,
+  TerminalIcon,
 } from "lucide-react"
 
 const data = {
@@ -56,6 +57,7 @@ const data = {
       items: [
         { title: "Live Events", url: "/events", icon: <ActivityIcon /> },
         { title: "System Health", url: "/system", icon: <ServerIcon /> },
+        { title: "Server Logs", url: "/dev/server-logs", icon: <TerminalIcon /> },
         { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon /> },
         { title: "Phone Log", url: "/dev/phone-logs", icon: <PhoneIcon /> },
         { title: "YMCS Control", url: "/dev/ymcs", icon: <CloudIcon /> },

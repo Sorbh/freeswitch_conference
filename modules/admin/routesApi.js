@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
-import { logUser } from "../../service/logger.js";
+import { logUser, invalidateDebugCache } from "../../service/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -442,6 +442,23 @@ adminRouter.get("/events/phone-log", (req, res) => {
     req.on('close', () => {
         global.db.eventEmitter.off('PHONE_LOG', onLog);
     });
+});
+
+// GET /events/debug-log — SSE endpoint for debug log stream
+adminRouter.get("/events/debug-log", (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+    res.write('data: {"type":"connected"}\n\n');
+
+    const onLog = (entry) => {
+        res.write(`data: ${JSON.stringify(entry)}\n\n`);
+    };
+
+    global.db.eventEmitter.on('DEBUG_LOG', onLog);
+    req.on('close', () => { global.db.eventEmitter.off('DEBUG_LOG', onLog); });
 });
 
 // GET /system — returns system health
@@ -903,7 +920,7 @@ adminRouter.put("/accounts/:id", async (req, res) => {
         logUser(account.email || `account:${id}`, 'API', 'UPDATE-ACCOUNT');
 
         const fields = {};
-        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_phone', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout'];
+        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_phone', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout', 'debug'];
         for (const key of allowed) {
             if (req.body[key] !== undefined) {
                 fields[key] = key === 'room' ? parseInt(req.body[key]) : req.body[key];
@@ -912,6 +929,8 @@ adminRouter.put("/accounts/:id", async (req, res) => {
 
         const updated = global.db.updateAccount(id, fields);
         if (!updated) return res.status(400).json({ status: false, error: "No valid fields to update" });
+
+        if (fields.debug !== undefined) invalidateDebugCache(account.email);
 
         if (fields.room !== undefined) {
             const userName = `sip:${account.email}`;

@@ -1112,6 +1112,30 @@ export default function UsersPage() {
                         />
                       </div>
                     </div>
+                    <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${acc.debug ? "bg-cyan-500/5 border-cyan-500/20" : "bg-muted/30 border-border/40"}`}>
+                      <div className="flex items-center gap-2">
+                        <BugIcon className={`size-4 ${acc.debug ? "text-cyan-400" : "text-muted-foreground/50"}`} />
+                        <div>
+                          <p className="text-sm font-medium">Debug Logs</p>
+                          <p className="text-[11px] text-muted-foreground/60">Show logs in console & server log viewer</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={!!acc.debug}
+                        onCheckedChange={async () => {
+                          try {
+                            await fetch(`/api/v1/admin/accounts/${acc.id}`, {
+                              method: "PUT",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ debug: acc.debug ? 0 : 1 }),
+                            });
+                            refetch();
+                          } catch (e) { console.error("Debug toggle failed:", e); }
+                        }}
+                        className="data-checked:bg-cyan-500"
+                      />
+                    </div>
+
                     <div className="space-y-1">
                       {[
                         { icon: <MailIcon className="size-3.5" />, label: "Email", value: acc.email },

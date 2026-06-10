@@ -25,6 +25,7 @@ import FsLogsPage from "@/pages/FsLogsPage";
 import PhoneLogsPage from "@/pages/PhoneLogsPage";
 import YmcsControlPage from "@/pages/YmcsControlPage";
 import NotificationsPage from "@/pages/NotificationsPage";
+import ServerLogsPage from "@/pages/ServerLogsPage";
 
 const dashboardRoutes = [
   { path: "/dashboard", element: <DashboardPage />, title: "Dashboard" },
@@ -33,6 +34,7 @@ const dashboardRoutes = [
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcast History" },
   { path: "/events", element: <EventsPage />, title: "Live Events" },
   { path: "/system", element: <SystemPage />, title: "System Health" },
+  { path: "/dev/server-logs", element: <ServerLogsPage />, title: "Server Logs" },
   { path: "/dev/fs-logs", element: <FsLogsPage />, title: "FS Logs" },
   { path: "/dev/phone-logs", element: <PhoneLogsPage />, title: "Phone Log" },
   { path: "/dev/ymcs", element: <YmcsControlPage />, title: "YMCS Control" },

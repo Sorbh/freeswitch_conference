@@ -47,7 +47,7 @@ async function _handleRegistration(event) {
     }
 
     const userName = `sip:${email}`;
-    logUser(userName, 'REG', `${clientType} │ MAC: ${mac || 'none'} │ IP: ${networkIp}:${networkPort}`);
+    logUser(userName, 'REG', `${clientType} │ MAC: ${mac || 'none'} │ IP: ${networkIp}:${networkPort}`, event);
 
     const account = global.db.getAccountByEmail(email);
     if (!account || !account.active) {

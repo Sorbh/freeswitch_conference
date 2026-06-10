@@ -4,8 +4,30 @@ const DOUBLE_SEP = '════════════════════
 const userBuffers = new Map();
 const FLUSH_DELAY = 800;
 
+// Debug flag cache: email -> boolean
+const debugCache = new Map();
+
 function _shortName(userName) {
     return (userName || '').replace('sip:', '');
+}
+
+function _isDebugEnabled(userName) {
+    const email = _shortName(userName);
+    if (!email || email === '__unknown__') return false;
+    if (debugCache.has(email)) return debugCache.get(email);
+    try {
+        const account = global.db?.getAccountByEmail?.(email);
+        const enabled = !!(account?.debug);
+        debugCache.set(email, enabled);
+        return enabled;
+    } catch {
+        return false;
+    }
+}
+
+export function invalidateDebugCache(email) {
+    if (email) debugCache.delete(email);
+    else debugCache.clear();
 }
 
 export function logSystem(label, message) {
@@ -30,13 +52,13 @@ export function logBlocked(type, detail) {
     console.log(`${SEPARATOR}`);
 }
 
-export function logUser(userName, tag, message) {
+export function logUser(userName, tag, message, eslEvent) {
     const key = userName || '__unknown__';
     if (!userBuffers.has(key)) {
         userBuffers.set(key, { lines: [], timer: null });
     }
     const buf = userBuffers.get(key);
-    buf.lines.push({ tag, message });
+    buf.lines.push({ tag, message, eslEvent });
 
     if (buf.timer) clearTimeout(buf.timer);
     buf.timer = setTimeout(() => _flush(key), FLUSH_DELAY);
@@ -50,6 +72,7 @@ export function logUserImmediate(userName, tag, message) {
         if (buf.timer) clearTimeout(buf.timer);
         _flush(key);
     } else {
+        if (!_isDebugEnabled(key)) return;
         const name = _shortName(key);
         console.log('');
         console.log(`┌─ ${name} ${'─'.repeat(Math.max(1, 53 - name.length))}`);
@@ -62,21 +85,55 @@ function _flush(key) {
     const buf = userBuffers.get(key);
     if (!buf || buf.lines.length === 0) return;
 
+    const debug = _isDebugEnabled(key);
     const name = _shortName(key);
     const lines = buf.lines;
     const headerLine = lines[0];
 
-    console.log('');
-    console.log(`┌─ ${headerLine.tag} ── ${name} ${'─'.repeat(Math.max(1, 46 - name.length - headerLine.tag.length))}`);
-    if (headerLine.message) {
-        console.log(`│  ${headerLine.message}`);
+    // Always emit to SSE for the server log viewer
+    _emitDebugLog(key, lines);
+
+    // Only print to console if debug is enabled for this account
+    if (debug) {
+        console.log('');
+        console.log(`┌─ ${headerLine.tag} ── ${name} ${'─'.repeat(Math.max(1, 46 - name.length - headerLine.tag.length))}`);
+        if (headerLine.message) {
+            console.log(`│  ${headerLine.message}`);
+        }
+        for (let i = 1; i < lines.length; i++) {
+            console.log(`│  ${lines[i].tag.padEnd(6)} ${lines[i].message}`);
+        }
+
+        // Verbose: dump ESL event headers for debug-enabled accounts
+        for (const line of lines) {
+            if (line.eslEvent && line.eslEvent.headers) {
+                console.log(`│  ┈┈ ESL Headers ┈┈`);
+                for (const h of line.eslEvent.headers) {
+                    if (h.name && h.value && !h.name.startsWith('_')) {
+                        console.log(`│    ${h.name}: ${h.value}`);
+                    }
+                }
+            }
+        }
+
+        console.log(`└${'─'.repeat(55)}`);
     }
-    for (let i = 1; i < lines.length; i++) {
-        console.log(`│  ${lines[i].tag.padEnd(6)} ${lines[i].message}`);
-    }
-    console.log(`└${'─'.repeat(55)}`);
 
     buf.lines = [];
     buf.timer = null;
     userBuffers.delete(key);
+}
+
+function _emitDebugLog(userName, lines) {
+    try {
+        if (!global.db?.eventEmitter) return;
+        const name = _shortName(userName);
+        const logLines = lines.map(l => `${l.tag.padEnd(6)} ${l.message}`);
+        global.db.eventEmitter.emit('DEBUG_LOG', {
+            type: 'debug_log',
+            userName: name,
+            lines: logLines,
+            timestamp: Math.floor(Date.now() / 1000),
+        });
+    } catch {}
 }
