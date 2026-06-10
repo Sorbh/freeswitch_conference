@@ -83,6 +83,7 @@ import {
   ExternalLinkIcon,
   FileCodeIcon,
   TriangleAlertIcon,
+  XIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -625,8 +626,13 @@ export default function UsersPage() {
             placeholder="Search name, email, company, or MAC..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-8"
           />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+              <XIcon className="size-3.5" />
+            </button>
+          )}
         </div>
         <Select value={roomFilter} onValueChange={setRoomFilter} items={{ all: "All Rooms", ...ROOM_NAMES }}>
           <SelectTrigger className="!w-[160px]">

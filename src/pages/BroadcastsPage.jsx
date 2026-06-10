@@ -2,10 +2,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
@@ -15,7 +20,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
   TrendingUpIcon, PlayIcon, PauseIcon, ClockIcon, UserIcon,
-  ZapIcon,
+  ZapIcon, ChevronLeftIcon, ChevronRightIcon, FilterIcon, XIcon,
+  ChevronsLeftIcon, ChevronsRightIcon, ListIcon,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -36,6 +42,12 @@ function formatDate(ts) {
   if (!ts) return "—";
   const d = new Date(ts * 1000);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatFullDate(ts) {
+  if (!ts) return "—";
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 // ── Animated Number ──
@@ -154,7 +166,6 @@ function PeakHoursHeatmap({ hourlyData }) {
 
   return (
     <div className="space-y-1">
-      {/* Hour labels */}
       <div className="flex ml-8 gap-[1px]">
         {Array.from({ length: 24 }, (_, h) => (
           <div key={h} className="flex-1 text-center text-[8px] font-mono text-muted-foreground/30">
@@ -162,8 +173,6 @@ function PeakHoursHeatmap({ hourlyData }) {
           </div>
         ))}
       </div>
-
-      {/* Grid */}
       {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName, displayIdx) => {
         const dayIdx = displayIdx === 6 ? 0 : displayIdx + 1;
         return (
@@ -207,11 +216,9 @@ function WaveformPlayer({ url, isActive, onToggle }) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Decode audio and generate waveform data
   useEffect(() => {
     if (!url || !isActive) return;
     let cancelled = false;
-
     fetch(url)
       .then(r => r.arrayBuffer())
       .then(buf => {
@@ -226,40 +233,27 @@ function WaveformPlayer({ url, isActive, onToggle }) {
         const peaks = [];
         for (let i = 0; i < samples; i++) {
           let sum = 0;
-          for (let j = 0; j < blockSize; j++) {
-            sum += Math.abs(raw[i * blockSize + j]);
-          }
+          for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[i * blockSize + j]);
           peaks.push(sum / blockSize);
         }
         const max = Math.max(...peaks, 0.01);
         setWaveform(peaks.map(p => p / max));
       })
-      .catch(() => {
-        if (!cancelled) setWaveform(Array.from({ length: 80 }, () => Math.random() * 0.5 + 0.1));
-      });
-
+      .catch(() => { if (!cancelled) setWaveform(Array.from({ length: 80 }, () => Math.random() * 0.5 + 0.1)); });
     return () => { cancelled = true; };
   }, [url, isActive]);
 
-  // Track progress
   useEffect(() => {
-    if (!isActive) {
-      cancelAnimationFrame(animRef.current);
-      return;
-    }
+    if (!isActive) { cancelAnimationFrame(animRef.current); return; }
     const tick = () => {
       const audio = audioRef.current;
-      if (audio && audio.duration) {
-        setProgress(audio.currentTime / audio.duration);
-        setDuration(audio.duration);
-      }
+      if (audio && audio.duration) { setProgress(audio.currentTime / audio.duration); setDuration(audio.duration); }
       animRef.current = requestAnimationFrame(tick);
     };
     animRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animRef.current);
   }, [isActive]);
 
-  // Draw waveform
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !waveform) return;
@@ -270,17 +264,14 @@ function WaveformPlayer({ url, isActive, onToggle }) {
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
-
     ctx.clearRect(0, 0, w, h);
     const barW = w / waveform.length;
     const gap = 1;
-
     for (let i = 0; i < waveform.length; i++) {
       const x = i * barW;
       const barH = Math.max(2, waveform[i] * h * 0.85);
       const y = (h - barH) / 2;
       const played = i / waveform.length < progress;
-
       ctx.fillStyle = played ? "oklch(0.7 0.18 165 / 0.8)" : "oklch(0.5 0.02 270 / 0.3)";
       ctx.beginPath();
       ctx.roundRect(x + gap / 2, y, barW - gap, barH, 1);
@@ -292,171 +283,22 @@ function WaveformPlayer({ url, isActive, onToggle }) {
     const audio = audioRef.current;
     if (!audio || !audio.duration) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    audio.currentTime = pct * audio.duration;
+    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
   }, []);
 
   if (!isActive || !waveform) return null;
 
   return (
     <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card/50 border border-border/30 animate-in fade-in slide-in-from-top-1 duration-200">
-      <button
-        onClick={onToggle}
-        className="size-8 rounded-full flex items-center justify-center bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors cursor-pointer shrink-0"
-      >
+      <button onClick={onToggle} className="size-8 rounded-full flex items-center justify-center bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors cursor-pointer shrink-0">
         <PauseIcon className="size-3.5" />
       </button>
-      <canvas
-        ref={canvasRef}
-        className="flex-1 h-8 cursor-pointer"
-        onClick={seekTo}
-      />
+      <canvas ref={canvasRef} className="flex-1 h-8 cursor-pointer" onClick={seekTo} />
       <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
         {duration > 0 ? `${Math.floor(progress * duration)}s / ${Math.floor(duration)}s` : "—"}
       </span>
       <audio ref={audioRef} src={url} preload="auto" />
     </div>
-  );
-}
-
-// ── Recent Broadcasts Table ──
-function RecentTable({ broadcasts }) {
-  const [playingId, setPlayingId] = useState(null);
-  const [playingUrl, setPlayingUrl] = useState(null);
-  const audioRef = useRef(null);
-  const playingIdRef = useRef(null);
-
-  useEffect(() => { playingIdRef.current = playingId; }, [playingId]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onEnded = () => { setPlayingId(null); setPlayingUrl(null); };
-    audio.addEventListener("ended", onEnded);
-    return () => audio.removeEventListener("ended", onEnded);
-  }, []);
-
-  const toggle = useCallback((id, url) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playingIdRef.current === id) {
-      audio.pause();
-      setPlayingId(null);
-      setPlayingUrl(null);
-    } else {
-      audio.pause();
-      audio.src = url;
-      audio.load();
-      audio.play().catch(() => {});
-      setPlayingId(id);
-      setPlayingUrl(url);
-    }
-  }, []);
-
-  if (!broadcasts || broadcasts.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-8">No recent broadcasts</p>;
-  }
-
-  return (
-    <>
-      {/* Waveform player */}
-      {playingId && playingUrl && (
-        <div className="px-4 pb-2">
-          <WaveformPlayer
-            url={playingUrl}
-            isActive={!!playingId}
-            onToggle={() => toggle(playingId, playingUrl)}
-          />
-        </div>
-      )}
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-6 w-12"></TableHead>
-            <TableHead>Time</TableHead>
-            <TableHead>User</TableHead>
-            <TableHead>Channel</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Participants</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {broadcasts.map((b) => {
-            const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
-            const playing = playingId === b.id;
-            return (
-              <TableRow
-                key={b.id}
-                className={playing ? "bg-emerald-500/[0.03]" : ""}
-              >
-                <TableCell className="pl-6">
-                  {url && (
-                    <button
-                      onClick={() => toggle(b.id, url)}
-                      className={`flex size-7 items-center justify-center rounded-full border transition-all cursor-pointer ${
-                        playing
-                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                          : "bg-muted/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
-                      }`}
-                    >
-                      {playing ? (
-                        <div className="flex items-end gap-[2px] h-3">
-                          {[0, 1, 2].map(i => (
-                            <div
-                              key={i}
-                              className="w-[2px] bg-emerald-400 rounded-full"
-                              style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <PlayIcon className="size-3 ml-0.5" />
-                      )}
-                    </button>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm font-mono tabular-nums">{formatTime(b.created_at)}</div>
-                  <div className="text-[10px] text-muted-foreground/50">{formatDate(b.created_at)}</div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm font-medium">{b.display_name || b.user_name || "Unknown"}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">{b.room_name || ROOM_NAMES[b.room] || "—"}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm font-mono tabular-nums text-muted-foreground">{formatDuration(b.duration_ms)}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm font-mono tabular-nums text-muted-foreground">{b.participant_count || "—"}</span>
-                </TableCell>
-                <TableCell>
-                  {b.answered ? (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-1.5 py-0">
-                      Answered
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[10px] px-1.5 py-0">
-                      Unanswered
-                    </Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-      <audio ref={audioRef} preload="none" className="hidden" />
-      <style>{`
-        @keyframes eqBar {
-          from { height: 3px; }
-          to { height: 10px; }
-        }
-      `}</style>
-    </>
   );
 }
 
@@ -478,15 +320,39 @@ export default function BroadcastsPage() {
   const days = ranges.find(r => r.key === activeRange)?.days || 1;
 
   const { data: statsRaw, loading, refetch } = useFetch(`/api/v1/admin/broadcasts?days=${days}`);
-  const { data: recentRaw, loading: recentLoading, refetch: refetchRecent } = useFetch("/api/v1/admin/broadcasts/recent?limit=30");
   const { data: hourlyRaw, refetch: refetchHourly } = useFetch(`/api/v1/admin/broadcasts/hourly?hours=${Math.max(days * 24, 168)}`);
 
-  useSSERefresh(() => { refetch(); refetchRecent(); refetchHourly(); }, ["broadcasts"]);
+  // Paginated broadcast list state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [filterRoom, setFilterRoom] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+
+  const listParams = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set("page", page);
+    p.set("pageSize", pageSize);
+    if (filterRoom) p.set("room", filterRoom);
+    if (filterStatus === "answered") p.set("answered", "1");
+    else if (filterStatus === "unanswered") p.set("answered", "0");
+    if (filterDateFrom) p.set("dateFrom", filterDateFrom);
+    if (filterDateTo) p.set("dateTo", filterDateTo);
+    return p.toString();
+  }, [page, pageSize, filterRoom, filterStatus, filterDateFrom, filterDateTo]);
+
+  const { data: listRaw, loading: listLoading, refetch: refetchList } = useFetch(`/api/v1/admin/broadcasts/list?${listParams}`);
+
+  useSSERefresh(() => { refetch(); refetchHourly(); refetchList(); }, ["broadcasts"]);
   const { events: sseEvents } = useSSE("/api/v1/admin/events/stream");
 
   const stats = statsRaw ?? {};
-  const recent = Array.isArray(recentRaw) ? recentRaw : recentRaw?.data || [];
   const rawHourly = Array.isArray(hourlyRaw) ? hourlyRaw : hourlyRaw?.data || [];
+  const broadcasts = listRaw?.data || [];
+  const totalItems = listRaw?.total || 0;
+  const totalPages = listRaw?.totalPages || 1;
 
   const hourly = stats.hourly || [];
   const daily = stats.daily || [];
@@ -498,25 +364,21 @@ export default function BroadcastsPage() {
   const totalUnanswered = totalBroadcasts - totalAnswered;
   const responseRate = totalBroadcasts > 0 ? ((totalAnswered / totalBroadcasts) * 100).toFixed(1) : "0.0";
 
-  // Avg response time for answered broadcasts
   const avgResponseTime = useMemo(() => {
-    const answered = recent.filter(b => b.answered && b.duration_ms);
+    const answered = broadcasts.filter(b => b.answered && b.duration_ms);
     if (answered.length === 0) return "—";
     const avg = answered.reduce((s, b) => s + b.duration_ms, 0) / answered.length;
     return formatDuration(avg);
-  }, [recent]);
+  }, [broadcasts]);
 
-  // Chart data
   const chartData = useMemo(() => {
     if (!Array.isArray(rawHourly) || rawHourly.length === 0) return [];
-
     if (activeRange === "today") {
       const hourMap = {};
       for (const row of rawHourly) {
         const h = new Date(row.created_at * 1000).getHours();
         if (!hourMap[h]) hourMap[h] = { answered: 0, unanswered: 0 };
-        if (row.answered) hourMap[h].answered++;
-        else hourMap[h].unanswered++;
+        if (row.answered) hourMap[h].answered++; else hourMap[h].unanswered++;
       }
       const now = new Date();
       return Array.from({ length: 24 }, (_, i) => {
@@ -526,14 +388,12 @@ export default function BroadcastsPage() {
         return { label, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
       });
     }
-
     const dayMap = {};
     for (const row of rawHourly) {
       const d = new Date(row.created_at * 1000);
       const key = `${d.getMonth() + 1}/${d.getDate()}`;
       if (!dayMap[key]) dayMap[key] = { answered: 0, unanswered: 0 };
-      if (row.answered) dayMap[key].answered++;
-      else dayMap[key].unanswered++;
+      if (row.answered) dayMap[key].answered++; else dayMap[key].unanswered++;
     }
     const now = new Date();
     return Array.from({ length: days }, (_, i) => {
@@ -545,6 +405,29 @@ export default function BroadcastsPage() {
   }, [rawHourly, activeRange, days]);
 
   const maxRoomCount = Math.max(1, ...byRoom.map(r => r.count));
+
+  const anyFilterActive = filterRoom || filterStatus || filterDateFrom || filterDateTo;
+  const clearFilters = () => { setFilterRoom(""); setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo(""); setPage(1); };
+
+  // Audio player
+  const [playingId, setPlayingId] = useState(null);
+  const [playingUrl, setPlayingUrl] = useState(null);
+  const audioRef = useRef(null);
+  const playingIdRef = useRef(null);
+  useEffect(() => { playingIdRef.current = playingId; }, [playingId]);
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onEnded = () => { setPlayingId(null); setPlayingUrl(null); };
+    audio.addEventListener("ended", onEnded);
+    return () => audio.removeEventListener("ended", onEnded);
+  }, []);
+  const toggle = useCallback((id, url) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playingIdRef.current === id) { audio.pause(); setPlayingId(null); setPlayingUrl(null); }
+    else { audio.pause(); audio.src = url; audio.load(); audio.play().catch(() => {}); setPlayingId(id); setPlayingUrl(url); }
+  }, []);
 
   if (loading) {
     return (
@@ -587,7 +470,6 @@ export default function BroadcastsPage() {
         </div>
       </div>
 
-      {/* Live Broadcast Banner */}
       <LiveBroadcastBanner events={sseEvents} ROOM_NAMES={ROOM_NAMES} />
 
       {/* Stat Cards */}
@@ -601,7 +483,6 @@ export default function BroadcastsPage() {
 
       {/* Chart + Heatmap Row */}
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        {/* Activity Chart */}
         <Card className="border-border/40">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -635,7 +516,6 @@ export default function BroadcastsPage() {
           </CardContent>
         </Card>
 
-        {/* Peak Hours Heatmap */}
         <Card className="border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -652,7 +532,6 @@ export default function BroadcastsPage() {
 
       {/* Two Column: Broadcasters + Channel Activity */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Top Broadcasters */}
         <Card className="border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -672,26 +551,16 @@ export default function BroadcastsPage() {
               </TableHeader>
               <TableBody>
                 {topBroadcasters.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No data</TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No data</TableCell></TableRow>
                 ) : (
                   topBroadcasters.slice(0, 10).map((b, i) => {
                     const medals = ["text-amber-400", "text-zinc-400", "text-orange-400"];
                     return (
                       <TableRow key={b.user_name || i}>
-                        <TableCell className={`font-mono text-xs tabular-nums pl-6 ${medals[i] || "text-muted-foreground/40"}`}>
-                          {i + 1}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">{b.display_name || b.user_name}</span>
-                        </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums text-sm">
-                          {b.count}
-                        </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums text-xs text-muted-foreground pr-6">
-                          {b.avg_duration ? formatDuration(b.avg_duration) : "—"}
-                        </TableCell>
+                        <TableCell className={`font-mono text-xs tabular-nums pl-6 ${medals[i] || "text-muted-foreground/40"}`}>{i + 1}</TableCell>
+                        <TableCell><span className="text-sm font-medium">{b.display_name || b.user_name}</span></TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-sm">{b.count}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-xs text-muted-foreground pr-6">{b.avg_duration ? formatDuration(b.avg_duration) : "—"}</TableCell>
                       </TableRow>
                     );
                   })
@@ -701,7 +570,6 @@ export default function BroadcastsPage() {
           </CardContent>
         </Card>
 
-        {/* Channel Activity */}
         <Card className="border-border/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -729,14 +597,8 @@ export default function BroadcastsPage() {
                     </div>
                     <div className="h-2 bg-muted/20 rounded-sm overflow-hidden">
                       <div className="h-full flex transition-all duration-500">
-                        <div
-                          className="h-full bg-emerald-700 group-hover:bg-emerald-600"
-                          style={{ width: `${(answered / maxRoomCount) * 100}%` }}
-                        />
-                        <div
-                          className="h-full bg-red-800 group-hover:bg-red-700"
-                          style={{ width: `${((r.count - answered) / maxRoomCount) * 100}%` }}
-                        />
+                        <div className="h-full bg-emerald-700 group-hover:bg-emerald-600" style={{ width: `${(answered / maxRoomCount) * 100}%` }} />
+                        <div className="h-full bg-red-800 group-hover:bg-red-700" style={{ width: `${((r.count - answered) / maxRoomCount) * 100}%` }} />
                       </div>
                     </div>
                   </div>
@@ -747,25 +609,231 @@ export default function BroadcastsPage() {
         </Card>
       </div>
 
-      {/* Recent Broadcasts */}
+      {/* ═══ Broadcast List ═══ */}
       <Card className="border-border/40">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <ClockIcon className="size-3.5 text-emerald-400" />
-            Recent Broadcasts
-            <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">last 30</span>
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <ListIcon className="size-3.5 text-emerald-400" />
+              Broadcast Log
+              <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">{totalItems.toLocaleString()} total</span>
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              {anyFilterActive && (
+                <button onClick={clearFilters} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
+                  <XIcon className="size-3" /> Clear filters
+                </button>
+              )}
+              <button
+                onClick={() => setShowFilters(f => !f)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                  showFilters || anyFilterActive
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:bg-muted/50"
+                }`}
+              >
+                <FilterIcon className="size-3" />
+                Filters
+                {anyFilterActive && <span className="size-1.5 rounded-full bg-primary" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          {showFilters && (
+            <div className="flex flex-wrap items-end gap-3 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Status</label>
+                <div className="flex gap-1">
+                  {[
+                    { key: "", label: "All" },
+                    { key: "answered", label: "Answered" },
+                    { key: "unanswered", label: "Unanswered" },
+                  ].map(s => (
+                    <button
+                      key={s.key}
+                      onClick={() => { setFilterStatus(s.key); setPage(1); }}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all cursor-pointer ${
+                        filterStatus === s.key
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-muted/20 text-muted-foreground/60 border-border/30 hover:bg-muted/40"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Room</label>
+                <select
+                  value={filterRoom}
+                  onChange={e => { setFilterRoom(e.target.value); setPage(1); }}
+                  className="h-8 px-2 rounded-md text-xs border border-border/30 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">All Rooms</option>
+                  {Object.entries(ROOM_NAMES).map(([id, name]) => (
+                    <option key={id} value={id}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">From</label>
+                <Input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={e => { setFilterDateFrom(e.target.value); setPage(1); }}
+                  className="h-8 w-[140px] text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">To</label>
+                <Input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={e => { setFilterDateTo(e.target.value); setPage(1); }}
+                  className="h-8 w-[140px] text-xs"
+                />
+              </div>
+            </div>
+          )}
         </CardHeader>
+
         <CardContent className="pt-0 px-0">
-          {recentLoading ? (
-            <div className="space-y-2 px-6">
+          {/* Waveform player */}
+          {playingId && playingUrl && (
+            <div className="px-4 pb-2">
+              <WaveformPlayer url={playingUrl} isActive={!!playingId} onToggle={() => toggle(playingId, playingUrl)} />
+            </div>
+          )}
+
+          {listLoading ? (
+            <div className="space-y-2 px-6 py-4">
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
+          ) : broadcasts.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">No broadcasts found</p>
           ) : (
-            <RecentTable broadcasts={recent} />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-6 w-12"></TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Speaker</TableHead>
+                  <TableHead>Room</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Participants</TableHead>
+                  <TableHead>Responded By</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {broadcasts.map((b) => {
+                  const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
+                  const playing = playingId === b.id;
+                  return (
+                    <TableRow key={b.id} className={playing ? "bg-emerald-500/[0.03]" : ""}>
+                      <TableCell className="pl-6">
+                        {url && (
+                          <button
+                            onClick={() => toggle(b.id, url)}
+                            className={`flex size-7 items-center justify-center rounded-full border transition-all cursor-pointer ${
+                              playing
+                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                                : "bg-muted/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
+                          >
+                            {playing ? (
+                              <div className="flex items-end gap-[2px] h-3">
+                                {[0, 1, 2].map(i => (
+                                  <div key={i} className="w-[2px] bg-emerald-400 rounded-full" style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }} />
+                                ))}
+                              </div>
+                            ) : (
+                              <PlayIcon className="size-3 ml-0.5" />
+                            )}
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-mono tabular-nums">{formatTime(b.created_at)}</div>
+                        <div className="text-[10px] text-muted-foreground/50">{formatFullDate(b.created_at)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-medium">{b.display_name || b.user_name || "Unknown"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">{b.room_name || ROOM_NAMES[b.room] || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-mono tabular-nums text-muted-foreground">{formatDuration(b.duration_ms)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm font-mono tabular-nums text-muted-foreground">{b.participant_count || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">{b.responded_by || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        {b.answered ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-1.5 py-0">Answered</Badge>
+                        ) : (
+                          <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[10px] px-1.5 py-0">Unanswered</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 0 && broadcasts.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-border/30">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">
+                  Showing <span className="font-mono tabular-nums">{((page - 1) * pageSize) + 1}</span>–<span className="font-mono tabular-nums">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-mono tabular-nums">{totalItems.toLocaleString()}</span>
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={e => { setPageSize(parseInt(e.target.value)); setPage(1); }}
+                  className="h-7 px-1.5 rounded text-xs border border-border/30 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {[10, 25, 50, 100].map(n => (
+                    <option key={n} value={n}>{n} / page</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => setPage(1)}>
+                  <ChevronsLeftIcon className="size-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronLeftIcon className="size-3.5" />
+                </Button>
+                <span className="px-2 text-xs font-mono tabular-nums text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+                <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  <ChevronRightIcon className="size-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>
+                  <ChevronsRightIcon className="size-3.5" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      <audio ref={audioRef} preload="none" className="hidden" />
+      <style>{`
+        @keyframes eqBar {
+          from { height: 3px; }
+          to { height: 10px; }
+        }
+      `}</style>
     </div>
   );
 }

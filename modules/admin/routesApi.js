@@ -225,6 +225,23 @@ adminRouter.get("/broadcasts", (req, res) => {
     }
 });
 
+// GET /broadcasts/list — paginated broadcast list with filters
+adminRouter.get("/broadcasts/list", (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = Math.min(parseInt(req.query.pageSize) || 25, 100);
+        const room = req.query.room ? parseInt(req.query.room) : undefined;
+        const answered = req.query.answered !== undefined ? parseInt(req.query.answered) : undefined;
+        const dateFrom = req.query.dateFrom ? Math.floor(new Date(req.query.dateFrom).getTime() / 1000) : undefined;
+        const dateTo = req.query.dateTo ? Math.floor(new Date(req.query.dateTo + 'T23:59:59').getTime() / 1000) : undefined;
+
+        const result = global.db.getPaginatedBroadcasts({ page, pageSize, room, answered, dateFrom, dateTo });
+        res.json({ status: true, ...result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /broadcasts/recent — recent broadcasts with recordings
 adminRouter.get("/broadcasts/recent", (req, res) => {
     try {

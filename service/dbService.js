@@ -11,6 +11,7 @@ const DB_PATH = path.join(__dirname, '..', 'data', 'freeswitch_conference.db');
 const db = {};
 let sqlite;
 const eventEmitter = new EventEmitter();
+eventEmitter.setMaxListeners(50);
 
 function init() {
     sqlite = new Database(DB_PATH);
@@ -542,6 +543,27 @@ function getRecentBroadcasts(limit = 10) {
     `).all(limit);
 }
 
+function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateFrom, dateTo } = {}) {
+    const conditions = [];
+    const params = [];
+
+    if (room) { conditions.push('room = ?'); params.push(room); }
+    if (answered === 1 || answered === 0) { conditions.push('answered = ?'); params.push(answered); }
+    if (dateFrom) { conditions.push('created_at >= ?'); params.push(dateFrom); }
+    if (dateTo) { conditions.push('created_at <= ?'); params.push(dateTo); }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const total = sqlite.prepare(`SELECT COUNT(*) as count FROM broadcast_log ${where}`).get(...params).count;
+    const offset = (page - 1) * pageSize;
+
+    const rows = sqlite.prepare(`
+        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, created_at
+        FROM broadcast_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?
+    `).all(...params, pageSize, offset);
+
+    return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
 function getHourlyBroadcasts(hours = 12) {
     const since = Math.floor(Date.now() / 1000) - (hours * 3600);
     return sqlite.prepare(`
@@ -717,6 +739,7 @@ db.getDashboardStats = getDashboardStats;
 db.logBroadcast = logBroadcast;
 db.getBroadcastStats = getBroadcastStats;
 db.getRecentBroadcasts = getRecentBroadcasts;
+db.getPaginatedBroadcasts = getPaginatedBroadcasts;
 db.createAccount = createAccount;
 db.getAccountByEmail = getAccountByEmail;
 db.getAccountByUserName = getAccountByUserName;
