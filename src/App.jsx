@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation, Outlet, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,6 +18,25 @@ import {
 import { lazy, Suspense } from "react";
 import LandingPage from "@/pages/LandingPage";
 const Landing2Page = lazy(() => import("@/pages/Landing2Page"));
+const AboutPage = lazy(() =>
+  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.AboutPage }))
+);
+const PrivacyPage = lazy(() =>
+  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.PrivacyPage }))
+);
+const TermsPage = lazy(() =>
+  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.TermsPage }))
+);
+const DisclaimerPage = lazy(() =>
+  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.DisclaimerPage }))
+);
+
+const sitePages = [
+  { path: "/about", element: <AboutPage /> },
+  { path: "/privacy-policy", element: <PrivacyPage /> },
+  { path: "/terms-and-conditions", element: <TermsPage /> },
+  { path: "/disclaimer", element: <DisclaimerPage /> },
+];
 import DashboardPage from "@/pages/DashboardPage";
 import UsersPage from "@/pages/UsersPage";
 import RoomsPage from "@/pages/RoomsPage";
@@ -42,6 +62,14 @@ const dashboardRoutes = [
   { path: "/dev/ymcs", element: <YmcsControlPage />, title: "YMCS Control" },
   { path: "/notifications", element: <NotificationsPage />, title: "Notifications" },
 ];
+
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (!hash) window.scrollTo(0, 0);
+  }, [pathname, hash]);
+  return null;
+}
 
 function BreadcrumbNav() {
   const location = useLocation();
@@ -88,6 +116,7 @@ function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
       <BrowserRouter>
+        <ScrollToTop />
         <RoomsProvider>
           <Routes>
             {/* Public route */}
@@ -95,11 +124,22 @@ function App() {
             <Route
               path="/landing_2"
               element={
-                <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0b0b0c" }} />}>
+                <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
                   <Landing2Page />
                 </Suspense>
               }
             />
+            {sitePages.map((p) => (
+              <Route
+                key={p.path}
+                path={p.path}
+                element={
+                  <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
+                    {p.element}
+                  </Suspense>
+                }
+              />
+            ))}
             
             {/* Dashboard app routes */}
             <Route element={<AppLayout />}>
