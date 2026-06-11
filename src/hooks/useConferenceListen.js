@@ -5,11 +5,11 @@ const SIP_HOST = "50.28.84.57";
 const SIP_DOMAIN = "50.28.84.57";
 const WS_PORT = 5072;
 const SIP_PASSWORD = "12345678";
-const ADMIN_EMAIL = "er.sorbh@gmail.com";
+const LISTEN_USER = "admin-listen";
 
 export function useConferenceListen() {
   const [listenRoom, setListenRoom] = useState(null);
-  const [listenState, setListenState] = useState("idle"); // idle | registering | ringing | connected | error
+  const [listenState, setListenState] = useState("idle");
   const uaRef = useRef(null);
   const sessionRef = useRef(null);
   const audioRef = useRef(null);
@@ -32,10 +32,13 @@ export function useConferenceListen() {
       sessionRef.current = null;
     }
     if (uaRef.current) {
-      try { uaRef.current.unregister(); uaRef.current.stop(); } catch (e) {}
+      try { uaRef.current.stop(); } catch (e) {}
       uaRef.current = null;
     }
-    if (audioRef.current) audioRef.current.srcObject = null;
+    if (audioRef.current) {
+      audioRef.current.srcObject = null;
+      audioRef.current.pause();
+    }
     setListenRoom(null);
     setListenState("idle");
   }, []);
@@ -47,71 +50,65 @@ export function useConferenceListen() {
 
     try {
       const socket = new JsSIP.WebSocketInterface(`wss://${SIP_HOST}:${WS_PORT}`);
-      const sipUser = ADMIN_EMAIL.replace("@", ".at.");
 
       const ua = new JsSIP.UA({
         sockets: [socket],
-        uri: `sip:${sipUser}@${SIP_DOMAIN}`,
+        uri: `sip:${LISTEN_USER}@${SIP_DOMAIN}`,
         password: SIP_PASSWORD,
         display_name: "Admin-Listen",
-        register: true,
-        register_expires: 120,
+        register: false,
         session_timers: false,
-        user_agent: "Redline-WebClient/1.0 admin-listen",
+        user_agent: "Redline-AdminListen/1.0",
       });
 
       uaRef.current = ua;
 
-      ua.on("registered", async () => {
+      ua.on("connected", () => {
         setListenState("ringing");
-        try {
-          const res = await fetch(`/api/v1/admin/rooms/${roomId}/listen`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: ADMIN_EMAIL }),
-          });
-          const json = await res.json();
-          if (!json.status) {
-            console.error("[LISTEN] Dial failed:", json.error);
-            setListenState("error");
-          }
-        } catch (e) {
-          console.error("[LISTEN] API error:", e);
-          setListenState("error");
-        }
-      });
+        const confUri = `sip:${roomId}@${SIP_DOMAIN}`;
+        const session = ua.call(confUri, {
+          mediaConstraints: { audio: true, video: false },
+          pcConfig: { iceServers: [] },
+          rtcOfferConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
+        });
 
-      ua.on("registrationFailed", (e) => {
-        console.error("[LISTEN] Registration failed:", e.cause);
-        setListenState("error");
-      });
-
-      ua.on("newRTCSession", (data) => {
-        if (data.originator !== "remote") return;
-        const session = data.session;
         sessionRef.current = session;
 
         session.on("peerconnection", (pcData) => {
-          pcData.peerconnection.ontrack = (ev) => {
+          const pc = pcData.peerconnection;
+          pc.ontrack = (ev) => {
+            console.log("[LISTEN] ontrack fired, streams:", ev.streams.length);
             if (audioRef.current && ev.streams[0]) {
               audioRef.current.srcObject = ev.streams[0];
+              audioRef.current.play().catch(err => {
+                console.warn("[LISTEN] autoplay blocked:", err);
+              });
             }
+          };
+          pc.oniceconnectionstatechange = () => {
+            console.log("[LISTEN] ICE state:", pc.iceConnectionState);
           };
         });
 
         session.on("accepted", () => {
           setListenState("connected");
+          // Fallback: check remote streams on the connection directly
           const pc = session.connection;
-          if (pc) {
-            pc.getReceivers().forEach((r) => {
-              if (r.track && r.track.kind === "audio" && audioRef.current) {
-                audioRef.current.srcObject = new MediaStream([r.track]);
-              }
-            });
+          if (pc && audioRef.current) {
+            const receivers = pc.getReceivers();
+            console.log("[LISTEN] receivers:", receivers.length);
+            if (receivers.length > 0 && receivers[0].track) {
+              const stream = new MediaStream([receivers[0].track]);
+              audioRef.current.srcObject = stream;
+              audioRef.current.play().catch(err => {
+                console.warn("[LISTEN] fallback play blocked:", err);
+              });
+            }
           }
         });
 
-        session.on("failed", () => {
+        session.on("failed", (e) => {
+          console.error("[LISTEN] Call failed:", e?.cause);
           setListenState("error");
           sessionRef.current = null;
         });
@@ -119,11 +116,10 @@ export function useConferenceListen() {
         session.on("ended", () => {
           stopListen();
         });
+      });
 
-        session.answer({
-          mediaConstraints: { audio: true, video: false },
-          pcConfig: { iceServers: [] },
-        });
+      ua.on("disconnected", () => {
+        if (listenRoom) setListenState("error");
       });
 
       ua.start();

@@ -46,6 +46,13 @@ function _isAllowedRequest(body) {
 function _findAccount(user, authUsername, domain) {
     const candidates = [user, authUsername].filter(Boolean);
 
+    // Admin listen user — virtual account for conference monitoring
+    for (const candidate of candidates) {
+        if (candidate === 'admin-listen') {
+            return { password: global.config.SIP_DEFAULT_PASSWORD, active: true, resolvedUser: candidate };
+        }
+    }
+
     for (const candidate of candidates) {
         const email = candidate.includes('.at.') ? candidate.replace('.at.', '@') : candidate;
         const account = global.db.getAccountByEmail(email);

@@ -38,17 +38,35 @@ function _trimWavSilence(filePath, trimMs) {
     try {
         const buf = fs.readFileSync(filePath);
         if (buf.length <= 44) return;
+
+        // Find the 'data' chunk — don't assume 44-byte header (FS adds LIST metadata)
+        let dataOffset = -1;
+        let pos = 12;
+        while (pos < buf.length - 8) {
+            const chunkId = buf.subarray(pos, pos + 4).toString('ascii');
+            const chunkSize = buf.readUInt32LE(pos + 4);
+            if (chunkId === 'data') {
+                dataOffset = pos;
+                break;
+            }
+            pos += 8 + chunkSize;
+        }
+        if (dataOffset === -1) return;
+
+        const dataStart = dataOffset + 8;
+        const dataSize = buf.readUInt32LE(dataOffset + 4);
         const sampleRate = buf.readUInt32LE(24);
         const bitsPerSample = buf.readUInt16LE(34);
         const channels = buf.readUInt16LE(22);
         const bytesPerSample = (bitsPerSample / 8) * channels;
         const bytesToTrim = Math.floor((trimMs / 1000) * sampleRate * bytesPerSample);
-        const dataSize = buf.length - 44;
         const newDataSize = Math.max(0, dataSize - bytesToTrim);
         if (newDataSize <= 0) return;
-        const trimmed = buf.subarray(0, 44 + newDataSize);
-        trimmed.writeUInt32LE(newDataSize, 40);
-        trimmed.writeUInt32LE(36 + newDataSize, 4);
+
+        const newFileSize = dataStart + newDataSize;
+        const trimmed = buf.subarray(0, newFileSize);
+        trimmed.writeUInt32LE(newDataSize, dataOffset + 4);
+        trimmed.writeUInt32LE(newFileSize - 8, 4);
         fs.writeFileSync(filePath, trimmed);
     } catch (e) {
         logSystem('BCAST', `WAV trim failed: ${e.message}`);

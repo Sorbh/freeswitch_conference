@@ -90,11 +90,17 @@ function _flush(key) {
     const lines = buf.lines;
     const headerLine = lines[0];
 
-    // Always emit to SSE for the server log viewer
+    if (!debug) {
+        buf.lines = [];
+        buf.timer = null;
+        userBuffers.delete(key);
+        return;
+    }
+
     _emitDebugLog(key, lines);
 
-    // Only print to console if debug is enabled for this account
-    if (debug) {
+    // Print to console for debug-enabled accounts
+    {
         console.log('');
         console.log(`┌─ ${headerLine.tag} ── ${name} ${'─'.repeat(Math.max(1, 46 - name.length - headerLine.tag.length))}`);
         if (headerLine.message) {

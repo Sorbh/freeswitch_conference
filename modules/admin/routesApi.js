@@ -523,8 +523,6 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
             global.db.setUserInfo(userName, userInfo);
             getConnectionHandlers().delete(savedUuid);
             await global.freeswitch.hangupCall(savedUuid, userName);
-            // Wait for FreeSWITCH to send BYE to client
-            await new Promise(r => setTimeout(r, 1000));
         }
 
         // Reset state so callGate doesn't block on stale error/retry
@@ -799,28 +797,15 @@ adminRouter.post("/users/:userName/room", async (req, res) => {
         global.db.setUserInfo(userName, userInfo);
         global.db.logEvent('room_change', userName, parseInt(room), `Moved from room ${oldRoom} to ${room}`);
 
-        // If user is in an active call, hangup and reconnect in new room
+        // If user is in an active call, hangup — _onCallHangup auto-reconnects
+        // since currentRoom is already updated above
         if (userInfo.connectionState === 'connected' && userInfo.fsChannelUUID) {
             try {
-                getConnectionHandlers().delete(userInfo.fsChannelUUID);
                 await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName);
-                logUser(userName, 'API', `HANGUP for room change`);
+                logUser(userName, 'API', `HANGUP for room change -> ${room}`);
             } catch (e) {
                 console.error(`[ROOM-CHANGE] Hangup failed for ${userName}:`, e.message);
             }
-            // Short delay then reconnect in new room
-            setTimeout(async () => {
-                try {
-                    const freshUser = global.db.getUserInfo(userName);
-                    if (freshUser && freshUser.online) {
-                        const { initiateCall } = await import("../../service/freeswitch/callGate.js");
-                        await initiateCall(userName);
-                        logUser(userName, 'API', `RECONNECT in room ${room}`);
-                    }
-                } catch (e) {
-                    console.error(`[ROOM-CHANGE] Reconnect failed for ${userName}:`, e.message);
-                }
-            }, 1500);
         }
 
         emitStateChange('users', { userName });

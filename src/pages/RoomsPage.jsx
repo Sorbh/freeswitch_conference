@@ -362,19 +362,42 @@ export default function RoomsPage() {
         <StatCard title="Empty Rooms" value={rooms.filter(r => (r.online || 0) === 0).length} icon={<VolumeXIcon className="size-4" />} color="#8b8b8b" subtitle={`${rooms.filter(r => (r.online || 0) > 0).length} with users online`} />
       </div>
 
-      {/* Listen Indicator */}
+      {/* Listen Bar */}
       {listenRoom && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm">
+        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all ${
+          listenState === "connected"
+            ? "bg-emerald-500/[0.06] border-emerald-500/25"
+            : listenState === "error"
+              ? "bg-red-500/[0.06] border-red-500/25"
+              : "bg-muted/30 border-border/40"
+        }`}>
           {listenState === "connected" ? (
-            <span className="relative flex size-2"><span className="animate-ping absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex size-2 rounded-full bg-emerald-500" /></span>
+            <div className="flex items-end gap-[3px] h-4 shrink-0">
+              {[0, 1, 2, 3, 4].map(i => (
+                <div key={i} className="w-[3px] rounded-full bg-emerald-400" style={{ animation: `listenEq ${0.4 + i * 0.08}s ease-in-out infinite alternate`, animationDelay: `${i * 60}ms` }} />
+              ))}
+            </div>
+          ) : listenState === "error" ? (
+            <span className="size-2 rounded-full bg-red-500 shrink-0" />
           ) : (
-            <Loader2Icon className="size-3.5 animate-spin text-emerald-500" />
+            <Loader2Icon className="size-4 animate-spin text-muted-foreground shrink-0" />
           )}
-          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-            {listenState === "connected" ? "Listening to" : listenState === "registering" ? "Connecting to" : listenState === "ringing" ? "Dialing into" : "Error joining"}{" "}
-            {ROOM_NAMES[listenRoom] || `Room ${listenRoom}`}
-          </span>
-          <button onClick={stopListen} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">Stop</button>
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold ${listenState === "connected" ? "text-emerald-400" : listenState === "error" ? "text-red-400" : "text-muted-foreground"}`}>
+              {listenState === "connected" ? "Listening" : listenState === "registering" ? "Connecting…" : listenState === "ringing" ? "Joining…" : "Connection failed"}
+            </p>
+            <p className="text-[11px] text-muted-foreground/60 truncate">{ROOM_NAMES[listenRoom] || `Room ${listenRoom}`}</p>
+          </div>
+          <button
+            onClick={stopListen}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+              listenState === "connected"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                : "bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50"
+            }`}
+          >
+            {listenState === "connected" ? "Stop Listening" : "Cancel"}
+          </button>
         </div>
       )}
 
@@ -499,12 +522,12 @@ export default function RoomsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                          <Tip label={listenRoom === room.room ? "Stop Listening" : "Listen"}>
+                        <div className={`flex gap-1 justify-end transition-opacity ${listenRoom === room.room ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} onClick={e => e.stopPropagation()}>
+                          <Tip label={listenRoom === room.room ? "Stop Listening" : "Listen to Room"}>
                             <Button
                               size="icon"
                               variant="ghost"
-                              className={`size-7 ${listenRoom === room.room && listenState === "connected" ? "text-emerald-500" : ""}`}
+                              className={`size-7 ${listenRoom === room.room && listenState === "connected" ? "text-emerald-500 !opacity-100" : ""}`}
                               onClick={() => listenRoom === room.room ? stopListen() : startListen(room.room)}
                             >
                               {listenRoom === room.room && (listenState === "registering" || listenState === "ringing")
@@ -794,6 +817,10 @@ export default function RoomsPage() {
         @keyframes eqBar {
           from { height: 3px; }
           to { height: 10px; }
+        }
+        @keyframes listenEq {
+          from { height: 3px; }
+          to { height: 14px; }
         }
       `}</style>
     </div>

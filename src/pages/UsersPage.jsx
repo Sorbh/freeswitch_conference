@@ -303,7 +303,7 @@ export default function UsersPage() {
         (u.account?.display_name || "").toLowerCase().includes(q)
       )) return false;
 
-      if (roomFilter !== "all" && String(u.room || u.account?.room) !== roomFilter) return false;
+      if (roomFilter !== "all" && String(u.currentRoom || u.account?.room) !== roomFilter) return false;
 
       if (filters.online && !u.online) return false;
       if (filters.offline && u.online) return false;

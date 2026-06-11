@@ -14,7 +14,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+import { lazy, Suspense } from "react";
 import LandingPage from "@/pages/LandingPage";
+const Landing2Page = lazy(() => import("@/pages/Landing2Page"));
 import DashboardPage from "@/pages/DashboardPage";
 import UsersPage from "@/pages/UsersPage";
 import RoomsPage from "@/pages/RoomsPage";
@@ -90,6 +92,14 @@ function App() {
           <Routes>
             {/* Public route */}
             <Route path="/" element={<LandingPage />} />
+            <Route
+              path="/landing_2"
+              element={
+                <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0b0b0c" }} />}>
+                  <Landing2Page />
+                </Suspense>
+              }
+            />
             
             {/* Dashboard app routes */}
             <Route element={<AppLayout />}>

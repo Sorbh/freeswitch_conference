@@ -343,7 +343,17 @@ export default function BroadcastsPage() {
     return p.toString();
   }, [page, pageSize, filterRoom, filterStatus, filterDateFrom, filterDateTo]);
 
-  const { data: listRaw, loading: listLoading, refetch: refetchList } = useFetch(`/api/v1/admin/broadcasts/list?${listParams}`);
+  const [listRaw, setListRaw] = useState(null);
+  const [listLoading, setListLoading] = useState(true);
+  const refetchList = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/v1/admin/broadcasts/list?${listParams}`);
+      const json = await res.json();
+      if (json.status) setListRaw(json);
+    } catch (e) { console.error("Fetch broadcasts list:", e); }
+    finally { setListLoading(false); }
+  }, [listParams]);
+  useEffect(() => { setListLoading(true); refetchList(); }, [refetchList]);
 
   useSSERefresh(() => { refetch(); refetchHourly(); refetchList(); }, ["broadcasts"]);
   const { events: sseEvents } = useSSE("/api/v1/admin/events/stream");
