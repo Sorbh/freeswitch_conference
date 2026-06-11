@@ -11,7 +11,6 @@ function enableSipTrace() {
     });
 }
 
-setTimeout(enableSipTrace, 3000);
 onEslReconnect(() => setTimeout(enableSipTrace, 2000));
 
 onLogEvent((event) => {

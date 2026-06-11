@@ -1,8 +1,9 @@
 // Single entry point for initiating calls to SIP clients.
 // Validates eligibility (online, active, kickout, connectionState),
 // originates the call to FreeSWITCH conference, and handles retry logic.
+import { logSystem, logUser } from '../logger.js';
+import { isUserInConference } from './conferenceSync.js';
 import { getConnection } from './connection.js';
-import { logUser, logSystem } from '../logger.js';
 
 export const MAX_RETRIES = 5;
 const RETRY_DELAY = 5000;
@@ -119,8 +120,17 @@ export async function initiateCall(userName) {
         const updatedInfo = global.db.getUserInfo(userName);
 
         if (err.message.includes('USER_BUSY')) {
-            const alreadyConnected = await _checkUserInConference(userName, updatedInfo);
-            if (alreadyConnected) {
+            const member = await isUserInConference(userName);
+            if (member) {
+                updatedInfo.connectionState = 'connected';
+                updatedInfo.fsMemberId = member.memberId;
+                updatedInfo.fsChannelUUID = member.uuid;
+                updatedInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                updatedInfo.error = null;
+                updatedInfo.retryCount = 0;
+                updatedInfo.errFallbackStage = 0;
+                updatedInfo.errFallbackAt = null;
+                global.db.setUserInfo(userName, updatedInfo);
                 logUser(userName, 'GATE', 'already in conference, syncing to connected');
                 return true;
             }
@@ -183,53 +193,21 @@ function _originateToConference(userName) {
     });
 }
 
-function _checkUserInConference(userName, userInfo) {
-    return new Promise((resolve) => {
-        const room = userInfo.currentRoom || userInfo.room;
-        if (!room) { resolve(false); return; }
-
-        getConnection().api(`conference ${room} list`, (response) => {
-            const body = response.getBody().trim();
-            if (!body || body.startsWith('-ERR')) { resolve(false); return; }
-
-            const sipUser = userName.replace('sip:', '');
-            const sipLocal = sipUser.split('@')[0];
-            const lines = body.split('\n');
-            for (const line of lines) {
-                if (line.includes(sipLocal)) {
-                    const parts = line.split(';');
-                    const memberId = parts[0];
-                    const uuid = parts[2];
-                    userInfo.connectionState = 'connected';
-                    userInfo.fsMemberId = memberId;
-                    userInfo.fsChannelUUID = uuid;
-                    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    userInfo.error = null;
-                    userInfo.retryCount = 0;
-                    userInfo.errFallbackStage = 0;
-                    userInfo.errFallbackAt = null;
-                    global.db.setUserInfo(userName, userInfo);
-                    resolve(true);
-                    return;
-                }
-            }
-            resolve(false);
-        });
-    });
-}
-
 function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
     const activeRoom = userInfo.currentRoom || userInfo.room;
     const originateCmd = `originate {origination_caller_id_name='REDLINE-${roomName}',origination_caller_id_number='REDLINE-${roomName}',sip_h_Supported='timer',sip_h_Session-Expires='600;refresher=uas'}${contact} &conference(${activeRoom}@${confProfile}++flags{mute})`;
 
-    logUser(userName, 'CALL', `ORIGINATE -> ${roomName}`);
+    const originateAt = Date.now();
+    logUser(userName, 'CALL', `INVITE -> ${roomName}`);
 
     conn.api(originateCmd, (response) => {
         const body = response.getBody().trim();
+        const elapsed = Date.now() - originateAt;
+
 
         if (body.startsWith('+OK')) {
             const uuid = body.replace('+OK ', '').trim();
-            logUser(userName, 'CALL', 'OK');
+            logUser(userName, 'CALL', `OK    <- ${roomName} (${elapsed}ms)`);
 
             userInfo.fsChannelUUID = uuid;
             userInfo.connectionState = 'connected';

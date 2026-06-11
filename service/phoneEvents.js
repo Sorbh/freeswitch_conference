@@ -3,7 +3,7 @@
 // 2. HTTP POST from web client — receives { userName, event: 'off_hook'|'on_hook' }
 // Both call callAction.muteByMemberId / unmuteByMemberId via FreeSWITCH conference API.
 import SyslogServer from 'syslog-server';
-import { logUser, logSystem } from './logger.js';
+import { logSystem, logUser } from './logger.js';
 
 let syslogServer = null;
 const sipBlocks = new Map();
@@ -144,7 +144,9 @@ export function startSyslogServer(port = 515) {
             const match = logMessage.match(keyRegex);
             if (!match || !match[1]) return;
             const keyEvent = match[1];
-            logSystem('PHONE', `SYSLOG ${macAddress} key=${keyEvent}`);
+            const hookUser = global.db.findUserInfo('mac', macAddress);
+            const hookUserName = Object.keys(hookUser).length > 0 ? hookUser.userName : null;
+            logUser(hookUserName, 'PHONE', `${keyEvent === 'off hook' ? 'OFF HOOK' : 'ON HOOK'} (${macAddress})`);
             if (keyEvent === 'off hook') {
                 _handleHookEvent(macAddress, 'off_hook');
             } else if (keyEvent === 'on hook') {
@@ -171,6 +173,7 @@ function _linkMacToUser(mac, fromHeader) {
     global.db.setUserInfo(userName, userInfo);
     logUser(userName, 'PHONE', `MAC ${mac} linked via syslog`);
 }
+
 
 export function handleHttpHookEvent(userName, event) {
     if (event !== 'off_hook' && event !== 'on_hook') {
@@ -203,6 +206,17 @@ function _handleHookEvent(macAddress, event) {
 
     if (!userInfo.fsMemberId) {
         logUser(userInfo.userName, 'PHONE', `not in conference, skipping ${event}`);
+        return;
+    }
+
+    // Yealink on_hook: phone will hang up the SIP call (del-member handles cleanup).
+    // Skip the FS mute command — it's redundant and causes double events.
+    // But update DB so UI reflects muted state immediately.
+    if (event === 'on_hook') {
+        userInfo.mute = true;
+        global.db.setUserInfo(userInfo.userName, userInfo);
+        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
+        logUser(userInfo.userName, 'PHONE', 'MUTED (on_hook — waiting for hangup)');
         return;
     }
 

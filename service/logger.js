@@ -34,6 +34,15 @@ export function logSystem(label, message) {
     console.log(`  ${label}${message ? '  ' + message : ''}`);
 }
 
+export function logBroadcast(roomName, lines) {
+    console.log('');
+    console.log(`┌─ BCAST ── ${roomName} ${'─'.repeat(Math.max(1, 44 - roomName.length))}`);
+    for (const line of lines) {
+        console.log(`│  ${line}`);
+    }
+    console.log(`└${'─'.repeat(55)}`);
+}
+
 export function logStartup(lines) {
     console.log('');
     console.log(DOUBLE_SEP);
@@ -58,7 +67,7 @@ export function logUser(userName, tag, message, eslEvent) {
         userBuffers.set(key, { lines: [], timer: null });
     }
     const buf = userBuffers.get(key);
-    buf.lines.push({ tag, message, eslEvent });
+    buf.lines.push({ tag, message, eslEvent, ts: Date.now() });
 
     if (buf.timer) clearTimeout(buf.timer);
     buf.timer = setTimeout(() => _flush(key), FLUSH_DELAY);
@@ -68,7 +77,7 @@ export function logUserImmediate(userName, tag, message) {
     const key = userName || '__unknown__';
     if (userBuffers.has(key)) {
         const buf = userBuffers.get(key);
-        buf.lines.push({ tag, message });
+        buf.lines.push({ tag, message, ts: Date.now() });
         if (buf.timer) clearTimeout(buf.timer);
         _flush(key);
     } else {
@@ -101,13 +110,16 @@ function _flush(key) {
 
     // Print to console for debug-enabled accounts
     {
+        const _ts = (ms) => new Date(ms).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
         console.log('');
         console.log(`┌─ ${headerLine.tag} ── ${name} ${'─'.repeat(Math.max(1, 46 - name.length - headerLine.tag.length))}`);
         if (headerLine.message) {
-            console.log(`│  ${headerLine.message}`);
+            console.log(`│  ${_ts(headerLine.ts)} ${headerLine.message}`);
         }
         for (let i = 1; i < lines.length; i++) {
-            console.log(`│  ${lines[i].tag.padEnd(6)} ${lines[i].message}`);
+            const elapsed = lines[i].ts - lines[0].ts;
+            const elapsedStr = elapsed > 0 ? ` (+${elapsed}ms)` : '';
+            console.log(`│  ${_ts(lines[i].ts)} ${lines[i].tag.padEnd(6)} ${lines[i].message}${elapsedStr}`);
         }
 
         // Verbose: dump ESL event headers for debug-enabled accounts

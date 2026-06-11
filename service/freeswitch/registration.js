@@ -47,7 +47,10 @@ async function _handleRegistration(event) {
     }
 
     const userName = `sip:${email}`;
-    logUser(userName, 'REG', `${clientType} │ MAC: ${mac || 'none'} │ IP: ${networkIp}:${networkPort}`, event);
+    const regInfo = global.db.getUserInfo(userName);
+    const regRoom = regInfo.currentRoom || regInfo.room;
+    const regRoomName = regRoom ? (global.config.ROOM_NAME[regRoom] || regRoom) : 'no room';
+    logUser(userName, 'REG', `${clientType} │ MAC: ${mac || 'none'} │ IP: ${networkIp}:${networkPort} │ ${regRoomName}`);
 
     const account = global.db.getAccountByEmail(email);
     if (!account || !account.active) {

@@ -2,7 +2,7 @@
 // execute commands, and action URIs to Yealink phones through FreeSWITCH.
 // Uses sendevent NOTIFY with contact-uri for reliable delivery through NAT.
 import { getConnection } from './connection.js';
-import { logUser } from '../logger.js';
+import { logUser, logSystem } from '../logger.js';
 import modesl from 'modesl';
 
 function _resolveContactLookups(userName) {
@@ -74,9 +74,7 @@ function _sendNotify(userName, eventString, contentType, xmlBody) {
         e.addHeader('from-uri', `sip:${email}`);
         e.addBody(xmlBody);
 
-        conn.sendEvent(e, () => {
-            logUser(userName, 'NOTIFY', `${eventString} -> ${contactUri}`);
-        });
+        conn.sendEvent(e, () => {});
     });
 }
 
@@ -85,10 +83,13 @@ export function showMessage(targets, message, timeout = 4) {
 
     const xmlBody = `<YealinkIPPhoneTextScreen Timeout="${timeout}" LockIn="yes" Beep="yes"><Title>Redline</Title><Text>${message}</Text></YealinkIPPhoneTextScreen>`;
 
+    let sent = 0;
     for (const target of targets) {
         if (!target) continue;
         _sendNotify(target, 'Yealink-xml', 'application/xml', xmlBody);
+        sent++;
     }
+    if (sent > 0) logSystem('NOTIFY', `message -> ${sent} phone${sent > 1 ? 's' : ''}`);
 
     global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'message', message, targets });
 }
@@ -101,10 +102,13 @@ export function sendCommands(targets, commands) {
         .join('');
     const xmlBody = `<YealinkIPPhoneExecute Beep="yes">${items}</YealinkIPPhoneExecute>`;
 
+    let sent = 0;
     for (const target of targets) {
         if (!target) continue;
         _sendNotify(target, 'Yealink-xml', 'application/xml', xmlBody);
+        sent++;
     }
+    if (sent > 0) logSystem('NOTIFY', `commands -> ${sent} phone${sent > 1 ? 's' : ''}`);
 
     global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'commands', commands, targets });
 }

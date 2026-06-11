@@ -13,8 +13,11 @@ export function hangupCall(uuid, userName) {
             const users = global.db.filter(u => u.fsChannelUUID === uuid);
             userName = users.length > 0 ? users[0].userName : null;
         }
+        const killAt = Date.now();
+        logUser(userName || 'unknown', 'ACTION', `KILL -> uuid=${uuid.slice(0, 8)}`);
         getConnection().api(`uuid_kill ${uuid}`, (response) => {
-            logUser(userName || 'unknown', 'ACTION', 'KILL');
+            const elapsed = Date.now() - killAt;
+            logUser(userName || 'unknown', 'ACTION', `KILL <- OK (${elapsed}ms)`);
             resolve();
         });
     });

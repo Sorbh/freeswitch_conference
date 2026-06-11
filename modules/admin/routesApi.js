@@ -516,6 +516,7 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
         // End existing call: update DB first, clear handler, then kill on FreeSWITCH
         if (userInfo.fsChannelUUID) {
             const savedUuid = userInfo.fsChannelUUID;
+            logUser(userName, 'API', `HANGUP -> uuid=${savedUuid.slice(0, 8)}`);
             userInfo.connectionState = 'hangup';
             userInfo.fsChannelUUID = null;
             userInfo.fsMemberId = null;
@@ -523,9 +524,11 @@ adminRouter.post("/users/:userName/reconnect", async (req, res) => {
             global.db.setUserInfo(userName, userInfo);
             getConnectionHandlers().delete(savedUuid);
             await global.freeswitch.hangupCall(savedUuid, userName);
+            logUser(userName, 'API', 'HANGUP complete');
         }
 
         // Reset state so callGate doesn't block on stale error/retry
+        logUser(userName, 'API', 'ORIGINATE starting');
         userInfo.connectionState = 'ideal';
         userInfo.error = null;
         userInfo.retryCount = 0;

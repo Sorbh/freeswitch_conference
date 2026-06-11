@@ -173,6 +173,39 @@ function ClientTypeIcon({ clientType }) {
   return null;
 }
 
+function getUserSuggestions(user) {
+  const suggestions = [];
+  const contact = user.contact || "";
+  const isUdp = !contact.includes("transport=TCP") && !contact.includes("transport=ws");
+  const natMatch = contact.match(/received=([^;:>]+):(\d+)/);
+  const natPort = natMatch ? parseInt(natMatch[2]) : null;
+  const hasNat = !!natMatch || contact.includes("fs_nat=yes");
+
+  if (isUdp && hasNat && natPort && natPort < 10000) {
+    suggestions.push({ level: "warn", text: `Low NAT port (${natPort}) on UDP — switch transport to TCP to avoid connection drops` });
+  } else if (isUdp && hasNat) {
+    suggestions.push({ level: "info", text: "UDP behind NAT — consider TCP transport for more reliable connections" });
+  }
+
+  if (user.error?.includes("RECOVERY_ON_TIMER_EXPIRE")) {
+    suggestions.push({ level: "warn", text: "Phone unreachable — INVITE timed out. Check network or switch to TCP transport" });
+  } else if (user.error?.includes("NO_ANSWER")) {
+    suggestions.push({ level: "warn", text: "Phone not answering — check if phone is powered on and registered" });
+  } else if (user.error?.includes("USER_NOT_REGISTERED")) {
+    suggestions.push({ level: "warn", text: "Phone not registered on FreeSWITCH — check SIP credentials and network" });
+  }
+
+  if (user.connectionState === "connecting" && !user.fsChannelUUID) {
+    suggestions.push({ level: "info", text: "Stuck in connecting — originate may be hanging. Try reconnect or check phone STUN settings" });
+  }
+
+  if (user.errFallbackStage >= 3) {
+    suggestions.push({ level: "warn", text: "All retry fallbacks exhausted — manual reconnect needed" });
+  }
+
+  return suggestions;
+}
+
 function getStatusDot(user) {
   if (user.connectionState === "connected") return "bg-green-500";
   if (user.online) return "bg-yellow-500";
@@ -1034,6 +1067,28 @@ export default function UsersPage() {
                       </div>
                     </div>
                   )}
+                  {(() => {
+                    const suggestions = getUserSuggestions(selectedUser);
+                    if (suggestions.length === 0) return null;
+                    return (
+                      <div className="relative mt-4 space-y-2">
+                        {suggestions.map((s, i) => (
+                          <div key={i} className={`flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl border ${
+                            s.level === "warn"
+                              ? "bg-amber-500/5 border-amber-500/20"
+                              : "bg-blue-500/5 border-blue-500/20"
+                          }`}>
+                            <TriangleAlertIcon className={`size-3.5 mt-0.5 shrink-0 ${
+                              s.level === "warn" ? "text-amber-500" : "text-blue-400"
+                            }`} />
+                            <p className={`text-xs leading-relaxed ${
+                              s.level === "warn" ? "text-amber-400" : "text-blue-400"
+                            }`}>{s.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Quick actions */}

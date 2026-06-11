@@ -3,10 +3,11 @@
 // CHANNEL_HANGUP: cleans up call state, triggers auto-reconnect if user still online.
 // conference::maintenance: tracks member join/leave/mute/unmute.
 // ESL disconnect: resets all connected users. ESL reconnect: syncs with actual conference state.
-import { getConnection, getConnectionHandlers, getMemberIdMap, onCustomEvent, onAnswerEvent, onHangupEvent, onEslDisconnect, onEslReconnect } from './connection.js';
-import { initiateCall, canInitiateCall, unlockCalls, resumeFallbacks } from './callGate.js';
+import { logSystem, logUser, logUserImmediate } from '../logger.js';
+import { canInitiateCall, initiateCall, resumeFallbacks, unlockCalls } from './callGate.js';
+import { syncAllUsers } from './conferenceSync.js';
+import { getConnection, getConnectionHandlers, getMemberIdMap, onAnswerEvent, onCustomEvent, onEslDisconnect, onEslReconnect, onHangupEvent } from './connection.js';
 import { showMessage } from './notifications.js';
-import { logUser, logSystem } from '../logger.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
 const uuidUserMap = new Map();
@@ -42,106 +43,17 @@ onEslDisconnect(() => {
 
 onEslReconnect(() => {
     logSystem('ESL', 'Reconnected — syncing state with FreeSWITCH');
-    setTimeout(() => _syncConferenceState(), 3000);
+    setTimeout(() => _runSync(), 3000);
 });
 
-// Also sync on initial ESL connect (after hupall in connection.js completes)
-setTimeout(() => {
-    if (getConnection()) _syncConferenceState();
-}, 5000);
-
-function _syncConferenceState() {
-    const conn = getConnection();
-    if (!conn) return;
-
-    conn.api('conference xml_list', (response) => {
-        const body = response.getBody().trim();
-
-        if (!body || body.includes('No active conferences') || body.startsWith('-ERR')) {
-            logSystem('ESL', 'SYNC no active conferences');
-            // Mark any users showing connected as hangup
-            const allUsers = global.db.getAllUserInfo();
-            for (const user of allUsers) {
-                if (user.connectionState === 'connected' || user.connectionState === 'connecting') {
-                    user.connectionState = 'hangup';
-                    user.fsChannelUUID = null;
-                    user.fsMemberId = null;
-                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    global.db.setUserInfo(user.userName, user);
-                    logSystem('ESL', `SYNC ${user.userName} -> hangup (no conferences)`);
-                }
-            }
-            unlockCalls();
-            resumeFallbacks();
-            return;
-        }
-
-        // Parse XML to extract uuid and callerIdName per member
-        const activeMembers = new Map();
-        const memberBlocks = body.split('<member>');
-        for (let i = 1; i < memberBlocks.length; i++) {
-            const block = memberBlocks[i];
-            const uuidMatch = block.match(/<uuid>([^<]+)<\/uuid>/);
-            const cidNameMatch = block.match(/<caller_id_name>([^<]+)<\/caller_id_name>/);
-            const cidNumMatch = block.match(/<caller_id_number>([^<]+)<\/caller_id_number>/);
-            const memberIdMatch = block.match(/<id>(\d+)<\/id>/);
-            if (!uuidMatch) continue;
-
-            const uuid = uuidMatch[1];
-            const callerIdName = cidNameMatch ? cidNameMatch[1] : '';
-            const callerIdNumber = cidNumMatch ? cidNumMatch[1] : '';
-            const memberId = memberIdMatch ? memberIdMatch[1] : null;
-            activeMembers.set(uuid, { callerIdName, callerIdNumber, memberId });
-        }
-
-        logSystem('ESL', `SYNC found ${activeMembers.size} active members in conferences`);
-
-        const allUsers = global.db.getAllUserInfo();
-        const matchedUuids = new Set();
-
-        for (const user of allUsers) {
-            // Try matching by existing UUID first
-            if (user.fsChannelUUID && activeMembers.has(user.fsChannelUUID)) {
-                matchedUuids.add(user.fsChannelUUID);
-                if (user.connectionState !== 'connected') {
-                    const member = activeMembers.get(user.fsChannelUUID);
-                    user.connectionState = 'connected';
-                    user.fsMemberId = member.memberId;
-                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    global.db.setUserInfo(user.userName, user);
-                    uuidUserMap.set(user.fsChannelUUID, user.userName);
-                    logSystem('ESL', `SYNC ${user.userName} -> connected (UUID match)`);
-                }
-                continue;
-            }
-
-            // Try matching by callerIdName (format: "CompanyName / DisplayName")
-            for (const [uuid, member] of activeMembers) {
-                if (matchedUuids.has(uuid)) continue;
-                if (user.callerIdName && member.callerIdName === user.callerIdName) {
-                    matchedUuids.add(uuid);
-                    user.fsChannelUUID = uuid;
-                    user.fsMemberId = member.memberId;
-                    user.connectionState = 'connected';
-                    user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                    global.db.setUserInfo(user.userName, user);
-                    uuidUserMap.set(uuid, user.userName);
-                    logSystem('ESL', `SYNC ${user.userName} -> connected (callerIdName match)`);
-                    break;
-                }
-            }
-
-            // User not found in any conference
-            if (!matchedUuids.has(user.fsChannelUUID) && (user.connectionState === 'connected' || user.connectionState === 'connecting')) {
-                user.connectionState = 'hangup';
-                user.fsChannelUUID = null;
-                user.fsMemberId = null;
-                user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                global.db.setUserInfo(user.userName, user);
-                logSystem('ESL', `SYNC ${user.userName} -> hangup (not in conference)`);
-            }
-        }
-
+function _runSync() {
+    syncAllUsers({
+        markHangup: true,
+        logPrefix: 'ESL',
+        onUserConnected: (user) => {
+            if (user.fsChannelUUID) uuidUserMap.set(user.fsChannelUUID, user.userName);
+        },
+    }, () => {
         unlockCalls();
         resumeFallbacks();
     });
@@ -155,14 +67,14 @@ function _handleChannelAnswer(event) {
     const userName = users.length > 0 ? users[0].userName : null;
 
     if (userName) uuidUserMap.set(uuid, userName);
-    logUser(userName, 'CALL', 'ANSWER');
+    logUser(userName, 'CALL', 'ANSWER <-');
 
     // Check if this call should be allowed (catches in-flight originates after kickout/deactivation)
     if (userName) {
         const gate = canInitiateCall(userName);
         if (!gate.allowed && gate.reason !== 'already_in_call' && gate.reason !== 'not_found') {
             logUser(userName, 'CALL', `REJECT — ${gate.reason} (in-flight originate)`);
-            getConnection().api(`uuid_kill ${uuid}`, () => {});
+            getConnection().api(`uuid_kill ${uuid}`, () => { });
             return;
         }
     }
@@ -199,6 +111,7 @@ function _handleChannelHangup(event) {
     // Try connectionHandlers first (fastest, has userName baked in)
     const connectionHandlers = getConnectionHandlers();
     if (connectionHandlers.has(uuid)) {
+        logUser(knownUser, 'CALL', `HANGUP <- cause=${cause}`);
         const handler = connectionHandlers.get(uuid);
         connectionHandlers.delete(uuid);
         uuidUserMap.delete(uuid);
@@ -209,14 +122,14 @@ function _handleChannelHangup(event) {
     // Try DB lookup by UUID
     const users = global.db.filter(u => u.fsChannelUUID === uuid);
     if (users.length > 0) {
-        logUser(users[0].userName, 'CALL', `HANGUP cause=${cause}`);
+        logUser(users[0].userName, 'CALL', `HANGUP <- cause=${cause}`);
         uuidUserMap.delete(uuid);
         _onCallHangup(users[0].userName, uuid, cause);
         return;
     }
 
     uuidUserMap.delete(uuid);
-    if (knownUser) logUser(knownUser, 'CALL', `HANGUP cause=${cause} (already cleaned up)`);
+    if (knownUser) logUser(knownUser, 'CALL', `HANGUP <- cause=${cause} (already cleaned up)`);
 }
 
 function _onCallHangup(userName, _uuid, cause) {
@@ -253,7 +166,7 @@ function _handleConferenceEvent(event) {
         case 'add-member': {
             const joinUuid2 = event.getHeader('Unique-ID');
             const joinUserName = uuidUserMap.get(joinUuid2) || null;
-            logUser(joinUserName, 'CONF', `JOIN ${callerIdName} -> ${roomName} (member ${memberId})`);
+            logUserImmediate(joinUserName, 'CONF', `JOIN ${callerIdName} -> ${roomName} (member ${memberId})`);
             _updateMemberMapping(conferenceName, memberId, callerIdName, event);
             const joinUuid = event.getHeader('Unique-ID');
             if (joinUuid) {
@@ -303,10 +216,9 @@ function _handleConferenceEvent(event) {
         }
         case 'start-talking': {
             const talkUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
-            if (talkUser) {
+            if (talkUser && !talkUser.mute) {
                 _talkingUsers.add(talkUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
-
             }
             break;
         }
@@ -389,14 +301,18 @@ function _broadcastCallerIdToRoom(conferenceName) {
     const yealinkUsers = connectedUsers.filter(u => u.clientType === 'yealink');
     const yealinkUserNames = yealinkUsers.map(u => u.userName).filter(Boolean);
 
+    const prevCount = lastUnmutedCount.get(conferenceName) || 0;
+
     if (unmutedUsers.length > 0) {
         lastUnmutedCount.set(conferenceName, unmutedUsers.length);
         if (yealinkUserNames.length > 0) showMessage(yealinkUserNames, callerIdString);
-        logUser(roomName, 'CONF', `CALLERID ${callerIdString}`);
-    } else if ((lastUnmutedCount.get(conferenceName) || 0) > 0) {
+        logUser(roomName, 'CONF', `CALLERID ${callerIdString} (${unmutedUsers.length} unmuted, ${connectedUsers.length} connected, prev=${prevCount})`);
+    } else if (prevCount > 0) {
         lastUnmutedCount.set(conferenceName, 0);
         if (yealinkUserNames.length > 0) showMessage(yealinkUserNames, '-', 1);
-        logUser(roomName, 'CONF', `CALLERID (cleared)`);
+        logUser(roomName, 'CONF', `CALLERID (cleared) (0 unmuted, ${connectedUsers.length} connected, prev=${prevCount})`);
+    } else {
+        logUser(roomName, 'CONF', `CALLERID (skip) (0 unmuted, ${connectedUsers.length} connected, prev=${prevCount})`);
     }
 
     global.db.eventEmitter.emit('STATE_CHANGE', {

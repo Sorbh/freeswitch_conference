@@ -5,6 +5,7 @@
 //    stale registrations and update online/registrationState accordingly.
 import { onMessageEvent, getConnection, isConnected, onEslReconnect, onEslDisconnect, getConnectionHandlers } from './connection.js';
 import { initiateCall } from './callGate.js';
+import { syncAllUsers } from './conferenceSync.js';
 import { invalidateContactCache } from './notifications.js';
 import { logSystem, logUser } from '../logger.js';
 
@@ -129,7 +130,7 @@ function _applyRegSync(allUsers, fsUsers) {
         }
     }
 
-    _syncConferenceState(allUsers);
+    syncAllUsers({ markHangup: false, logPrefix: 'REG-POLL' });
     const cleaned = _cleanupDeadHandlers(allUsers);
 
     if (changes > 0 || cleaned > 0) {
@@ -137,67 +138,6 @@ function _applyRegSync(allUsers, fsUsers) {
         if (changes > 0) parts.push(`${fsUsers.size} registered, ${changes} changes`);
         if (cleaned > 0) parts.push(`cleaned ${cleaned} dead handlers`);
         logUser('REG-POLL', 'SYNC', parts.join(' | '));
-    }
-}
-
-function _syncConferenceState(allUsers) {
-    if (!isConnected()) return;
-
-    const rooms = new Set(allUsers.map(u => u.currentRoom || u.room).filter(Boolean));
-    if (rooms.size === 0) return;
-
-    const conn = getConnection();
-    let pending = rooms.size;
-    const conferenceLines = new Map();
-
-    for (const room of rooms) {
-        conn.api(`conference ${room} list`, (response) => {
-            const body = response.getBody().trim();
-            if (body && !body.startsWith('-ERR')) {
-                for (const line of body.split('\n')) {
-                    if (!line.trim()) continue;
-                    const parts = line.split(';');
-                    conferenceLines.set(line, {
-                        memberId: parts[0] || null,
-                        uuid: parts[2] || null,
-                        raw: line,
-                    });
-                }
-            }
-
-            pending--;
-            if (pending === 0) _matchUsersToConference(allUsers, conferenceLines);
-        });
-    }
-}
-
-function _matchUsersToConference(allUsers, conferenceLines) {
-    let fixes = 0;
-
-    for (const user of allUsers) {
-        if (user.connectionState === 'connected' || user.connectionState === 'connecting') continue;
-
-        const sipUser = user.userName.replace('sip:', '');
-        const sipLocal = sipUser.split('@')[0];
-
-        for (const [line, member] of conferenceLines) {
-            if (line.includes(sipLocal)) {
-                user.connectionState = 'connected';
-                user.fsChannelUUID = member.uuid;
-                user.fsMemberId = member.memberId;
-                user.error = null;
-                user.retryCount = 0;
-                user.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-                global.db.setUserInfo(user.userName, user);
-                logSystem('REG-POLL', `CONF-SYNC ${user.userName} -> connected (SIP match)`);
-                fixes++;
-                break;
-            }
-        }
-    }
-
-    if (fixes > 0) {
-        logSystem('REG-POLL', `CONF-SYNC fixed ${fixes} stale connection states`);
     }
 }
 
