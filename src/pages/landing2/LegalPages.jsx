@@ -39,7 +39,16 @@ const TEAM = [
 
 export function AboutPage() {
   return (
-    <PageShell kicker="Company" title="About Hotline HQ">
+    <PageShell
+      kicker="Company"
+      title="About Hotline HQ"
+      seo={{
+        title: "About Hotline HQ — The Team Behind the Parts Hotline Network",
+        description:
+          "Hotline HQ is an always-on voice network connecting 500+ salvage yards to locate and sell used auto parts. Meet the team and the story behind the hotline.",
+        path: "/about",
+      }}
+    >
       <p className="l2-doc-lead">
         Hotline HQ is an always-on voice network that connects salvage yards
         and auto recyclers so they can locate and sell used parts for each
@@ -108,7 +117,7 @@ export function AboutPage() {
       <p>
         Want a line in your yard, or have a question? Email us at{" "}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or request a
-        line from the <a href="/landing_2#join">home page</a> — a human calls
+        line from the <a href="/#join">home page</a> — a human calls
         you back within one business day.
       </p>
     </PageShell>
@@ -121,7 +130,17 @@ export function AboutPage() {
 
 export function PrivacyPage() {
   return (
-    <PageShell kicker="Legal" title="Privacy Policy" updated={UPDATED}>
+    <PageShell
+      kicker="Legal"
+      title="Privacy Policy"
+      updated={UPDATED}
+      seo={{
+        title: "Privacy Policy | Hotline HQ",
+        description:
+          "How Hotline HQ collects, uses, and protects member information — including call recordings, account data, and your choices.",
+        path: "/privacy-policy",
+      }}
+    >
       <p className="l2-doc-lead">
         This policy explains what information Hotline HQ ("we", "us")
         collects, how we use it, and the choices you have. It applies to this
@@ -224,7 +243,17 @@ export function PrivacyPage() {
 
 export function TermsPage() {
   return (
-    <PageShell kicker="Legal" title="Terms &amp; Conditions" updated={UPDATED}>
+    <PageShell
+      kicker="Legal"
+      title="Terms &amp; Conditions"
+      updated={UPDATED}
+      seo={{
+        title: "Terms & Conditions | Hotline HQ",
+        description:
+          "Membership terms for the Hotline HQ voice network: billing, acceptable use, member-to-member deals, equipment, and recordings.",
+        path: "/terms-and-conditions",
+      }}
+    >
       <p className="l2-doc-lead">
         These terms govern membership in the Hotline HQ network and use of
         this website. By joining the network or using the service, you agree
@@ -338,7 +367,17 @@ export function TermsPage() {
 
 export function DisclaimerPage() {
   return (
-    <PageShell kicker="Legal" title="Disclaimer" updated={UPDATED}>
+    <PageShell
+      kicker="Legal"
+      title="Disclaimer"
+      updated={UPDATED}
+      seo={{
+        title: "Disclaimer | Hotline HQ",
+        description:
+          "What the figures and demos on this site represent, and what Hotline HQ does and doesn't guarantee about member-to-member deals.",
+        path: "/disclaimer",
+      }}
+    >
       <p className="l2-doc-lead">
         Please read this disclaimer carefully before relying on anything on
         this website or the Hotline HQ network.

@@ -18,6 +18,9 @@ import {
 import { lazy, Suspense } from "react";
 import LandingPage from "@/pages/LandingPage";
 const Landing2Page = lazy(() => import("@/pages/Landing2Page"));
+const OwnHotlinePage = lazy(() =>
+  import("@/pages/landing2/OwnHotlinePage").then((m) => ({ default: m.OwnHotlinePage }))
+);
 const AboutPage = lazy(() =>
   import("@/pages/landing2/LegalPages").then((m) => ({ default: m.AboutPage }))
 );
@@ -32,6 +35,7 @@ const DisclaimerPage = lazy(() =>
 );
 
 const sitePages = [
+  { path: "/own-a-hotline", element: <OwnHotlinePage /> },
   { path: "/about", element: <AboutPage /> },
   { path: "/privacy-policy", element: <PrivacyPage /> },
   { path: "/terms-and-conditions", element: <TermsPage /> },
@@ -119,16 +123,17 @@ function App() {
         <ScrollToTop />
         <RoomsProvider>
           <Routes>
-            {/* Public route */}
-            <Route path="/" element={<LandingPage />} />
+            {/* Public routes */}
             <Route
-              path="/landing_2"
+              path="/"
               element={
                 <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
                   <Landing2Page />
                 </Suspense>
               }
             />
+            <Route path="/classic" element={<LandingPage />} />
+            <Route path="/landing_2" element={<Navigate to="/" replace />} />
             {sitePages.map((p) => (
               <Route
                 key={p.path}

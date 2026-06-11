@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 /* ------------------------------------------------------------------ */
@@ -34,17 +35,127 @@ export function HQLogo({ light = false, size = 32 }) {
 
 export const CONTACT_EMAIL = "hello@hotlinehq.com";
 
+/* ------------------------------------------------------------------ */
+/*  SEO — sets title, meta, Open Graph, canonical, and JSON-LD         */
+/* ------------------------------------------------------------------ */
+
+export function Seo({ title, description, keywords, path = "/", jsonLd = null }) {
+  useEffect(() => {
+    document.title = title;
+
+    const ensure = (selector, create) => {
+      let el = document.head.querySelector(selector);
+      if (!el) {
+        el = create();
+        document.head.appendChild(el);
+      }
+      return el;
+    };
+    const setNamed = (name, content) => {
+      const el = ensure(`meta[name="${name}"]`, () => {
+        const m = document.createElement("meta");
+        m.name = name;
+        return m;
+      });
+      el.content = content;
+    };
+    const setProp = (prop, content) => {
+      const el = ensure(`meta[property="${prop}"]`, () => {
+        const m = document.createElement("meta");
+        m.setAttribute("property", prop);
+        return m;
+      });
+      el.content = content;
+    };
+
+    const url = window.location.origin + path;
+
+    setNamed("description", description);
+    if (keywords) setNamed("keywords", keywords);
+    setNamed("robots", "index, follow");
+    setProp("og:title", title);
+    setProp("og:description", description);
+    setProp("og:type", "website");
+    setProp("og:url", url);
+    setProp("og:site_name", "Hotline HQ");
+    setNamed("twitter:card", "summary");
+    setNamed("twitter:title", title);
+    setNamed("twitter:description", description);
+
+    const canon = ensure('link[rel="canonical"]', () => {
+      const l = document.createElement("link");
+      l.rel = "canonical";
+      return l;
+    });
+    canon.href = url;
+
+    let script = document.getElementById("seo-jsonld");
+    if (jsonLd) {
+      if (!script) {
+        script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.id = "seo-jsonld";
+        document.head.appendChild(script);
+      }
+      script.textContent = JSON.stringify(jsonLd);
+    } else if (script) {
+      script.remove();
+    }
+  }, [title, description, keywords, path, jsonLd]);
+  return null;
+}
+
+/* JSON-LD for the main landing page. */
+export function landingJsonLd() {
+  const origin = window.location.origin;
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${origin}/#org`,
+        name: "Hotline HQ",
+        url: origin,
+        logo: `${origin}/favicon.svg`,
+        email: CONTACT_EMAIL,
+        description:
+          "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
+      },
+      {
+        "@type": "WebSite",
+        name: "Hotline HQ",
+        url: origin,
+        publisher: { "@id": `${origin}/#org` },
+      },
+      {
+        "@type": "Service",
+        name: "Hotline HQ voice hotline network",
+        serviceType: "Always-on business voice hotline network",
+        provider: { "@id": `${origin}/#org` },
+        areaServed: "US",
+        description:
+          "An always-on voice hotline that connects member businesses by region. Members broadcast requests live and get answers in seconds; the network owner earns flat monthly membership revenue.",
+        offers: {
+          "@type": "Offer",
+          priceCurrency: "USD",
+          description: "Flat monthly membership per member business.",
+        },
+      },
+    ],
+  };
+}
+
 /* Slim nav for the about/legal pages. */
 export function SiteNav() {
   return (
     <header className="l2-nav">
-      <Link className="l2-logo" to="/landing_2">
+      <Link className="l2-logo" to="/">
         <HQLogo />
       </Link>
       <nav className="l2-nav-links">
-        <Link to="/landing_2">Home</Link>
-        <a href="/landing_2#how">How it works</a>
-        <a href="/landing_2#join" className="l2-nav-cta">
+        <Link to="/">Home</Link>
+        <a href="/#how">How it works</a>
+        <a href="/#join" className="l2-nav-cta">
           Get a line
         </a>
       </nav>
@@ -53,12 +164,13 @@ export function SiteNav() {
 }
 
 const PRODUCT_LINKS = [
-  ["Watch it work", "/landing_2#demo"],
-  ["How it works", "/landing_2#how"],
-  ["Try a sell call", "/landing_2#try"],
-  ["Coverage", "/landing_2#rooms"],
-  ["The system", "/landing_2#system"],
-  ["Get a line", "/landing_2#join"],
+  ["Watch it work", "/#demo"],
+  ["How it works", "/#how"],
+  ["Try a sell call", "/#try"],
+  ["Coverage", "/#rooms"],
+  ["The system", "/#system"],
+  ["Get a line", "/#join"],
+  ["Own a hotline", "/own-a-hotline"],
 ];
 
 const ROOM_LINKS = [
@@ -71,7 +183,7 @@ export function SiteFooter() {
     <footer className="l2f">
       <div className="l2f-inner">
         <div className="l2f-brand">
-          <Link to="/landing_2" className="l2f-logolink">
+          <Link to="/" className="l2f-logolink">
             <HQLogo light />
           </Link>
           <p>
@@ -95,11 +207,11 @@ export function SiteFooter() {
         <div className="l2f-col">
           <p className="l2f-head">Rooms</p>
           {ROOM_LINKS.map((r) => (
-            <a key={r} href="/landing_2#rooms">
+            <a key={r} href="/#rooms">
               {r}
             </a>
           ))}
-          <a href="/landing_2#rooms" className="l2f-more">
+          <a href="/#rooms" className="l2f-more">
             All 12 rooms →
           </a>
         </div>
@@ -135,10 +247,11 @@ export function SiteFooter() {
 }
 
 /* Shell for the about/legal pages. */
-export function PageShell({ kicker, title, updated, children }) {
+export function PageShell({ kicker, title, updated, children, seo }) {
   return (
     <div className="l2">
       <style>{SITE_CSS}</style>
+      {seo && <Seo {...seo} />}
       <SiteNav />
       <main className="l2-doc">
         <p className="l2-doc-kicker">{kicker}</p>

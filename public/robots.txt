@@ -1,0 +1,20 @@
+# Hotline HQ
+User-agent: *
+Allow: /
+# Internal admin/console routes — keep out of search indexes
+Disallow: /dashboard
+Disallow: /users
+Disallow: /rooms
+Disallow: /broadcasts
+Disallow: /events
+Disallow: /system
+Disallow: /notifications
+Disallow: /dev/
+Disallow: /recordings/
+Disallow: /api/
+# Old landing page (duplicate content)
+Disallow: /classic
+Disallow: /landing_2
+
+# TODO: replace hotlinehq.com with the real production domain
+Sitemap: https://hotlinehq.com/sitemap.xml

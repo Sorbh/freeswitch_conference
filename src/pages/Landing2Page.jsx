@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { toast } from "sonner";
-import { HQLogo, SiteFooter, SITE_CSS } from "./landing2/site";
+import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 
 /* ------------------------------------------------------------------ */
 /*  Landing 2 — Hotline HQ. Light B2B theme, Three.js throughout:     */
@@ -1446,6 +1446,13 @@ export default function Landing2Page() {
     <div className="l2" ref={rootRef}>
       <style>{SITE_CSS}</style>
       <style>{CSS}</style>
+      <Seo
+        title="Hotline HQ — Used Auto Parts Hotline Network for Salvage Yards"
+        description="Join 500+ salvage yards on the always-on parts hotline. Broadcast a used auto part request once and a nearby yard answers in about 2 seconds. Flat monthly membership, desk phone included."
+        keywords="parts hotline, used auto parts network, salvage yard hotline, auto recyclers network, parts locating network, sell used auto parts, auto dismantler network, used parts trading network, junkyard parts network"
+        path="/"
+        jsonLd={landingJsonLd()}
+      />
 
       {/* scroll progress wire */}
       <div className="l2-wire" aria-hidden="true">
@@ -1742,6 +1749,30 @@ export default function Landing2Page() {
               <p>{f.copy}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ───────────────── own the hotline ───────────────── */}
+      <section className="l2-section l2-band" id="own">
+        <div className="l2-own l2-reveal">
+          <div>
+            <p className="l2-kicker">Run your own</p>
+            <h2>Want to own the hotline for your industry?</h2>
+            <p className="l2-lede">
+              The auto parts network you see here is one Hotline HQ deployment.
+              The same always-on voice hotline works for any trade where
+              businesses help each other find what a customer needs — truck
+              parts, heavy equipment, building materials, wholesale dealers.
+            </p>
+            <ul className="l2-own-list">
+              <li>You bring the industry community — we run the lines, rooms, recordings, and equipment</li>
+              <li>Your members pay a flat monthly fee; you own the network and the recurring revenue</li>
+              <li>Live in weeks, with the same 24/7 monitoring behind the 500-yard parts network</li>
+            </ul>
+            <a className="l2-btn l2-btn-hot" href="/own-a-hotline">
+              Learn how owning a hotline works
+            </a>
+          </div>
         </div>
       </section>
 
@@ -2186,6 +2217,12 @@ const CSS = `
 }
 .l2-feature h3 { font-size: 20px; font-weight: 700; margin: 18px 0 9px; }
 .l2-feature p { color: var(--muted); font-size: 14.5px; line-height: 1.62; margin: 0; }
+
+/* own the hotline */
+.l2-own { max-width: 860px; }
+.l2-own-list { list-style: none; padding: 0; margin: 26px 0 30px; display: flex; flex-direction: column; gap: 12px; }
+.l2-own-list li { color: var(--muted); font-size: 15.5px; line-height: 1.6; padding-left: 26px; position: relative; }
+.l2-own-list li::before { content: "▸"; position: absolute; left: 0; color: var(--red); }
 
 /* join */
 .l2-join { background: #16181d; color: #f4f2ee; position: relative; overflow: hidden; }
