@@ -200,10 +200,9 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
     const originateAt = Date.now();
     logUser(userName, 'CALL', `INVITE -> ${roomName}`);
 
-    conn.api(originateCmd, (response) => {
-        const body = response.getBody().trim();
+    conn.bgapi(originateCmd, (jobEvent) => {
+        const body = (jobEvent.getBody() || '').trim();
         const elapsed = Date.now() - originateAt;
-
 
         if (body.startsWith('+OK')) {
             const uuid = body.replace('+OK ', '').trim();

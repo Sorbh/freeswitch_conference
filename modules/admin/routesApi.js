@@ -124,6 +124,7 @@ adminRouter.get("/rooms", (req, res) => {
                 room: r.id,
                 roomName: r.name,
                 shortCode: r.short_code,
+                timezone: r.timezone || 'America/Chicago',
                 total: 0,
                 online: 0,
                 inCall: 0,
@@ -218,7 +219,8 @@ adminRouter.get("/rooms/:roomId", (req, res) => {
 adminRouter.get("/broadcasts", (req, res) => {
     try {
         const days = parseInt(req.query.days) || 7;
-        const stats = global.db.getBroadcastStats(days);
+        const room = req.query.room ? parseInt(req.query.room) : undefined;
+        const stats = global.db.getBroadcastStats(days, room);
         res.json({ status: true, data: stats });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -279,7 +281,8 @@ adminRouter.get("/broadcasts/availability", (req, res) => {
 adminRouter.get("/broadcasts/hourly", (req, res) => {
     try {
         const hours = parseInt(req.query.hours) || 12;
-        const data = global.db.getHourlyBroadcasts(hours);
+        const room = req.query.room ? parseInt(req.query.room) : undefined;
+        const data = global.db.getHourlyBroadcasts(hours, room);
         res.json({ status: true, data });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -672,23 +675,25 @@ adminRouter.post("/users/reconnect-all", async (req, res) => {
         const roomId = req.body.room ? parseInt(req.body.room) : null;
         logUser('ALL', 'API', roomId ? `RECONNECT-ROOM-${roomId}` : 'RECONNECT-ALL');
         const users = global.db.getAllUserInfo();
-        let reconnected = 0;
-
         const { initiateCall } = await import("../../service/freeswitch/callGate.js");
 
-        for (const user of users) {
-            if (!user.online) continue;
-            if (roomId && (user.currentRoom || user.room) !== roomId) continue;
+        const targets = users.filter(u => {
+            if (!u.online) return false;
+            if (roomId && (u.currentRoom || u.room) !== roomId) return false;
+            return true;
+        });
 
-            if (user.fsChannelUUID) {
-                try {
-                    getConnectionHandlers().delete(user.fsChannelUUID);
-                    await global.freeswitch.hangupCall(user.fsChannelUUID, user.userName);
-                } catch (e) {
-                    console.error(`[RECONNECT-ALL] Hangup failed for ${user.userName}:`, e.message);
-                }
-            }
+        // Phase 1: hangup all in parallel
+        await Promise.allSettled(targets.map(user => {
+            if (!user.fsChannelUUID) return Promise.resolve();
+            getConnectionHandlers().delete(user.fsChannelUUID);
+            return global.freeswitch.hangupCall(user.fsChannelUUID, user.userName).catch(e => {
+                console.error(`[RECONNECT-ALL] Hangup failed for ${user.userName}:`, e.message);
+            });
+        }));
 
+        // Phase 2: reset state + initiate all calls
+        for (const user of targets) {
             user.connectionState = 'ideal';
             user.fsChannelUUID = null;
             user.fsMemberId = null;
@@ -697,10 +702,9 @@ adminRouter.post("/users/reconnect-all", async (req, res) => {
             user.errFallbackStage = 0;
             user.errFallbackAt = null;
             global.db.setUserInfo(user.userName, user);
-
             initiateCall(user.userName).catch(() => {});
-            reconnected++;
         }
+        const reconnected = targets.length;
 
         const label = roomId ? `Room ${roomId}` : 'All';
         global.db.logEvent('reconnect_all', null, roomId, `${label} users reconnected: ${reconnected}`);
@@ -1623,7 +1627,7 @@ adminRouter.delete("/accounts/:id", async (req, res) => {
 // POST /rooms/create — create a new room
 adminRouter.post("/rooms/create", (req, res) => {
     try {
-        const { id, name, short_code } = req.body;
+        const { id, name, short_code, timezone } = req.body;
         if (!id || !name || !short_code) {
             return res.status(400).json({ status: false, error: "id, name, and short_code are required" });
         }
@@ -1632,7 +1636,7 @@ adminRouter.post("/rooms/create", (req, res) => {
         if (existing) {
             return res.status(409).json({ status: false, error: "Room with this ID already exists" });
         }
-        const room = global.db.createRoom(roomId, name, short_code);
+        const room = global.db.createRoom(roomId, name, short_code, timezone);
         global.db.logEvent('room_created', null, roomId, `Room ${name} (${short_code}) created`);
         emitStateChange('rooms');
         res.status(201).json({ status: true, data: room });

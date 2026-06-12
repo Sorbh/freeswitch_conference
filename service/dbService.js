@@ -60,6 +60,7 @@ function init() {
             participants TEXT,
             participant_count INTEGER DEFAULT 0,
             recording_path TEXT,
+            response_time_ms INTEGER,
             created_at INTEGER DEFAULT (strftime('%s', 'now'))
         );
 
@@ -107,6 +108,7 @@ function init() {
         ['participants', "ALTER TABLE broadcast_log ADD COLUMN participants TEXT"],
         ['participant_count', "ALTER TABLE broadcast_log ADD COLUMN participant_count INTEGER DEFAULT 0"],
         ['recording_path', "ALTER TABLE broadcast_log ADD COLUMN recording_path TEXT"],
+        ['response_time_ms', "ALTER TABLE broadcast_log ADD COLUMN response_time_ms INTEGER"],
     ];
     for (const [col, sql] of migrations) {
         if (!broadcastCols.includes(col)) sqlite.exec(sql);
@@ -174,6 +176,7 @@ function init() {
     const roomMigrations = [
         ['ymcs_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_site_id TEXT"],
         ['ymcs_parent_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_parent_site_id TEXT"],
+        ['timezone', "ALTER TABLE rooms ADD COLUMN timezone TEXT DEFAULT 'America/Chicago'"],
     ];
     for (const [col, sql] of roomMigrations) {
         if (!roomCols.includes(col)) sqlite.exec(sql);
@@ -215,8 +218,8 @@ function getRoom(id) {
     return sqlite.prepare('SELECT * FROM rooms WHERE id = ?').get(id);
 }
 
-function createRoom(id, name, shortCode) {
-    sqlite.prepare('INSERT INTO rooms (id, name, short_code) VALUES (?, ?, ?)').run(id, name, shortCode);
+function createRoom(id, name, shortCode, timezone) {
+    sqlite.prepare('INSERT INTO rooms (id, name, short_code, timezone) VALUES (?, ?, ?, ?)').run(id, name, shortCode, timezone || 'America/Chicago');
     _refreshRoomConfig();
     return getRoom(id);
 }
@@ -229,6 +232,7 @@ function updateRoom(id, fields) {
     if (fields.caller_id_template !== undefined) { sets.push('caller_id_template = ?'); vals.push(fields.caller_id_template); }
     if (fields.ymcs_site_id !== undefined) { sets.push('ymcs_site_id = ?'); vals.push(fields.ymcs_site_id); }
     if (fields.ymcs_parent_site_id !== undefined) { sets.push('ymcs_parent_site_id = ?'); vals.push(fields.ymcs_parent_site_id); }
+    if (fields.timezone !== undefined) { sets.push('timezone = ?'); vals.push(fields.timezone); }
     if (sets.length === 0) return null;
     vals.push(id);
     sqlite.prepare(`UPDATE rooms SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
@@ -492,47 +496,55 @@ function getDashboardStats() {
     };
 }
 
-function logBroadcast({ room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath }) {
+function logBroadcast({ room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs }) {
     sqlite.prepare(`
-        INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath);
-    eventEmitter.emit('BROADCAST', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, created_at: Math.floor(Date.now() / 1000) });
+        INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath, responseTimeMs);
+    eventEmitter.emit('BROADCAST', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, created_at: Math.floor(Date.now() / 1000) });
     eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'broadcasts' });
     eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
 }
 
-function getBroadcastStats(days = 7) {
+function getBroadcastStats(days = 7, room) {
     const since = Math.floor(Date.now() / 1000) - (days * 86400);
+    const roomFilter = room ? ' AND room = ?' : '';
+    const params = room ? [since, room] : [since];
 
     const hourly = sqlite.prepare(`
         SELECT
             CAST(strftime('%H', created_at, 'unixepoch', 'localtime') AS INTEGER) as hour,
             COUNT(*) as count
-        FROM broadcast_log WHERE created_at >= ?
+        FROM broadcast_log WHERE created_at >= ?${roomFilter}
         GROUP BY hour ORDER BY hour
-    `).all(since);
+    `).all(...params);
 
     const daily = sqlite.prepare(`
         SELECT
             strftime('%Y-%m-%d', created_at, 'unixepoch', 'localtime') as day,
             COUNT(*) as total,
             SUM(CASE WHEN answered = 1 THEN 1 ELSE 0 END) as answered
-        FROM broadcast_log WHERE created_at >= ?
+        FROM broadcast_log WHERE created_at >= ?${roomFilter}
         GROUP BY day ORDER BY day
-    `).all(since);
+    `).all(...params);
 
     const topBroadcasters = sqlite.prepare(`
-        SELECT user_name, display_name, COUNT(*) as count
-        FROM broadcast_log WHERE created_at >= ?
+        SELECT user_name, display_name, room_name,
+            COUNT(*) as count,
+            ROUND(AVG(duration_ms)) as avg_duration_ms,
+            SUM(CASE WHEN answered = 1 THEN 1 ELSE 0 END) as answered,
+            SUM(CASE WHEN answered = 0 THEN 1 ELSE 0 END) as unanswered,
+            ROUND(AVG(CASE WHEN response_time_ms IS NOT NULL THEN response_time_ms END)) as avg_response_ms
+        FROM broadcast_log WHERE created_at >= ?${roomFilter}
         GROUP BY user_name ORDER BY count DESC LIMIT 10
-    `).all(since);
+    `).all(...params);
 
     const byRoom = sqlite.prepare(`
-        SELECT room, COUNT(*) as count
-        FROM broadcast_log WHERE created_at >= ?
+        SELECT room, COUNT(*) as count,
+            SUM(CASE WHEN answered = 1 THEN 1 ELSE 0 END) as answered
+        FROM broadcast_log WHERE created_at >= ?${roomFilter}
         GROUP BY room ORDER BY count DESC
-    `).all(since);
+    `).all(...params);
 
     return { hourly, daily, topBroadcasters, byRoom };
 }
@@ -558,22 +570,25 @@ function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateF
     const offset = (page - 1) * pageSize;
 
     const rows = sqlite.prepare(`
-        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, created_at
+        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, created_at
         FROM broadcast_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?
     `).all(...params, pageSize, offset);
 
     return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
-function getHourlyBroadcasts(hours = 12) {
+function getHourlyBroadcasts(hours = 12, room) {
     const since = Math.floor(Date.now() / 1000) - (hours * 3600);
+    const roomFilter = room ? ' AND room = ?' : '';
+    const params = room ? [since, room] : [since];
     return sqlite.prepare(`
         SELECT
             created_at,
-            answered
-        FROM broadcast_log WHERE created_at >= ?
+            answered,
+            room
+        FROM broadcast_log WHERE created_at >= ?${roomFilter}
         ORDER BY created_at ASC
-    `).all(since);
+    `).all(...params);
 }
 
 function snapshotRoomCounts() {

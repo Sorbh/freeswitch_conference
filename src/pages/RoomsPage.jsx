@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
@@ -199,7 +200,47 @@ function SpeakerTimeline({ events, roomCodes = {} }) {
   );
 }
 
-const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "" };
+const TIMEZONES = [
+  { value: "GMT-12:00", label: "GMT -12:00" },
+  { value: "GMT-11:00", label: "GMT -11:00" },
+  { value: "GMT-10:00", label: "GMT -10:00 (Hawaii)" },
+  { value: "GMT-09:00", label: "GMT -9:00 (Alaska)" },
+  { value: "GMT-08:00", label: "GMT -8:00 (Pacific)" },
+  { value: "GMT-07:00", label: "GMT -7:00 (Mountain / Arizona)" },
+  { value: "GMT-06:00", label: "GMT -6:00 (Central / Mexico)" },
+  { value: "GMT-05:00", label: "GMT -5:00 (Eastern)" },
+  { value: "GMT-04:00", label: "GMT -4:00 (Atlantic)" },
+  { value: "GMT-03:00", label: "GMT -3:00 (Brazil)" },
+  { value: "GMT-02:00", label: "GMT -2:00" },
+  { value: "GMT-01:00", label: "GMT -1:00" },
+  { value: "GMT+00:00", label: "GMT +0:00 (Ghana / UK)" },
+  { value: "GMT+01:00", label: "GMT +1:00 (Spain / France)" },
+  { value: "GMT+02:00", label: "GMT +2:00 (Egypt / South Africa)" },
+  { value: "GMT+03:00", label: "GMT +3:00 (Saudi Arabia)" },
+  { value: "GMT+03:30", label: "GMT +3:30 (Iran)" },
+  { value: "GMT+04:00", label: "GMT +4:00 (Dubai)" },
+  { value: "GMT+05:00", label: "GMT +5:00 (Pakistan)" },
+  { value: "GMT+05:30", label: "GMT +5:30 (India)" },
+  { value: "GMT+06:00", label: "GMT +6:00 (Bangladesh)" },
+  { value: "GMT+07:00", label: "GMT +7:00 (Thailand)" },
+  { value: "GMT+08:00", label: "GMT +8:00 (China / Singapore)" },
+  { value: "GMT+09:00", label: "GMT +9:00 (Japan / Korea)" },
+  { value: "GMT+10:00", label: "GMT +10:00 (Australia East)" },
+  { value: "GMT+11:00", label: "GMT +11:00" },
+  { value: "GMT+12:00", label: "GMT +12:00 (New Zealand)" },
+];
+
+function getLocalTime(gmtOffset) {
+  if (!gmtOffset) return "—";
+  const match = gmtOffset.match(/^GMT([+-])(\d{2}):(\d{2})$/);
+  if (!match) return "—";
+  const sign = match[1] === "+" ? 1 : -1;
+  const offsetMs = sign * (parseInt(match[2]) * 60 + parseInt(match[3])) * 60000;
+  const local = new Date(Date.now() + offsetMs + new Date().getTimezoneOffset() * 60000);
+  return local.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "", timezone: "America/Chicago" };
 
 // ── Main Page ──
 export default function RoomsPage() {
@@ -217,6 +258,8 @@ export default function RoomsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const { listenRoom, listenState, startListen, stopListen } = useConferenceListen();
+  const [clockTick, setClockTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setClockTick(c => c + 1), 60000); return () => clearInterval(t); }, []);
 
   function openCreateRoom() {
     setEditingRoom(null);
@@ -226,7 +269,7 @@ export default function RoomsPage() {
 
   function openEditRoom(room) {
     setEditingRoom(room);
-    setRoomForm({ id: String(room.room), name: room.roomName || "", short_code: room.shortCode || "" });
+    setRoomForm({ id: String(room.room), name: room.roomName || "", short_code: room.shortCode || "", timezone: room.timezone || "America/Chicago" });
     setRoomDialogOpen(true);
   }
 
@@ -237,13 +280,13 @@ export default function RoomsPage() {
         await fetch(`/api/v1/admin/rooms/${editingRoom.room}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: roomForm.name, short_code: roomForm.short_code }),
+          body: JSON.stringify({ name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone }),
         });
       } else {
         await fetch("/api/v1/admin/rooms/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: parseInt(roomForm.id), name: roomForm.name, short_code: roomForm.short_code }),
+          body: JSON.stringify({ id: parseInt(roomForm.id), name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone }),
         });
       }
       setRoomDialogOpen(false);
@@ -409,6 +452,7 @@ export default function RoomsPage() {
               <TableRow>
                 <TableHead className="w-[40px]"></TableHead>
                 <TableHead>Room</TableHead>
+                <TableHead className="hidden sm:table-cell">Local Time</TableHead>
                 <TableHead>Accounts</TableHead>
                 <TableHead className="hidden md:table-cell">Online</TableHead>
                 <TableHead className="hidden md:table-cell">In Call</TableHead>
@@ -421,7 +465,7 @@ export default function RoomsPage() {
             <TableBody>
               {rooms.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
                     No rooms configured
                   </TableCell>
                 </TableRow>
@@ -458,6 +502,9 @@ export default function RoomsPage() {
                           {room.roomName}
                           <span className="text-[10px] font-mono text-muted-foreground/40">{room.shortCode}</span>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <span className="text-xs font-mono text-muted-foreground">{getLocalTime(room.timezone)}</span>
                       </TableCell>
                       <TableCell className="font-mono tabular-nums text-sm">
                         {room.accountCount || total}
@@ -777,6 +824,19 @@ export default function RoomsPage() {
                   onChange={e => setRoomForm(f => ({ ...f, short_code: e.target.value.toUpperCase() }))}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Timezone</Label>
+              <Select value={roomForm.timezone} onValueChange={v => setRoomForm(f => ({ ...f, timezone: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent className="w-[var(--radix-select-trigger-width)] min-w-[320px]">
+                  {TIMEZONES.map(tz => (
+                    <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button
               className="w-full mt-2"

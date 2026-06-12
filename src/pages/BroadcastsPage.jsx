@@ -20,7 +20,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
   TrendingUpIcon, PlayIcon, PauseIcon, ClockIcon, UserIcon,
-  ZapIcon, ChevronLeftIcon, ChevronRightIcon, FilterIcon, XIcon,
+  ZapIcon, ChevronLeftIcon, ChevronRightIcon, XIcon,
   ChevronsLeftIcon, ChevronsRightIcon, ListIcon,
 } from "lucide-react";
 
@@ -32,21 +32,44 @@ function formatDuration(ms) {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
-function formatTime(ts) {
-  if (!ts) return "—";
+function parseGmtOffset(gmtOffset) {
+  if (!gmtOffset) return null;
+  const m = gmtOffset.match(/^GMT([+-])(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const sign = m[1] === "+" ? 1 : -1;
+  return sign * (parseInt(m[2]) * 60 + parseInt(m[3]));
+}
+
+function toTzDate(ts, offsetMin) {
   const d = new Date(ts * 1000);
+  if (offsetMin == null) return d;
+  return new Date(d.getTime() + (offsetMin + d.getTimezoneOffset()) * 60000);
+}
+
+function gmtLabel(offsetMin) {
+  if (offsetMin == null) return "";
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMin);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return m ? `GMT${sign}${h}:${String(m).padStart(2, "0")}` : `GMT${sign}${h}`;
+}
+
+function formatTime(ts, offsetMin) {
+  if (!ts) return "—";
+  const d = toTzDate(ts, offsetMin);
   return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-function formatDate(ts) {
+function formatDate(ts, offsetMin) {
   if (!ts) return "—";
-  const d = new Date(ts * 1000);
+  const d = toTzDate(ts, offsetMin);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function formatFullDate(ts) {
+function formatFullDate(ts, offsetMin) {
   if (!ts) return "—";
-  const d = new Date(ts * 1000);
+  const d = toTzDate(ts, offsetMin);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
@@ -137,7 +160,7 @@ function LiveBroadcastBanner({ events, ROOM_NAMES = {} }) {
 }
 
 // ── Peak Hours Heatmap ──
-function PeakHoursHeatmap({ hourlyData }) {
+function PeakHoursHeatmap({ hourlyData, offsetMin, roomTimezones }) {
   const grid = useMemo(() => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const cells = [];
@@ -145,7 +168,8 @@ function PeakHoursHeatmap({ hourlyData }) {
     let maxCount = 1;
 
     for (const row of hourlyData) {
-      const d = new Date(row.created_at * 1000);
+      const off = offsetMin != null ? offsetMin : (roomTimezones?.[row.room] ?? null);
+      const d = toTzDate(row.created_at, off);
       const day = d.getDay();
       const hour = d.getHours();
       const key = `${day}-${hour}`;
@@ -162,7 +186,7 @@ function PeakHoursHeatmap({ hourlyData }) {
       }
     }
     return { cells, maxCount };
-  }, [hourlyData]);
+  }, [hourlyData, offsetMin, roomTimezones]);
 
   return (
     <div className="space-y-1">
@@ -208,96 +232,115 @@ function PeakHoursHeatmap({ hourlyData }) {
 }
 
 // ── Waveform Audio Player ──
-function WaveformPlayer({ url, isActive, onToggle }) {
-  const canvasRef = useRef(null);
-  const audioRef = useRef(null);
+function WaveformPlayer({ url, isActive, onToggle, sharedAudioRef }) {
+  const trackRef = useRef(null);
   const animRef = useRef(null);
   const [waveform, setWaveform] = useState(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [hovering, setHovering] = useState(false);
+  const [hoverX, setHoverX] = useState(0);
 
   useEffect(() => {
     if (!url || !isActive) return;
     let cancelled = false;
     fetch(url)
       .then(r => r.arrayBuffer())
-      .then(buf => {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        return ctx.decodeAudioData(buf);
-      })
+      .then(buf => new (window.AudioContext || window.webkitAudioContext)().decodeAudioData(buf))
       .then(audioBuffer => {
         if (cancelled) return;
         const raw = audioBuffer.getChannelData(0);
-        const samples = 80;
-        const blockSize = Math.floor(raw.length / samples);
+        const n = 100;
+        const blockSize = Math.floor(raw.length / n);
         const peaks = [];
-        for (let i = 0; i < samples; i++) {
+        for (let i = 0; i < n; i++) {
           let sum = 0;
           for (let j = 0; j < blockSize; j++) sum += Math.abs(raw[i * blockSize + j]);
           peaks.push(sum / blockSize);
         }
         const max = Math.max(...peaks, 0.01);
-        setWaveform(peaks.map(p => p / max));
+        setWaveform(peaks.map(p => Math.max(0.06, p / max)));
       })
-      .catch(() => { if (!cancelled) setWaveform(Array.from({ length: 80 }, () => Math.random() * 0.5 + 0.1)); });
+      .catch(() => { if (!cancelled) setWaveform(Array.from({ length: 100 }, () => Math.random() * 0.5 + 0.12)); });
     return () => { cancelled = true; };
   }, [url, isActive]);
 
   useEffect(() => {
     if (!isActive) { cancelAnimationFrame(animRef.current); return; }
     const tick = () => {
-      const audio = audioRef.current;
-      if (audio && audio.duration) { setProgress(audio.currentTime / audio.duration); setDuration(audio.duration); }
+      const a = sharedAudioRef?.current;
+      if (a && a.duration) { setProgress(a.currentTime / a.duration); setDuration(a.duration); setCurrentTime(a.currentTime); }
       animRef.current = requestAnimationFrame(tick);
     };
     animRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animRef.current);
-  }, [isActive]);
+  }, [isActive, sharedAudioRef]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !waveform) return;
-    const ctx = canvas.getContext("2d");
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, w, h);
-    const barW = w / waveform.length;
-    const gap = 1;
-    for (let i = 0; i < waveform.length; i++) {
-      const x = i * barW;
-      const barH = Math.max(2, waveform[i] * h * 0.85);
-      const y = (h - barH) / 2;
-      const played = i / waveform.length < progress;
-      ctx.fillStyle = played ? "oklch(0.7 0.18 165 / 0.8)" : "oklch(0.5 0.02 270 / 0.3)";
-      ctx.beginPath();
-      ctx.roundRect(x + gap / 2, y, barW - gap, barH, 1);
-      ctx.fill();
-    }
-  }, [waveform, progress]);
+  const seek = useCallback((e) => {
+    const a = sharedAudioRef?.current, el = trackRef.current;
+    if (!a || !a.duration || !el) return;
+    const r = el.getBoundingClientRect();
+    a.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * a.duration;
+  }, [sharedAudioRef]);
 
-  const seekTo = useCallback((e) => {
-    const audio = audioRef.current;
-    if (!audio || !audio.duration) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+  const onMove = useCallback((e) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setHoverX(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)));
   }, []);
+
+  const ft = (s) => { if (!s || s < 0) return "0:00"; return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`; };
 
   if (!isActive || !waveform) return null;
 
+  const playheadPct = `${progress * 100}%`;
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-card/50 border border-border/30 animate-in fade-in slide-in-from-top-1 duration-200">
-      <button onClick={onToggle} className="size-8 rounded-full flex items-center justify-center bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors cursor-pointer shrink-0">
+    <div className="flex items-center gap-3 px-4 py-2.5 animate-in fade-in duration-200">
+      <button onClick={onToggle} className="size-8 rounded-full flex items-center justify-center border border-border/50 text-muted-foreground hover:text-foreground hover:border-border transition-colors cursor-pointer shrink-0">
         <PauseIcon className="size-3.5" />
       </button>
-      <canvas ref={canvasRef} className="flex-1 h-8 cursor-pointer" onClick={seekTo} />
-      <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
-        {duration > 0 ? `${Math.floor(progress * duration)}s / ${Math.floor(duration)}s` : "—"}
-      </span>
-      <audio ref={audioRef} src={url} preload="auto" />
+
+      <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0 w-8 text-right">{ft(currentTime)}</span>
+
+      <div
+        ref={trackRef}
+        className="flex-1 relative h-8 cursor-pointer"
+        onClick={seek}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        onMouseMove={onMove}
+      >
+        <div className="absolute inset-0 flex items-center gap-[1px]">
+          {waveform.map((peak, i) => {
+            const played = i / waveform.length < progress;
+            return (
+              <div key={i} className="flex-1 flex items-center justify-center" style={{ height: "100%" }}>
+                <div
+                  className="w-full"
+                  style={{
+                    height: `${Math.max(6, peak * 100)}%`,
+                    backgroundColor: played ? "#374151" : "#d1d5db",
+                    transition: "background-color 0.06s",
+                    borderRadius: 1,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {hovering && (
+          <div
+            className="absolute top-0 bottom-0 w-px bg-muted-foreground/20 z-[5] pointer-events-none"
+            style={{ left: `${hoverX * 100}%` }}
+          />
+        )}
+      </div>
+
+      <span className="text-[10px] font-mono text-muted-foreground/50 tabular-nums shrink-0 w-8">{ft(duration)}</span>
     </div>
   );
 }
@@ -310,38 +353,44 @@ const barChartConfig = {
 
 // ── Main Page ──
 export default function BroadcastsPage() {
-  const { names: ROOM_NAMES } = useRooms();
+  const { names: ROOM_NAMES, rooms: roomsList } = useRooms();
   const ranges = [
     { key: "today", label: "Today", days: 1 },
     { key: "week", label: "7 Days", days: 7 },
     { key: "month", label: "30 Days", days: 30 },
   ];
   const [activeRange, setActiveRange] = useState("today");
+  const [selectedRoom, setSelectedRoom] = useState("");
+  const roomTimezones = useMemo(() => {
+    const map = {};
+    for (const r of roomsList || []) map[r.id] = parseGmtOffset(r.timezone);
+    return map;
+  }, [roomsList]);
+  const activeOffsetMin = selectedRoom ? (roomTimezones[selectedRoom] ?? null) : null;
   const days = ranges.find(r => r.key === activeRange)?.days || 1;
 
-  const { data: statsRaw, loading, refetch } = useFetch(`/api/v1/admin/broadcasts?days=${days}`);
-  const { data: hourlyRaw, refetch: refetchHourly } = useFetch(`/api/v1/admin/broadcasts/hourly?hours=${Math.max(days * 24, 168)}`);
+  const roomParam = selectedRoom ? `&room=${selectedRoom}` : "";
+  const { data: statsRaw, loading, refetch } = useFetch(`/api/v1/admin/broadcasts?days=${days}${roomParam}`);
+  const { data: hourlyRaw, refetch: refetchHourly } = useFetch(`/api/v1/admin/broadcasts/hourly?hours=${Math.max(days * 24, 168)}${roomParam}`);
 
   // Paginated broadcast list state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [filterRoom, setFilterRoom] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
 
   const listParams = useMemo(() => {
     const p = new URLSearchParams();
     p.set("page", page);
     p.set("pageSize", pageSize);
-    if (filterRoom) p.set("room", filterRoom);
+    if (selectedRoom) p.set("room", selectedRoom);
     if (filterStatus === "answered") p.set("answered", "1");
     else if (filterStatus === "unanswered") p.set("answered", "0");
     if (filterDateFrom) p.set("dateFrom", filterDateFrom);
     if (filterDateTo) p.set("dateTo", filterDateTo);
     return p.toString();
-  }, [page, pageSize, filterRoom, filterStatus, filterDateFrom, filterDateTo]);
+  }, [page, pageSize, selectedRoom, filterStatus, filterDateFrom, filterDateTo]);
 
   const [listRaw, setListRaw] = useState(null);
   const [listLoading, setListLoading] = useState(true);
@@ -381,18 +430,21 @@ export default function BroadcastsPage() {
     return formatDuration(avg);
   }, [broadcasts]);
 
+  const getRowOffset = useCallback((row) => {
+    return selectedRoom ? activeOffsetMin : (roomTimezones[row.room] ?? null);
+  }, [selectedRoom, activeOffsetMin, roomTimezones]);
+
   const chartData = useMemo(() => {
     if (!Array.isArray(rawHourly) || rawHourly.length === 0) return [];
     if (activeRange === "today") {
       const hourMap = {};
       for (const row of rawHourly) {
-        const h = new Date(row.created_at * 1000).getHours();
+        const d = toTzDate(row.created_at, getRowOffset(row));
+        const h = d.getHours();
         if (!hourMap[h]) hourMap[h] = { answered: 0, unanswered: 0 };
         if (row.answered) hourMap[h].answered++; else hourMap[h].unanswered++;
       }
-      const now = new Date();
-      return Array.from({ length: 24 }, (_, i) => {
-        const h = (now.getHours() - 23 + i + 24) % 24;
+      return Array.from({ length: 24 }, (_, h) => {
         const entry = hourMap[h];
         const label = h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM`;
         return { label, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
@@ -400,7 +452,7 @@ export default function BroadcastsPage() {
     }
     const dayMap = {};
     for (const row of rawHourly) {
-      const d = new Date(row.created_at * 1000);
+      const d = toTzDate(row.created_at, getRowOffset(row));
       const key = `${d.getMonth() + 1}/${d.getDate()}`;
       if (!dayMap[key]) dayMap[key] = { answered: 0, unanswered: 0 };
       if (row.answered) dayMap[key].answered++; else dayMap[key].unanswered++;
@@ -412,25 +464,36 @@ export default function BroadcastsPage() {
       const entry = dayMap[key];
       return { label: key, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
     });
-  }, [rawHourly, activeRange, days]);
+  }, [rawHourly, activeRange, days, getRowOffset]);
 
   const maxRoomCount = Math.max(1, ...byRoom.map(r => r.count));
 
-  const anyFilterActive = filterRoom || filterStatus || filterDateFrom || filterDateTo;
-  const clearFilters = () => { setFilterRoom(""); setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo(""); setPage(1); };
+  const anyFilterActive = filterStatus || filterDateFrom || filterDateTo;
+  const clearFilters = () => { setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo(""); setPage(1); };
 
   // Audio player
   const [playingId, setPlayingId] = useState(null);
   const [playingUrl, setPlayingUrl] = useState(null);
   const audioRef = useRef(null);
   const playingIdRef = useRef(null);
+  const broadcastsRef = useRef(broadcasts);
+  useEffect(() => { broadcastsRef.current = broadcasts; }, [broadcasts]);
   useEffect(() => { playingIdRef.current = playingId; }, [playingId]);
-  useEffect(() => {
+  const playNext = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    const onEnded = () => { setPlayingId(null); setPlayingUrl(null); };
-    audio.addEventListener("ended", onEnded);
-    return () => audio.removeEventListener("ended", onEnded);
+    const list = broadcastsRef.current;
+    const curId = playingIdRef.current;
+    if (!audio || !list || !curId) { setPlayingId(null); setPlayingUrl(null); return; }
+    const idx = list.findIndex(b => b.id === curId);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (list[i].recording_path) {
+        const nextUrl = `/recordings/${list[i].recording_path.split("/").pop()}`;
+        audio.src = nextUrl; audio.load(); audio.play().catch(() => {});
+        setPlayingId(list[i].id); setPlayingUrl(nextUrl);
+        return;
+      }
+    }
+    setPlayingId(null); setPlayingUrl(null);
   }, []);
   const toggle = useCallback((id, url) => {
     const audio = audioRef.current;
@@ -454,21 +517,33 @@ export default function BroadcastsPage() {
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Broadcasts</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            <span className="font-mono tabular-nums">{totalBroadcasts}</span> total,{" "}
-            <span className="font-mono tabular-nums">{totalAnswered}</span> answered,{" "}
-            <span className="font-mono tabular-nums">{responseRate}%</span> response rate
-          </p>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Broadcasts</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              <span className="font-mono tabular-nums">{totalBroadcasts}</span> total,{" "}
+              <span className="font-mono tabular-nums">{totalAnswered}</span> answered,{" "}
+              <span className="font-mono tabular-nums">{responseRate}%</span> response rate
+            </p>
+          </div>
+          <select
+            value={selectedRoom}
+            onChange={e => { setSelectedRoom(e.target.value); setPage(1); }}
+            className="h-9 px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
+          >
+            <option value="">All Rooms</option>
+            {Object.entries(ROOM_NAMES).map(([id, name]) => (
+              <option key={id} value={id}>{name}</option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-1.5">
           {ranges.map(r => (
             <button
               key={r.key}
               onClick={() => setActiveRange(r.key)}
-              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+              className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
                 activeRange === r.key
                   ? "bg-primary/10 text-primary border-primary/30"
                   : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:bg-muted/50"
@@ -535,7 +610,7 @@ export default function BroadcastsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <PeakHoursHeatmap hourlyData={rawHourly} />
+            <PeakHoursHeatmap hourlyData={rawHourly} offsetMin={activeOffsetMin} roomTimezones={roomTimezones} />
           </CardContent>
         </Card>
       </div>
@@ -556,21 +631,32 @@ export default function BroadcastsPage() {
                   <TableHead className="w-10 pl-6">#</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead className="text-right">Count</TableHead>
-                  <TableHead className="text-right pr-6">Avg</TableHead>
+                  <TableHead className="text-right">Answered</TableHead>
+                  <TableHead className="text-right">Avg Dur</TableHead>
+                  <TableHead className="text-right pr-6">Room</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topBroadcasters.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No data</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No data</TableCell></TableRow>
                 ) : (
                   topBroadcasters.slice(0, 10).map((b, i) => {
                     const medals = ["text-amber-400", "text-zinc-400", "text-orange-400"];
+                    const rate = b.count > 0 ? Math.round(((b.answered || 0) / b.count) * 100) : 0;
                     return (
                       <TableRow key={b.user_name || i}>
                         <TableCell className={`font-mono text-xs tabular-nums pl-6 ${medals[i] || "text-muted-foreground/40"}`}>{i + 1}</TableCell>
                         <TableCell><span className="text-sm font-medium">{b.display_name || b.user_name}</span></TableCell>
                         <TableCell className="text-right font-mono tabular-nums text-sm">{b.count}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums text-xs text-muted-foreground pr-6">{b.avg_duration ? formatDuration(b.avg_duration) : "—"}</TableCell>
+                        <TableCell className="text-right">
+                          {rate > 0 ? (
+                            <span className={`text-xs font-mono tabular-nums ${rate >= 70 ? "text-emerald-400" : rate >= 40 ? "text-amber-400" : "text-red-400"}`}>{rate}%</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/40">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums text-xs text-muted-foreground">{b.avg_duration_ms ? formatDuration(b.avg_duration_ms) : "—"}</TableCell>
+                        <TableCell className="text-right text-xs text-muted-foreground pr-6">{b.room_name || "—"}</TableCell>
                       </TableRow>
                     );
                   })
@@ -629,91 +715,60 @@ export default function BroadcastsPage() {
               <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">{totalItems.toLocaleString()} total</span>
             </CardTitle>
             <div className="flex items-center gap-2">
-              {anyFilterActive && (
-                <button onClick={clearFilters} className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors">
-                  <XIcon className="size-3" /> Clear filters
-                </button>
-              )}
-              <button
-                onClick={() => setShowFilters(f => !f)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
-                  showFilters || anyFilterActive
-                    ? "bg-primary/10 text-primary border-primary/30"
-                    : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:bg-muted/50"
-                }`}
-              >
-                <FilterIcon className="size-3" />
-                Filters
-                {anyFilterActive && <span className="size-1.5 rounded-full bg-primary" />}
-              </button>
-            </div>
-          </div>
+              {/* Status pills */}
+              <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted/20 border border-border/30">
+                {[
+                  { key: "", label: "All", active: "bg-background text-foreground shadow-sm" },
+                  { key: "answered", label: "Answered", active: "bg-emerald-500/15 text-emerald-400 shadow-sm" },
+                  { key: "unanswered", label: "Unanswered", active: "bg-red-500/15 text-red-400 shadow-sm" },
+                ].map(s => (
+                  <button
+                    key={s.key}
+                    onClick={() => { setFilterStatus(s.key); setPage(1); }}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                      filterStatus === s.key
+                        ? s.active
+                        : "text-muted-foreground/60 hover:text-muted-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* Filter Bar */}
-          {showFilters && (
-            <div className="flex flex-wrap items-end gap-3 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
-              <div className="space-y-1">
-                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Status</label>
-                <div className="flex gap-1">
-                  {[
-                    { key: "", label: "All" },
-                    { key: "answered", label: "Answered" },
-                    { key: "unanswered", label: "Unanswered" },
-                  ].map(s => (
-                    <button
-                      key={s.key}
-                      onClick={() => { setFilterStatus(s.key); setPage(1); }}
-                      className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all cursor-pointer ${
-                        filterStatus === s.key
-                          ? "bg-primary/10 text-primary border-primary/30"
-                          : "bg-muted/20 text-muted-foreground/60 border-border/30 hover:bg-muted/40"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Room</label>
-                <select
-                  value={filterRoom}
-                  onChange={e => { setFilterRoom(e.target.value); setPage(1); }}
-                  className="h-8 px-2 rounded-md text-xs border border-border/30 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  <option value="">All Rooms</option>
-                  {Object.entries(ROOM_NAMES).map(([id, name]) => (
-                    <option key={id} value={id}>{name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">From</label>
+              {/* Date range */}
+              <div className="flex items-center gap-1.5">
                 <Input
                   type="date"
                   value={filterDateFrom}
                   onChange={e => { setFilterDateFrom(e.target.value); setPage(1); }}
-                  className="h-8 w-[140px] text-xs"
+                  className="h-7 w-[130px] text-[11px] bg-muted/20 border-border/30"
+                  placeholder="From"
                 />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">To</label>
+                <span className="text-muted-foreground/30 text-xs">–</span>
                 <Input
                   type="date"
                   value={filterDateTo}
                   onChange={e => { setFilterDateTo(e.target.value); setPage(1); }}
-                  className="h-8 w-[140px] text-xs"
+                  className="h-7 w-[130px] text-[11px] bg-muted/20 border-border/30"
+                  placeholder="To"
                 />
               </div>
+
+              {anyFilterActive && (
+                <button onClick={clearFilters} className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all">
+                  <XIcon className="size-3" /> Clear
+                </button>
+              )}
             </div>
-          )}
+          </div>
         </CardHeader>
 
         <CardContent className="pt-0 px-0">
           {/* Waveform player */}
           {playingId && playingUrl && (
             <div className="px-4 pb-2">
-              <WaveformPlayer url={playingUrl} isActive={!!playingId} onToggle={() => toggle(playingId, playingUrl)} />
+              <WaveformPlayer url={playingUrl} isActive={!!playingId} onToggle={() => toggle(playingId, playingUrl)} sharedAudioRef={audioRef} />
             </div>
           )}
 
@@ -733,6 +788,7 @@ export default function BroadcastsPage() {
                   <TableHead>Room</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Participants</TableHead>
+                  <TableHead>Response Time</TableHead>
                   <TableHead>Responded By</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -766,8 +822,11 @@ export default function BroadcastsPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-mono tabular-nums">{formatTime(b.created_at)}</div>
-                        <div className="text-[10px] text-muted-foreground/50">{formatFullDate(b.created_at)}</div>
+                        <div className="text-sm font-mono tabular-nums">
+                          {formatTime(b.created_at, selectedRoom ? activeOffsetMin : roomTimezones[b.room] ?? null)}
+                          {!selectedRoom && <span className="text-[9px] text-muted-foreground/40 ml-1">{gmtLabel(roomTimezones[b.room] ?? null)}</span>}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground/50">{formatFullDate(b.created_at, selectedRoom ? activeOffsetMin : roomTimezones[b.room] ?? null)}</div>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm font-medium">{b.display_name || b.user_name || "Unknown"}</span>
@@ -780,6 +839,15 @@ export default function BroadcastsPage() {
                       </TableCell>
                       <TableCell>
                         <span className="text-sm font-mono tabular-nums text-muted-foreground">{b.participant_count || "—"}</span>
+                      </TableCell>
+                      <TableCell>
+                        {b.answered ? (
+                          <span className={`text-sm font-mono tabular-nums ${b.response_time_ms === 0 ? "text-emerald-400" : b.response_time_ms != null ? "text-amber-400" : "text-muted-foreground/40"}`}>
+                            {b.response_time_ms === 0 ? "instant" : b.response_time_ms != null ? formatDuration(b.response_time_ms) : "—"}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-muted-foreground">{b.responded_by || "—"}</span>
@@ -837,7 +905,7 @@ export default function BroadcastsPage() {
         </CardContent>
       </Card>
 
-      <audio ref={audioRef} preload="none" className="hidden" />
+      <audio ref={audioRef} preload="none" className="hidden" onEnded={playNext} onError={playNext} />
       <style>{`
         @keyframes eqBar {
           from { height: 3px; }

@@ -128,8 +128,11 @@ function _handleUnmute(conferenceName, memberId, room, event) {
     if (session && session.responseTimer) {
         clearTimeout(session.responseTimer);
         session.responseTimer = null;
+        if (session.responseTimeMs === null && session.speechEndTime) {
+            session.responseTimeMs = Date.now() - session.speechEndTime;
+        }
         session.speechEndTime = null;
-        logSystem('BCAST', `${member.displayName} responded to ${session.allParticipants[0]?.displayName} in ${roomName}`);
+        logSystem('BCAST', `${member.displayName} responded to ${session.allParticipants[0]?.displayName} in ${roomName} (${session.responseTimeMs}ms)`);
     }
 
     if (!session) {
@@ -150,15 +153,20 @@ function _handleUnmute(conferenceName, memberId, room, event) {
             room,
             responseTimer: null,
             speechEndTime: null,
+            responseTimeMs: null,
         };
         roomSessions.set(conferenceName, session);
     }
 
     if (!session.participants.has(memberId)) {
         const info = { userName: member.userName, displayName: member.displayName };
+        const isResponder = session.allParticipants.length > 0 && !session.allParticipants.some(p => p.userName === info.userName);
         session.participants.set(memberId, info);
         if (!session.allParticipants.some(p => p.userName === info.userName)) {
             session.allParticipants.push(info);
+        }
+        if (isResponder && session.responseTimeMs === null && !session.responseTimer) {
+            session.responseTimeMs = 0;
         }
         logSystem('BCAST', `${member.displayName} UNMUTE in ${roomName} (${session.participants.size} active)`);
     }
@@ -213,6 +221,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
                 durationMs,
                 recordingPath: session.recordingPath,
                 startTime: session.startTime,
+                responseTimeMs: null,
             }, false, null);
         }, BROADCAST_RESPONSE_WINDOW_MS);
 
@@ -241,6 +250,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
         durationMs,
         recordingPath: session.recordingPath,
         startTime: session.startTime,
+        responseTimeMs: session.responseTimeMs,
     }, true, responders);
 }
 
@@ -260,6 +270,7 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         participants,
         participantCount: participants.length,
         recordingPath: data.recordingPath || null,
+        responseTimeMs: data.responseTimeMs ?? null,
     });
 
     global.db.logEvent(

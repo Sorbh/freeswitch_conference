@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
@@ -641,7 +644,14 @@ function TopBroadcasters() {
   }, [active]);
 
   const broadcasters = data[active] || [];
-  const medals = ["bg-amber-500/20 text-amber-400", "bg-zinc-400/20 text-zinc-400", "bg-orange-500/20 text-orange-400"];
+  const medals = ["text-amber-400", "text-zinc-400", "text-orange-400"];
+
+  function fmtDur(ms) {
+    if (!ms) return "—";
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    return `${Math.floor(s / 60)}m ${s % 60}s`;
+  }
 
   return (
     <div>
@@ -675,18 +685,28 @@ function TopBroadcasters() {
       {broadcasters.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">No broadcasts yet</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {broadcasters.slice(0, 10).map((b, i) => {
-            const shortName = b.display_name || b.user_name || "Unknown";
+            const rate = b.count > 0 ? Math.round(((b.answered || 0) / b.count) * 100) : 0;
+            const name = b.display_name || b.user_name || "Unknown";
             return (
-              <div key={b.user_name || i} className="flex items-center gap-3">
-                <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{shortName}</p>
+              <div key={b.user_name || i} className="rounded-lg bg-muted/15 border border-border/30 px-3 py-2.5 hover:bg-muted/25 transition-colors">
+                <div className="flex items-center gap-2">
+                  <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold truncate">{name}</span>
+                      <span className="text-xs font-mono tabular-nums text-foreground/60 shrink-0">{b.count} broadcasts</span>
+                      {rate > 0 && (
+                        <span className={`text-xs font-mono tabular-nums shrink-0 ${rate >= 70 ? "text-emerald-500" : rate >= 40 ? "text-amber-500" : "text-red-500"}`}>{rate}% answered</span>
+                      )}
+                      <span className="text-xs font-mono tabular-nums text-foreground/40 ml-auto shrink-0">{fmtDur(b.avg_duration_ms)} avg</span>
+                    </div>
+                    <span className="text-[10px] text-foreground/60">{b.room_name || "—"}</span>
+                  </div>
                 </div>
-                <span className="text-xs font-mono tabular-nums text-muted-foreground">{b.count}</span>
               </div>
             );
           })}
@@ -827,9 +847,22 @@ function BroadcastRow({ broadcast: b, playing, onToggle }) {
             >
               {b.answered ? "Answered" : "Unanswered"}
             </Badge>
-            <span className="text-[10px] tabular-nums text-muted-foreground/50 ml-auto shrink-0">{timeAgo(b.created_at)}</span>
+            {b.duration_ms >= 1000 && (
+              <span className="text-[10px] font-mono tabular-nums text-foreground/60 shrink-0">
+                {b.duration_ms < 60000 ? `${Math.floor(b.duration_ms / 1000)}s` : `${Math.floor(b.duration_ms / 60000)}m ${Math.floor((b.duration_ms % 60000) / 1000)}s`}
+              </span>
+            )}
+            <span className="text-[10px] tabular-nums text-foreground/40 ml-auto shrink-0">{timeAgo(b.created_at)}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-0.5">{room}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[10px] text-foreground/60">{room}</span>
+            {!!b.answered && b.responded_by && (
+              <>
+                <span className="text-[10px] text-foreground/30">·</span>
+                <span className="text-[10px] text-foreground/80 truncate">Responded by : <strong>{b.responded_by}</strong></span>
+              </>
+            )}
+          </div>
         </div>
 
         {url && (
