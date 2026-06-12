@@ -25,6 +25,7 @@ import {
   TrophyIcon,
   ZapIcon,
   PlayIcon,
+  Loader2Icon,
 } from "lucide-react";
 
 
@@ -654,7 +655,7 @@ function TopBroadcasters() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col flex-1">
       <div className="flex items-center justify-between mb-3">
         <div className="flex gap-1">
           {tabs.map(t => (
@@ -683,15 +684,15 @@ function TopBroadcasters() {
         </span>
       </div>
       {broadcasters.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">No broadcasts yet</p>
+        <p className="text-sm text-muted-foreground text-center py-6 flex-1 flex items-center justify-center">No broadcasts yet</p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5 flex-1">
           {broadcasters.slice(0, 10).map((b, i) => {
             const rate = b.count > 0 ? Math.round(((b.answered || 0) / b.count) * 100) : 0;
             const name = b.display_name || b.user_name || "Unknown";
             return (
-              <div key={b.user_name || i} className="rounded-lg bg-muted/15 border border-border/30 px-3 py-2.5 hover:bg-muted/25 transition-colors">
-                <div className="flex items-center gap-2">
+              <div key={b.user_name || i} className="rounded-lg bg-muted/15 border border-border/30 px-3 py-2 hover:bg-muted/25 transition-colors min-h-[52px] flex items-center">
+                <div className="flex items-center gap-2 w-full">
                   <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
                     {i + 1}
                   </span>
@@ -717,8 +718,10 @@ function TopBroadcasters() {
 }
 
 // ─── Recent Broadcasts ───
-function RecentBroadcasts({ broadcasts }) {
+function RecentBroadcasts() {
   const [filter, setFilter] = useState("all");
+  const [broadcasts, setBroadcasts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [playingId, setPlayingId] = useState(null);
   const audioRef = useRef(null);
   const playingIdRef = useRef(null);
@@ -732,6 +735,16 @@ function RecentBroadcasts({ broadcasts }) {
     audio.addEventListener("ended", onEnded);
     return () => audio.removeEventListener("ended", onEnded);
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const typeParam = filter === "all" ? "" : `&type=${filter}`;
+    fetch(`/api/v1/admin/broadcasts/recent?limit=10${typeParam}`)
+      .then(r => r.json())
+      .then(res => setBroadcasts(Array.isArray(res) ? res : res?.data || []))
+      .catch(() => setBroadcasts([]))
+      .finally(() => setLoading(false));
+  }, [filter]);
 
   const toggle = useCallback((id, url) => {
     const audio = audioRef.current;
@@ -748,56 +761,16 @@ function RecentBroadcasts({ broadcasts }) {
     }
   }, []);
 
-  if (!broadcasts || broadcasts.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-        <RadioIcon className="size-6 mb-2 opacity-30" />
-        <p className="text-xs">No recent broadcasts</p>
-      </div>
-    );
-  }
-
-  const filtered = filter === "all" ? broadcasts
-    : filter === "answered" ? broadcasts.filter(b => b.answered)
-    : broadcasts.filter(b => !b.answered);
-
-  if (filtered.length === 0) {
-    return (
-      <>
-        <div className="flex bg-muted/20 p-0.5 gap-0.5 mb-2">
-          {[
-            { key: "all", label: "All" },
-            { key: "answered", label: "Answered" },
-            { key: "unanswered", label: "Unanswered" },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setFilter(t.key)}
-              className={`flex-1 px-2 py-1 text-[11px] font-mono font-medium tracking-wide transition-all cursor-pointer ${
-                filter === t.key
-                  ? "bg-foreground/10 text-foreground shadow-sm"
-                  : "text-muted-foreground/50 hover:text-muted-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
-          <p className="text-xs">No {filter} broadcasts</p>
-        </div>
-      </>
-    );
-  }
+  const tabs = [
+    { key: "all", label: "All" },
+    { key: "answered", label: "Answered" },
+    { key: "unanswered", label: "Unanswered" },
+  ];
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex gap-1 mb-2">
-        {[
-          { key: "all", label: "All" },
-          { key: "answered", label: "Answered" },
-          { key: "unanswered", label: "Unanswered" },
-        ].map(t => (
+    <div className="flex flex-col gap-1.5 flex-1">
+      <div className="flex gap-1 mb-1">
+        {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setFilter(t.key)}
@@ -811,9 +784,23 @@ function RecentBroadcasts({ broadcasts }) {
           </button>
         ))}
       </div>
-      {filtered.slice(0, 8).map((b) => (
-        <BroadcastRow key={b.id} broadcast={b} playing={playingId === b.id} onToggle={toggle} />
-      ))}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
+          <Loader2Icon className="size-4 animate-spin mb-2 opacity-40" />
+          <p className="text-xs">Loading...</p>
+        </div>
+      ) : broadcasts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
+          <RadioIcon className="size-6 mb-2 opacity-30" />
+          <p className="text-xs">No {filter === "all" ? "recent" : filter} broadcasts</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5 flex-1">
+          {broadcasts.map((b) => (
+            <BroadcastRow key={b.id} broadcast={b} playing={playingId === b.id} onToggle={toggle} />
+          ))}
+        </div>
+      )}
       <audio ref={audioRef} preload="none" />
       <style>{`
         @keyframes eqBar {
@@ -832,8 +819,8 @@ function BroadcastRow({ broadcast: b, playing, onToggle }) {
   const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
 
   return (
-    <div className="rounded-lg bg-muted/15 border border-border/30 px-3 py-2.5 hover:bg-muted/25 transition-colors">
-      <div className="flex items-center gap-2">
+    <div className="rounded-lg bg-muted/15 border border-border/30 px-3 hover:bg-muted/25 transition-colors flex-1 flex items-center">
+      <div className="flex items-center gap-2 w-full">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold truncate">{name}</span>
@@ -902,9 +889,8 @@ export default function DashboardPage() {
   const { names: ROOM_NAMES, codes: ROOM_SHORT } = useRooms();
   const { data: dashRaw, loading, refetch: refetchDash } = useFetch("/api/v1/admin/dashboard");
   const { data: broadcastRaw, refetch: refetchBroadcasts } = useFetch("/api/v1/admin/broadcasts");
-  const { data: recentBcastRaw, loading: bcastLoading, refetch: refetchRecentBcast } = useFetch("/api/v1/admin/broadcasts/recent?limit=8");
   const { data: usersRaw, refetch: refetchUsers } = useFetch("/api/v1/admin/users");
-  useSSERefresh(() => { refetchDash(); refetchUsers(); refetchBroadcasts(); refetchRecentBcast(); }, ["dashboard", "users", "events", "broadcasts"]);
+  useSSERefresh(() => { refetchDash(); refetchUsers(); refetchBroadcasts(); }, ["dashboard", "users", "events", "broadcasts"]);
 
   // Live SSE stream for ticker + broadcast detection
   const { events: liveEvents } = useSSE("/api/v1/admin/events/stream");
@@ -920,7 +906,6 @@ export default function DashboardPage() {
 
   const data = dashRaw?.data ?? dashRaw;
   const broadcastData = broadcastRaw?.data ?? broadcastRaw;
-  const recentBroadcasts = Array.isArray(recentBcastRaw) ? recentBcastRaw : recentBcastRaw?.data || [];
 
   // Users grouped by room for speaker indicators
   const speakersByRoom = useMemo(() => {
@@ -1105,33 +1090,27 @@ export default function DashboardPage() {
 
       {/* Bottom Row: Broadcasters + Activity */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-0">
+        <Card className="border-0 flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <TrophyIcon className="size-3.5 text-amber-400" />
               Top Broadcasters
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 flex-1 flex flex-col">
             <TopBroadcasters />
           </CardContent>
         </Card>
 
-        <Card className="border-0">
+        <Card className="border-0 flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <RadioIcon className="size-3.5 text-cyan-400" />
               Recent Broadcasts
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
-            {bcastLoading ? (
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
-            ) : (
-              <RecentBroadcasts broadcasts={recentBroadcasts} />
-            )}
+          <CardContent className="pt-0 flex-1 flex flex-col">
+            <RecentBroadcasts />
           </CardContent>
         </Card>
       </div>

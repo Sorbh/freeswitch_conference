@@ -549,10 +549,11 @@ function getBroadcastStats(days = 7, room) {
     return { hourly, daily, topBroadcasters, byRoom };
 }
 
-function getRecentBroadcasts(limit = 10) {
+function getRecentBroadcasts(limit = 10, type) {
+    const filter = type === 'answered' ? ' WHERE answered = 1' : type === 'unanswered' ? ' WHERE answered = 0' : '';
     return sqlite.prepare(`
         SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, created_at
-        FROM broadcast_log ORDER BY created_at DESC LIMIT ?
+        FROM broadcast_log${filter} ORDER BY created_at DESC LIMIT ?
     `).all(limit);
 }
 

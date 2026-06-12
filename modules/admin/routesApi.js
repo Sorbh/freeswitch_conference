@@ -248,7 +248,8 @@ adminRouter.get("/broadcasts/list", (req, res) => {
 adminRouter.get("/broadcasts/recent", (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        const broadcasts = global.db.getRecentBroadcasts(limit);
+        const type = req.query.type;
+        const broadcasts = global.db.getRecentBroadcasts(limit, type);
         res.json({ status: true, data: broadcasts });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
