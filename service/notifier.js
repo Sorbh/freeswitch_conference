@@ -97,16 +97,16 @@ async function _sendTelegram(channel, caption, recordingPath) {
         const form = new FormData();
         form.append('chat_id', chat_id);
         form.append('caption', caption);
-        form.append('audio', new File([fileBuffer], fileName, { type: 'audio/wav' }));
+        form.append('voice', new File([fileBuffer], fileName, { type: 'audio/ogg' }));
 
-        const res = await fetch(`${TELEGRAM_API}${bot_token}/sendAudio`, {
+        const res = await fetch(`${TELEGRAM_API}${bot_token}/sendVoice`, {
             method: 'POST',
             body: form,
         });
 
         if (!res.ok) {
             const body = await res.text();
-            throw new Error(`Telegram sendAudio ${res.status}: ${body}`);
+            throw new Error(`Telegram sendVoice ${res.status}: ${body}`);
         }
     } else {
         const res = await fetch(`${TELEGRAM_API}${bot_token}/sendMessage`, {
