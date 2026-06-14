@@ -585,15 +585,15 @@ export default function UsersPage() {
           <h2 className="text-2xl font-bold tracking-tight">Connected Yards</h2>
           <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
             <span><span className="font-mono font-bold tabular-nums">{users.length}</span> Total</span>
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-muted-foreground/40">•</span>
             <span className="text-green-600 dark:text-green-400"><span className="font-mono font-bold tabular-nums">{onlineCount}</span> Online</span>
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-muted-foreground/40">•</span>
             <span className="text-blue-600 dark:text-blue-400"><span className="font-mono font-bold tabular-nums">{inCallCount}</span> In Call</span>
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-muted-foreground/40">•</span>
             <span className="text-red-600 dark:text-red-400"><span className="font-mono font-bold tabular-nums">{errorCount}</span> Error</span>
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-muted-foreground/40">•</span>
             <span><span className="font-mono font-bold tabular-nums">{offlineCount}</span> Offline</span>
-            {anyFilterActive && <><span className="text-muted-foreground/40">·</span><span className="text-primary font-bold">{filtered.length} shown</span></>}
+            {anyFilterActive && <><span className="text-muted-foreground/40">•</span><span className="text-primary font-bold">{filtered.length} shown</span></>}
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -645,7 +645,7 @@ export default function RoomsPage() {
                       </h3>
                     </div>
                     <p className="text-sm text-muted-foreground font-mono tabular-nums">
-                      {selectedRoom.total} members · {onlineCount} online · {connectedCount} in call
+                      {selectedRoom.total} members • {onlineCount} online • {connectedCount} in call
                     </p>
                   </div>
                 </div>

@@ -248,7 +248,7 @@ export default function NotificationsPage() {
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                         <span className="font-mono truncate max-w-[200px]">{ch.chat_id}</span>
-                        <span className="text-muted-foreground/40">·</span>
+                        <span className="text-muted-foreground/40">•</span>
                         <span className="flex items-center gap-1">
                           {ch.send_answered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
                           Answered

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { execFileSync } from 'child_process';
 import fetch from 'node-fetch';
 import { logSystem } from './logger.js';
 
@@ -90,9 +91,16 @@ async function _sendTelegram(channel, caption, recordingPath) {
     if (!bot_token || !chat_id) return;
 
     if (recordingPath && fs.existsSync(recordingPath)) {
+        const oggPath = recordingPath.replace(/\.wav$/, '.ogg');
+        try {
+            execFileSync('ffmpeg', ['-y', '-i', recordingPath, '-c:a', 'libopus', '-b:a', '64k', oggPath], { stdio: 'ignore' });
+        } catch (err) {
+            throw new Error(`ffmpeg WAV→OGG failed: ${err.message}`);
+        }
+
         const { FormData, File } = await import('node-fetch');
-        const fileBuffer = fs.readFileSync(recordingPath);
-        const fileName = recordingPath.split('/').pop();
+        const fileBuffer = fs.readFileSync(oggPath);
+        const fileName = oggPath.split('/').pop();
 
         const form = new FormData();
         form.append('chat_id', chat_id);
@@ -103,6 +111,8 @@ async function _sendTelegram(channel, caption, recordingPath) {
             method: 'POST',
             body: form,
         });
+
+        try { fs.unlinkSync(oggPath); } catch {}
 
         if (!res.ok) {
             const body = await res.text();

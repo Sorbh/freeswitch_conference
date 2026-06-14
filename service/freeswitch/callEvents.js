@@ -287,7 +287,7 @@ function _broadcastCallerIdToRoom(conferenceName) {
     const roomName = global.config.ROOM_NAME[room] || conferenceName;
 
     const connectedUsers = global.db.filter(u =>
-        u.connectionState === 'connected' && u.room === room && !u.payment
+        u.connectionState === 'connected' && (u.currentRoom || u.room) === room && !u.payment
     );
 
     const unmutedUsers = connectedUsers.filter(u => !u.mute);

@@ -16,11 +16,11 @@ import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
 import { useRooms } from "@/hooks/useRooms";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
   TrendingUpIcon, PlayIcon, PauseIcon, ClockIcon, UserIcon,
-  ZapIcon, ChevronLeftIcon, ChevronRightIcon, XIcon,
+  ChevronLeftIcon, ChevronRightIcon, XIcon,
   ChevronsLeftIcon, ChevronsRightIcon, ListIcon,
 } from "lucide-react";
 
@@ -160,76 +160,6 @@ function LiveBroadcastBanner({ events, ROOM_NAMES = {} }) {
 }
 
 // ── Peak Hours Heatmap ──
-function PeakHoursHeatmap({ hourlyData, offsetMin, roomTimezones }) {
-  const grid = useMemo(() => {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const cells = [];
-    const counts = {};
-    let maxCount = 1;
-
-    for (const row of hourlyData) {
-      const off = offsetMin != null ? offsetMin : (roomTimezones?.[row.room] ?? null);
-      const d = toTzDate(row.created_at, off);
-      const day = d.getDay();
-      const hour = d.getHours();
-      const key = `${day}-${hour}`;
-      counts[key] = (counts[key] || 0) + 1;
-      if (counts[key] > maxCount) maxCount = counts[key];
-    }
-
-    for (let day = 0; day < 7; day++) {
-      for (let hour = 0; hour < 24; hour++) {
-        const key = `${day}-${hour}`;
-        const count = counts[key] || 0;
-        const intensity = count / maxCount;
-        cells.push({ day, hour, count, intensity, dayName: days[day] });
-      }
-    }
-    return { cells, maxCount };
-  }, [hourlyData, offsetMin, roomTimezones]);
-
-  return (
-    <div className="space-y-1">
-      <div className="flex ml-8 gap-[1px]">
-        {Array.from({ length: 24 }, (_, h) => (
-          <div key={h} className="flex-1 text-center text-[8px] font-mono text-muted-foreground/30">
-            {h % 3 === 0 ? (h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`) : ""}
-          </div>
-        ))}
-      </div>
-      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName, displayIdx) => {
-        const dayIdx = displayIdx === 6 ? 0 : displayIdx + 1;
-        return (
-          <div key={dayName} className="flex items-center gap-[1px]">
-            <span className="text-[9px] font-mono text-muted-foreground/40 w-7 text-right pr-1">{dayName}</span>
-            {Array.from({ length: 24 }, (_, hour) => {
-              const cell = grid.cells.find(c => c.day === dayIdx && c.hour === hour);
-              const count = cell?.count || 0;
-              const intensity = cell?.intensity || 0;
-              return (
-                <Tooltip key={hour}>
-                  <TooltipTrigger asChild>
-                    <div
-                      className="flex-1 h-4 rounded-[2px] transition-colors cursor-default"
-                      style={{
-                        backgroundColor: count === 0
-                          ? "oklch(0.2 0.01 270 / 0.3)"
-                          : `oklch(${0.45 + intensity * 0.25} ${0.05 + intensity * 0.15} 165 / ${0.3 + intensity * 0.6})`,
-                      }}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    {dayName} {hour === 0 ? "12AM" : hour < 12 ? `${hour}AM` : hour === 12 ? "12PM" : `${hour - 12}PM`}: {count} broadcast{count !== 1 ? "s" : ""}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── Waveform Audio Player ──
 function WaveformPlayer({ url, isActive, onToggle, sharedAudioRef }) {
@@ -371,7 +301,7 @@ export default function BroadcastsPage() {
 
   const roomParam = selectedRoom ? `&room=${selectedRoom}` : "";
   const { data: statsRaw, loading, refetch } = useFetch(`/api/v1/admin/broadcasts?days=${days}${roomParam}`);
-  const { data: hourlyRaw, refetch: refetchHourly } = useFetch(`/api/v1/admin/broadcasts/hourly?hours=${Math.max(days * 24, 168)}${roomParam}`);
+  const { data: hourlyRaw, refetch: refetchHourly } = useFetch(`/api/v1/admin/broadcasts/hourly?hours=${days * 24}${roomParam}`);
 
   // Paginated broadcast list state
   const [page, setPage] = useState(1);
@@ -466,6 +396,44 @@ export default function BroadcastsPage() {
     });
   }, [rawHourly, activeRange, days, getRowOffset]);
 
+  const LINE_COLORS = [
+    "#06b6d4", "#f59e0b", "#22c55e", "#ef4444", "#8b5cf6",
+    "#ec4899", "#14b8a6", "#f97316", "#3b82f6", "#84cc16",
+    "#d946ef", "#0ea5e9", "#e11d48", "#a3e635", "#6366f1",
+    "#fb923c", "#2dd4bf", "#c084fc", "#fbbf24", "#4ade80",
+    "#f43f5e", "#38bdf8", "#a78bfa", "#facc15", "#34d399",
+    "#fb7185", "#7dd3fc", "#c4b5fd", "#fde047", "#6ee7b7",
+  ];
+
+  const { hourlyDistData, hourlyDistKeys } = useMemo(() => {
+    if (!Array.isArray(rawHourly) || rawHourly.length === 0) return { hourlyDistData: [], hourlyDistKeys: [] };
+
+    const dayBuckets = {};
+    for (const row of rawHourly) {
+      const d = toTzDate(row.created_at, getRowOffset(row));
+      const dateKey = `${d.getMonth() + 1}/${d.getDate()}`;
+      const h = d.getHours();
+      if (!dayBuckets[dateKey]) dayBuckets[dateKey] = {};
+      dayBuckets[dateKey][h] = (dayBuckets[dateKey][h] || 0) + 1;
+    }
+
+    const sortedDays = Object.keys(dayBuckets).sort((a, b) => {
+      const [am, ad] = a.split("/").map(Number);
+      const [bm, bd] = b.split("/").map(Number);
+      return am !== bm ? am - bm : ad - bd;
+    });
+
+    const data = Array.from({ length: 24 }, (_, h) => {
+      const point = { hour: h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM` };
+      for (const day of sortedDays) {
+        point[day] = dayBuckets[day]?.[h] || 0;
+      }
+      return point;
+    });
+
+    return { hourlyDistData: data, hourlyDistKeys: sortedDays };
+  }, [rawHourly, days, getRowOffset]);
+
   const maxRoomCount = Math.max(1, ...byRoom.map(r => r.count));
 
   const anyFilterActive = filterStatus || filterDateFrom || filterDateTo;
@@ -522,8 +490,8 @@ export default function BroadcastsPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Broadcasts</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              <span className="font-mono tabular-nums">{totalBroadcasts}</span> total,{" "}
-              <span className="font-mono tabular-nums">{totalAnswered}</span> answered,{" "}
+              <span className="font-mono tabular-nums">{totalBroadcasts}</span> total{" • "}
+              <span className="font-mono tabular-nums">{totalAnswered}</span> answered{" • "}
               <span className="font-mono tabular-nums">{responseRate}%</span> response rate
             </p>
           </div>
@@ -566,54 +534,96 @@ export default function BroadcastsPage() {
         <StatCard label="Avg Duration" value={avgResponseTime} icon={<ClockIcon className="size-4" />} color="#8b5cf6" mono={false} />
       </div>
 
-      {/* Chart + Heatmap Row */}
-      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <Card className="border-border/40">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <TrendingUpIcon className="size-3.5 text-cyan-400" />
-                {activeRange === "today" ? "Hourly Activity" : "Daily Activity"}
-              </CardTitle>
-              <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 bg-emerald-800 rounded-sm" />
-                  <span className="text-muted-foreground/60">Answered</span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 bg-red-800 rounded-sm" />
-                  <span className="text-muted-foreground/60">Unanswered</span>
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ChartContainer config={barChartConfig} className="h-[220px] w-full [&_.recharts-cartesian-axis-line]:stroke-border [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground">
-              <BarChart data={chartData} barGap={1}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.08)" />
-                <XAxis dataKey="label" tickLine={false} axisLine={true} fontSize={10} interval={activeRange === "month" ? 4 : activeRange === "week" ? 0 : 2} />
-                <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="answered" stackId="a" fill="#065f46" radius={0} />
-                <Bar dataKey="unanswered" stackId="a" fill="#991b1b" radius={[1, 1, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/40">
-          <CardHeader className="pb-2">
+      {/* Chart */}
+      <Card className="border-border/40">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <ZapIcon className="size-3.5 text-amber-400" />
-              Peak Hours
-              <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">7-day pattern</span>
+              <TrendingUpIcon className="size-3.5 text-cyan-400" />
+              {activeRange === "today" ? "Hourly Activity" : activeRange === "week" ? "7 Days Activity" : "30 Days Activity"}
             </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <PeakHoursHeatmap hourlyData={rawHourly} offsetMin={activeOffsetMin} roomTimezones={roomTimezones} />
-          </CardContent>
-        </Card>
-      </div>
+            <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-emerald-800 rounded-sm" />
+                <span className="text-muted-foreground/60">Answered</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 bg-red-800 rounded-sm" />
+                <span className="text-muted-foreground/60">Unanswered</span>
+              </span>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <ChartContainer config={barChartConfig} className="h-[220px] w-full [&_.recharts-cartesian-axis-line]:stroke-border [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground">
+            <BarChart data={chartData} barGap={1}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.08)" />
+              <XAxis dataKey="label" tickLine={false} axisLine={true} fontSize={10} interval={activeRange === "month" ? 4 : activeRange === "week" ? 0 : 2} />
+              <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Bar dataKey="answered" stackId="a" fill="#065f46" radius={0} />
+              <Bar dataKey="unanswered" stackId="a" fill="#991b1b" radius={[1, 1, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* Hourly Distribution Line Chart */}
+      <Card className="border-border/40">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <TrendingUpIcon className="size-3.5 text-violet-400" />
+              Hourly Distribution
+              {hourlyDistKeys.length > 0 && (
+                <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">
+                  {hourlyDistKeys.length} {hourlyDistKeys.length === 1 ? "day" : "days"}
+                </span>
+              )}
+            </CardTitle>
+            {hourlyDistKeys.length > 1 && activeRange !== "month" && (
+              <div className="flex items-center gap-2 flex-wrap justify-end max-w-[60%]">
+                {hourlyDistKeys.map((day, i) => (
+                  <span key={day} className="flex items-center gap-1 text-[10px] font-mono">
+                    <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }} />
+                    <span className="text-muted-foreground/50">{day}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {hourlyDistKeys.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-16">No data</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={hourlyDistData}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.08)" />
+                <XAxis dataKey="hour" tickLine={false} axisLine={true} fontSize={10} interval={2} stroke="hsl(var(--muted-foreground) / 0.3)" />
+                <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} stroke="hsl(var(--muted-foreground) / 0.3)" />
+                <RechartsTooltip
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border) / 0.4)", borderRadius: 8, fontSize: 12 }}
+                  labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: 4 }}
+                  itemStyle={{ padding: "1px 0" }}
+                />
+                {hourlyDistKeys.map((day, i) => (
+                  <Line
+                    key={day}
+                    type="monotone"
+                    dataKey={day}
+                    stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                    strokeWidth={activeRange === "month" ? 1 : 1.5}
+                    dot={activeRange !== "month"}
+                    activeDot={{ r: 3 }}
+                    name={day}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Two Column: Broadcasters + Channel Activity */}
       <div className="grid gap-4 lg:grid-cols-2">

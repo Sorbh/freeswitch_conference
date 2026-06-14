@@ -845,7 +845,7 @@ function BroadcastRow({ broadcast: b, playing, onToggle }) {
             <span className="text-[10px] text-foreground/60">{room}</span>
             {!!b.answered && b.responded_by && (
               <>
-                <span className="text-[10px] text-foreground/30">·</span>
+                <span className="text-[10px] text-foreground/30">•</span>
                 <span className="text-[10px] text-foreground/80 truncate">Responded by : <strong>{b.responded_by}</strong></span>
               </>
             )}

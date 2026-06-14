@@ -137,7 +137,8 @@ run_cmd "sudo dnf install -y git wget gcc gcc-c++ make autoconf automake libtool
     openssl-devel libatomic libpq-devel lua-devel \
     libpcap-devel curl-devel json-c-devel libevent-devel \
     yasm nasm diffutils which zlib-devel libshout-devel libmpg123-devel \
-    libvpx-devel unixODBC-devel e2fsprogs-devel"
+    libvpx-devel unixODBC-devel e2fsprogs-devel \
+    ffmpeg-free"
 
 # Step 3: Install autoconf 2.71 (required by FreeSWITCH)
 progress "Installing autoconf 2.71..."

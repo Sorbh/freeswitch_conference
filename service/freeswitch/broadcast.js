@@ -8,6 +8,7 @@
 // - Sessions shorter than 3s are discarded (accidental unmutes).
 import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem, logBroadcast } from '../logger.js';
 import { notifyBroadcast } from '../notifier.js';
@@ -18,56 +19,40 @@ const SILENCE_THRESHOLD_DB = -40;
 
 function _hasVoiceActivity(filePath) {
     try {
-        const buf = fs.readFileSync(filePath);
-        if (buf.length <= 44) return false;
-        const samples = new Int16Array(buf.buffer, buf.byteOffset + 44, (buf.length - 44) / 2);
-        let sumSq = 0;
-        for (let i = 0; i < samples.length; i++) {
-            const n = samples[i] / 32768;
-            sumSq += n * n;
-        }
-        const rms = Math.sqrt(sumSq / samples.length);
-        const rmsDb = 20 * Math.log10(rms || 1e-10);
-        return rmsDb > SILENCE_THRESHOLD_DB;
-    } catch {
+        // ffmpeg writes detection info to stderr and exits 0
+        const result = execFileSync('ffmpeg', [
+            '-i', filePath, '-af', `silencedetect=noise=${SILENCE_THRESHOLD_DB}dB:d=0.5`,
+            '-f', 'null', '-'
+        ], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 10000 });
+        return true;
+    } catch (e) {
+        const stderr = (e.stderr || '').toString();
+        // If the entire file is one silence region starting near 0, no voice activity
+        const starts = [...stderr.matchAll(/silence_start:\s*([\d.]+)/g)];
+        const ends = [...stderr.matchAll(/silence_end:\s*([\d.]+)/g)];
+        if (starts.length === 1 && ends.length === 0 && parseFloat(starts[0][1]) < 0.5) return false;
+        if (!starts.length) return true;
         return true;
     }
 }
 
-function _trimWavSilence(filePath, trimMs) {
+function _trimTrailingSilence(filePath) {
     try {
-        const buf = fs.readFileSync(filePath);
-        if (buf.length <= 44) return;
+        const tmpPath = filePath.replace(/\.wav$/, '_trimmed.wav');
+        execFileSync('ffmpeg', [
+            '-y', '-i', filePath,
+            '-af', `areverse,silenceremove=start_periods=1:start_silence=0.3:start_threshold=${SILENCE_THRESHOLD_DB}dB,areverse`,
+            tmpPath
+        ], { stdio: 'ignore', timeout: 15000 });
 
-        // Find the 'data' chunk — don't assume 44-byte header (FS adds LIST metadata)
-        let dataOffset = -1;
-        let pos = 12;
-        while (pos < buf.length - 8) {
-            const chunkId = buf.subarray(pos, pos + 4).toString('ascii');
-            const chunkSize = buf.readUInt32LE(pos + 4);
-            if (chunkId === 'data') {
-                dataOffset = pos;
-                break;
-            }
-            pos += 8 + chunkSize;
+        const origSize = fs.statSync(filePath).size;
+        const trimmedSize = fs.statSync(tmpPath).size;
+        if (trimmedSize > 44 && trimmedSize < origSize) {
+            fs.renameSync(tmpPath, filePath);
+            logSystem('BCAST', `Trimmed trailing silence: ${Math.round(origSize/1024)}KB → ${Math.round(trimmedSize/1024)}KB`);
+        } else {
+            try { fs.unlinkSync(tmpPath); } catch {}
         }
-        if (dataOffset === -1) return;
-
-        const dataStart = dataOffset + 8;
-        const dataSize = buf.readUInt32LE(dataOffset + 4);
-        const sampleRate = buf.readUInt32LE(24);
-        const bitsPerSample = buf.readUInt16LE(34);
-        const channels = buf.readUInt16LE(22);
-        const bytesPerSample = (bitsPerSample / 8) * channels;
-        const bytesToTrim = Math.floor((trimMs / 1000) * sampleRate * bytesPerSample);
-        const newDataSize = Math.max(0, dataSize - bytesToTrim);
-        if (newDataSize <= 0) return;
-
-        const newFileSize = dataStart + newDataSize;
-        const trimmed = buf.subarray(0, newFileSize);
-        trimmed.writeUInt32LE(newDataSize, dataOffset + 4);
-        trimmed.writeUInt32LE(newFileSize - 8, 4);
-        fs.writeFileSync(filePath, trimmed);
     } catch (e) {
         logSystem('BCAST', `WAV trim failed: ${e.message}`);
     }
@@ -212,7 +197,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
                 return;
             }
 
-            _trimWavSilence(session.recordingPath, BROADCAST_RESPONSE_WINDOW_MS);
+            _trimTrailingSilence(session.recordingPath);
             logSystem('BCAST', `UNANSWERED by ${firstSpeaker.displayName} in ${roomName} (${durationMs}ms) — sending notification`);
 
             _finalizeBroadcast(conferenceName, room, {
