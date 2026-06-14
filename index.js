@@ -83,6 +83,15 @@ global.callService = callService;
 import { checkCriticalUser, startCriticalAlert, stopCriticalAlert } from './service/alerting.js';
 global.alerting = { checkCriticalUser, startCriticalAlert, stopCriticalAlert };
 
+// WhatsApp client (auto-restores session if available)
+import { initialize as initWhatsApp } from './service/whatsapp.js';
+try {
+    await initWhatsApp();
+    _startupLines.push('WhatsApp client initialized');
+} catch (err) {
+    _startupLines.push(`WhatsApp client skipped: ${err.message}`);
+}
+
 // Phone events (syslog for Yealink hook detection)
 import { startSyslogServer } from './service/phoneEvents.js';
 startSyslogServer(global.config.SYSLOG_PORT || 515);
@@ -146,6 +155,12 @@ function shutdown(signal) {
         } catch (e) {
             console.error('Failed to end calls:', e.message);
         }
+
+        // Close all WhatsApp sessions (keep auth)
+        try {
+            const { shutdownAll } = await import('./service/whatsapp.js');
+            await shutdownAll();
+        } catch { }
 
         // Then reset DB state
         try {

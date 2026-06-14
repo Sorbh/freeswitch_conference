@@ -1540,7 +1540,7 @@ adminRouter.get("/notifications/template-info", async (req, res) => {
 adminRouter.post("/notifications", (req, res) => {
     try {
         const { type, label, bot_token, chat_id, room, message_template, send_answered, send_unanswered, enabled } = req.body;
-        if (!bot_token || !chat_id) {
+        if (type !== 'whatsapp' && (!bot_token || !chat_id)) {
             return res.status(400).json({ status: false, error: "bot_token and chat_id are required" });
         }
         const channel = global.db.createNotificationChannel({
@@ -1593,6 +1593,56 @@ adminRouter.post("/notifications/:id/test", async (req, res) => {
         const { testNotificationChannel } = await import("../../service/notifier.js");
         const result = await testNotificationChannel(channel);
         res.json({ status: true, data: result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// --- WhatsApp Connection (per channel) ---
+
+adminRouter.get("/whatsapp/statuses", async (req, res) => {
+    try {
+        const { getAllStatuses } = await import("../../service/whatsapp.js");
+        res.json({ status: true, data: getAllStatuses() });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+adminRouter.get("/whatsapp/status/:id", async (req, res) => {
+    try {
+        const { getChannelStatus } = await import("../../service/whatsapp.js");
+        res.json({ status: true, data: getChannelStatus(req.params.id) });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+adminRouter.post("/whatsapp/connect/:id", async (req, res) => {
+    try {
+        const { connectChannel } = await import("../../service/whatsapp.js");
+        await connectChannel(req.params.id);
+        res.json({ status: true, message: "WhatsApp connecting..." });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+adminRouter.post("/whatsapp/disconnect/:id", async (req, res) => {
+    try {
+        const { disconnectChannel } = await import("../../service/whatsapp.js");
+        await disconnectChannel(req.params.id, true);
+        res.json({ status: true, message: "WhatsApp disconnected" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+adminRouter.get("/whatsapp/groups/:id", async (req, res) => {
+    try {
+        const { getChannelGroups } = await import("../../service/whatsapp.js");
+        const groups = await getChannelGroups(req.params.id);
+        res.json({ status: true, data: groups });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

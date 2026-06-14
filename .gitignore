@@ -34,6 +34,10 @@ data/yealink-backup/
 # Broadcast recordings
 recordings/*.wav
 
+# WhatsApp auth sessions
+data/whatsapp_*.json
+data/.whatsapp_auth/
+
 # Logs
 *.log
 

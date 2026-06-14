@@ -30,6 +30,9 @@ import {
   Loader2Icon,
   CheckIcon,
   XIcon,
+  SmartphoneIcon,
+  QrCodeIcon,
+  WifiOffIcon,
 } from "lucide-react";
 
 const EMPTY_FORM = {
@@ -58,6 +61,11 @@ export default function NotificationsPage() {
   const [templateInfo, setTemplateInfo] = useState(null);
   const templateRef = useRef(null);
 
+  // WhatsApp per-channel state
+  const [waStatuses, setWaStatuses] = useState({});
+  const [waGroups, setWaGroups] = useState({});
+  const [connectingId, setConnectingId] = useState(null);
+
   const fetchChannels = useCallback(async () => {
     try {
       const res = await fetch("/api/v1/admin/notifications");
@@ -81,6 +89,80 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => { fetchChannels(); fetchTemplateInfo(); }, [fetchChannels, fetchTemplateInfo]);
+
+  // WhatsApp statuses — manual refresh only (no polling)
+  const waChannelIds = channels.filter(c => c.type === "whatsapp").map(c => c.id);
+  const groupsFetchedRef = useRef(new Set());
+
+  // Fetch statuses once on load
+  const waChannelKey = waChannelIds.join(",");
+  useEffect(() => {
+    if (!waChannelKey) return;
+    _refreshAllWaStatuses();
+  }, [waChannelKey]);
+
+  async function _refreshAllWaStatuses() {
+    try {
+      const res = await fetch("/api/v1/admin/whatsapp/statuses");
+      const json = await res.json();
+      if (!json.status) return;
+      setWaStatuses(json.data);
+      for (const id of waChannelIds) {
+        if (json.data[id]?.state === "ready" && !groupsFetchedRef.current.has(id)) {
+          groupsFetchedRef.current.add(id);
+          fetch(`/api/v1/admin/whatsapp/groups/${id}`)
+            .then(r => r.json())
+            .then(gj => { if (gj.status) setWaGroups(prev => ({ ...prev, [id]: gj.data || [] })); })
+            .catch(() => {});
+        }
+      }
+    } catch {}
+  }
+
+  async function handleWaCheckStatus(channelId) {
+    setConnectingId(channelId);
+    try {
+      const res = await fetch(`/api/v1/admin/whatsapp/status/${channelId}`);
+      const json = await res.json();
+      if (json.status) {
+        setWaStatuses(prev => ({ ...prev, [channelId]: json.data }));
+        if (json.data.state === "ready" && !groupsFetchedRef.current.has(channelId)) {
+          groupsFetchedRef.current.add(channelId);
+          const gRes = await fetch(`/api/v1/admin/whatsapp/groups/${channelId}`);
+          const gJson = await gRes.json();
+          if (gJson.status) setWaGroups(prev => ({ ...prev, [channelId]: gJson.data || [] }));
+        }
+      }
+    } finally {
+      setConnectingId(null);
+    }
+  }
+
+  async function handleWaConnect(channelId) {
+    setConnectingId(channelId);
+    try {
+      await fetch(`/api/v1/admin/whatsapp/connect/${channelId}`, { method: "POST" });
+      // Wait a moment for QR to generate, then fetch
+      await new Promise(r => setTimeout(r, 2000));
+      const res = await fetch(`/api/v1/admin/whatsapp/status/${channelId}`);
+      const json = await res.json();
+      if (json.status) setWaStatuses(prev => ({ ...prev, [channelId]: json.data }));
+    } finally {
+      setConnectingId(null);
+    }
+  }
+
+  async function handleWaDisconnect(channelId) {
+    setConnectingId(channelId);
+    try {
+      await fetch(`/api/v1/admin/whatsapp/disconnect/${channelId}`, { method: "POST" });
+      setWaStatuses(prev => ({ ...prev, [channelId]: { state: "disconnected" } }));
+      setWaGroups(prev => { const n = { ...prev }; delete n[channelId]; return n; });
+      groupsFetchedRef.current.delete(channelId);
+    } finally {
+      setConnectingId(null);
+    }
+  }
 
   function insertVariable(varName) {
     const el = templateRef.current;
@@ -152,7 +234,11 @@ export default function NotificationsPage() {
 
   async function handleDelete() {
     if (!deleteId) return;
+    const ch = channels.find(c => c.id === deleteId);
     try {
+      if (ch?.type === "whatsapp") {
+        await fetch(`/api/v1/admin/whatsapp/disconnect/${deleteId}`, { method: "POST" }).catch(() => {});
+      }
       await fetch(`/api/v1/admin/notifications/${deleteId}`, { method: "DELETE" });
       setDeleteId(null);
       fetchChannels();
@@ -188,6 +274,8 @@ export default function NotificationsPage() {
     }
   }
 
+  const canSave = form.chat_id && (form.type === "whatsapp" || form.bot_token);
+
   if (loading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
@@ -205,7 +293,7 @@ export default function NotificationsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Notifications</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Send broadcast recordings to Telegram channels
+            Send broadcast recordings to Telegram and WhatsApp
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -219,79 +307,146 @@ export default function NotificationsPage() {
           <CardContent className="py-12 text-center">
             <BellIcon className="size-10 mx-auto text-muted-foreground/30 mb-3" />
             <p className="text-muted-foreground">No notification channels configured</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">Add a Telegram channel to receive broadcast alerts</p>
+            <p className="text-sm text-muted-foreground/60 mt-1">Add a channel to receive broadcast alerts</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {channels.map((ch) => (
-            <Card key={ch.id} className={!ch.enabled ? "opacity-50" : ""}>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                      <SendIcon className="size-4 text-blue-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium truncate">{ch.label || "Unnamed Channel"}</p>
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                          {ch.type}
-                        </Badge>
-                        {ch.room ? (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
-                            {ROOM_NAMES[ch.room] || `Room ${ch.room}`}
+          {channels.map((ch) => {
+            const isWhatsApp = ch.type === "whatsapp";
+            const waSt = isWhatsApp ? (waStatuses[ch.id] || { state: "disconnected" }) : null;
+            const chGroups = isWhatsApp ? (waGroups[ch.id] || []) : [];
+            const groupName = isWhatsApp ? chGroups.find(g => g.id === ch.chat_id)?.name : null;
+            const waMissingGroup = isWhatsApp && !ch.chat_id;
+            const waNotReady = isWhatsApp && (waMissingGroup || waSt?.state !== "ready");
+
+            return (
+              <Card key={ch.id} className={!ch.enabled || waNotReady ? "opacity-60" : ""}>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`size-10 rounded-lg flex items-center justify-center shrink-0 ${
+                        isWhatsApp
+                          ? "bg-emerald-500/10 border border-emerald-500/20"
+                          : "bg-blue-500/10 border border-blue-500/20"
+                      }`}>
+                        {isWhatsApp
+                          ? <SmartphoneIcon className="size-4 text-emerald-400" />
+                          : <SendIcon className="size-4 text-blue-400" />
+                        }
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{ch.label || "Unnamed Channel"}</p>
+                          <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 shrink-0 ${
+                            isWhatsApp ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : ""
+                          }`}>
+                            {ch.type}
                           </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">All Rooms</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                        <span className="font-mono truncate max-w-[200px]">{ch.chat_id}</span>
-                        <span className="text-muted-foreground/40">•</span>
-                        <span className="flex items-center gap-1">
-                          {ch.send_answered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
-                          Answered
-                        </span>
-                        <span className="flex items-center gap-1">
-                          {ch.send_unanswered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
-                          Unanswered
-                        </span>
+                          {isWhatsApp && waSt && (
+                            <Badge className={`text-[10px] px-1.5 py-0 shrink-0 ${
+                              waSt.state === "ready"
+                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                : waSt.state === "qr_pending"
+                                ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
+                            }`}>
+                              {waSt.state === "ready" ? (waSt.phone || "Connected") : waSt.state === "qr_pending" ? "Scan QR" : "Disconnected"}
+                            </Badge>
+                          )}
+                          {ch.room ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                              {ROOM_NAMES[ch.room] || `Room ${ch.room}`}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">All Rooms</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                          <span className="font-mono truncate max-w-[200px]">{groupName || ch.chat_id || (isWhatsApp ? "No group selected" : "")}</span>
+                          <span className="text-muted-foreground/40">•</span>
+                          <span className="flex items-center gap-1">
+                            {ch.send_answered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
+                            Answered
+                          </span>
+                          <span className="flex items-center gap-1">
+                            {ch.send_unanswered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
+                            Unanswered
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* WhatsApp connect/disconnect */}
+                      {isWhatsApp && waSt?.state === "disconnected" && (
+                        <Button size="sm" variant="outline" className="h-8" onClick={() => handleWaConnect(ch.id)} disabled={connectingId === ch.id}>
+                          {connectingId === ch.id ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <QrCodeIcon className="size-3 mr-1.5" />}
+                          Connect
+                        </Button>
+                      )}
+                      {isWhatsApp && waSt?.state === "ready" && (
+                        <Button size="sm" variant="outline" className="h-8 text-destructive" onClick={() => handleWaDisconnect(ch.id)} disabled={connectingId === ch.id}>
+                          <WifiOffIcon className="size-3 mr-1.5" />
+                          Disconnect
+                        </Button>
+                      )}
+                      {testResult?.id === ch.id && (
+                        <span className={`text-xs ${testResult.success ? "text-emerald-400" : "text-red-400"}`}>
+                          {testResult.success ? "Sent!" : testResult.error || "Failed"}
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={testing === ch.id || !ch.enabled || waNotReady}
+                        onClick={() => {
+                          if (waMissingGroup) { openEdit(ch); return; }
+                          handleTest(ch.id);
+                        }}
+                      >
+                        {testing === ch.id ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <SendIcon className="size-3 mr-1.5" />}
+                        Test
+                      </Button>
+                      <Switch
+                        checked={!!ch.enabled}
+                        onCheckedChange={() => {
+                          if (waMissingGroup) { openEdit(ch); return; }
+                          toggleEnabled(ch);
+                        }}
+                        disabled={waMissingGroup}
+                        className="data-checked:bg-emerald-500"
+                      />
+                      <Button size="icon" variant="ghost" className="size-8" onClick={() => openEdit(ch)}>
+                        <PencilIcon className="size-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="size-8 text-destructive" onClick={() => setDeleteId(ch.id)}>
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {testResult?.id === ch.id && (
-                      <span className={`text-xs ${testResult.success ? "text-emerald-400" : "text-red-400"}`}>
-                        {testResult.success ? "Sent!" : testResult.error || "Failed"}
-                      </span>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8"
-                      disabled={testing === ch.id || !ch.enabled}
-                      onClick={() => handleTest(ch.id)}
-                    >
-                      {testing === ch.id ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <SendIcon className="size-3 mr-1.5" />}
-                      Test
-                    </Button>
-                    <Switch
-                      checked={!!ch.enabled}
-                      onCheckedChange={() => toggleEnabled(ch)}
-                      className="data-checked:bg-emerald-500"
-                    />
-                    <Button size="icon" variant="ghost" className="size-8" onClick={() => openEdit(ch)}>
-                      <PencilIcon className="size-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="size-8 text-destructive" onClick={() => setDeleteId(ch.id)}>
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Warning: no group selected */}
+                  {waMissingGroup && (
+                    <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs text-amber-400">
+                      <XIcon className="size-3.5 shrink-0" />
+                      No group selected — click <button className="underline underline-offset-2 font-medium cursor-pointer" onClick={() => openEdit(ch)}>Edit</button> to choose a WhatsApp group
+                    </div>
+                  )}
+                  {/* Inline QR code when scanning */}
+                  {isWhatsApp && waSt?.state === "qr_pending" && waSt.qr && (
+                    <div className="mt-3 flex flex-col items-center gap-3 py-3 border-t border-border/30">
+                      <img src={waSt.qr} alt="WhatsApp QR" className="w-44 h-44 rounded-lg border border-border/40" />
+                      <p className="text-[11px] text-muted-foreground/60">Open WhatsApp → Linked Devices → Scan this QR code</p>
+                      <Button size="sm" variant="outline" onClick={() => handleWaCheckStatus(ch.id)} disabled={connectingId === ch.id}>
+                        {connectingId === ch.id ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <CheckIcon className="size-3 mr-1.5" />}
+                        I've Scanned — Check Status
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -301,10 +456,27 @@ export default function NotificationsPage() {
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Channel" : "Add Notification Channel"}</DialogTitle>
             <DialogDescription>
-              {editing ? "Update notification channel settings." : "Configure a Telegram bot to receive broadcast alerts."}
+              {editing ? "Update notification channel settings." : "Configure a channel to receive broadcast alerts."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 mt-2">
+            {/* Channel Type */}
+            <div className="space-y-2">
+              <Label>Channel Type</Label>
+              <Select
+                value={form.type}
+                onValueChange={(val) => setForm(f => ({ ...f, type: val, bot_token: "", chat_id: "" }))}
+              >
+                <SelectTrigger className="!w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="telegram">Telegram</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Label</Label>
               <Input
@@ -313,30 +485,78 @@ export default function NotificationsPage() {
                 onChange={(e) => setForm(f => ({ ...f, label: e.target.value }))}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Bot Token *</Label>
-                <Input
-                  placeholder="123456:ABC-DEF..."
-                  value={form.bot_token}
-                  onChange={(e) => setForm(f => ({ ...f, bot_token: e.target.value }))}
-                />
-                <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-                  Message <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary underline underline-offset-2">@BotFather</a> on Telegram → /newbot → copy the token
-                </p>
+
+            {/* Telegram fields */}
+            {form.type === "telegram" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Bot Token *</Label>
+                  <Input
+                    placeholder="123456:ABC-DEF..."
+                    value={form.bot_token}
+                    onChange={(e) => setForm(f => ({ ...f, bot_token: e.target.value }))}
+                  />
+                  <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                    Message <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-primary/70 hover:text-primary underline underline-offset-2">@BotFather</a> on Telegram → /newbot → copy the token
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Chat ID *</Label>
+                  <Input
+                    placeholder="-1001234567890"
+                    value={form.chat_id}
+                    onChange={(e) => setForm(f => ({ ...f, chat_id: e.target.value }))}
+                  />
+                  <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                    Add the bot to your group → send a message → open <span className="font-mono text-[10px]">api.telegram.org/bot<wbr/>&lt;TOKEN&gt;/getUpdates</span> → find the <span className="font-mono text-[10px]">chat.id</span>
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Chat ID *</Label>
-                <Input
-                  placeholder="-1001234567890"
-                  value={form.chat_id}
-                  onChange={(e) => setForm(f => ({ ...f, chat_id: e.target.value }))}
-                />
-                <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-                  Add the bot to your group → send a message → open <span className="font-mono text-[10px]">api.telegram.org/bot<wbr/>&lt;TOKEN&gt;/getUpdates</span> → find the <span className="font-mono text-[10px]">chat.id</span> (starts with <span className="font-mono text-[10px]">-100</span>)
-                </p>
+            )}
+
+            {/* WhatsApp fields */}
+            {form.type === "whatsapp" && !editing && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-500/5 border border-blue-500/20 text-sm text-blue-400">
+                <SmartphoneIcon className="size-3.5 shrink-0" />
+                Save first, then connect WhatsApp and select a group from the channel card
               </div>
-            </div>
+            )}
+
+            {form.type === "whatsapp" && editing && (() => {
+              const st = waStatuses[editing.id] || { state: "disconnected" };
+              const groups = waGroups[editing.id] || [];
+              return (
+                <div className="space-y-2">
+                  <Label>WhatsApp Group *</Label>
+                  {st.state !== "ready" ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 text-sm text-amber-400">
+                      <WifiOffIcon className="size-3.5 shrink-0" />
+                      Connect WhatsApp first using the channel card's Connect button
+                    </div>
+                  ) : groups.length === 0 ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40 text-sm text-muted-foreground">
+                      <Loader2Icon className="size-3.5 shrink-0 animate-spin" />
+                      Loading groups...
+                    </div>
+                  ) : (
+                    <Select
+                      value={form.chat_id || ""}
+                      onValueChange={(val) => setForm(f => ({ ...f, chat_id: val }))}
+                    >
+                      <SelectTrigger className="!w-full">
+                        <SelectValue placeholder="Select a group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {groups.map(g => (
+                          <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="space-y-2">
               <Label>Room Filter</Label>
               <Select
@@ -422,7 +642,7 @@ export default function NotificationsPage() {
             <Button
               className="w-full mt-2"
               onClick={handleSave}
-              disabled={saving || !form.bot_token || !form.chat_id}
+              disabled={saving || (form.type === "telegram" && !canSave)}
             >
               {saving ? "Saving..." : editing ? "Update Channel" : "Add Channel"}
             </Button>

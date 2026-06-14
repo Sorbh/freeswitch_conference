@@ -1,7 +1,11 @@
 import fs from 'fs';
+import path from 'path';
 import { execFileSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 import { logSystem } from './logger.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const TELEGRAM_API = 'https://api.telegram.org/bot';
 
@@ -39,6 +43,19 @@ function _buildCaption(template, vars) {
     return result.replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function _ensureOgg(recordingPath) {
+    if (!recordingPath || !fs.existsSync(recordingPath)) return null;
+    const oggPath = recordingPath.replace(/\.wav$/, '.ogg');
+    if (fs.existsSync(oggPath)) return oggPath;
+    try {
+        execFileSync('ffmpeg', ['-y', '-i', recordingPath, '-c:a', 'libopus', '-b:a', '64k', oggPath], { stdio: 'ignore' });
+        return oggPath;
+    } catch (err) {
+        logSystem('NOTIFY', `ffmpeg WAV→OGG failed: ${err.message}`);
+        return null;
+    }
+}
+
 export { DEFAULT_TEMPLATE, TEMPLATE_VARS };
 
 export async function notifyBroadcast(broadcastData) {
@@ -74,30 +91,31 @@ export async function notifyBroadcast(broadcastData) {
         time: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }),
     };
 
+    const oggPath = _ensureOgg(recordingPath);
+
     for (const channel of channels) {
         try {
             const caption = _buildCaption(channel.message_template, vars);
             if (channel.type === 'telegram') {
-                await _sendTelegram(channel, caption, recordingPath);
+                await _sendTelegram(channel, caption, oggPath);
+            } else if (channel.type === 'whatsapp') {
+                await _sendWhatsApp(channel, caption, oggPath);
             }
         } catch (err) {
             logSystem('NOTIFY', `ERR ${channel.type}/${channel.label || channel.id}: ${err.message}`);
         }
     }
+
+    if (oggPath) {
+        try { fs.unlinkSync(oggPath); } catch {}
+    }
 }
 
-async function _sendTelegram(channel, caption, recordingPath) {
+async function _sendTelegram(channel, caption, oggPath) {
     const { bot_token, chat_id } = channel;
     if (!bot_token || !chat_id) return;
 
-    if (recordingPath && fs.existsSync(recordingPath)) {
-        const oggPath = recordingPath.replace(/\.wav$/, '.ogg');
-        try {
-            execFileSync('ffmpeg', ['-y', '-i', recordingPath, '-c:a', 'libopus', '-b:a', '64k', oggPath], { stdio: 'ignore' });
-        } catch (err) {
-            throw new Error(`ffmpeg WAV→OGG failed: ${err.message}`);
-        }
-
+    if (oggPath && fs.existsSync(oggPath)) {
         const { FormData, File } = await import('node-fetch');
         const fileBuffer = fs.readFileSync(oggPath);
         const fileName = oggPath.split('/').pop();
@@ -111,8 +129,6 @@ async function _sendTelegram(channel, caption, recordingPath) {
             method: 'POST',
             body: form,
         });
-
-        try { fs.unlinkSync(oggPath); } catch {}
 
         if (!res.ok) {
             const body = await res.text();
@@ -134,40 +150,72 @@ async function _sendTelegram(channel, caption, recordingPath) {
     logSystem('NOTIFY', `Telegram sent to ${channel.label || chat_id}`);
 }
 
-export async function testNotificationChannel(channel) {
-    if (channel.type === 'telegram') {
-        const testVars = {
-            name: 'ALLEN',
-            email: 'allen@example.com',
-            company: 'All Japanese Auto Wrecking',
-            phone: '323-581-0500',
-            address: '123 Main St',
-            city: 'Los Angeles',
-            state: 'CA',
-            zip: '90001',
-            room: 'California',
-            duration: '12',
-            status: 'UNANSWERED',
-            respondedBy: '',
-            participants: '1',
-            time: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }),
-        };
+async function _sendWhatsApp(channel, caption, oggPath) {
+    const { sendChannelMessage, getChannelStatus } = await import('./whatsapp.js');
 
-        const caption = `✅ TEST — HotlineHQ\n\n${_buildCaption(channel.message_template, testVars)}`;
-
-        const res = await fetch(`${TELEGRAM_API}${channel.bot_token}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: channel.chat_id, text: caption }),
-        });
-
-        if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`Telegram ${res.status}: ${body}`);
-        }
-
-        return { success: true };
+    const status = getChannelStatus(channel.id);
+    if (status.state !== 'ready') {
+        throw new Error(`WhatsApp ch:${channel.id} not ready (state: ${status.state})`);
     }
 
-    throw new Error(`Unknown channel type: ${channel.type}`);
+    const groupId = channel.chat_id;
+    if (!groupId) return;
+
+    await sendChannelMessage(channel.id, groupId, caption, oggPath);
+    logSystem('NOTIFY', `WhatsApp sent to ${channel.label || groupId}`);
+}
+
+function _findLatestRecording() {
+    try {
+        const rows = global.db.getRecentBroadcasts(10);
+        const row = rows.find(r => r.recording_path && fs.existsSync(r.recording_path));
+        if (row) return row.recording_path;
+    } catch {}
+    return null;
+}
+
+export async function testNotificationChannel(channel) {
+    const testVars = {
+        name: 'ALLEN',
+        email: 'allen@example.com',
+        company: 'All Japanese Auto Wrecking',
+        phone: '323-581-0500',
+        address: '123 Main St',
+        city: 'Los Angeles',
+        state: 'CA',
+        zip: '90001',
+        room: 'California',
+        duration: '12',
+        status: 'UNANSWERED',
+        respondedBy: '',
+        participants: '1',
+        time: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }),
+    };
+
+    const caption = `✅ TEST — HotlineHQ\n\n${_buildCaption(channel.message_template, testVars)}`;
+    const recordingPath = _findLatestRecording();
+    const oggPath = _ensureOgg(recordingPath);
+
+    try {
+        if (channel.type === 'telegram') {
+            await _sendTelegram(channel, caption, oggPath);
+            return { success: true };
+        }
+
+        if (channel.type === 'whatsapp') {
+            const { sendChannelMessage, getChannelStatus } = await import('./whatsapp.js');
+            const status = getChannelStatus(channel.id);
+            if (status.state !== 'ready') {
+                throw new Error('WhatsApp not connected. Connect this channel first.');
+            }
+            await sendChannelMessage(channel.id, channel.chat_id, caption, oggPath);
+            return { success: true };
+        }
+
+        throw new Error(`Unknown channel type: ${channel.type}`);
+    } finally {
+        if (oggPath && recordingPath) {
+            try { fs.unlinkSync(oggPath); } catch {}
+        }
+    }
 }
