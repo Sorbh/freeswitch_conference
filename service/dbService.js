@@ -99,6 +99,32 @@ function init() {
         );
         CREATE INDEX IF NOT EXISTS idx_room_snapshots_room ON room_snapshots(room);
         CREATE INDEX IF NOT EXISTS idx_room_snapshots_created ON room_snapshots(created_at);
+
+        CREATE TABLE IF NOT EXISTS audio_ads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT NOT NULL,
+            audio_path TEXT NOT NULL,
+            original_filename TEXT,
+            rooms TEXT DEFAULT '[]',
+            duration_ms INTEGER DEFAULT 0,
+            enabled INTEGER DEFAULT 1,
+            created_at INTEGER DEFAULT (strftime('%s', 'now')),
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS ad_play_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ad_id INTEGER NOT NULL,
+            room INTEGER,
+            started_at INTEGER,
+            duration_played_ms INTEGER DEFAULT 0,
+            completed INTEGER DEFAULT 0,
+            interrupted_by TEXT,
+            listener_count INTEGER DEFAULT 0,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ad_play_log_ad ON ad_play_log(ad_id);
+        CREATE INDEX IF NOT EXISTS idx_ad_play_log_created ON ad_play_log(created_at);
     `);
 
     const broadcastCols = sqlite.prepare("PRAGMA table_info(broadcast_log)").all().map(c => c.name);
@@ -735,6 +761,72 @@ function getEnabledNotificationChannels(room, answered) {
     });
 }
 
+// ── Audio Ads (Network Announcements) ──
+
+function getAllAudioAds() {
+    return sqlite.prepare('SELECT * FROM audio_ads ORDER BY created_at DESC').all();
+}
+
+function getAudioAd(id) {
+    return sqlite.prepare('SELECT * FROM audio_ads WHERE id = ?').get(id);
+}
+
+function createAudioAd({ label, audio_path, original_filename, rooms, duration_ms }) {
+    const result = sqlite.prepare(
+        'INSERT INTO audio_ads (label, audio_path, original_filename, rooms, duration_ms) VALUES (?, ?, ?, ?, ?)'
+    ).run(label, audio_path, original_filename, JSON.stringify(rooms || []), duration_ms || 0);
+    return getAudioAd(result.lastInsertRowid);
+}
+
+function updateAudioAd(id, fields) {
+    const allowed = ['label', 'rooms', 'enabled', 'audio_path', 'original_filename', 'duration_ms'];
+    const updates = [];
+    const values = [];
+    for (const [key, val] of Object.entries(fields)) {
+        if (!allowed.includes(key)) continue;
+        updates.push(`${key} = ?`);
+        values.push(key === 'rooms' ? JSON.stringify(val) : val);
+    }
+    if (updates.length === 0) return getAudioAd(id);
+    updates.push('updated_at = strftime(\'%s\', \'now\')');
+    values.push(id);
+    sqlite.prepare(`UPDATE audio_ads SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+    return getAudioAd(id);
+}
+
+function deleteAudioAd(id) {
+    sqlite.prepare('DELETE FROM audio_ads WHERE id = ?').run(id);
+}
+
+function logAdPlay({ ad_id, room, started_at, duration_played_ms, completed, interrupted_by, listener_count }) {
+    sqlite.prepare(
+        'INSERT INTO ad_play_log (ad_id, room, started_at, duration_played_ms, completed, interrupted_by, listener_count) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(ad_id, room, started_at, duration_played_ms || 0, completed ? 1 : 0, interrupted_by || null, listener_count || 0);
+}
+
+function getAdPlayLog({ ad_id, page = 1, pageSize = 25 } = {}) {
+    const where = ad_id ? 'WHERE ad_id = ?' : '';
+    const params = ad_id ? [ad_id] : [];
+    const total = sqlite.prepare(`SELECT COUNT(*) as count FROM ad_play_log ${where}`).get(...params).count;
+    const offset = (page - 1) * pageSize;
+    const rows = sqlite.prepare(
+        `SELECT p.*, a.label as ad_label FROM ad_play_log p LEFT JOIN audio_ads a ON p.ad_id = a.id ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`
+    ).all(...params, pageSize, offset);
+    return { data: rows, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+function getAdStats(adId) {
+    const row = sqlite.prepare(`
+        SELECT COUNT(*) as total_plays,
+            SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN completed = 0 THEN 1 ELSE 0 END) as interrupted,
+            ROUND(AVG(duration_played_ms)) as avg_duration_ms,
+            SUM(listener_count) as total_impressions
+        FROM ad_play_log WHERE ad_id = ?
+    `).get(adId);
+    return row || { total_plays: 0, completed: 0, interrupted: 0, avg_duration_ms: 0, total_impressions: 0 };
+}
+
 db.init = init;
 db.getUserInfo = getUserInfo;
 db.setUserInfo = setUserInfo;
@@ -782,5 +874,13 @@ db.createNotificationChannel = createNotificationChannel;
 db.updateNotificationChannel = updateNotificationChannel;
 db.deleteNotificationChannel = deleteNotificationChannel;
 db.getEnabledNotificationChannels = getEnabledNotificationChannels;
+db.getAllAudioAds = getAllAudioAds;
+db.getAudioAd = getAudioAd;
+db.createAudioAd = createAudioAd;
+db.updateAudioAd = updateAudioAd;
+db.deleteAudioAd = deleteAudioAd;
+db.logAdPlay = logAdPlay;
+db.getAdPlayLog = getAdPlayLog;
+db.getAdStats = getAdStats;
 
 export default { db };

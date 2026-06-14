@@ -26,6 +26,7 @@
     "jssip": "^3.13.8",
     "lucide-react": "^1.16.0",
     "modesl": "^1.1.5",
+    "multer": "^2.1.1",
     "next-themes": "^0.4.6",
     "node-fetch": "^3.3.2",
     "qrcode": "^1.5.4",

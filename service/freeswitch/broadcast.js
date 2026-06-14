@@ -11,6 +11,7 @@ import path from 'path';
 import { execFileSync } from 'child_process';
 import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem, logBroadcast } from '../logger.js';
+import { isPlaying, stopAd } from '../announcements.js';
 import { notifyBroadcast } from '../notifier.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
@@ -106,6 +107,11 @@ function _resolveMember(memberId, event) {
 function _handleUnmute(conferenceName, memberId, room, event) {
     const roomName = global.config.ROOM_NAME[room] || conferenceName;
     const member = _resolveMember(memberId, event);
+
+    // Stop any active announcement in this room
+    if (isPlaying(room)) {
+        stopAd(room, member.userName || member.displayName);
+    }
 
     let session = roomSessions.get(conferenceName);
 

@@ -51,6 +51,7 @@ import FsLogsPage from "@/pages/FsLogsPage";
 import PhoneLogsPage from "@/pages/PhoneLogsPage";
 import YmcsControlPage from "@/pages/YmcsControlPage";
 import NotificationsPage from "@/pages/NotificationsPage";
+import AnnouncementsPage from "@/pages/AnnouncementsPage";
 import ServerLogsPage from "@/pages/ServerLogsPage";
 
 const dashboardRoutes = [
@@ -65,6 +66,7 @@ const dashboardRoutes = [
   { path: "/dev/phone-logs", element: <PhoneLogsPage />, title: "Phone Log" },
   { path: "/dev/ymcs", element: <YmcsControlPage />, title: "YMCS Control" },
   { path: "/notifications", element: <NotificationsPage />, title: "Notifications" },
+  { path: "/announcements", element: <AnnouncementsPage />, title: "Network Announcements" },
 ];
 
 function ScrollToTop() {
