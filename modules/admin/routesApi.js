@@ -616,6 +616,17 @@ adminRouter.get("/system", async (req, res) => {
     }
 });
 
+// GET /system/audio-health — run audio health check
+adminRouter.get("/system/audio-health", async (req, res) => {
+    try {
+        const { runAudioHealthCheck } = await import("../../service/audioHealth.js");
+        const results = await runAudioHealthCheck();
+        res.json({ status: true, data: results });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // POST /users/:userName/reconnect — force reconnect a user
 adminRouter.post("/users/:userName/reconnect", async (req, res) => {
     try {
