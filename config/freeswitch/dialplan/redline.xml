@@ -8,7 +8,7 @@
   </extension>
 
   <extension name="redline-conference">
-    <condition field="destination_number" expression="^(12345670\d+)$">
+    <condition field="destination_number" expression="^(1234567\d+)$">
       <action application="answer"/>
       <action application="conference" data="$1@redline-hotline++flags{mute}"/>
     </condition>

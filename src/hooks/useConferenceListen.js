@@ -75,7 +75,7 @@ export function useConferenceListen() {
         display_name: "Admin-Listen",
         register: false,
         session_timers: false,
-        user_agent: "Redline-AdminListen/1.0",
+        user_agent: "Redline-WebClient/AdminListen",
       });
 
       uaRef.current = ua;

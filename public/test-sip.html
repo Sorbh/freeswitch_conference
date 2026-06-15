@@ -78,10 +78,6 @@
                 <label>Email</label>
                 <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
             </div>
-            <div class="field">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
-            </div>
             <button class="login-btn" id="btnLogin" onclick="doLogin()">Join Conference</button>
             <div class="login-status" id="loginStatus"></div>
             <div class="login-error" id="loginError"></div>
@@ -119,48 +115,16 @@
     <script>
         function doLogin() {
             var email = document.getElementById('email').value.trim();
-            var password = document.getElementById('password').value.trim() || '12345678';
             if (!email) { document.getElementById('loginError').textContent = 'Email is required'; return; }
 
-            document.getElementById('loginStatus').textContent = 'Looking up account...';
             document.getElementById('loginError').textContent = '';
             document.getElementById('btnLogin').disabled = true;
+            document.getElementById('loginStatus').textContent = 'Connecting...';
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('confScreen').style.display = 'block';
 
-            fetch('/api/v1/admin/account-lookup?email=' + encodeURIComponent(email))
-                .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-                .then(function(json) {
-                    var acct = json.data || json;
-                    if (!acct || !acct.room) throw new Error('Account not found or has no room');
-
-                    localStorage.setItem('user_data', JSON.stringify({
-                        id: acct.id || 0,
-                        email: email,
-                        is_sip: 1,
-                        user_type: 2,
-                        name: acct.display_name || '',
-                        parent_id: null,
-                        parent_city: '',
-                        user_detail: {
-                            company_name: acct.company_name || '',
-                            representative_name: acct.display_name || '',
-                            company_phone: acct.phone || '',
-                            city: acct.city || '',
-                            email: email
-                        }
-                    }));
-                    localStorage.setItem('room', acct.room);
-
-                    document.getElementById('loginStatus').textContent = 'Connecting...';
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('confScreen').style.display = 'block';
-
-                    window.hotlineClient.login(email);
-                })
-                .catch(function(e) {
-                    document.getElementById('loginError').textContent = e.message;
-                    document.getElementById('loginStatus').textContent = '';
-                    document.getElementById('btnLogin').disabled = false;
-                });
+            localStorage.setItem('test_sip_email', email);
+            window.hotlineClient.login(email);
         }
 
         function toggleMute() { window.hotlineClient.toggleMute(); }
@@ -168,8 +132,7 @@
         function hangup() { window.hotlineClient.hangup(); }
         function logout() {
             window.hotlineClient.logout();
-            localStorage.removeItem('user_data');
-            localStorage.removeItem('room');
+            localStorage.removeItem('test_sip_email');
             document.getElementById('confScreen').style.display = 'none';
             document.getElementById('loginScreen').style.display = 'block';
             document.getElementById('btnLogin').disabled = false;
@@ -198,22 +161,20 @@
             }
         };
 
-        // Pre-fill password
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('password').value = '12345678';
-            // Auto-login if localStorage already has data
-            var existing = localStorage.getItem('user_data');
-            if (existing) {
-                try {
-                    var d = JSON.parse(existing);
-                    if (d.email && d.is_sip) {
-                        document.getElementById('email').value = d.email;
-                        document.getElementById('loginScreen').style.display = 'none';
-                        document.getElementById('confScreen').style.display = 'block';
-                    }
-                } catch(e) {}
-            }
-        });
+        var _autoLoginEmail = localStorage.getItem('test_sip_email');
+        if (_autoLoginEmail) {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('email').value = _autoLoginEmail;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('confScreen').style.display = 'block';
+            });
+            var _waitClient = setInterval(function() {
+                if (window.hotlineClient) {
+                    clearInterval(_waitClient);
+                    window.hotlineClient.login(_autoLoginEmail);
+                }
+            }, 100);
+        }
     </script>
     <script src="/redline_sip_client.js"></script>
 </body>
