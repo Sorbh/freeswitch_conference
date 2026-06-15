@@ -140,7 +140,8 @@ export async function connectChannel(channelId) {
             if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
                 session.state = 'disconnected';
                 session.phone = null;
-                logSystem('WHATSAPP', `[ch:${channelId}] Logged out — manual reconnect required`);
+                try { fs.unlinkSync(_authFile(channelId)); } catch {}
+                logSystem('WHATSAPP', `[ch:${channelId}] Logged out — session cleared, reconnect to scan QR`);
             } else if (!session.reconnectAttempted) {
                 session.reconnectAttempted = true;
                 logSystem('WHATSAPP', `[ch:${channelId}] Disconnected (code ${statusCode}) — reconnecting`);
