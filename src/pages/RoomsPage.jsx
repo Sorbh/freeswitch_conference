@@ -21,6 +21,7 @@ import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
 import { useRooms } from "@/hooks/useRooms";
+import { apiFetch } from "@/lib/api";
 import {
   Volume2Icon, MicIcon, MicOffIcon, PhoneOffIcon, RefreshCwIcon,
   UsersIcon, WifiIcon, PhoneCallIcon, ActivityIcon, VolumeXIcon,
@@ -277,13 +278,13 @@ export default function RoomsPage() {
     setSaving(true);
     try {
       if (editingRoom) {
-        await fetch(`/api/v1/admin/rooms/${editingRoom.room}`, {
+        await apiFetch(`/api/v1/admin/rooms/${editingRoom.room}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone }),
         });
       } else {
-        await fetch("/api/v1/admin/rooms/create", {
+        await apiFetch("/api/v1/admin/rooms/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: parseInt(roomForm.id), name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone }),
@@ -302,7 +303,7 @@ export default function RoomsPage() {
   async function handleDeleteRoom() {
     if (!deleteTarget) return;
     try {
-      await fetch(`/api/v1/admin/rooms/${deleteTarget.room}/delete`, { method: "DELETE" });
+      await apiFetch(`/api/v1/admin/rooms/${deleteTarget.room}/delete`, { method: "DELETE" });
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
       refetch();
@@ -348,7 +349,7 @@ export default function RoomsPage() {
 
   const apiAction = useCallback(async (userName, action) => {
     try {
-      await fetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/${action}`, { method: "POST" });
+      await apiFetch(`/api/v1/admin/users/${encodeURIComponent(userName)}/${action}`, { method: "POST" });
     } catch {}
   }, []);
 
@@ -358,7 +359,7 @@ export default function RoomsPage() {
   }, [apiAction]);
 
   const honk = useCallback(async (roomId) => {
-    try { await fetch(`/api/v1/admin/rooms/${roomId}/honk`, { method: "POST" }); } catch {}
+    try { await apiFetch(`/api/v1/admin/rooms/${roomId}/honk`, { method: "POST" }); } catch {}
   }, []);
 
   function openRoom(room) {

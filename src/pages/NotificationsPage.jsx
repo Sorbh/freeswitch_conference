@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRooms } from "@/hooks/useRooms";
+import { apiFetch } from "@/lib/api";
 import {
   PlusIcon,
   PencilIcon,
@@ -68,7 +69,7 @@ export default function NotificationsPage() {
 
   const fetchChannels = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/admin/notifications");
+      const res = await apiFetch("/api/v1/admin/notifications");
       const json = await res.json();
       if (json.status) setChannels(json.data);
     } catch (e) {
@@ -80,7 +81,7 @@ export default function NotificationsPage() {
 
   const fetchTemplateInfo = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/admin/notifications/template-info");
+      const res = await apiFetch("/api/v1/admin/notifications/template-info");
       const json = await res.json();
       if (json.status) setTemplateInfo(json.data);
     } catch (e) {
@@ -103,14 +104,14 @@ export default function NotificationsPage() {
 
   async function _refreshAllWaStatuses() {
     try {
-      const res = await fetch("/api/v1/admin/whatsapp/statuses");
+      const res = await apiFetch("/api/v1/admin/whatsapp/statuses");
       const json = await res.json();
       if (!json.status) return;
       setWaStatuses(json.data);
       for (const id of waChannelIds) {
         if (json.data[id]?.state === "ready" && !groupsFetchedRef.current.has(id)) {
           groupsFetchedRef.current.add(id);
-          fetch(`/api/v1/admin/whatsapp/groups/${id}`)
+          apiFetch(`/api/v1/admin/whatsapp/groups/${id}`)
             .then(r => r.json())
             .then(gj => { if (gj.status) setWaGroups(prev => ({ ...prev, [id]: gj.data || [] })); })
             .catch(() => {});
@@ -122,13 +123,13 @@ export default function NotificationsPage() {
   async function handleWaCheckStatus(channelId) {
     setConnectingId(channelId);
     try {
-      const res = await fetch(`/api/v1/admin/whatsapp/status/${channelId}`);
+      const res = await apiFetch(`/api/v1/admin/whatsapp/status/${channelId}`);
       const json = await res.json();
       if (json.status) {
         setWaStatuses(prev => ({ ...prev, [channelId]: json.data }));
         if (json.data.state === "ready" && !groupsFetchedRef.current.has(channelId)) {
           groupsFetchedRef.current.add(channelId);
-          const gRes = await fetch(`/api/v1/admin/whatsapp/groups/${channelId}`);
+          const gRes = await apiFetch(`/api/v1/admin/whatsapp/groups/${channelId}`);
           const gJson = await gRes.json();
           if (gJson.status) setWaGroups(prev => ({ ...prev, [channelId]: gJson.data || [] }));
         }
@@ -141,10 +142,10 @@ export default function NotificationsPage() {
   async function handleWaConnect(channelId) {
     setConnectingId(channelId);
     try {
-      await fetch(`/api/v1/admin/whatsapp/connect/${channelId}`, { method: "POST" });
+      await apiFetch(`/api/v1/admin/whatsapp/connect/${channelId}`, { method: "POST" });
       // Wait a moment for QR to generate, then fetch
       await new Promise(r => setTimeout(r, 2000));
-      const res = await fetch(`/api/v1/admin/whatsapp/status/${channelId}`);
+      const res = await apiFetch(`/api/v1/admin/whatsapp/status/${channelId}`);
       const json = await res.json();
       if (json.status) setWaStatuses(prev => ({ ...prev, [channelId]: json.data }));
     } finally {
@@ -155,7 +156,7 @@ export default function NotificationsPage() {
   async function handleWaDisconnect(channelId) {
     setConnectingId(channelId);
     try {
-      await fetch(`/api/v1/admin/whatsapp/disconnect/${channelId}`, { method: "POST" });
+      await apiFetch(`/api/v1/admin/whatsapp/disconnect/${channelId}`, { method: "POST" });
       setWaStatuses(prev => ({ ...prev, [channelId]: { state: "disconnected" } }));
       setWaGroups(prev => { const n = { ...prev }; delete n[channelId]; return n; });
       groupsFetchedRef.current.delete(channelId);
@@ -217,7 +218,7 @@ export default function NotificationsPage() {
         ? `/api/v1/admin/notifications/${editing.id}`
         : "/api/v1/admin/notifications";
 
-      await fetch(url, {
+      await apiFetch(url, {
         method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -237,9 +238,9 @@ export default function NotificationsPage() {
     const ch = channels.find(c => c.id === deleteId);
     try {
       if (ch?.type === "whatsapp") {
-        await fetch(`/api/v1/admin/whatsapp/disconnect/${deleteId}`, { method: "POST" }).catch(() => {});
+        await apiFetch(`/api/v1/admin/whatsapp/disconnect/${deleteId}`, { method: "POST" }).catch(() => {});
       }
-      await fetch(`/api/v1/admin/notifications/${deleteId}`, { method: "DELETE" });
+      await apiFetch(`/api/v1/admin/notifications/${deleteId}`, { method: "DELETE" });
       setDeleteId(null);
       fetchChannels();
     } catch (e) {
@@ -251,7 +252,7 @@ export default function NotificationsPage() {
     setTesting(id);
     setTestResult(null);
     try {
-      const res = await fetch(`/api/v1/admin/notifications/${id}/test`, { method: "POST" });
+      const res = await apiFetch(`/api/v1/admin/notifications/${id}/test`, { method: "POST" });
       const json = await res.json();
       setTestResult({ id, success: json.status, error: json.error });
     } catch (e) {
@@ -263,7 +264,7 @@ export default function NotificationsPage() {
 
   async function toggleEnabled(ch) {
     try {
-      await fetch(`/api/v1/admin/notifications/${ch.id}`, {
+      await apiFetch(`/api/v1/admin/notifications/${ch.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: ch.enabled ? 0 : 1 }),

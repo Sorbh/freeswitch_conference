@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Input } from "@/components/ui/input";
 import { useSSE } from "@/hooks/useSSE";
+import { apiFetch } from "@/lib/api";
 import {
   PlayIcon,
   PauseIcon,
@@ -193,7 +194,7 @@ export default function PhoneLogsPage() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    fetch("/api/v1/admin/users")
+    apiFetch("/api/v1/admin/users")
       .then((r) => r.json())
       .then((data) => {
         if (data.status && data.data) {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "@/lib/api";
 
 export function useFetch(url, interval = null) {
   const [data, setData] = useState(null);
@@ -11,7 +12,7 @@ export function useFetch(url, interval = null) {
       return;
     }
     try {
-      const res = await fetch(url);
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json.data !== undefined ? json.data : json);

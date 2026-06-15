@@ -104,6 +104,7 @@ export async function connectChannel(channelId) {
         printQRInTerminal: false,
         defaultQueryTimeoutMs: undefined,
         browser: ['Mac OS', 'Chrome', '14.4.1'],
+        logger: { level: 'silent', info() {}, debug() {}, warn() {}, error() {}, trace() {}, child() { return this; }, fatal() {} },
     });
 
     session.sock = sock;

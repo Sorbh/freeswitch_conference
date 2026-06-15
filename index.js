@@ -1,4 +1,5 @@
 import cors from "cors";
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import 'dotenv/config';
 import express from "express";
@@ -29,15 +30,27 @@ global.db = dbService.db;
 global.db.init();
 _startupLines.push('Database initialized');
 
+// Seed admin account on first run
+if (global.db.adminCount() === 0) {
+    const { default: bcrypt } = await import('bcryptjs');
+    const seedEmail = process.env.SEED_ADMIN_EMAIL || 'admin@hotlinehq.com';
+    const seedPassword = process.env.SEED_ADMIN_PASSWORD || crypto.randomUUID().slice(0, 16);
+    const seedName = process.env.SEED_ADMIN_NAME || 'Admin';
+    const passwordHash = await bcrypt.hash(seedPassword, 12);
+    global.db.createAdmin({ email: seedEmail, passwordHash, name: seedName, role: 'admin', createdBy: null });
+    _startupLines.push(`Seed admin created: ${seedEmail} / ${process.env.SEED_ADMIN_PASSWORD ? '***' : seedPassword}`);
+}
+
 // Express — start HTTP servers first so FreeSWITCH xml_curl can always reach us
 import ApiRouter from "./routes/api.js";
 const { json, urlencoded } = express;
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(json());
 app.use(urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/recordings", express.static(path.join(__dirname, "recordings")));
 
@@ -108,7 +121,7 @@ try {
     });
 } catch { }
 
-_startupLines.push(`DB Debug: https://localhost:${PORT}/api/v1/debug/tables`);
+// Debug routes removed for security
 _startupLines.push(new Date().toLocaleString());
 logStartup(_startupLines);
 
@@ -127,6 +140,11 @@ global.db.snapshotRoomCounts();
 setInterval(() => {
     try { global.db.cleanOldSnapshots(14); } catch {}
 }, 24 * 60 * 60 * 1000);
+
+// Clean expired refresh tokens every hour
+setInterval(() => {
+    try { global.db.cleanExpiredRefreshTokens(); } catch {}
+}, 60 * 60 * 1000);
 
 process.stdin.resume();
 

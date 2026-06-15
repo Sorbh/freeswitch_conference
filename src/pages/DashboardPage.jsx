@@ -10,6 +10,7 @@ import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
 import { EVENT_COLORS, timeAgo } from "@/lib/constants";
 import { useRooms } from "@/hooks/useRooms";
+import { apiFetch } from "@/lib/api";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
@@ -65,7 +66,7 @@ function useTimeline() {
   const [segments, setSegments] = useState({});
 
   const fetchTimeline = useCallback(() => {
-    fetch("/api/v1/admin/broadcasts/activity?minutes=30")
+    apiFetch("/api/v1/admin/broadcasts/activity?minutes=30")
       .then(r => r.json())
       .then(res => {
         const rows = res?.data || [];
@@ -336,7 +337,7 @@ function BroadcastChart() {
 
   useEffect(() => {
     const h = views.find(v => v.key === active)?.hours || 12;
-    fetch(`/api/v1/admin/broadcasts/hourly?hours=${h}`)
+    apiFetch(`/api/v1/admin/broadcasts/hourly?hours=${h}`)
       .then(r => r.json())
       .then(res => setCache(prev => ({ ...prev, [active]: res?.data || [] })))
       .catch(() => {});
@@ -459,7 +460,7 @@ function RoomAvailabilityChart() {
 
   useEffect(() => {
     const h = views.find(v => v.key === active)?.hours || 12;
-    fetch(`/api/v1/admin/broadcasts/availability?hours=${h}`)
+    apiFetch(`/api/v1/admin/broadcasts/availability?hours=${h}`)
       .then(r => r.json())
       .then(res => setCache(prev => ({ ...prev, [active]: res?.data || [] })))
       .catch(() => {});
@@ -635,7 +636,7 @@ function TopBroadcasters() {
 
   useEffect(() => {
     const days = tabs.find(t => t.key === active)?.days || 1;
-    fetch(`/api/v1/admin/broadcasts?days=${days}`)
+    apiFetch(`/api/v1/admin/broadcasts?days=${days}`)
       .then(r => r.json())
       .then(res => {
         const d = res?.data ?? res;
@@ -739,7 +740,7 @@ function RecentBroadcasts() {
   useEffect(() => {
     setLoading(true);
     const typeParam = filter === "all" ? "" : `&type=${filter}`;
-    fetch(`/api/v1/admin/broadcasts/recent?limit=10${typeParam}`)
+    apiFetch(`/api/v1/admin/broadcasts/recent?limit=10${typeParam}`)
       .then(r => r.json())
       .then(res => setBroadcasts(Array.isArray(res) ? res : res?.data || []))
       .catch(() => setBroadcasts([]))

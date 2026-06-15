@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiFetch } from "@/lib/api";
 import {
   CloudIcon,
   PlayIcon,
@@ -133,8 +134,8 @@ export default function YmcsControlPage() {
   async function fetchStats() {
     try {
       const [accRes, roomRes] = await Promise.all([
-        fetch("/api/v1/admin/accounts").then(r => r.json()),
-        fetch("/api/v1/admin/rooms/config").then(r => r.json()),
+        apiFetch("/api/v1/admin/accounts").then(r => r.json()),
+        apiFetch("/api/v1/admin/rooms/config").then(r => r.json()),
       ]);
       const accounts = accRes.data || [];
       const roomsList = roomRes.data?.rooms || [];
@@ -178,7 +179,7 @@ export default function YmcsControlPage() {
 
     try {
       addLog(setAccountLog, { type: "info", message: "Fetching all accounts..." });
-      const res = await fetch("/api/v1/admin/accounts");
+      const res = await apiFetch("/api/v1/admin/accounts");
       const json = await res.json();
       const accounts = json.data || [];
       addLog(setAccountLog, { type: "info", message: `Found ${accounts.length} accounts` });
@@ -188,7 +189,7 @@ export default function YmcsControlPage() {
         const prefix = `[${i + 1}/${accounts.length}] ${acc.email}`;
 
         try {
-          const r = await fetch(`/api/v1/admin/accounts/${acc.id}/refresh-account-id`, { method: "POST" });
+          const r = await apiFetch(`/api/v1/admin/accounts/${acc.id}/refresh-account-id`, { method: "POST" });
           const data = await r.json();
           if (data.status) {
             success++;

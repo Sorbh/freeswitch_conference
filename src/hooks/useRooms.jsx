@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { apiFetch } from "@/lib/api";
 
 const RoomsContext = createContext(null);
 
@@ -16,7 +17,7 @@ export function RoomsProvider({ children }) {
 
   const fetchRooms = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/admin/rooms/config");
+      const res = await apiFetch("/api/v1/admin/rooms/config");
       if (!res.ok) throw new Error("Failed to fetch rooms");
       const json = await res.json();
       const d = json.data || json;

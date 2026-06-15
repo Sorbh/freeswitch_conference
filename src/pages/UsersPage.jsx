@@ -40,6 +40,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { useFetch } from "@/hooks/useFetch";
 import { timeAgo } from "@/lib/constants";
 import { useRooms } from "@/hooks/useRooms";
+import { apiFetch } from "@/lib/api";
 import {
   MicIcon,
   MicOffIcon,
@@ -417,7 +418,7 @@ export default function UsersPage() {
         ? `/api/v1/admin/accounts/${editing.id}`
         : "/api/v1/admin/accounts";
 
-      await fetch(url, {
+      await apiFetch(url, {
         method: editing?.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -435,7 +436,7 @@ export default function UsersPage() {
   async function handleDelete() {
     if (!deleteTarget?.account?.id) return;
     try {
-      await fetch(`/api/v1/admin/accounts/${deleteTarget.account.id}`, {
+      await apiFetch(`/api/v1/admin/accounts/${deleteTarget.account.id}`, {
         method: "DELETE",
       });
       setDeleteDialogOpen(false);
@@ -450,7 +451,7 @@ export default function UsersPage() {
   async function toggleActive(user) {
     if (!user.account?.id) return;
     try {
-      await fetch(`/api/v1/admin/accounts/${user.account.id}`, {
+      await apiFetch(`/api/v1/admin/accounts/${user.account.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: user.account.active ? 0 : 1 }),
@@ -464,7 +465,7 @@ export default function UsersPage() {
   async function refreshAccountId(accountId) {
     setRefreshingAccountId(true);
     try {
-      const res = await fetch(`/api/v1/admin/accounts/${accountId}/refresh-account-id`, { method: "POST" });
+      const res = await apiFetch(`/api/v1/admin/accounts/${accountId}/refresh-account-id`, { method: "POST" });
       const json = await res.json();
       if (!json.status) console.error("Refresh failed:", json.error);
       refetch();
@@ -478,7 +479,7 @@ export default function UsersPage() {
   async function refreshDeviceId(accountId) {
     setRefreshingDeviceId(true);
     try {
-      const res = await fetch(`/api/v1/admin/accounts/${accountId}/refresh-device-id`, { method: "POST" });
+      const res = await apiFetch(`/api/v1/admin/accounts/${accountId}/refresh-device-id`, { method: "POST" });
       const json = await res.json();
       if (!json.status) console.error("Refresh failed:", json.error);
       refetch();
@@ -492,7 +493,7 @@ export default function UsersPage() {
   async function ymcsReboot(accountId) {
     setYmcsAction("reboot");
     try {
-      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/reboot`, { method: "POST" });
+      const res = await apiFetch(`/api/v1/admin/accounts/${accountId}/ymcs/reboot`, { method: "POST" });
       const json = await res.json();
       if (!json.status) console.error("Reboot failed:", json.error);
     } catch (e) {
@@ -505,7 +506,7 @@ export default function UsersPage() {
   async function ymcsRebind(accountId) {
     setYmcsAction("rebind");
     try {
-      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/rebind`, { method: "POST" });
+      const res = await apiFetch(`/api/v1/admin/accounts/${accountId}/ymcs/rebind`, { method: "POST" });
       const json = await res.json();
       if (!json.status) console.error("Rebind failed:", json.error);
       refetch();
@@ -519,7 +520,7 @@ export default function UsersPage() {
   async function ymcsUpdateSipServer(accountId, host, port) {
     setYmcsAction("sip");
     try {
-      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/update-sip-server`, {
+      const res = await apiFetch(`/api/v1/admin/accounts/${accountId}/ymcs/update-sip-server`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ host, port: parseInt(port) }),
@@ -537,7 +538,7 @@ export default function UsersPage() {
   async function ymcsPushConfig(accountId, content) {
     setYmcsAction("config");
     try {
-      const res = await fetch(`/api/v1/admin/accounts/${accountId}/ymcs/push-config`, {
+      const res = await apiFetch(`/api/v1/admin/accounts/${accountId}/ymcs/push-config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
@@ -553,7 +554,7 @@ export default function UsersPage() {
 
   async function doAction(userName, action, body = null) {
     try {
-      await fetch(`/api/v1/admin/users/${userName}/${action}`, {
+      await apiFetch(`/api/v1/admin/users/${userName}/${action}`, {
         method: "POST",
         headers: body ? { "Content-Type": "application/json" } : {},
         body: body ? JSON.stringify(body) : null,
@@ -607,7 +608,7 @@ export default function UsersPage() {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
               if (!confirm(`Restore ${scope === "all" ? "all" : `"${scope}"`} kicked out users? This will allow them to rejoin.`)) return;
               try {
-                await fetch("/api/v1/admin/users/kickin-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
+                await apiFetch("/api/v1/admin/users/kickin-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
                 refetch();
               } catch (e) {
                 console.error("Kickin all failed:", e);
@@ -623,7 +624,7 @@ export default function UsersPage() {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
               if (!confirm(`Reconnect ${scope === "all" ? "all online users" : `all "${scope}" online users`}? This will hangup and redial.`)) return;
               try {
-                await fetch("/api/v1/admin/users/reconnect-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
+                await apiFetch("/api/v1/admin/users/reconnect-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
                 refetch();
               } catch (e) {
                 console.error("Reconnect all failed:", e);
@@ -639,7 +640,7 @@ export default function UsersPage() {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
               if (!confirm(`Kickout ${scope === "all" ? "all active calls across the hotline network" : `all "${scope}" users`}?`)) return;
               try {
-                await fetch("/api/v1/admin/users/kickout-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
+                await apiFetch("/api/v1/admin/users/kickout-all", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(roomFilter !== "all" ? { room: roomFilter } : {}) });
                 refetch();
               } catch (e) {
                 console.error("Kickout all failed:", e);
@@ -1179,7 +1180,7 @@ export default function UsersPage() {
                         checked={!!acc.debug}
                         onCheckedChange={async () => {
                           try {
-                            await fetch(`/api/v1/admin/accounts/${acc.id}`, {
+                            await apiFetch(`/api/v1/admin/accounts/${acc.id}`, {
                               method: "PUT",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ debug: acc.debug ? 0 : 1 }),
@@ -1313,7 +1314,7 @@ export default function UsersPage() {
                                   onClick={async () => {
                                     setYmcsAction("config-load");
                                     try {
-                                      const res = await fetch(`/api/v1/admin/accounts/${acc.id}/ymcs/device-config`);
+                                      const res = await apiFetch(`/api/v1/admin/accounts/${acc.id}/ymcs/device-config`);
                                       const json = await res.json();
                                       if (json.status && json.content) setConfigEditContent(json.content);
                                       else if (json.status) setConfigEditContent("");

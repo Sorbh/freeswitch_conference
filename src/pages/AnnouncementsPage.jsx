@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRooms } from "@/hooks/useRooms";
+import { apiFetch } from "@/lib/api";
 import {
   MegaphoneIcon,
   PlayIcon,
@@ -137,7 +138,7 @@ export default function AnnouncementsPage() {
 
   const fetchAds = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/admin/audio-ads");
+      const res = await apiFetch("/api/v1/admin/audio-ads");
       const json = await res.json();
       if (json.status) {
         setAds(json.data || []);
@@ -152,7 +153,7 @@ export default function AnnouncementsPage() {
 
   const pollActive = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/admin/audio-ads");
+      const res = await apiFetch("/api/v1/admin/audio-ads");
       const json = await res.json();
       if (json.status) setActive(json.active || {});
     } catch {}
@@ -167,7 +168,7 @@ export default function AnnouncementsPage() {
   const fetchLog = useCallback(async (page) => {
     setLogLoading(true);
     try {
-      const res = await fetch(`/api/v1/admin/audio-ads/play-log?page=${page}&pageSize=${logPageSize}`);
+      const res = await apiFetch(`/api/v1/admin/audio-ads/play-log?page=${page}&pageSize=${logPageSize}`);
       const json = await res.json();
       if (json.status) {
         setLog(json.data || []);
@@ -246,9 +247,9 @@ export default function AnnouncementsPage() {
           fd.append("label", form.label);
           fd.append("rooms", JSON.stringify(form.rooms));
           fd.append("enabled", form.enabled ? "1" : "0");
-          await fetch(`/api/v1/admin/audio-ads/${editing.id}/replace`, { method: "POST", body: fd });
+          await apiFetch(`/api/v1/admin/audio-ads/${editing.id}/replace`, { method: "POST", body: fd });
         } else {
-          await fetch(`/api/v1/admin/audio-ads/${editing.id}`, {
+          await apiFetch(`/api/v1/admin/audio-ads/${editing.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -263,7 +264,7 @@ export default function AnnouncementsPage() {
         if (audioFile) fd.append("audio", audioFile);
         fd.append("label", form.label);
         fd.append("rooms", JSON.stringify(form.rooms));
-        await fetch("/api/v1/admin/audio-ads", { method: "POST", body: fd });
+        await apiFetch("/api/v1/admin/audio-ads", { method: "POST", body: fd });
       }
       setFormOpen(false);
       fetchAds();
@@ -277,7 +278,7 @@ export default function AnnouncementsPage() {
   async function handleDelete() {
     if (!deleteId) return;
     try {
-      await fetch(`/api/v1/admin/audio-ads/${deleteId}`, { method: "DELETE" });
+      await apiFetch(`/api/v1/admin/audio-ads/${deleteId}`, { method: "DELETE" });
       setDeleteId(null);
       fetchAds();
     } catch (e) {
@@ -289,7 +290,7 @@ export default function AnnouncementsPage() {
     setPlayingId(id);
     setPlayResults(r => ({ ...r, [id]: null }));
     try {
-      const res = await fetch(`/api/v1/admin/audio-ads/${id}/play`, { method: "POST" });
+      const res = await apiFetch(`/api/v1/admin/audio-ads/${id}/play`, { method: "POST" });
       const json = await res.json();
       setPlayResults(r => ({ ...r, [id]: json.data || [] }));
       pollActive();
@@ -303,7 +304,7 @@ export default function AnnouncementsPage() {
   async function handleStop(id) {
     setStoppingId(id);
     try {
-      await fetch(`/api/v1/admin/audio-ads/${id}/stop`, { method: "POST" });
+      await apiFetch(`/api/v1/admin/audio-ads/${id}/stop`, { method: "POST" });
       pollActive();
     } catch (e) {
       console.error("Stop failed:", e);
@@ -314,7 +315,7 @@ export default function AnnouncementsPage() {
 
   async function toggleEnabled(ad) {
     try {
-      await fetch(`/api/v1/admin/audio-ads/${ad.id}`, {
+      await apiFetch(`/api/v1/admin/audio-ads/${ad.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: ad.enabled ? 0 : 1 }),
