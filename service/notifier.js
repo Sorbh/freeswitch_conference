@@ -33,6 +33,7 @@ const TEMPLATE_VARS = {
     respondedBy: 'Who responded',
     participants: 'Participant count',
     time: 'Timestamp',
+    transcription: 'Audio transcription text',
 };
 
 function _buildCaption(template, vars) {
@@ -74,6 +75,16 @@ export async function notifyBroadcast(broadcastData) {
     const speaker = broadcastData.userName ? broadcastData.userName.replace('sip:', '') : 'Unknown';
     const account = global.db.getAccountByEmail(speaker);
 
+    // Look up transcription from DB if available
+    let transcription = '';
+    if (recordingPath) {
+        const row = global.db.getBroadcastByRecordingPath(recordingPath);
+        if (row) {
+            const full = global.db.getBroadcastById(row.id);
+            if (full?.transcription) transcription = full.transcription;
+        }
+    }
+
     const vars = {
         name: account?.display_name || displayName || speaker,
         email: account?.email || speaker,
@@ -89,6 +100,7 @@ export async function notifyBroadcast(broadcastData) {
         respondedBy: respondedBy || '',
         participants: String(participants?.length || 1),
         time: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }),
+        transcription,
     };
 
     const oggPath = _ensureOgg(recordingPath);

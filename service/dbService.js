@@ -207,6 +207,7 @@ function init() {
         ['ymcs_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_site_id TEXT"],
         ['ymcs_parent_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_parent_site_id TEXT"],
         ['timezone', "ALTER TABLE rooms ADD COLUMN timezone TEXT DEFAULT 'America/Chicago'"],
+        ['auto_transcribe', "ALTER TABLE rooms ADD COLUMN auto_transcribe INTEGER DEFAULT 0"],
     ];
     for (const [col, sql] of roomMigrations) {
         if (!roomCols.includes(col)) sqlite.exec(sql);
@@ -234,6 +235,26 @@ function init() {
     const ncCols = sqlite.prepare("PRAGMA table_info(notification_channels)").all().map(c => c.name);
     if (!ncCols.includes('message_template')) {
         sqlite.exec("ALTER TABLE notification_channels ADD COLUMN message_template TEXT");
+    }
+
+    // ── Settings table ──
+
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT,
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+    `);
+
+    // ── Broadcast transcription columns ──
+    const bcastMigCols = sqlite.prepare("PRAGMA table_info(broadcast_log)").all().map(c => c.name);
+    const bcastTransMigrations = [
+        ['transcription_status', "ALTER TABLE broadcast_log ADD COLUMN transcription_status TEXT"],
+        ['transcription_error', "ALTER TABLE broadcast_log ADD COLUMN transcription_error TEXT"],
+    ];
+    for (const [col, sql] of bcastTransMigrations) {
+        if (!bcastMigCols.includes(col)) sqlite.exec(sql);
     }
 
     // ── Auth tables ──
@@ -301,6 +322,7 @@ function updateRoom(id, fields) {
     if (fields.ymcs_site_id !== undefined) { sets.push('ymcs_site_id = ?'); vals.push(fields.ymcs_site_id); }
     if (fields.ymcs_parent_site_id !== undefined) { sets.push('ymcs_parent_site_id = ?'); vals.push(fields.ymcs_parent_site_id); }
     if (fields.timezone !== undefined) { sets.push('timezone = ?'); vals.push(fields.timezone); }
+    if (fields.auto_transcribe !== undefined) { sets.push('auto_transcribe = ?'); vals.push(fields.auto_transcribe ? 1 : 0); }
     if (sets.length === 0) return null;
     vals.push(id);
     sqlite.prepare(`UPDATE rooms SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
@@ -639,7 +661,7 @@ function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateF
     const offset = (page - 1) * pageSize;
 
     const rows = sqlite.prepare(`
-        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, share_token, listener_count, created_at
+        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, share_token, listener_count, transcription, transcription_status, created_at
         FROM broadcast_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?
     `).all(...params, pageSize, offset);
 
@@ -974,12 +996,47 @@ function revokeBroadcastShareToken(id) {
 
 function getBroadcastByShareToken(token) {
     return sqlite.prepare(
-        'SELECT id, room, room_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count, created_at FROM broadcast_log WHERE share_token = ?'
+        'SELECT id, room, room_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count, transcription, created_at FROM broadcast_log WHERE share_token = ?'
     ).get(token) || null;
 }
 
 function getBroadcastById(id) {
     return sqlite.prepare('SELECT * FROM broadcast_log WHERE id = ?').get(id) || null;
+}
+
+function getBroadcastByRecordingPath(recordingPath) {
+    return sqlite.prepare('SELECT id FROM broadcast_log WHERE recording_path = ? ORDER BY id DESC LIMIT 1').get(recordingPath) || null;
+}
+
+// ── Settings ──
+
+function getSetting(key) {
+    const row = sqlite.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+    return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+    sqlite.prepare('INSERT INTO settings (key, value, updated_at) VALUES (?, ?, strftime(\'%s\', \'now\')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at').run(key, value);
+}
+
+function getSettingsByPrefix(prefix) {
+    const rows = sqlite.prepare('SELECT key, value FROM settings WHERE key LIKE ?').all(prefix + '%');
+    const result = {};
+    for (const row of rows) result[row.key] = row.value;
+    return result;
+}
+
+// ── Broadcast transcription ──
+
+function updateBroadcastTranscription(id, { transcription, status, error }) {
+    const sets = [];
+    const vals = [];
+    if (transcription !== undefined) { sets.push('transcription = ?'); vals.push(transcription); }
+    if (status !== undefined) { sets.push('transcription_status = ?'); vals.push(status); }
+    if (error !== undefined) { sets.push('transcription_error = ?'); vals.push(error); }
+    if (sets.length === 0) return;
+    vals.push(id);
+    sqlite.prepare(`UPDATE broadcast_log SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
 }
 
 db.init = init;
@@ -1041,6 +1098,11 @@ db.generateBroadcastShareToken = generateBroadcastShareToken;
 db.revokeBroadcastShareToken = revokeBroadcastShareToken;
 db.getBroadcastByShareToken = getBroadcastByShareToken;
 db.getBroadcastById = getBroadcastById;
+db.getSetting = getSetting;
+db.setSetting = setSetting;
+db.getSettingsByPrefix = getSettingsByPrefix;
+db.updateBroadcastTranscription = updateBroadcastTranscription;
+db.getBroadcastByRecordingPath = getBroadcastByRecordingPath;
 db.getAdminByEmail = getAdminByEmail;
 db.getAdminById = getAdminById;
 db.getAllAdmins = getAllAdmins;

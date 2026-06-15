@@ -37,6 +37,7 @@ import {
   ShieldIcon,
   SettingsIcon,
   XIcon,
+  MicIcon,
 } from "lucide-react";
 
 const ROLE_LABELS = { admin: "Admin", editor: "Editor", analytics: "Analytics" };
@@ -49,6 +50,7 @@ const EMPTY_ADMIN = { email: "", password: "", name: "", role: "editor" };
 
 const NAV = [
   { key: "general", label: "General", icon: SettingsIcon },
+  { key: "audio", label: "Audio / STT", icon: MicIcon },
   { key: "users", label: "Admin Users", icon: UsersIcon },
   { key: "api-keys", label: "API Keys", icon: KeyIcon },
   { key: "security", label: "Security", icon: ShieldIcon },
@@ -182,6 +184,7 @@ export function SettingsDialog({ open, onOpenChange, initialTab }) {
               <div className="flex-1 overflow-y-auto min-w-0">
                 <div className="p-7">
                   {tab === "general" && <GeneralPane user={user} />}
+                  {tab === "audio" && <AudioPane />}
                   {tab === "users" && <UsersPane admins={admins} loading={loadingAdmins} uid={user?.id} onCreate={openCreateAdmin} onEdit={openEditAdmin} onDelete={setDeleteAdminId} />}
                   {tab === "api-keys" && <KeysPane keys={apiKeys} loading={loadingKeys} onCreate={openCreateKey} onDelete={setDeleteKeyId} />}
                   {tab === "security" && <SecurityPane />}
@@ -251,6 +254,371 @@ function GeneralPane({ user }) {
           </Row>
         </div>
       </section>
+    </>
+  );
+}
+
+const DEEPGRAM_MODELS = [
+  { id: 'nova-3', label: 'Nova 3 (Latest)' },
+  { id: 'nova-3-medical', label: 'Nova 3 Medical' },
+  { id: 'nova-3-finance', label: 'Nova 3 Finance' },
+  { id: 'nova-2', label: 'Nova 2' },
+  { id: 'nova-2-phonecall', label: 'Nova 2 Phone Call' },
+  { id: 'nova-2-meeting', label: 'Nova 2 Meeting' },
+  { id: 'whisper-large', label: 'Whisper Large' },
+  { id: 'whisper-medium', label: 'Whisper Medium' },
+];
+
+const OPENROUTER_MODELS = [
+  { id: 'openai/whisper-large-v3-turbo', label: 'Whisper Large V3 Turbo' },
+  { id: 'openai/whisper-large-v3', label: 'Whisper Large V3' },
+  { id: 'openai/whisper-1', label: 'Whisper 1' },
+  { id: 'openai/gpt-4o-transcribe', label: 'GPT-4o Transcribe' },
+  { id: 'openai/gpt-4o-mini-transcribe', label: 'GPT-4o Mini Transcribe' },
+  { id: 'google/chirp-3', label: 'Google Chirp 3' },
+  { id: 'microsoft/mai-transcribe-1.5', label: 'Microsoft MAI Transcribe' },
+  { id: 'nvidia/parakeet-tdt-0.6b-v3', label: 'NVIDIA Parakeet V3' },
+];
+
+const STT_LANGUAGES = [
+  { id: 'en', label: 'English' },
+  { id: 'es', label: 'Spanish' },
+  { id: 'fr', label: 'French' },
+  { id: 'de', label: 'German' },
+  { id: 'pt', label: 'Portuguese' },
+  { id: 'hi', label: 'Hindi' },
+  { id: 'multi', label: 'Auto-detect (Multi)' },
+];
+
+function AudioPane() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [settings, setSettings] = useState({
+    enabled: false,
+    provider: 'deepgram',
+    deepgram_api_key: '',
+    deepgram_model: 'nova-3',
+    openrouter_api_key: '',
+    openrouter_model: 'openai/whisper-large-v3-turbo',
+    language: 'en',
+  });
+  const [customModel, setCustomModel] = useState('');
+
+  useEffect(() => {
+    apiFetch('/api/v1/admin/settings/audio').then(r => r.json()).then(j => {
+      if (j.status && j.data) {
+        setSettings(j.data);
+        const models = j.data.provider === 'deepgram' ? DEEPGRAM_MODELS : OPENROUTER_MODELS;
+        const modelId = j.data.provider === 'deepgram' ? j.data.deepgram_model : j.data.openrouter_model;
+        if (modelId && !models.some(m => m.id === modelId)) {
+          setCustomModel(modelId);
+        }
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const update = (field, value) => {
+    setSettings(s => ({ ...s, [field]: value }));
+    setSaved(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const body = { ...settings };
+      if (body.deepgram_api_key?.startsWith('••••')) delete body.deepgram_api_key;
+      if (body.openrouter_api_key?.startsWith('••••')) delete body.openrouter_api_key;
+      const res = await apiFetch('/api/v1/admin/settings/audio', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (json.status) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {} finally { setSaving(false); }
+  };
+
+  const models = settings.provider === 'deepgram' ? DEEPGRAM_MODELS : OPENROUTER_MODELS;
+  const activeModelKey = settings.provider === 'deepgram' ? 'deepgram_model' : 'openrouter_model';
+  const activeModelValue = settings[activeModelKey];
+  const isCustom = activeModelValue && !models.some(m => m.id === activeModelValue);
+  const activeApiKeyField = settings.provider === 'deepgram' ? 'deepgram_api_key' : 'openrouter_api_key';
+  const hasKey = !!(settings[activeApiKeyField] && settings[activeApiKeyField] !== '');
+
+  if (loading) return (
+    <div className="space-y-4">
+      <Skeleton className="h-6 w-48" />
+      <Skeleton className="h-3 w-72 opacity-50" />
+      <Skeleton className="h-[72px] rounded-xl mt-4" />
+      <Skeleton className="h-[180px] rounded-xl" />
+    </div>
+  );
+
+  return (
+    <>
+      <Heading sub="Speech-to-text transcription for broadcast recordings">Audio / STT</Heading>
+
+      {/* ─── Status Banner ─── */}
+      <div className={cn(
+        "relative rounded-xl border px-4 py-3.5 mb-6 overflow-hidden transition-all duration-300",
+        settings.enabled
+          ? "border-emerald-500/25 bg-emerald-500/[0.04]"
+          : "border-border/40 bg-card/50"
+      )}>
+        {settings.enabled && (
+          <div className="absolute inset-0 opacity-[0.03]" style={{
+            backgroundImage: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 1px, transparent 1px, transparent 6px)',
+            color: '#10b981',
+          }} />
+        )}
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "flex size-9 items-center justify-center rounded-lg transition-all duration-300",
+              settings.enabled
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "bg-muted/60 text-muted-foreground/40"
+            )}>
+              <MicIcon className="size-[18px]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-medium">Transcription Engine</span>
+                {settings.enabled && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-px">
+                    <span className="size-1 rounded-full bg-emerald-400 animate-pulse" />
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                {settings.enabled ? 'Broadcasts will be converted to text' : 'Enable to transcribe broadcast recordings'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => update('enabled', !settings.enabled)}
+            className={cn(
+              "relative inline-flex h-[22px] w-10 shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300",
+              settings.enabled
+                ? "bg-emerald-500 border-emerald-500/80"
+                : "bg-muted/80 border-border/60"
+            )}
+          >
+            <span className={cn(
+              "pointer-events-none block size-[18px] rounded-full bg-white shadow-md ring-0 transition-transform duration-300",
+              settings.enabled ? "translate-x-[18px]" : "translate-x-0"
+            )} />
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Provider Selection ─── */}
+      <section className="mb-6">
+        <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest mb-3">Provider</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            { id: 'deepgram', name: 'Deepgram', desc: 'Nova 3 & Whisper models', accent: 'emerald' },
+            { id: 'openrouter', name: 'OpenRouter', desc: 'Multi-provider STT gateway', accent: 'sky' },
+          ].map(p => {
+            const selected = settings.provider === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => { update('provider', p.id); setShowKey(false); }}
+                className={cn(
+                  "group relative rounded-xl border px-3.5 py-3 text-left transition-all duration-150",
+                  selected
+                    ? p.accent === 'emerald'
+                      ? "border-emerald-500/30 bg-emerald-500/[0.06] ring-1 ring-emerald-500/10"
+                      : "border-sky-500/30 bg-sky-500/[0.06] ring-1 ring-sky-500/10"
+                    : "border-border/40 bg-card/30 hover:bg-card/60 hover:border-border/60"
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={cn(
+                    "flex size-7 items-center justify-center rounded-md text-[11px] font-bold tracking-tight transition-colors",
+                    selected
+                      ? p.accent === 'emerald' ? "bg-emerald-500/20 text-emerald-400" : "bg-sky-500/20 text-sky-400"
+                      : "bg-muted/50 text-muted-foreground/40"
+                  )}>
+                    {p.id === 'deepgram' ? 'DG' : 'OR'}
+                  </div>
+                  <div>
+                    <p className={cn("text-[12px] font-medium", selected ? "text-foreground" : "text-muted-foreground")}>{p.name}</p>
+                    <p className="text-[10px] text-muted-foreground/40 mt-px">{p.desc}</p>
+                  </div>
+                </div>
+                {selected && (
+                  <div className={cn(
+                    "absolute top-2 right-2 flex size-4 items-center justify-center rounded-full",
+                    p.accent === 'emerald' ? "bg-emerald-500/20 text-emerald-400" : "bg-sky-500/20 text-sky-400"
+                  )}>
+                    <CheckIcon className="size-2.5" strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ─── Configuration ─── */}
+      {settings.enabled && (
+        <section className="mb-6">
+          <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest mb-3">
+            Configuration
+          </p>
+          <div className="rounded-xl border border-border/40 bg-card/50 px-4">
+            {/* API Key */}
+            <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-[13px]">API Key</p>
+                  <span className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[9px] font-medium",
+                    hasKey
+                      ? "bg-emerald-500/10 text-emerald-400/80 border border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-400/80 border border-amber-500/20"
+                  )}>
+                    <span className={cn("size-1 rounded-full", hasKey ? "bg-emerald-400" : "bg-amber-400")} />
+                    {hasKey ? 'Set' : 'Required'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground/50 mt-px">
+                  {settings.provider === 'deepgram' ? 'console.deepgram.com' : 'openrouter.ai/settings/keys'}
+                </p>
+              </div>
+              <div className="relative shrink-0">
+                <Input
+                  type={showKey ? "text" : "password"}
+                  value={settings[activeApiKeyField]}
+                  onChange={e => update(activeApiKeyField, e.target.value)}
+                  placeholder="Paste key here"
+                  className="w-[200px] h-7 text-[11px] font-mono pr-8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                  tabIndex={-1}
+                >
+                  {showKey ? <EyeOffIcon className="size-3" /> : <EyeIcon className="size-3" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Model */}
+            <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+              <div className="min-w-0">
+                <p className="text-[13px]">Model</p>
+                <p className="text-[11px] text-muted-foreground/50 mt-px">
+                  {isCustom ? 'Custom model ID' : models.find(m => m.id === activeModelValue)?.label || 'Select a model'}
+                </p>
+              </div>
+              <Select
+                value={isCustom ? '__custom__' : activeModelValue}
+                onValueChange={v => {
+                  if (v === '__custom__') {
+                    update(activeModelKey, customModel || '');
+                  } else {
+                    update(activeModelKey, v);
+                    setCustomModel('');
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[200px] h-7 text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map(m => <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>)}
+                  <SelectItem value="__custom__">Custom model ID…</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Custom model input */}
+            {(isCustom || activeModelValue === '') && (
+              <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+                <div className="min-w-0">
+                  <p className="text-[13px]">Custom ID</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-px">Exact provider model identifier</p>
+                </div>
+                <Input
+                  value={isCustom ? activeModelValue : customModel}
+                  onChange={e => {
+                    setCustomModel(e.target.value);
+                    update(activeModelKey, e.target.value);
+                  }}
+                  placeholder="e.g. nova-3-medical"
+                  className="w-[200px] h-7 text-[11px] font-mono"
+                />
+              </div>
+            )}
+
+            {/* Language */}
+            <div className="flex items-center justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[13px]">Language</p>
+                <p className="text-[11px] text-muted-foreground/50 mt-px">Audio content language</p>
+              </div>
+              <Select value={settings.language} onValueChange={v => update('language', v)}>
+                <SelectTrigger className="w-[200px] h-7 text-[11px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STT_LANGUAGES.map(l => <SelectItem key={l.id} value={l.id}>{l.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ─── Save ─── */}
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-muted-foreground/30">
+          {settings.enabled && hasKey
+            ? `${settings.provider === 'deepgram' ? 'Deepgram' : 'OpenRouter'} ready`
+            : ''}
+        </p>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            "h-8 text-xs px-5 transition-all duration-200",
+            saved && "bg-emerald-600 hover:bg-emerald-600 text-white"
+          )}
+        >
+          {saving
+            ? <><Loader2Icon className="size-3.5 animate-spin mr-1.5" />Saving…</>
+            : saved
+              ? <><CheckIcon className="size-3.5 mr-1.5" />Saved</>
+              : 'Save Settings'
+          }
+        </Button>
+      </div>
+
+      {/* ─── Info Footer ─── */}
+      <div className="mt-5 rounded-xl bg-muted/[0.08] border border-border/25 px-4 py-3 flex items-start gap-3">
+        <div className="shrink-0 mt-px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/30">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+        </div>
+        <p className="text-[11px] text-muted-foreground/40 leading-relaxed">
+          Enable per-room auto-transcription in <strong className="text-muted-foreground/60 font-medium">Rooms</strong> settings.
+          Broadcasts in enabled rooms will be transcribed automatically after recording completes.
+        </p>
+      </div>
     </>
   );
 }

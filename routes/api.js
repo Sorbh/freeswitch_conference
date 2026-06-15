@@ -43,6 +43,7 @@ publicRouter.get("/broadcast/:token", (req, res) => {
             response_time_ms: broadcast.response_time_ms,
             has_recording: !!broadcast.recording_path,
             listener_count: broadcast.listener_count || 0,
+            transcription: broadcast.transcription || null,
             created_at: broadcast.created_at,
         },
     });
@@ -91,10 +92,16 @@ function _adminRoleGuard(req, res, next) {
         return requireRole('admin')(req, res, next);
     }
 
-    // Write operations (POST/PUT/DELETE) on users, rooms, notifications, audio-ads: admin + editor
+    // Settings: admin-only
+    if (path.startsWith('settings')) {
+        return requireRole('admin')(req, res, next);
+    }
+
+    // Write operations (POST/PUT/DELETE) on users, rooms, notifications, audio-ads, transcribe: admin + editor
     if (method !== 'GET') {
         if (path.startsWith('users/') || path.startsWith('rooms') ||
-            path.startsWith('notifications') || path.startsWith('audio-ads')) {
+            path.startsWith('notifications') || path.startsWith('audio-ads') ||
+            path.match(/broadcasts\/\d+\/transcribe/)) {
             return requireRole('admin', 'editor')(req, res, next);
         }
     }

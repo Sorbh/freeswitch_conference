@@ -20,11 +20,15 @@ import { apiFetch } from "@/lib/api";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { toast } from "sonner";
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
   TrendingUpIcon, PlayIcon, PauseIcon, ClockIcon, UserIcon,
   ChevronLeftIcon, ChevronRightIcon, XIcon,
   ChevronsLeftIcon, ChevronsRightIcon, ListIcon,
-  Share2Icon, Unlink2Icon,
+  Share2Icon, Unlink2Icon, FileTextIcon, Loader2Icon,
+  CopyIcon, CheckIcon, SparklesIcon, AlertCircleIcon,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -505,6 +509,42 @@ export default function BroadcastsPage() {
     else { audio.pause(); audio.src = url; audio.load(); audio.play().catch(() => {}); setPlayingId(id); setPlayingUrl(url); }
   }, []);
 
+  // Transcription
+  const [transcriptDrawer, setTranscriptDrawer] = useState(null);
+  const [transcribing, setTranscribing] = useState(null);
+  const [copiedTranscript, setCopiedTranscript] = useState(false);
+
+  const openTranscript = useCallback((b) => {
+    setTranscriptDrawer(b);
+    setCopiedTranscript(false);
+  }, []);
+
+  const triggerTranscribe = useCallback(async (b) => {
+    setTranscribing(b.id);
+    try {
+      const res = await apiFetch(`/api/v1/admin/broadcasts/${b.id}/transcribe`, { method: "POST" });
+      const json = await res.json();
+      if (json.status) {
+        toast.success("Transcription complete");
+        refetchList();
+        if (transcriptDrawer?.id === b.id) {
+          setTranscriptDrawer({ ...b, transcription: json.data.transcription, transcription_status: 'completed' });
+        }
+      } else {
+        toast.error(json.error || "Transcription failed");
+      }
+    } catch (e) { toast.error("Transcription failed"); }
+    finally { setTranscribing(null); }
+  }, [refetchList, transcriptDrawer]);
+
+  const copyTranscript = useCallback(() => {
+    if (transcriptDrawer?.transcription) {
+      navigator.clipboard.writeText(transcriptDrawer.transcription);
+      setCopiedTranscript(true);
+      setTimeout(() => setCopiedTranscript(false), 2000);
+    }
+  }, [transcriptDrawer]);
+
   if (loading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
@@ -833,6 +873,7 @@ export default function BroadcastsPage() {
                   <TableHead>Response Time</TableHead>
                   <TableHead>Responded By</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-12">STT</TableHead>
                   <TableHead className="pr-6 w-16">Share</TableHead>
                 </TableRow>
               </TableHeader>
@@ -904,6 +945,50 @@ export default function BroadcastsPage() {
                         ) : (
                           <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[10px] px-1.5 py-0">Unanswered</Badge>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        {b.transcription_status === 'completed' && b.transcription ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => openTranscript(b)}
+                                className="flex size-7 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                              >
+                                <FileTextIcon className="size-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>View transcript</TooltipContent>
+                          </Tooltip>
+                        ) : b.transcription_status === 'processing' || transcribing === b.id ? (
+                          <div className="flex size-7 items-center justify-center">
+                            <Loader2Icon className="size-3.5 animate-spin text-muted-foreground/50" />
+                          </div>
+                        ) : b.transcription_status === 'failed' ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => triggerTranscribe(b)}
+                                className="flex size-7 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+                              >
+                                <AlertCircleIcon className="size-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Retry transcription</TooltipContent>
+                          </Tooltip>
+                        ) : b.recording_path ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => triggerTranscribe(b)}
+                                disabled={transcribing === b.id}
+                                className="flex size-7 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
+                              >
+                                <SparklesIcon className="size-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Transcribe</TooltipContent>
+                          </Tooltip>
+                        ) : null}
                       </TableCell>
                       <TableCell className="pr-6">
                         {b.share_token ? (
@@ -977,6 +1062,196 @@ export default function BroadcastsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Transcription drawer */}
+      <Sheet open={!!transcriptDrawer} onOpenChange={(open) => { if (!open) setTranscriptDrawer(null); }}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] p-0 flex flex-col gap-0 border-l border-border/50 bg-background">
+          {/* Visually hidden accessible header */}
+          <SheetHeader className="sr-only">
+            <SheetTitle>Broadcast Transcript</SheetTitle>
+            <SheetDescription>Transcript for broadcast by {transcriptDrawer?.display_name || "Unknown"}</SheetDescription>
+          </SheetHeader>
+
+          {(() => {
+            const b = transcriptDrawer;
+            if (!b) return null;
+            const speaker = b.display_name || b.user_name || "Unknown";
+            const speakerInitial = speaker.replace(/^[^a-zA-Z]*/, '')[0]?.toUpperCase() || '?';
+            const ts = b.created_at ? new Date(b.created_at * 1000) : null;
+            const timeStr = ts ? ts.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+            const dateStr = ts ? ts.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+            const audioUrl = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
+            const wordCount = b.transcription ? b.transcription.trim().split(/\s+/).length : 0;
+            const isProcessing = b.transcription_status === 'processing' || transcribing === b.id;
+            const isFailed = b.transcription_status === 'failed' && !isProcessing;
+            const hasTranscript = b.transcription_status === 'completed' && b.transcription;
+
+            return (
+              <>
+                {/* ─── Header ─── */}
+                <div className="shrink-0 border-b border-border/40">
+                  <div className="px-5 pt-5 pb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/15 text-emerald-400 text-sm font-bold shrink-0">
+                        {speakerInitial}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[14px] font-semibold tracking-tight truncate">{speaker}</h3>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {b.room_name && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 bg-muted/30 border border-border/30 rounded-md px-1.5 py-px">
+                              <RadioIcon className="size-2.5 opacity-60" />
+                              {b.room_name}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 bg-muted/30 border border-border/30 rounded-md px-1.5 py-px">
+                            <ClockIcon className="size-2.5 opacity-60" />
+                            {formatDuration(b.duration_ms)}
+                          </span>
+                          {b.answered ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/15 rounded-md px-1.5 py-px">
+                              <span className="size-1 rounded-full bg-emerald-400" />
+                              Answered
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-md px-1.5 py-px">
+                              <span className="size-1 rounded-full bg-red-400" />
+                              Unanswered
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {ts && (
+                      <p className="text-[10px] text-muted-foreground/40 mt-3 font-mono tabular-nums">
+                        {dateStr} at {timeStr}
+                        {b.participant_count > 1 && <> · {b.participant_count} participants</>}
+                        {b.listener_count > 0 && <> · {b.listener_count} listeners</>}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ─── Mini audio player ─── */}
+                  {audioUrl && (
+                    <div className="border-t border-border/30 bg-muted/[0.06]">
+                      <div className="px-5 py-0.5">
+                        <WaveformPlayer
+                          url={audioUrl}
+                          isActive={playingId === b.id}
+                          onToggle={() => toggle(b.id, audioUrl)}
+                          sharedAudioRef={audioRef}
+                        />
+                        {playingId !== b.id && (
+                          <div className="flex items-center gap-2 py-2.5">
+                            <button
+                              onClick={() => toggle(b.id, audioUrl)}
+                              className="flex size-7 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
+                            >
+                              <PlayIcon className="size-3 ml-0.5" />
+                            </button>
+                            <span className="text-[11px] text-muted-foreground/50">Play recording</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── Body ─── */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  {hasTranscript ? (
+                    <div className="p-5">
+                      {/* Transcript text */}
+                      <div className="relative">
+                        <div className="absolute left-0 top-0 bottom-0 w-[2px] rounded-full bg-gradient-to-b from-emerald-500/30 via-emerald-500/10 to-transparent" />
+                        <div className="pl-4 text-[13px] leading-[1.85] text-foreground/85 whitespace-pre-wrap selection:bg-emerald-500/20">
+                          {b.transcription}
+                        </div>
+                      </div>
+                    </div>
+                  ) : isProcessing ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-5">
+                      <div className="relative">
+                        <div className="size-12 rounded-full border-2 border-muted/40" />
+                        <div className="absolute inset-0 size-12 rounded-full border-2 border-transparent border-t-emerald-500 animate-spin" />
+                        <SparklesIcon className="absolute inset-0 m-auto size-4 text-emerald-400/70" />
+                      </div>
+                      <p className="text-[13px] text-muted-foreground/60 mt-4">Transcribing audio…</p>
+                      <p className="text-[11px] text-muted-foreground/30 mt-1">This usually takes a few seconds</p>
+                    </div>
+                  ) : isFailed ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-5">
+                      <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20">
+                        <AlertCircleIcon className="size-5 text-red-400" />
+                      </div>
+                      <p className="text-[13px] text-foreground/70 mt-4 font-medium">Transcription failed</p>
+                      <p className="text-[11px] text-muted-foreground/40 mt-1">The STT provider returned an error</p>
+                      <Button
+                        variant="outline" size="sm" className="mt-5 h-8 text-xs"
+                        onClick={() => triggerTranscribe(b)}
+                        disabled={isProcessing}
+                      >
+                        <SparklesIcon className="size-3 mr-1.5" />
+                        Retry Transcription
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-20 px-5">
+                      <div className="flex size-12 items-center justify-center rounded-full bg-muted/30 border border-border/30">
+                        <FileTextIcon className="size-5 text-muted-foreground/30" />
+                      </div>
+                      <p className="text-[13px] text-foreground/70 mt-4 font-medium">No transcript yet</p>
+                      <p className="text-[11px] text-muted-foreground/40 mt-1">Convert this broadcast to text</p>
+                      {b.recording_path && (
+                        <Button
+                          variant="outline" size="sm" className="mt-5 h-8 text-xs"
+                          onClick={() => triggerTranscribe(b)}
+                          disabled={isProcessing}
+                        >
+                          {isProcessing ? <Loader2Icon className="size-3 mr-1.5 animate-spin" /> : <SparklesIcon className="size-3 mr-1.5" />}
+                          Transcribe Now
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── Footer actions ─── */}
+                {hasTranscript && (
+                  <div className="shrink-0 border-t border-border/40 bg-muted/[0.04]">
+                    <div className="px-5 py-3 flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground/30 font-mono tabular-nums">
+                        {wordCount} words · {b.transcription.length} chars
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                              onClick={() => triggerTranscribe(b)}
+                              disabled={isProcessing}
+                            >
+                              {isProcessing ? <Loader2Icon className="size-3 animate-spin" /> : <SparklesIcon className="size-3" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Re-transcribe</TooltipContent>
+                        </Tooltip>
+                        <Button
+                          variant="outline" size="sm" className="h-7 px-3 text-[11px]"
+                          onClick={copyTranscript}
+                        >
+                          {copiedTranscript ? <CheckIcon className="size-3 mr-1.5 text-emerald-400" /> : <CopyIcon className="size-3 mr-1.5" />}
+                          {copiedTranscript ? "Copied" : "Copy text"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       <audio ref={audioRef} preload="none" className="hidden" onEnded={playNext} onError={playNext} />
       <style>{`

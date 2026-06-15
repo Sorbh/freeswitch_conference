@@ -125,6 +125,7 @@ adminRouter.get("/rooms", (req, res) => {
                 roomName: r.name,
                 shortCode: r.short_code,
                 timezone: r.timezone || 'America/Chicago',
+                auto_transcribe: !!r.auto_transcribe,
                 total: 0,
                 online: 0,
                 inCall: 0,
@@ -325,6 +326,85 @@ adminRouter.get("/broadcasts/activity", (req, res) => {
         const minutes = parseInt(req.query.minutes) || 30;
         const broadcasts = global.db.getTimelineBroadcasts(minutes);
         res.json({ status: true, data: broadcasts });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// ── Settings (audio/transcription) ──
+
+adminRouter.get("/settings/audio", (req, res) => {
+    try {
+        const s = global.db.getSettingsByPrefix('stt_');
+        res.json({
+            status: true,
+            data: {
+                enabled: s.stt_enabled === '1',
+                provider: s.stt_provider || 'deepgram',
+                deepgram_api_key: s.stt_deepgram_api_key ? '••••' + (s.stt_deepgram_api_key || '').slice(-4) : '',
+                deepgram_model: s.stt_deepgram_model || 'nova-3',
+                openrouter_api_key: s.stt_openrouter_api_key ? '••••' + (s.stt_openrouter_api_key || '').slice(-4) : '',
+                openrouter_model: s.stt_openrouter_model || 'openai/whisper-large-v3-turbo',
+                language: s.stt_language || 'en',
+                has_deepgram_key: !!s.stt_deepgram_api_key,
+                has_openrouter_key: !!s.stt_openrouter_api_key,
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+adminRouter.put("/settings/audio", (req, res) => {
+    try {
+        const { enabled, provider, deepgram_api_key, deepgram_model, openrouter_api_key, openrouter_model, language } = req.body;
+        if (enabled !== undefined) global.db.setSetting('stt_enabled', enabled ? '1' : '0');
+        if (provider !== undefined) global.db.setSetting('stt_provider', provider);
+        if (deepgram_api_key !== undefined && !deepgram_api_key.startsWith('••••')) {
+            global.db.setSetting('stt_deepgram_api_key', deepgram_api_key);
+        }
+        if (deepgram_model !== undefined) global.db.setSetting('stt_deepgram_model', deepgram_model);
+        if (openrouter_api_key !== undefined && !openrouter_api_key.startsWith('••••')) {
+            global.db.setSetting('stt_openrouter_api_key', openrouter_api_key);
+        }
+        if (openrouter_model !== undefined) global.db.setSetting('stt_openrouter_model', openrouter_model);
+        if (language !== undefined) global.db.setSetting('stt_language', language);
+        res.json({ status: true, message: 'Audio settings updated' });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /broadcasts/:id/transcribe — trigger manual transcription
+adminRouter.post("/broadcasts/:id/transcribe", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+        if (!broadcast.recording_path) return res.status(400).json({ status: false, error: "No recording available" });
+
+        const { transcribeBroadcast } = await import('../../service/transcription.js');
+        const transcript = await transcribeBroadcast(id);
+        res.json({ status: true, data: { transcription: transcript, status: 'completed' } });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /broadcasts/:id/transcription — get transcription for a broadcast
+adminRouter.get("/broadcasts/:id/transcription", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+        res.json({
+            status: true,
+            data: {
+                transcription: broadcast.transcription || null,
+                status: broadcast.transcription_status || null,
+                error: broadcast.transcription_error || null,
+            },
+        });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -954,11 +1034,16 @@ adminRouter.put("/accounts/:id", async (req, res) => {
 
         if (fields.debug !== undefined) invalidateDebugCache(account.email);
 
-        if (fields.room !== undefined) {
+        if (fields.display_name !== undefined || fields.company_name !== undefined || fields.room !== undefined) {
             const userName = `sip:${account.email}`;
             const userInfo = global.db.getUserInfo(userName);
             if (userInfo && Object.keys(userInfo).length > 0) {
-                userInfo.room = fields.room;
+                if (fields.room !== undefined) userInfo.room = fields.room;
+                if (fields.display_name !== undefined || fields.company_name !== undefined) {
+                    const co = fields.company_name !== undefined ? fields.company_name : account.company_name;
+                    const dn = fields.display_name !== undefined ? fields.display_name : account.display_name;
+                    userInfo.callerIdName = `${co || ''} / ${dn || account.email}`;
+                }
                 global.db.setUserInfo(userName, userInfo);
             }
         }

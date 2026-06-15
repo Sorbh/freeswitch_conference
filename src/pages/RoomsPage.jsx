@@ -241,7 +241,7 @@ function getLocalTime(gmtOffset) {
   return local.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
-const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "", timezone: "America/Chicago" };
+const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "", timezone: "America/Chicago", auto_transcribe: false };
 
 // ── Main Page ──
 export default function RoomsPage() {
@@ -270,7 +270,7 @@ export default function RoomsPage() {
 
   function openEditRoom(room) {
     setEditingRoom(room);
-    setRoomForm({ id: String(room.room), name: room.roomName || "", short_code: room.shortCode || "", timezone: room.timezone || "America/Chicago" });
+    setRoomForm({ id: String(room.room), name: room.roomName || "", short_code: room.shortCode || "", timezone: room.timezone || "America/Chicago", auto_transcribe: !!room.auto_transcribe });
     setRoomDialogOpen(true);
   }
 
@@ -281,13 +281,13 @@ export default function RoomsPage() {
         await apiFetch(`/api/v1/admin/rooms/${editingRoom.room}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone }),
+          body: JSON.stringify({ name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone, auto_transcribe: roomForm.auto_transcribe }),
         });
       } else {
         await apiFetch("/api/v1/admin/rooms/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: parseInt(roomForm.id), name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone }),
+          body: JSON.stringify({ id: parseInt(roomForm.id), name: roomForm.name, short_code: roomForm.short_code, timezone: roomForm.timezone, auto_transcribe: roomForm.auto_transcribe }),
         });
       }
       setRoomDialogOpen(false);
@@ -838,6 +838,25 @@ export default function RoomsPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium">Auto-transcribe</p>
+                <p className="text-[11px] text-muted-foreground">Automatically transcribe broadcasts in this room</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={roomForm.auto_transcribe}
+                onClick={() => setRoomForm(f => ({ ...f, auto_transcribe: !f.auto_transcribe }))}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border transition-colors ${
+                  roomForm.auto_transcribe ? "bg-emerald-500 border-emerald-500" : "bg-muted border-border/60"
+                }`}
+              >
+                <span className={`pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform ${
+                  roomForm.auto_transcribe ? "translate-x-4" : "translate-x-0.5"
+                }`} style={{ marginTop: '1px' }} />
+              </button>
             </div>
             <Button
               className="w-full mt-2"

@@ -13,6 +13,7 @@ import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem, logBroadcast } from '../logger.js';
 import { isPlaying, stopAd } from '../announcements.js';
 import { notifyBroadcast } from '../notifier.js';
+import { shouldAutoTranscribe, transcribeBroadcast } from '../transcription.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
 const BROADCAST_RESPONSE_WINDOW_MS = 5000;
@@ -320,7 +321,7 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         `${speaker.displayName} broadcast ${data.durationMs}ms in ${roomName}${answered ? ` — answered by ${respondedBy}` : ' — UNANSWERED'}`
     );
 
-    notifyBroadcast({
+    const broadcastNotifyData = {
         room, roomName,
         userName: speaker.userName,
         displayName: speaker.displayName,
@@ -329,5 +330,21 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         respondedBy,
         participants,
         recordingPath: data.recordingPath,
-    }).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
+    };
+
+    // If auto-transcribe is enabled, transcribe first then notify (so {{transcription}} is available)
+    if (data.recordingPath && shouldAutoTranscribe(room)) {
+        const row = global.db.getBroadcastByRecordingPath(data.recordingPath);
+        if (row) {
+            transcribeBroadcast(row.id)
+                .catch(err => logSystem('BCAST', `Auto-transcribe failed for broadcast #${row.id}: ${err.message}`))
+                .finally(() => {
+                    notifyBroadcast(broadcastNotifyData).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
+                });
+            return;
+        }
+    }
+
+    // No auto-transcribe — notify immediately
+    notifyBroadcast(broadcastNotifyData).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
 }
