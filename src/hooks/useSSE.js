@@ -23,7 +23,7 @@ export function useSSE(url, active = true) {
   useEffect(() => {
     if (!active) return;
 
-    const es = new EventSource(url);
+    const es = new EventSource(url, { withCredentials: true });
 
     es.onmessage = (e) => {
       try {

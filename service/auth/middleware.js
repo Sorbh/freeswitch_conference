@@ -31,7 +31,7 @@ function setAuthCookies(res, admin, refreshToken, refreshDays) {
     const sseToken = jwt.sign(
         { sub: admin.id, email: admin.email, role: admin.role },
         JWT_SECRET,
-        { expiresIn: ACCESS_TOKEN_EXPIRY }
+        { expiresIn: `${days}d` }
     );
 
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
@@ -47,7 +47,7 @@ function setAuthCookies(res, admin, refreshToken, refreshDays) {
         secure,
         sameSite: 'strict',
         path: '/api/v1/admin/events',
-        maxAge: 15 * 60 * 1000,
+        maxAge: days * 24 * 60 * 60 * 1000,
     });
 }
 

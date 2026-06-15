@@ -8,7 +8,7 @@ export function useSSERefresh(refetch, scopes = []) {
   refetchRef.current = refetch;
 
   useEffect(() => {
-    const es = new EventSource("/api/v1/admin/events/stream");
+    const es = new EventSource("/api/v1/admin/events/stream", { withCredentials: true });
 
     es.onmessage = (e) => {
       try {

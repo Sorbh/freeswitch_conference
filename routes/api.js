@@ -74,9 +74,60 @@ export default class ApiRouter {
         this.apiRouter.use("/action", requireApiKey, new ActionApiRouter().actionRouter);
 
         // Admin: SSE event endpoints use cookie auth, everything else uses Bearer
-        this.apiRouter.use("/admin/events", requireSSEAuth, adminRouter);
+        this.apiRouter.use("/admin/events", requireSSEAuth, _sseRouter());
         this.apiRouter.use("/admin", requireAuth, _adminRoleGuard, adminRouter);
     }
+}
+
+function _sseRouter() {
+    const router = express.Router();
+
+    // /api/v1/admin/events/stream → this sees /stream
+    router.get("/stream", (req, res) => {
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        });
+        res.write('data: {"type":"connected"}\n\n');
+        const onEvent = (eventData) => { res.write(`data: ${JSON.stringify(eventData)}\n\n`); };
+        global.db.eventEmitter.on('EVENT_LOG', onEvent);
+        global.db.eventEmitter.on('USER_UPDATE', onEvent);
+        global.db.eventEmitter.on('STATE_CHANGE', onEvent);
+        global.db.eventEmitter.on('BROADCAST', onEvent);
+        req.on('close', () => {
+            global.db.eventEmitter.off('EVENT_LOG', onEvent);
+            global.db.eventEmitter.off('USER_UPDATE', onEvent);
+            global.db.eventEmitter.off('STATE_CHANGE', onEvent);
+            global.db.eventEmitter.off('BROADCAST', onEvent);
+        });
+    });
+
+    // /api/v1/admin/events/room/:room → this sees /room/:room
+    router.get("/room/:room", (req, res) => {
+        const room = parseInt(req.params.room);
+        if (!room) return res.status(400).end();
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        });
+        const onEvent = (eventData) => {
+            if (eventData.room === room || eventData.type === 'state_change') {
+                res.write(`data: ${JSON.stringify(eventData)}\n\n`);
+            }
+        };
+        global.db.eventEmitter.on('USER_UPDATE', onEvent);
+        global.db.eventEmitter.on('STATE_CHANGE', onEvent);
+        global.db.eventEmitter.on('BROADCAST', onEvent);
+        req.on('close', () => {
+            global.db.eventEmitter.off('USER_UPDATE', onEvent);
+            global.db.eventEmitter.off('STATE_CHANGE', onEvent);
+            global.db.eventEmitter.off('BROADCAST', onEvent);
+        });
+    });
+
+    return router;
 }
 
 function _adminRoleGuard(req, res, next) {
