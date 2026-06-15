@@ -16,12 +16,15 @@ import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
 import { useSSE } from "@/hooks/useSSE";
 import { useRooms } from "@/hooks/useRooms";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { apiFetch } from "@/lib/api";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { toast } from "sonner";
 import {
   RadioIcon, PhoneCallIcon, PhoneOffIcon, PercentIcon,
   TrendingUpIcon, PlayIcon, PauseIcon, ClockIcon, UserIcon,
   ChevronLeftIcon, ChevronRightIcon, XIcon,
   ChevronsLeftIcon, ChevronsRightIcon, ListIcon,
+  Share2Icon, Unlink2Icon,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -326,7 +329,7 @@ export default function BroadcastsPage() {
   const [listLoading, setListLoading] = useState(true);
   const refetchList = useCallback(async () => {
     try {
-      const res = await fetch(`/api/v1/admin/broadcasts/list?${listParams}`);
+      const res = await apiFetch(`/api/v1/admin/broadcasts/list?${listParams}`);
       const json = await res.json();
       if (json.status) setListRaw(json);
     } catch (e) { console.error("Fetch broadcasts list:", e); }
@@ -434,7 +437,39 @@ export default function BroadcastsPage() {
     return { hourlyDistData: data, hourlyDistKeys: sortedDays };
   }, [rawHourly, days, getRowOffset]);
 
+  const hourlyDistConfig = useMemo(() => {
+    const cfg = {};
+    for (let i = 0; i < hourlyDistKeys.length; i++) {
+      cfg[hourlyDistKeys[i]] = { label: hourlyDistKeys[i], color: LINE_COLORS[i % LINE_COLORS.length] };
+    }
+    return cfg;
+  }, [hourlyDistKeys]);
+
   const maxRoomCount = Math.max(1, ...byRoom.map(r => r.count));
+
+  const shareBroadcast = useCallback(async (id) => {
+    try {
+      const res = await apiFetch(`/api/v1/admin/broadcasts/${id}/share`, { method: "POST" });
+      const json = await res.json();
+      if (json.status) {
+        const url = `${window.location.origin}/b/${json.token}`;
+        await navigator.clipboard.writeText(url);
+        toast.success("Share link copied to clipboard");
+        refetchList();
+      }
+    } catch (e) { toast.error("Failed to generate share link"); }
+  }, [refetchList]);
+
+  const revokeBroadcast = useCallback(async (id) => {
+    try {
+      const res = await apiFetch(`/api/v1/admin/broadcasts/${id}/share`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.status) {
+        toast.success("Share link revoked");
+        refetchList();
+      }
+    } catch (e) { toast.error("Failed to revoke share link"); }
+  }, [refetchList]);
 
   const anyFilterActive = filterStatus || filterDateFrom || filterDateTo;
   const clearFilters = () => { setFilterStatus(""); setFilterDateFrom(""); setFilterDateTo(""); setPage(1); };
@@ -586,7 +621,7 @@ export default function BroadcastsPage() {
                 {hourlyDistKeys.map((day, i) => (
                   <span key={day} className="flex items-center gap-1 text-[10px] font-mono">
                     <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }} />
-                    <span className="text-muted-foreground/50">{day}</span>
+                    <span className="text-foreground/70">{day}</span>
                   </span>
                 ))}
               </div>
@@ -597,16 +632,12 @@ export default function BroadcastsPage() {
           {hourlyDistKeys.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-16">No data</p>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
+            <ChartContainer config={hourlyDistConfig} className="h-[260px] w-full [&_.recharts-cartesian-axis-line]:stroke-border [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground">
               <LineChart data={hourlyDistData}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.08)" />
-                <XAxis dataKey="hour" tickLine={false} axisLine={true} fontSize={10} interval={2} stroke="hsl(var(--muted-foreground) / 0.3)" />
-                <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} stroke="hsl(var(--muted-foreground) / 0.3)" />
-                <RechartsTooltip
-                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border) / 0.4)", borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 600, marginBottom: 4 }}
-                  itemStyle={{ padding: "1px 0" }}
-                />
+                <XAxis dataKey="hour" tickLine={false} axisLine={true} fontSize={10} interval={2} />
+                <YAxis tickLine={false} axisLine={true} fontSize={10} width={30} allowDecimals={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 {hourlyDistKeys.map((day, i) => (
                   <Line
                     key={day}
@@ -620,7 +651,7 @@ export default function BroadcastsPage() {
                   />
                 ))}
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           )}
         </CardContent>
       </Card>
@@ -798,9 +829,11 @@ export default function BroadcastsPage() {
                   <TableHead>Room</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Participants</TableHead>
+                  <TableHead>Listeners</TableHead>
                   <TableHead>Response Time</TableHead>
                   <TableHead>Responded By</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="pr-6 w-16">Share</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -851,6 +884,9 @@ export default function BroadcastsPage() {
                         <span className="text-sm font-mono tabular-nums text-muted-foreground">{b.participant_count || "—"}</span>
                       </TableCell>
                       <TableCell>
+                        <span className="text-sm font-mono tabular-nums text-muted-foreground">{b.listener_count || "—"}</span>
+                      </TableCell>
+                      <TableCell>
                         {b.answered ? (
                           <span className={`text-sm font-mono tabular-nums ${b.response_time_ms === 0 ? "text-emerald-400" : b.response_time_ms != null ? "text-amber-400" : "text-muted-foreground/40"}`}>
                             {b.response_time_ms === 0 ? "instant" : b.response_time_ms != null ? formatDuration(b.response_time_ms) : "—"}
@@ -867,6 +903,33 @@ export default function BroadcastsPage() {
                           <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-1.5 py-0">Answered</Badge>
                         ) : (
                           <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[10px] px-1.5 py-0">Unanswered</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="pr-6">
+                        {b.share_token ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => revokeBroadcast(b.id)}
+                                className="flex size-7 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer"
+                              >
+                                <Unlink2Icon className="size-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Revoke share link</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => shareBroadcast(b.id)}
+                                className="flex size-7 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
+                              >
+                                <Share2Icon className="size-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Generate share link</TooltipContent>
+                          </Tooltip>
                         )}
                       </TableCell>
                     </TableRow>

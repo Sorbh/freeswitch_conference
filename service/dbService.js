@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import Database from 'better-sqlite3';
 import path from 'path';
@@ -68,6 +69,7 @@ function init() {
         CREATE INDEX IF NOT EXISTS idx_users_room ON users(room);
         CREATE INDEX IF NOT EXISTS idx_users_connection_state ON users(connection_state);
         CREATE INDEX IF NOT EXISTS idx_broadcast_room_date ON broadcast_log(room, created_at);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_broadcast_share_token ON broadcast_log(share_token) WHERE share_token IS NOT NULL;
 
         CREATE TABLE IF NOT EXISTS event_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -135,6 +137,8 @@ function init() {
         ['participant_count', "ALTER TABLE broadcast_log ADD COLUMN participant_count INTEGER DEFAULT 0"],
         ['recording_path', "ALTER TABLE broadcast_log ADD COLUMN recording_path TEXT"],
         ['response_time_ms', "ALTER TABLE broadcast_log ADD COLUMN response_time_ms INTEGER"],
+        ['share_token', "ALTER TABLE broadcast_log ADD COLUMN share_token TEXT"],
+        ['listener_count', "ALTER TABLE broadcast_log ADD COLUMN listener_count INTEGER DEFAULT 0"],
     ];
     for (const [col, sql] of migrations) {
         if (!broadcastCols.includes(col)) sqlite.exec(sql);
@@ -231,6 +235,44 @@ function init() {
     if (!ncCols.includes('message_template')) {
         sqlite.exec("ALTER TABLE notification_channels ADD COLUMN message_template TEXT");
     }
+
+    // ── Auth tables ──
+
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'analytics',
+            active INTEGER NOT NULL DEFAULT 1,
+            locked_until INTEGER,
+            failed_attempts INTEGER NOT NULL DEFAULT 0,
+            created_by INTEGER,
+            created_at INTEGER DEFAULT (strftime('%s', 'now')),
+            updated_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_id INTEGER NOT NULL,
+            token_hash TEXT UNIQUE NOT NULL,
+            expires_at INTEGER NOT NULL,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_refresh_tokens_admin ON refresh_tokens(admin_id);
+        CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires ON refresh_tokens(expires_at);
+
+        CREATE TABLE IF NOT EXISTS api_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT NOT NULL,
+            key_hash TEXT UNIQUE NOT NULL,
+            key_prefix TEXT NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            created_by INTEGER NOT NULL,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+    `);
 
     console.log(`SQLite database initialized at ${DB_PATH}`);
 }
@@ -522,11 +564,11 @@ function getDashboardStats() {
     };
 }
 
-function logBroadcast({ room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs }) {
+function logBroadcast({ room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, listenerCount }) {
     sqlite.prepare(`
-        INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath, responseTimeMs);
+        INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath, responseTimeMs, listenerCount || 0);
     eventEmitter.emit('BROADCAST', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, created_at: Math.floor(Date.now() / 1000) });
     eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'broadcasts' });
     eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
@@ -597,7 +639,7 @@ function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateF
     const offset = (page - 1) * pageSize;
 
     const rows = sqlite.prepare(`
-        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, created_at
+        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, share_token, listener_count, created_at
         FROM broadcast_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?
     `).all(...params, pageSize, offset);
 
@@ -827,6 +869,119 @@ function getAdStats(adId) {
     return row || { total_plays: 0, completed: 0, interrupted: 0, avg_duration_ms: 0, total_impressions: 0 };
 }
 
+// ── Auth: Admins ──
+
+function getAdminByEmail(email) {
+    return sqlite.prepare('SELECT * FROM admins WHERE email = ?').get(email) || null;
+}
+
+function getAdminById(id) {
+    return sqlite.prepare('SELECT * FROM admins WHERE id = ?').get(id) || null;
+}
+
+function getAllAdmins() {
+    return sqlite.prepare('SELECT id, email, name, role, active, created_at, updated_at FROM admins ORDER BY created_at DESC').all();
+}
+
+function createAdmin({ email, passwordHash, name, role, createdBy }) {
+    sqlite.prepare(
+        'INSERT INTO admins (email, password_hash, name, role, created_by) VALUES (?, ?, ?, ?, ?)'
+    ).run(email, passwordHash, name, role || 'analytics', createdBy || null);
+    return getAdminByEmail(email);
+}
+
+function updateAdmin(id, fields) {
+    const allowed = ['email', 'password_hash', 'name', 'role', 'active', 'locked_until', 'failed_attempts'];
+    const sets = [];
+    const values = [];
+    for (const [key, val] of Object.entries(fields)) {
+        if (allowed.includes(key) && val !== undefined) {
+            sets.push(`${key} = ?`);
+            values.push(val);
+        }
+    }
+    if (sets.length === 0) return null;
+    sets.push("updated_at = strftime('%s', 'now')");
+    values.push(id);
+    sqlite.prepare(`UPDATE admins SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+    return getAdminById(id);
+}
+
+function deleteAdmin(id) {
+    sqlite.prepare('DELETE FROM refresh_tokens WHERE admin_id = ?').run(id);
+    sqlite.prepare('DELETE FROM admins WHERE id = ?').run(id);
+}
+
+function adminCount() {
+    return sqlite.prepare('SELECT COUNT(*) as count FROM admins').get().count;
+}
+
+// ── Auth: Refresh Tokens ──
+
+function saveRefreshToken(adminId, tokenHash, expiresAt) {
+    sqlite.prepare(
+        'INSERT INTO refresh_tokens (admin_id, token_hash, expires_at) VALUES (?, ?, ?)'
+    ).run(adminId, tokenHash, expiresAt);
+}
+
+function getRefreshToken(tokenHash) {
+    return sqlite.prepare('SELECT * FROM refresh_tokens WHERE token_hash = ?').get(tokenHash) || null;
+}
+
+function deleteRefreshToken(tokenHash) {
+    sqlite.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').run(tokenHash);
+}
+
+function deleteRefreshTokensByAdmin(adminId) {
+    sqlite.prepare('DELETE FROM refresh_tokens WHERE admin_id = ?').run(adminId);
+}
+
+function cleanExpiredRefreshTokens() {
+    const now = Math.floor(Date.now() / 1000);
+    sqlite.prepare('DELETE FROM refresh_tokens WHERE expires_at < ?').run(now);
+}
+
+// ── Auth: API Keys ──
+
+function getAllApiKeys() {
+    return sqlite.prepare('SELECT id, label, key_prefix, active, created_by, created_at FROM api_keys ORDER BY created_at DESC').all();
+}
+
+function getApiKeyByHash(keyHash) {
+    return sqlite.prepare('SELECT * FROM api_keys WHERE key_hash = ? AND active = 1').get(keyHash) || null;
+}
+
+function createApiKey({ label, keyHash, keyPrefix, createdBy }) {
+    const result = sqlite.prepare(
+        'INSERT INTO api_keys (label, key_hash, key_prefix, created_by) VALUES (?, ?, ?, ?)'
+    ).run(label, keyHash, keyPrefix, createdBy);
+    return sqlite.prepare('SELECT id, label, key_prefix, active, created_by, created_at FROM api_keys WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function deleteApiKey(id) {
+    sqlite.prepare('DELETE FROM api_keys WHERE id = ?').run(id);
+}
+
+function generateBroadcastShareToken(id) {
+    const token = crypto.randomUUID();
+    sqlite.prepare('UPDATE broadcast_log SET share_token = ? WHERE id = ?').run(token, id);
+    return token;
+}
+
+function revokeBroadcastShareToken(id) {
+    sqlite.prepare('UPDATE broadcast_log SET share_token = NULL WHERE id = ?').run(id);
+}
+
+function getBroadcastByShareToken(token) {
+    return sqlite.prepare(
+        'SELECT id, room, room_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count, created_at FROM broadcast_log WHERE share_token = ?'
+    ).get(token) || null;
+}
+
+function getBroadcastById(id) {
+    return sqlite.prepare('SELECT * FROM broadcast_log WHERE id = ?').get(id) || null;
+}
+
 db.init = init;
 db.getUserInfo = getUserInfo;
 db.setUserInfo = setUserInfo;
@@ -882,5 +1037,25 @@ db.deleteAudioAd = deleteAudioAd;
 db.logAdPlay = logAdPlay;
 db.getAdPlayLog = getAdPlayLog;
 db.getAdStats = getAdStats;
+db.generateBroadcastShareToken = generateBroadcastShareToken;
+db.revokeBroadcastShareToken = revokeBroadcastShareToken;
+db.getBroadcastByShareToken = getBroadcastByShareToken;
+db.getBroadcastById = getBroadcastById;
+db.getAdminByEmail = getAdminByEmail;
+db.getAdminById = getAdminById;
+db.getAllAdmins = getAllAdmins;
+db.createAdmin = createAdmin;
+db.updateAdmin = updateAdmin;
+db.deleteAdmin = deleteAdmin;
+db.adminCount = adminCount;
+db.saveRefreshToken = saveRefreshToken;
+db.getRefreshToken = getRefreshToken;
+db.deleteRefreshToken = deleteRefreshToken;
+db.deleteRefreshTokensByAdmin = deleteRefreshTokensByAdmin;
+db.cleanExpiredRefreshTokens = cleanExpiredRefreshTokens;
+db.getAllApiKeys = getAllApiKeys;
+db.getApiKeyByHash = getApiKeyByHash;
+db.createApiKey = createApiKey;
+db.deleteApiKey = deleteApiKey;
 
 export default { db };

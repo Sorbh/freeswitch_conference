@@ -290,6 +290,35 @@ adminRouter.get("/broadcasts/hourly", (req, res) => {
     }
 });
 
+// POST /broadcasts/:id/share — generate a share token for a broadcast
+adminRouter.post("/broadcasts/:id/share", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+        if (broadcast.share_token) {
+            return res.json({ status: true, token: broadcast.share_token, url: `/b/${broadcast.share_token}` });
+        }
+        const token = global.db.generateBroadcastShareToken(id);
+        res.json({ status: true, token, url: `/b/${token}` });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// DELETE /broadcasts/:id/share — revoke a broadcast's share link
+adminRouter.delete("/broadcasts/:id/share", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+        global.db.revokeBroadcastShareToken(id);
+        res.json({ status: true, message: "Share link revoked" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /broadcasts/activity — last N minutes for timeline
 adminRouter.get("/broadcasts/activity", (req, res) => {
     try {

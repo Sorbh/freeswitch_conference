@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RoomsProvider } from "@/hooks/useRooms";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/sonner";
 import {
   Breadcrumb,
@@ -17,6 +18,7 @@ import {
 
 import { lazy, Suspense } from "react";
 import LandingPage from "@/pages/LandingPage";
+import LoginPage from "@/pages/LoginPage";
 const Landing2Page = lazy(() => import("@/pages/Landing2Page"));
 const OwnHotlinePage = lazy(() =>
   import("@/pages/landing2/OwnHotlinePage").then((m) => ({ default: m.OwnHotlinePage }))
@@ -33,6 +35,7 @@ const TermsPage = lazy(() =>
 const DisclaimerPage = lazy(() =>
   import("@/pages/landing2/LegalPages").then((m) => ({ default: m.DisclaimerPage }))
 );
+const PublicBroadcastPage = lazy(() => import("@/pages/PublicBroadcastPage"));
 
 const sitePages = [
   { path: "/own-a-hotline", element: <OwnHotlinePage /> },
@@ -53,6 +56,7 @@ import YmcsControlPage from "@/pages/YmcsControlPage";
 import NotificationsPage from "@/pages/NotificationsPage";
 import AnnouncementsPage from "@/pages/AnnouncementsPage";
 import ServerLogsPage from "@/pages/ServerLogsPage";
+import { Loader2Icon } from "lucide-react";
 
 const dashboardRoutes = [
   { path: "/dashboard", element: <DashboardPage />, title: "Dashboard" },
@@ -98,6 +102,29 @@ function BreadcrumbNav() {
   );
 }
 
+function ProtectedRoute() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
+  return (
+    <RoomsProvider>
+      <AppLayout />
+    </RoomsProvider>
+  );
+}
+
 function AppLayout() {
   return (
     <TooltipProvider>
@@ -123,43 +150,54 @@ function App() {
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
       <BrowserRouter>
         <ScrollToTop />
-        <RoomsProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route
-              path="/"
-              element={
-                <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
-                  <Landing2Page />
-                </Suspense>
-              }
-            />
-            <Route path="/classic" element={<LandingPage />} />
-            <Route path="/landing_2" element={<Navigate to="/" replace />} />
-            {sitePages.map((p) => (
+        <AuthProvider>
+            <Routes>
+              {/* Public routes */}
               <Route
-                key={p.path}
-                path={p.path}
+                path="/"
                 element={
                   <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
-                    {p.element}
+                    <Landing2Page />
                   </Suspense>
                 }
               />
-            ))}
-            
-            {/* Dashboard app routes */}
-            <Route element={<AppLayout />}>
-              {dashboardRoutes.map((r) => (
-                <Route key={r.path} path={r.path} element={r.element} />
+              <Route path="/classic" element={<LandingPage />} />
+              <Route
+                path="/b/:token"
+                element={
+                  <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
+                    <PublicBroadcastPage />
+                  </Suspense>
+                }
+              />
+              <Route path="/landing_2" element={<Navigate to="/" replace />} />
+              {sitePages.map((p) => (
+                <Route
+                  key={p.path}
+                  path={p.path}
+                  element={
+                    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
+                      {p.element}
+                    </Suspense>
+                  }
+                />
               ))}
-            </Route>
 
-            {/* Redirect fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <Toaster />
-        </RoomsProvider>
+              {/* Login */}
+              <Route path="/login" element={<LoginPage />} />
+
+              {/* Protected dashboard routes */}
+              <Route element={<ProtectedRoute />}>
+                {dashboardRoutes.map((r) => (
+                  <Route key={r.path} path={r.path} element={r.element} />
+                ))}
+              </Route>
+
+              {/* Redirect fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <Toaster />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   );

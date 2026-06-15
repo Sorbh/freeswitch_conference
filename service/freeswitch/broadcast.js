@@ -59,6 +59,36 @@ function _trimTrailingSilence(filePath) {
     }
 }
 
+function _getFileDurationMs(filePath) {
+    try {
+        const out = execFileSync('ffprobe', [
+            '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath
+        ], { encoding: 'utf8', timeout: 5000 });
+        const secs = parseFloat(out.trim());
+        if (isFinite(secs) && secs > 0) return Math.round(secs * 1000);
+    } catch {}
+    return null;
+}
+
+function _trimToduration(filePath, durationMs) {
+    try {
+        const durationSec = (durationMs / 1000).toFixed(3);
+        const tmpPath = filePath.replace(/\.wav$/, '_cut.wav');
+        execFileSync('ffmpeg', [
+            '-y', '-i', filePath, '-t', durationSec, '-c', 'copy', tmpPath
+        ], { stdio: 'ignore', timeout: 10000 });
+        const trimmedSize = fs.statSync(tmpPath).size;
+        if (trimmedSize > 44) {
+            fs.renameSync(tmpPath, filePath);
+            logSystem('BCAST', `Trimmed response window: cut to ${durationSec}s`);
+        } else {
+            try { fs.unlinkSync(tmpPath); } catch {}
+        }
+    } catch (e) {
+        logSystem('BCAST', `Duration trim failed: ${e.message}`);
+    }
+}
+
 // Room-level active sessions: conferenceName -> session
 const roomSessions = new Map();
 
@@ -101,6 +131,14 @@ function _resolveMember(memberId, event) {
         }
     }
 
+    if (userName) {
+        const email = userName.replace(/^sip:/, '');
+        const account = global.db.getAccountByEmail(email);
+        if (account) {
+            displayName = `${account.company_name || ''} / ${account.display_name || email}`;
+        }
+    }
+
     return { userName: userName || callerIdName, displayName, uuid };
 }
 
@@ -133,7 +171,11 @@ function _handleUnmute(conferenceName, memberId, room, event) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const recordingFile = path.join(recordingDir, `${roomName}_${timestamp}.wav`);
 
-        logSystem('BCAST', `SESSION START in ${roomName} by ${member.displayName} — recording`);
+        const listenerCount = global.db.filter(u =>
+            u.connectionState === 'connected' && (u.currentRoom || u.room) === room
+        ).length;
+
+        logSystem('BCAST', `SESSION START in ${roomName} by ${member.displayName} — recording (${listenerCount} listeners)`);
         getConnection().api(`conference ${conferenceName} record ${recordingFile}`, () => {});
 
         session = {
@@ -142,6 +184,7 @@ function _handleUnmute(conferenceName, memberId, room, event) {
             participants: new Map(),
             allParticipants: [],
             room,
+            listenerCount,
             responseTimer: null,
             speechEndTime: null,
             responseTimeMs: null,
@@ -203,16 +246,19 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
                 return;
             }
 
+            _trimToduration(session.recordingPath, durationMs);
             _trimTrailingSilence(session.recordingPath);
-            logSystem('BCAST', `UNANSWERED by ${firstSpeaker.displayName} in ${roomName} (${durationMs}ms) — sending notification`);
+            const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
+            logSystem('BCAST', `UNANSWERED by ${firstSpeaker.displayName} in ${roomName} (${actualDurationMs}ms) — sending notification`);
 
             _finalizeBroadcast(conferenceName, room, {
                 firstSpeaker,
                 allParticipants: session.allParticipants,
-                durationMs,
+                durationMs: actualDurationMs,
                 recordingPath: session.recordingPath,
                 startTime: session.startTime,
                 responseTimeMs: null,
+                listenerCount: session.listenerCount,
             }, false, null);
         }, BROADCAST_RESPONSE_WINDOW_MS);
 
@@ -232,16 +278,18 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
         return;
     }
 
-    logSystem('BCAST', `SESSION END in ${roomName} (${durationMs}ms, ${session.allParticipants.length} participants)`);
+    const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
+    logSystem('BCAST', `SESSION END in ${roomName} (speech ${durationMs}ms, file ${actualDurationMs}ms, ${session.allParticipants.length} participants)`);
     logSystem('BCAST', `ANSWERED by ${firstSpeaker.displayName} in ${roomName}, responders: ${responders}`);
 
     _finalizeBroadcast(conferenceName, room, {
         firstSpeaker,
         allParticipants: session.allParticipants,
-        durationMs,
+        durationMs: actualDurationMs,
         recordingPath: session.recordingPath,
         startTime: session.startTime,
         responseTimeMs: session.responseTimeMs,
+        listenerCount: session.listenerCount,
     }, true, responders);
 }
 
@@ -262,6 +310,7 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         participantCount: participants.length,
         recordingPath: data.recordingPath || null,
         responseTimeMs: data.responseTimeMs ?? null,
+        listenerCount: data.listenerCount || 0,
     });
 
     global.db.logEvent(
