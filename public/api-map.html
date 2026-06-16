@@ -61,14 +61,14 @@
 </head>
 <body>
     <h1>Hotline HQ — API Route Map</h1>
-    <p class="subtitle">Base: /api/v1 &nbsp;·&nbsp; 94 endpoints &nbsp;·&nbsp; 6 routers &nbsp;·&nbsp; 2 dead routes</p>
+    <p class="subtitle">Base: /api/v1 &nbsp;·&nbsp; 92 endpoints &nbsp;·&nbsp; 6 routers &nbsp;·&nbsp; 0 dead routes</p>
 
     <input type="text" class="search" id="search" placeholder="Filter routes... (e.g. broadcasts, POST, bearer, dead)">
 
     <div class="stats">
-        <div class="stat"><div class="stat-num" id="totalCount">94</div><div class="stat-label">Total Routes</div></div>
-        <div class="stat"><div class="stat-num" id="visibleCount">94</div><div class="stat-label">Visible</div></div>
-        <div class="stat"><div class="stat-num">2</div><div class="stat-label">Dead Routes</div></div>
+        <div class="stat"><div class="stat-num" id="totalCount">92</div><div class="stat-label">Total Routes</div></div>
+        <div class="stat"><div class="stat-num" id="visibleCount">92</div><div class="stat-label">Visible</div></div>
+        <div class="stat"><div class="stat-num">0</div><div class="stat-label">Dead Routes</div></div>
         <div class="stat"><div class="stat-num">0</div><div class="stat-label">Duplicates</div></div>
     </div>
 
@@ -126,16 +126,6 @@
                 ]
             },
             {
-                name: "SSE Events", file: "routes/api.js → _sseRouter()", mount: "/api/v1/admin/events", auth: "cookie", authLabel: "Cookie Auth (requireSSEAuth)",
-                routes: [
-                    { m: "GET", p: "/stream", tags: ["cookie", "sse"], desc: "Main dashboard SSE — all user, state, broadcast events" },
-                    { m: "GET", p: "/room/:room", tags: ["cookie", "sse"], desc: "Room-filtered SSE with callerIdHtml" },
-                    { m: "GET", p: "/fs-log", tags: ["cookie", "sse"], desc: "Live FreeSWITCH log stream" },
-                    { m: "GET", p: "/phone-log", tags: ["cookie", "sse"], desc: "Live phone syslog stream (Yealink UDP 515)" },
-                    { m: "GET", p: "/debug-log", tags: ["cookie", "sse"], desc: "Live debug log stream (per-account debug)" },
-                ]
-            },
-            {
                 name: "Yealink Phone (Softkeys)", file: "modules/yealink/routesApi.js", mount: "/api/v1/yealink", auth: "api-key", authLabel: "API Key",
                 routes: [
                     { m: "GET", p: "/onhook", desc: "Phone on-hook — mute user by MAC address" },
@@ -150,7 +140,17 @@
                 ]
             },
             {
-                name: "Admin — Users", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — SSE Events", file: "routes/api.js → _sseRouter()", mount: "/api/v1/admin/events", auth: "cookie", authLabel: "Cookie Auth (requireSSEAuth)",
+                routes: [
+                    { m: "GET", p: "/stream", tags: ["cookie", "sse"], desc: "Main dashboard SSE — all user, state, broadcast events" },
+                    { m: "GET", p: "/room/:room", tags: ["cookie", "sse"], desc: "Room-filtered SSE with callerIdHtml" },
+                    { m: "GET", p: "/fs-log", tags: ["cookie", "sse"], desc: "Live FreeSWITCH log stream" },
+                    { m: "GET", p: "/phone-log", tags: ["cookie", "sse"], desc: "Live phone syslog stream (Yealink UDP 515)" },
+                    { m: "GET", p: "/debug-log", tags: ["cookie", "sse"], desc: "Live debug log stream (per-account debug)" },
+                ]
+            },
+            {
+                name: "Admin — Users", file: "modules/admin/users.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/users", desc: "List all users with live SIP state (online, mute, room)" },
                     { m: "GET", p: "/users/:userName", desc: "Get single user details" },
@@ -168,7 +168,7 @@
                 ]
             },
             {
-                name: "Admin — Rooms", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — Rooms", file: "modules/admin/rooms.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/rooms", desc: "List all rooms with live member counts" },
                     { m: "GET", p: "/rooms/config", desc: "Get room config (names, short codes, timezones)" },
@@ -181,7 +181,7 @@
                 ]
             },
             {
-                name: "Admin — Broadcasts", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — Broadcasts", file: "modules/admin/broadcasts.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/broadcasts", desc: "Get broadcast summary stats" },
                     { m: "GET", p: "/broadcasts/list", desc: "Paginated broadcast list with filters" },
@@ -197,29 +197,22 @@
                 ]
             },
             {
-                name: "Admin — Settings", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — Settings", file: "modules/admin/broadcasts.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/settings/audio", desc: "Get audio/transcription settings" },
                     { m: "PUT", p: "/settings/audio", desc: "Update audio/transcription settings" },
                 ]
             },
             {
-                name: "Admin — Events (on adminRouter)", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — System", file: "modules/admin/system.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
-                    { m: "GET", p: "/events", desc: "Paginated event log list from DB" },
-                    { m: "GET", p: "/events/stream", tags: ["dead", "sse"], deadNote: "_sseRouter catches /admin/events/* first", desc: "Main SSE stream (dead — _sseRouter handles this)" },
-                    { m: "GET", p: "/events/room/:room", tags: ["dead", "sse"], deadNote: "_sseRouter catches /admin/events/* first", desc: "Room SSE (dead — _sseRouter handles this)" },
-                ]
-            },
-            {
-                name: "Admin — System", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
-                routes: [
+                    { m: "GET", p: "/events", desc: "Event log list from DB (not SSE)" },
                     { m: "GET", p: "/system", desc: "System health — DB size, uptime, FS status, memory" },
                     { m: "GET", p: "/system/audio-health", desc: "Audio health check — FS channels, conference, media path" },
                 ]
             },
             {
-                name: "Admin — Accounts", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — Accounts", file: "modules/admin/accounts.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/accounts", desc: "List all yard accounts" },
                     { m: "GET", p: "/accounts/:id", desc: "Get single account details" },
@@ -236,7 +229,7 @@
                 ]
             },
             {
-                name: "Admin — YMCS Bulk", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — YMCS Bulk", file: "modules/admin/ymcs.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/ymcs/sync-all-device-ids", tags: ["sse"], desc: "SSE: sync all YMCS device IDs to local DB" },
                     { m: "GET", p: "/ymcs/update-all-device-accounts", tags: ["sse"], desc: "SSE: update SIP accounts on all YMCS devices" },
@@ -247,7 +240,7 @@
                 ]
             },
             {
-                name: "Admin — Notifications", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — Notifications", file: "modules/admin/notifications.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/notifications", desc: "List notification channels (Telegram, WhatsApp)" },
                     { m: "GET", p: "/notifications/template-info", desc: "Get available template variables" },
@@ -258,7 +251,7 @@
                 ]
             },
             {
-                name: "Admin — WhatsApp", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — WhatsApp", file: "modules/admin/notifications.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/whatsapp/statuses", desc: "Get all WhatsApp channel connection states" },
                     { m: "GET", p: "/whatsapp/status/:id", desc: "Get single channel status + QR code" },
@@ -268,7 +261,7 @@
                 ]
             },
             {
-                name: "Admin — Audio Ads", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                name: "Admin — Audio Ads", file: "modules/admin/audioAds.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
                 routes: [
                     { m: "GET", p: "/audio-ads", desc: "List all audio ads/announcements" },
                     { m: "POST", p: "/audio-ads", tags: ["upload"], desc: "Upload new audio ad (WAV/MP3)" },
