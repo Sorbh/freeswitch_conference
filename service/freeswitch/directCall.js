@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { logSystem } from '../logger.js';
 import { getConnection, getConnectionHandlers, onCustomEvent, onDtmfEvent, onHangupEvent } from './connection.js';
-import { playTone, showMessage, stopTone, speak } from './notifications.js';
+import { playTone, showMessage, speak, stopTone } from './notifications.js';
 
 // Conference DTMF events (from <control action="event"> in conference.conf.xml)
 onCustomEvent((event) => {
@@ -241,12 +241,12 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
     setTimeout(() => {
         showMessage(
             [caller.userName],
-            `Calling *${calleeExtension}...\n${callee.displayName}\n\nWaiting for answer...`,
+            `Calling :\n${callee.displayName}\nWaiting for answer...`,
             15
         );
         showMessage(
             [callee.userName],
-            `Private call from:\n${caller.displayName}\n\nLift handset to accept`,
+            `Private call :\n${caller.displayName}\nLift handset to accept`,
             15
         );
     }, 1500);

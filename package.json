@@ -8,7 +8,7 @@
     "start": "node index.js",
     "dev": "node index.js",
     "build": "vite build",
-    "deploy": "vite build && pm2 restart 10"
+    "deploy": "vite build && pm2 restart 8"
   },
   "author": "Saurabh",
   "license": "ISC",
