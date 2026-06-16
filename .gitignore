@@ -32,7 +32,7 @@ out/
 data/yealink-backup/
 
 # Broadcast recordings
-recordings/*.wav
+recordings/
 
 # Audio announcements
 data/announcements/

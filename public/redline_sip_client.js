@@ -299,8 +299,9 @@ import "./jssip.bundle.js";
                     return;
                 }
 
-                console.log('[SIP] Login OK:', accountData.display_name, 'Room:', accountData.room);
-                startCallerIdSSE(accountData.room);
+                var activeRoom = accountData.current_room || accountData.room;
+                console.log('[SIP] Login OK:', accountData.display_name, 'Room:', activeRoom);
+                startCallerIdSSE(activeRoom);
 
                 if (typeof window.onHotlineReady === 'function') {
                     window.onHotlineReady(accountData);
@@ -487,7 +488,7 @@ import "./jssip.bundle.js";
                 try {
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
-                        if (currentSession) toggleMute();
+                        if (accountData) toggleMute();
                     }
                 } catch (err) { }
             });

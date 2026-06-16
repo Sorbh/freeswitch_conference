@@ -48,6 +48,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import UsersPage from "@/pages/UsersPage";
 import RoomsPage from "@/pages/RoomsPage";
 import BroadcastsPage from "@/pages/BroadcastsPage";
+import DirectCallsPage from "@/pages/DirectCallsPage";
 import EventsPage from "@/pages/EventsPage";
 import SystemPage from "@/pages/SystemPage";
 import FsLogsPage from "@/pages/FsLogsPage";
@@ -63,6 +64,7 @@ const dashboardRoutes = [
   { path: "/users", element: <UsersPage />, title: "Connected Yards" },
   { path: "/rooms", element: <RoomsPage />, title: "Rooms" },
   { path: "/broadcasts", element: <BroadcastsPage />, title: "Broadcast History" },
+  { path: "/direct-calls", element: <DirectCallsPage />, title: "Extension Calls" },
   { path: "/events", element: <EventsPage />, title: "Live Events" },
   { path: "/system", element: <SystemPage />, title: "System Health" },
   { path: "/dev/server-logs", element: <ServerLogsPage />, title: "Server Logs" },

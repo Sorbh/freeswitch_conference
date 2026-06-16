@@ -245,17 +245,18 @@ function _handleHookEvent(macAddress, event) {
 
 function _applyMuteState(userName, userInfo, event) {
     const mute = event === 'on_hook';
+    const activeRoom = userInfo.currentRoom || userInfo.room;
 
     if (mute) {
-        global.freeswitch.muteByMemberId(userInfo.room, userInfo.fsMemberId, userName);
+        global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userName);
     } else {
-        global.freeswitch.unmuteByMemberId(userInfo.room, userInfo.fsMemberId, userName);
+        global.freeswitch.unmuteByMemberId(activeRoom, userInfo.fsMemberId, userName);
     }
 
     userInfo.mute = mute;
     global.db.setUserInfo(userName, userInfo);
     global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
-    logUser(userName, 'PHONE', `${mute ? 'MUTED' : 'UNMUTED'} (${event})`);
+    logUser(userName, 'PHONE', `${mute ? 'MUTED' : 'UNMUTED'} (${event}) room=${activeRoom}`);
 }
 
 export function stopSyslogServer() {

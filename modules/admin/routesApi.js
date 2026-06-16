@@ -9,6 +9,7 @@ import accountsRouter from "./accounts.js";
 import ymcsRouter from "./ymcs.js";
 import notificationsRouter from "./notifications.js";
 import audioAdsRouter from "./audioAds.js";
+import directCallsRouter from "./directCalls.js";
 
 export let adminRouter = express.Router();
 
@@ -56,3 +57,4 @@ adminRouter.use("/", accountsRouter);
 adminRouter.use("/", ymcsRouter);
 adminRouter.use("/", notificationsRouter);
 adminRouter.use("/", audioAdsRouter);
+adminRouter.use("/", directCallsRouter);

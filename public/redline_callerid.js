@@ -130,7 +130,10 @@
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (json) {
             clientToken = json.token;
-            console.log("[CallerID] Login successful, token acquired");
+            if (json.data && (json.data.current_room || json.data.room)) {
+                room = json.data.current_room || json.data.room;
+            }
+            console.log("[CallerID] Login successful, token acquired, room:", room);
             if (cb) cb();
         })
         .catch(function (e) {

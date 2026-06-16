@@ -335,10 +335,11 @@ router.post("/users/:userName/mute", (req, res) => {
         if (!userInfo.fsMemberId) {
             return res.status(400).json({ status: false, error: "User has no conference member ID" });
         }
-        global.freeswitch.muteByMemberId(userInfo.room, userInfo.fsMemberId, userName);
+        const activeRoom = userInfo.currentRoom || userInfo.room;
+        global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userName);
         userInfo.mute = true;
         global.db.setUserInfo(userName, userInfo);
-        global.db.logEvent('mute', userName, userInfo.room, 'Muted');
+        global.db.logEvent('mute', userName, activeRoom, 'Muted');
         emitStateChange('users', { userName });
         res.json({ status: true, message: `Mute command sent for ${userName}` });
     } catch (err) {
@@ -358,10 +359,11 @@ router.post("/users/:userName/unmute", (req, res) => {
         if (!userInfo.fsMemberId) {
             return res.status(400).json({ status: false, error: "User has no conference member ID" });
         }
-        global.freeswitch.unmuteByMemberId(userInfo.room, userInfo.fsMemberId, userName);
+        const activeRoom = userInfo.currentRoom || userInfo.room;
+        global.freeswitch.unmuteByMemberId(activeRoom, userInfo.fsMemberId, userName);
         userInfo.mute = false;
         global.db.setUserInfo(userName, userInfo);
-        global.db.logEvent('unmute', userName, userInfo.room, 'Unmuted');
+        global.db.logEvent('unmute', userName, activeRoom, 'Unmuted');
         emitStateChange('users', { userName });
         res.json({ status: true, message: `Unmute command sent for ${userName}` });
     } catch (err) {

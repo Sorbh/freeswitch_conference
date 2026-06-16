@@ -69,6 +69,10 @@ clientRouter.post("/login", (req, res) => {
         );
 
         const { password: _, ...safe } = account;
+        const userInfo = global.db.getUserInfo(`sip:${account.email}`);
+        if (userInfo && userInfo.currentRoom) {
+            safe.current_room = userInfo.currentRoom;
+        }
         res.json({ status: true, token, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });

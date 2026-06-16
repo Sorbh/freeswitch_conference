@@ -113,6 +113,12 @@
     <div id="mixedaudio"></div>
 
     <script>
+        window.HOTLINE_CONFIG = {
+            apiBase: '',
+            wsServer: 'wss://50.28.84.57:5072',
+            defaultPassword: '12345678'
+        };
+
         function doLogin() {
             var email = document.getElementById('email').value.trim();
             if (!email) { document.getElementById('loginError').textContent = 'Email is required'; return; }
@@ -144,7 +150,7 @@
         window.onHotlineReady = function(acct) {
             document.getElementById('confUser').textContent = acct.display_name || acct.email;
             document.getElementById('confCompany').textContent = acct.company_name || '';
-            document.getElementById('confRoom').textContent = 'Room: ' + acct.room;
+            document.getElementById('confRoom').textContent = 'Room: ' + (acct.current_room || acct.room);
             document.getElementById('confReg').innerHTML = '<span class="dot green"></span> <span>Registered</span>';
             document.getElementById('confStatus').className = 'conf-status idle';
             document.getElementById('confStatus').textContent = 'Waiting for call...';
