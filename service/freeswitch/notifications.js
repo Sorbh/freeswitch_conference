@@ -1,6 +1,7 @@
-// Yealink XML notifications via SIP NOTIFY. Sends screen messages,
-// execute commands, and action URIs to Yealink phones through FreeSWITCH.
-// Uses sendevent NOTIFY with contact-uri for reliable delivery through NAT.
+// All phone communication: screen messages (SIP NOTIFY), execute commands,
+// action URIs, and audio tones (conference play) to SIP devices through FreeSWITCH.
+// NOTIFY uses sendevent with contact-uri for reliable delivery through NAT.
+// Tones use conference play with member_id for per-user audio whisper.
 import { getConnection } from './connection.js';
 import { logUser, logSystem } from '../logger.js';
 import modesl from 'modesl';
@@ -14,14 +15,16 @@ function _resolveContactLookups(userName) {
 }
 
 function _extractContactUri(sofiaContact) {
-    // sofia_contact returns: sofia/internal/sip:user@ip:port;received=natIp:natPort;fs_nat=yes;...
+    // sofia_contact returns: sofia/internal/sip:user@ip:port;transport=TCP;received=natIp:natPort;fs_nat=yes;...
     const sipMatch = sofiaContact.match(/sip:([^;>]+)/);
     if (!sipMatch) return null;
 
     const base = sipMatch[0];
+    const transportMatch = sofiaContact.match(/transport=(TCP|UDP|TLS)/i);
+    const transport = transportMatch ? `;transport=${transportMatch[1]}` : '';
     const receivedMatch = sofiaContact.match(/received=([^;]+)/);
-    if (receivedMatch) return `sip:${base.replace('sip:', '').split('@')[0]}@${receivedMatch[1]}`;
-    return base;
+    if (receivedMatch) return `sip:${base.replace('sip:', '').split('@')[0]}@${receivedMatch[1]}${transport}`;
+    return `${base}${transport}`;
 }
 
 const _contactCache = new Map();
@@ -119,5 +122,40 @@ export function sendActionUri(targets, actionUri) {
     for (const target of targets) {
         if (!target) continue;
         _sendNotify(target, 'ACTION-URI', 'message/sipfrag', actionUri);
+    }
+}
+
+export function playTone(targets, tone) {
+    if (!Array.isArray(targets)) targets = [targets];
+    const conn = getConnection();
+    if (!conn) return;
+
+    let played = 0;
+    for (const target of targets) {
+        if (!target) continue;
+        const userName = target.startsWith('sip:') ? target : `sip:${target}`;
+        const users = global.db.filter(u => u.userName === userName);
+        const user = users[0];
+        if (!user || !user.fsMemberId || user.connectionState !== 'connected') continue;
+        const room = user.currentRoom || user.room;
+        conn.api(`conference ${room} play ${tone} ${user.fsMemberId}`, () => {});
+        played++;
+    }
+    if (played > 0) logSystem('NOTIFY', `tone -> ${played} phone${played > 1 ? 's' : ''}`);
+}
+
+export function stopTone(targets) {
+    if (!Array.isArray(targets)) targets = [targets];
+    const conn = getConnection();
+    if (!conn) return;
+
+    for (const target of targets) {
+        if (!target) continue;
+        const userName = target.startsWith('sip:') ? target : `sip:${target}`;
+        const users = global.db.filter(u => u.userName === userName);
+        const user = users[0];
+        if (!user || !user.fsMemberId || user.connectionState !== 'connected') continue;
+        const room = user.currentRoom || user.room;
+        conn.api(`conference ${room} stop ${user.fsMemberId}`, () => {});
     }
 }

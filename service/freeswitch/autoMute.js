@@ -3,9 +3,9 @@
 // At timeout−30s: whisper warning tone + Yealink screen notification.
 // At timeout: force-mute via FS conference API. Timer clears on mute/leave.
 // Skips users in direct (1-to-1) calls. Settings: automute_enabled, automute_timeout_ms.
-import { getConnection, onCustomEvent } from './connection.js';
+import { onCustomEvent } from './connection.js';
 import { muteByMemberId } from './callAction.js';
-import { showMessage } from './notifications.js';
+import { showMessage, playTone } from './notifications.js';
 import { logUser } from '../logger.js';
 import { isInDirectCall } from './directCall.js';
 import { findUserByMember, findUserByUuid } from './callEvents.js';
@@ -43,10 +43,7 @@ function _startAutoMute(userName, room, memberId) {
             const currentMemberId = userInfo.fsMemberId;
             if (!currentMemberId) return;
 
-            getConnection().api(
-                `conference ${currentRoom} play ${WARNING_TONE} ${currentMemberId}`,
-                () => {}
-            );
+            playTone([userName], WARNING_TONE);
             showMessage([userName], 'Auto-mute in 30s', 8);
             logUser(userName, 'AUTOMUTE', `WARNING in ${roomName} (${Math.round(timeoutMs / 1000)}s timeout)`);
         }, warningMs)

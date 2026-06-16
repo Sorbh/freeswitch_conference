@@ -34,7 +34,7 @@ router.get("/accounts/:id", (req, res) => {
 router.post("/accounts", (req, res) => {
     try {
         logUser(req.body.email, 'API', 'CREATE-ACCOUNT');
-        const { email, password, display_name, company_name, company_phone, company_address, city, state, zip, room } = req.body;
+        const { email, password, display_name, company_name, company_phone, company_address, city, state, zip, room, extension } = req.body;
         if (!email || !password) {
             return res.status(400).json({ status: false, error: "Email and password are required" });
         }
@@ -42,6 +42,13 @@ router.post("/accounts", (req, res) => {
         const existing = global.db.getAccountByEmail(email);
         if (existing) {
             return res.status(409).json({ status: false, error: "Account with this email already exists" });
+        }
+
+        if (extension) {
+            const extOwner = global.db.getAccountByExtension(parseInt(extension));
+            if (extOwner) {
+                return res.status(409).json({ status: false, error: `Extension *${extension} is already assigned to ${extOwner.email}` });
+            }
         }
 
         const account = global.db.createAccount({
@@ -55,6 +62,7 @@ router.post("/accounts", (req, res) => {
             state,
             zip,
             room: room ? parseInt(room) : null,
+            extension: extension ? parseInt(extension) : null,
         });
 
         const sipUser = `sip:${email}`;
@@ -91,10 +99,18 @@ router.put("/accounts/:id", async (req, res) => {
         logUser(account.email || `account:${id}`, 'API', 'UPDATE-ACCOUNT');
 
         const fields = {};
-        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_phone', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout', 'debug'];
+        const allowed = ['email', 'password', 'display_name', 'company_name', 'company_phone', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'kickout', 'debug', 'extension'];
         for (const key of allowed) {
             if (req.body[key] !== undefined) {
-                fields[key] = key === 'room' ? parseInt(req.body[key]) : req.body[key];
+                if (key === 'room' || key === 'extension') fields[key] = req.body[key] != null ? parseInt(req.body[key]) : null;
+                else fields[key] = req.body[key];
+            }
+        }
+
+        if (fields.extension != null) {
+            const extOwner = global.db.getAccountByExtension(fields.extension);
+            if (extOwner && extOwner.id !== id) {
+                return res.status(409).json({ status: false, error: `Extension *${fields.extension} is already assigned to ${extOwner.email}` });
             }
         }
 

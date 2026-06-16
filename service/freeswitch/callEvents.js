@@ -8,6 +8,7 @@ import { canInitiateCall, initiateCall, resumeFallbacks, unlockCalls } from './c
 import { syncAllUsers } from './conferenceSync.js';
 import { getConnection, getConnectionHandlers, getMemberIdMap, onAnswerEvent, onCustomEvent, onEslDisconnect, onEslReconnect, onHangupEvent } from './connection.js';
 import { showMessage } from './notifications.js';
+import { isInDirectCall } from './directCall.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
 const uuidUserMap = new Map();
@@ -148,7 +149,7 @@ function _onCallHangup(userName, _uuid, cause) {
     userInfo.errFallbackAt = null;
     global.db.setUserInfo(userName, userInfo);
 
-    if (userInfo.online) {
+    if (userInfo.online && !isInDirectCall(_uuid)) {
         initiateCall(userName);
     }
 }

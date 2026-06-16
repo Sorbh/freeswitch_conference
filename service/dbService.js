@@ -193,6 +193,7 @@ function init() {
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);
     }
+    sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_extension ON accounts(extension) WHERE extension IS NOT NULL");
 
     sqlite.exec(`
         CREATE TABLE IF NOT EXISTS rooms (
@@ -782,11 +783,11 @@ function getTimelineBroadcasts(minutes = 30) {
     `).all(since);
 }
 
-function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName, companyPhone, ymcsAccountId }) {
+function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName, companyPhone, ymcsAccountId, extension }) {
     sqlite.prepare(`
-        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name, company_phone, ymcs_account_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null, companyPhone || null, ymcsAccountId || null);
+        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name, company_phone, ymcs_account_id, extension)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null, companyPhone || null, ymcsAccountId || null, extension || null);
     return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email);
 }
 

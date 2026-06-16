@@ -222,8 +222,13 @@ import "./jssip.bundle.js";
         function ensureAudioElement() {
             if (audioElement) return audioElement;
             var container = document.getElementById("mixedaudio");
-            if (!container) return null;
-            container.innerHTML = '<audio id="roomaudio" autoplay hidden></audio>';
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'mixedaudio';
+                container.style.display = 'none';
+                document.body.appendChild(container);
+            }
+            container.innerHTML = '<audio id="roomaudio" autoplay></audio>';
             audioElement = document.getElementById("roomaudio");
             return audioElement;
         }
@@ -265,6 +270,53 @@ import "./jssip.bundle.js";
                 return;
             }
 
+            console.log('[SIP] Logging in:', email);
+
+            fetch(apiBase + '/api/v1/client/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password }),
+            })
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then(function (json) {
+                clientToken = json.token;
+                accountData = json.data || json;
+
+                if (!accountData.room && lsData && lsData.room) {
+                    accountData.room = lsData.room;
+                }
+                if (lsData) {
+                    if (!accountData.display_name && lsData.repName) accountData.display_name = lsData.repName;
+                    if (!accountData.company_name && lsData.companyName) accountData.company_name = lsData.companyName;
+                    accountData._lsData = lsData;
+                }
+
+                if (!accountData.room) {
+                    console.error('[SIP] Account has no room:', accountData);
+                    return;
+                }
+
+                console.log('[SIP] Login OK:', accountData.display_name, 'Room:', accountData.room);
+                startCallerIdSSE(accountData.room);
+
+                if (typeof window.onHotlineReady === 'function') {
+                    window.onHotlineReady(accountData);
+                }
+
+                _startSipRegistration(email, password);
+            })
+            .catch(function (e) {
+                console.error('[SIP] Login failed:', e.message);
+                if (typeof window.onHotlineLoginFailed === 'function') {
+                    window.onHotlineLoginFailed(e.message);
+                }
+            });
+        }
+
+        function _startSipRegistration(email, password) {
             try {
                 if (typeof JsSIP === 'undefined') return;
 
@@ -293,56 +345,8 @@ import "./jssip.bundle.js";
                 });
 
                 ua.on('registered', function () {
-                    try {
-                        console.log('[SIP] Registered:', email);
-                        if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
-
-                        if (accountData) { console.log('[SIP] Re-registered'); return; }
-
-                        fetch(apiBase + '/api/v1/client/login', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: email, password: password }),
-                            })
-                            .then(function (r) {
-                                if (!r.ok) throw new Error('HTTP ' + r.status);
-                                return r.json();
-                            })
-                            .then(function (json) {
-                                try {
-                                    clientToken = json.token;
-                                    accountData = json.data || json;
-
-                                    if (!accountData.room && lsData && lsData.room) {
-                                        accountData.room = lsData.room;
-                                    }
-
-                                    if (lsData) {
-                                        if (!accountData.display_name && lsData.repName) accountData.display_name = lsData.repName;
-                                        if (!accountData.company_name && lsData.companyName) accountData.company_name = lsData.companyName;
-                                        accountData._lsData = lsData;
-                                    }
-
-                                    if (!accountData || !accountData.room) {
-                                        console.error('[SIP] Account has no room:', accountData);
-                                        if (ua) { ua.unregister(); ua.stop(); ua = null; }
-                                        return;
-                                    }
-
-                                    console.log('[SIP] Account loaded:', accountData.display_name, 'Room:', accountData.room);
-                                    startCallerIdSSE(accountData.room);
-
-                                    if (typeof window.onHotlineReady === 'function') {
-                                        window.onHotlineReady(accountData);
-                                    }
-                                } catch (e) { }
-                            })
-                            .catch(function (e) {
-                                console.error('[SIP] Client login failed:', e);
-                            });
-                    } catch (e) {
-                        console.error('[SIP] Registration handler error:', e);
-                    }
+                    console.log('[SIP] Registered:', email);
+                    if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
                 });
 
                 ua.on('registrationFailed', function (e) {
@@ -350,7 +354,7 @@ import "./jssip.bundle.js";
                         var cause = e.cause || 'unknown';
                         console.error('[SIP] Registration failed:', cause);
 
-                        if (!accountData && (cause === 'Rejected' || cause === 'Forbidden')) {
+                        if (cause === 'Rejected' || cause === 'Forbidden') {
                             if (ua) { ua.stop(); ua = null; }
                             return;
                         }
@@ -427,7 +431,7 @@ import "./jssip.bundle.js";
                 console.log('[SIP] Starting UA, server:', wsServer, 'user:', sipUser);
                 ua.start();
             } catch (e) {
-                console.error('[SIP] doLogin error:', e);
+                console.error('[SIP] SIP registration error:', e);
             }
         }
 

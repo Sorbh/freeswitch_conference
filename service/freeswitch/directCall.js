@@ -3,11 +3,22 @@
 
 import fs from 'fs';
 import path from 'path';
-import { getConnection, onDtmfEvent, onHangupEvent } from './connection.js';
-import { showMessage } from './notifications.js';
 import { logSystem } from '../logger.js';
+import { getConnection, getConnectionHandlers, onCustomEvent, onDtmfEvent, onHangupEvent } from './connection.js';
+import { playTone, showMessage, stopTone } from './notifications.js';
 
-// Register ESL event handlers
+// Conference DTMF events (from <control action="event"> in conference.conf.xml)
+onCustomEvent((event) => {
+    const subclass = event.getHeader('Event-Subclass');
+    if (subclass !== 'conference::maintenance') return;
+    const action = event.getHeader('Action');
+    if (action !== 'dtmf' && action !== 'dtmf-member') return;
+    const uuid = event.getHeader('Unique-ID');
+    const digit = event.getHeader('DTMF-Key') || event.getHeader('DTMF-Digit');
+    if (uuid && digit) handleDTMF(uuid, digit);
+});
+
+// Direct ESL DTMF events (fallback for non-conference channels)
 onDtmfEvent((event) => {
     const uuid = event.getHeader('Unique-ID');
     const digit = event.getHeader('DTMF-Digit');
@@ -20,10 +31,11 @@ onHangupEvent((event) => {
 });
 
 const ACCEPT_TIMEOUT_MS = 15000;
-const RING_TONE = 'tone_stream://%(400,200,440,480);loops=10';
+const RING_TONE = 'tone_stream://%(400,200,440,480);loops=25';
+const BUSY_TONE = 'tone_stream://%(500,500,480,620);loops=3';
 const ACCEPT_TONE = 'tone_stream://%(200,0,600);%(200,0,800)';
 const DECLINE_TONE = 'tone_stream://%(400,0,480,620);loops=2';
-const WHISPER_TONE = 'tone_stream://%(200,100,600);%(200,100,800);%(200,100,1000);loops=10';
+const WHISPER_TONE = 'tone_stream://%(200,100,600);%(200,100,800);%(200,100,1000);loops=3';
 
 // Active sessions: callerUuid -> session data
 const activeSessions = new Map();
@@ -87,18 +99,26 @@ function _findUserByExtension(ext) {
     };
 }
 
+// Called by phoneEvents.js when callee lifts handset
+export function acceptByUserName(userName) {
+    for (const [calleeUuid, pending] of pendingAccepts) {
+        if (pending.calleeInfo.userName === userName) {
+            _acceptCall(calleeUuid);
+            return true;
+        }
+    }
+    return false;
+}
+
+export function hasPendingCall(userName) {
+    for (const [, pending] of pendingAccepts) {
+        if (pending.calleeInfo.userName === userName) return true;
+    }
+    return false;
+}
+
 // Called by ESL DTMF event handler
 export function handleDTMF(uuid, digit) {
-    // Check if this UUID is a callee waiting to accept/decline
-    if (pendingAccepts.has(uuid)) {
-        if (digit === '1') {
-            _acceptCall(uuid);
-        } else if (digit === '2') {
-            _declineCall(uuid);
-        }
-        return;
-    }
-
     let buf = dtmfBuffers.get(uuid);
 
     if (digit === '*') {
@@ -117,7 +137,7 @@ export function handleDTMF(uuid, digit) {
         buf.timer = setTimeout(() => {
             const ext = parseInt(buf.digits);
             dtmfBuffers.delete(uuid);
-            if (ext > 0) _initiateDirectCall(uuid, ext);
+            if (ext > 0) initiateDirectCall(uuid, ext);
         }, 2000);
 
         // Auto-trigger at 3 digits (extensions are 3 digits: 101-999)
@@ -125,7 +145,7 @@ export function handleDTMF(uuid, digit) {
             if (buf.timer) clearTimeout(buf.timer);
             const ext = parseInt(buf.digits);
             dtmfBuffers.delete(uuid);
-            if (ext > 0) _initiateDirectCall(uuid, ext);
+            if (ext > 0) initiateDirectCall(uuid, ext);
         }
     } else {
         // Non-digit after * — cancel
@@ -134,7 +154,7 @@ export function handleDTMF(uuid, digit) {
     }
 }
 
-async function _initiateDirectCall(callerUuid, calleeExtension) {
+export async function initiateDirectCall(callerUuid, calleeExtension) {
     const caller = _getConferenceInfo(callerUuid);
     if (!caller) {
         logSystem('DIRECT', `Caller UUID ${callerUuid} not found in DB`);
@@ -144,11 +164,7 @@ async function _initiateDirectCall(callerUuid, calleeExtension) {
     const callee = _findUserByExtension(calleeExtension);
     if (!callee) {
         logSystem('DIRECT', `Extension *${calleeExtension} not found or not in call`);
-        // Play error tone to caller
-        try {
-            const callerRoom = caller.room;
-            await _fsApi(`conference ${callerRoom} play ${DECLINE_TONE} ${caller.memberId}`);
-        } catch {}
+        playTone([caller.userName], DECLINE_TONE);
         return;
     }
 
@@ -160,9 +176,17 @@ async function _initiateDirectCall(callerUuid, calleeExtension) {
     // Check if either party is already in a direct call
     if (activeSessions.has(callerUuid) || activeSessions.has(callee.uuid)) {
         logSystem('DIRECT', `${caller.displayName} or ${callee.displayName} already in a direct call`);
-        try {
-            await _fsApi(`conference ${caller.room} play ${DECLINE_TONE} ${caller.memberId}`);
-        } catch {}
+        playTone([caller.userName], BUSY_TONE);
+        showMessage([caller.userName], `${callee.displayName}\nBusy - in direct call`, 5);
+        return;
+    }
+
+    // Check if callee is already unmuted (busy talking)
+    const calleeUser = global.db.getUserInfo(callee.userName);
+    if (calleeUser && !calleeUser.mute) {
+        logSystem('DIRECT', `${callee.displayName} is busy (unmuted) — rejecting call from ${caller.displayName}`);
+        playTone([caller.userName], BUSY_TONE);
+        showMessage([caller.userName], `${callee.displayName}\nBusy`, 5);
         return;
     }
 
@@ -187,27 +211,21 @@ async function _initiateDirectCall(callerUuid, calleeExtension) {
         status: 'ringing',
     });
 
-    // Play continuous ring tone to caller
-    try {
-        await _fsApi(`conference ${caller.room} play ${RING_TONE} ${caller.memberId}`);
-    } catch {}
-
-    // Play continuous whisper tone to callee
-    try {
-        await _fsApi(`conference ${callee.room} play ${WHISPER_TONE} ${callee.memberId}`);
-    } catch {}
+    // Play continuous ring tone to caller, whisper tone to callee
+    playTone([caller.userName], RING_TONE);
+    playTone([callee.userName], WHISPER_TONE);
 
     // Delay screen notifications so they arrive after any broadcast side-effects settle
     setTimeout(() => {
         showMessage(
             [caller.userName],
             `Calling *${calleeExtension}...\n${callee.displayName}\n\nWaiting for answer...`,
-            30
+            15
         );
         showMessage(
             [callee.userName],
-            `Private call from:\n${caller.displayName}\n\nPress 1 = Accept\nPress 2 = Decline`,
-            30
+            `Private call from:\n${caller.displayName}\n\nLift handset to accept`,
+            15
         );
     }, 1500);
 
@@ -243,39 +261,14 @@ async function _acceptCall(calleeUuid) {
     global.db.updateDirectCall(callId, { status: 'answered', answered_at: now });
 
     try {
-        // Stop ring/whisper tones
-        await _fsApi(`conference ${callerInfo.room} stop ${callerInfo.memberId}`).catch(() => {});
-        await _fsApi(`conference ${calleeInfo.room} stop ${calleeInfo.memberId}`).catch(() => {});
-
-        // Play accept tone to both
-        await _fsApi(`conference ${callerInfo.room} play ${ACCEPT_TONE} ${callerInfo.memberId}`);
-
-        // Kick both from their conferences
-        await _fsApi(`conference ${callerInfo.room} kick ${callerInfo.memberId}`);
-        await _fsApi(`conference ${calleeInfo.room} kick ${calleeInfo.memberId}`);
-
-        // Small delay for channels to settle after kick
-        await new Promise(r => setTimeout(r, 300));
-
-        // Bridge the two channels
-        await _fsApi(`uuid_bridge ${callerUuid} ${calleeUuid}`);
-
-        // Start recording
+        // Register session BEFORE kick so isInDirectCall() suppresses auto-reconnect
         const recordingDir = path.join(global.config.RECORDING_DIR, 'direct');
         if (!fs.existsSync(recordingDir)) fs.mkdirSync(recordingDir, { recursive: true });
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const callerShort = callerInfo.email.split('@')[0];
         const calleeShort = calleeInfo.email.split('@')[0];
         const recordingPath = path.join(recordingDir, `${callerShort}_to_${calleeShort}_${timestamp}.wav`);
-        await _fsApi(`uuid_record ${callerUuid} start ${recordingPath}`).catch(() => {});
 
-        logSystem('DIRECT', `│  bridged: ${callerInfo.displayName} ↔ ${calleeInfo.displayName}`);
-        logSystem('DIRECT', `│  recording: ${recordingPath.split('/').pop()}`);
-        logSystem('DIRECT', `└───────────────────────────────────────────────────────`);
-
-        global.db.updateDirectCall(callId, { recording_path: recordingPath });
-
-        // Track active session
         const session = {
             callId,
             callerUuid,
@@ -284,9 +277,38 @@ async function _acceptCall(calleeUuid) {
             calleeInfo,
             answeredAt: Date.now(),
             recordingPath,
+            bridging: true,
         };
         activeSessions.set(callerUuid, session);
         activeSessions.set(calleeUuid, session);
+
+        // Remove connection handlers so conference kick doesn't trigger auto-reconnect
+        const connectionHandlers = getConnectionHandlers();
+        connectionHandlers.delete(callerUuid);
+        connectionHandlers.delete(calleeUuid);
+
+        // Stop ring/whisper tones
+        stopTone([callerInfo.userName, calleeInfo.userName]);
+
+        // Transfer both out of conference into park (keeps channels alive)
+        await _fsApi(`uuid_transfer ${callerUuid} park inline`);
+        await _fsApi(`uuid_transfer ${calleeUuid} park inline`);
+
+        // Small delay for channels to settle
+        await new Promise(r => setTimeout(r, 500));
+
+        // Bridge the two parked channels
+        await _fsApi(`uuid_bridge ${callerUuid} ${calleeUuid}`);
+        session.bridging = false;
+
+        // Start recording
+        await _fsApi(`uuid_record ${callerUuid} start ${recordingPath}`).catch(() => { });
+
+        logSystem('DIRECT', `│  bridged: ${callerInfo.displayName} ↔ ${calleeInfo.displayName}`);
+        logSystem('DIRECT', `│  recording: ${recordingPath.split('/').pop()}`);
+        logSystem('DIRECT', `└───────────────────────────────────────────────────────`);
+
+        global.db.updateDirectCall(callId, { recording_path: recordingPath });
     } catch (err) {
         logSystem('DIRECT', `│  BRIDGE FAILED: ${err.message}`);
         logSystem('DIRECT', `└───────────────────────────────────────────────────────`);
@@ -309,9 +331,8 @@ function _declineCall(calleeUuid) {
     global.db.updateDirectCall(callId, { status: 'declined', ended_at: now, end_reason: 'declined' });
 
     // Stop ring/whisper tones, play decline tone to caller
-    _fsApi(`conference ${callerInfo.room} stop ${callerInfo.memberId}`).catch(() => {});
-    _fsApi(`conference ${calleeInfo.room} stop ${calleeInfo.memberId}`).catch(() => {});
-    _fsApi(`conference ${callerInfo.room} play ${DECLINE_TONE} ${callerInfo.memberId}`).catch(() => {});
+    stopTone([callerInfo.userName, calleeInfo.userName]);
+    playTone([callerInfo.userName], DECLINE_TONE);
 }
 
 function _timeoutCall(calleeUuid, callId, callerInfo, calleeInfo) {
@@ -323,9 +344,9 @@ function _timeoutCall(calleeUuid, callId, callerInfo, calleeInfo) {
     global.db.updateDirectCall(callId, { status: 'no_answer', ended_at: now, end_reason: 'timeout' });
 
     // Stop ring/whisper tones, play decline tone to caller
-    _fsApi(`conference ${callerInfo.room} stop ${callerInfo.memberId}`).catch(() => {});
-    _fsApi(`conference ${calleeInfo.room} stop ${calleeInfo.memberId}`).catch(() => {});
-    _fsApi(`conference ${callerInfo.room} play ${DECLINE_TONE} ${callerInfo.memberId}`).catch(() => {});
+    stopTone([callerInfo.userName, calleeInfo.userName]);
+    playTone([callerInfo.userName], DECLINE_TONE);
+    showMessage([callerInfo.userName], `${calleeInfo.displayName}\nNo answer`, 3);
 }
 
 // Called when a channel hangs up — clean up direct call session
@@ -346,6 +367,7 @@ export function handleHangup(uuid) {
 
     // Clean active session — the other party will be reconnected by callGate
     const session = activeSessions.get(uuid);
+    if (session && session.bridging) return;
     if (session) {
         const now = Math.floor(Date.now() / 1000);
         const durationMs = Date.now() - session.answeredAt;
@@ -355,7 +377,7 @@ export function handleHangup(uuid) {
 
         // Stop recording
         if (session.recordingPath) {
-            _fsApi(`uuid_record ${session.callerUuid} stop ${session.recordingPath}`).catch(() => {});
+            _fsApi(`uuid_record ${session.callerUuid} stop ${session.recordingPath}`).catch(() => { });
         }
 
         global.db.updateDirectCall(session.callId, {
@@ -371,6 +393,12 @@ export function handleHangup(uuid) {
         if (session.recordingPath) logSystem('DIRECT', `│  recording: ${session.recordingPath.split('/').pop()}`);
         logSystem('DIRECT', `└───────────────────────────────────────────────────────`);
 
+        // Reconnect both parties to conference
+        import('./callGate.js').then(({ initiateCall }) => {
+            initiateCall(session.callerInfo.userName).catch(() => { });
+            initiateCall(session.calleeInfo.userName).catch(() => { });
+        }).catch(() => { });
+
         // Auto-transcribe if enabled for either party's room
         if (session.recordingPath) {
             import('../transcription.js').then(({ shouldAutoTranscribe, transcribeDirectCall }) => {
@@ -379,7 +407,7 @@ export function handleHangup(uuid) {
                         logSystem('DIRECT', `Auto-transcribe failed for call #${session.callId}: ${err.message}`)
                     );
                 }
-            }).catch(() => {});
+            }).catch(() => { });
         }
     }
 }

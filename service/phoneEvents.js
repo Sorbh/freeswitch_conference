@@ -4,6 +4,7 @@
 // Both call callAction.muteByMemberId / unmuteByMemberId via FreeSWITCH conference API.
 import SyslogServer from 'syslog-server';
 import { logSystem, logUser } from './logger.js';
+import { acceptByUserName, hasPendingCall, handleDTMF } from './freeswitch/directCall.js';
 
 let syslogServer = null;
 const sipBlocks = new Map();
@@ -146,11 +147,16 @@ export function startSyslogServer(port = 515) {
             const keyEvent = match[1];
             const hookUser = global.db.findUserInfo('mac', macAddress);
             const hookUserName = Object.keys(hookUser).length > 0 ? hookUser.userName : null;
-            logUser(hookUserName, 'PHONE', `${keyEvent === 'off hook' ? 'OFF HOOK' : 'ON HOOK'} (${macAddress})`);
+
             if (keyEvent === 'off hook') {
+                logUser(hookUserName, 'PHONE', `OFF HOOK (${macAddress})`);
                 _handleHookEvent(macAddress, 'off_hook');
             } else if (keyEvent === 'on hook') {
+                logUser(hookUserName, 'PHONE', `ON HOOK (${macAddress})`);
                 _handleHookEvent(macAddress, 'on_hook');
+            } else if (/^[0-9*#]$/.test(keyEvent) && hookUser.fsChannelUUID) {
+                logUser(hookUserName, 'PHONE', `KEY [${keyEvent}] (${macAddress})`);
+                handleDTMF(hookUser.fsChannelUUID, keyEvent);
             }
         }
     });
@@ -192,6 +198,13 @@ export function handleHttpHookEvent(userName, event) {
         return false;
     }
 
+    // Off-hook: check for pending direct call before normal unmute
+    if (event === 'off_hook' && hasPendingCall(userName)) {
+        logUser(userName, 'PHONE', 'HTTP OFF HOOK → accepting direct call');
+        acceptByUserName(userName);
+        return true;
+    }
+
     logUser(userName, 'PHONE', `HTTP event=${event}`);
     _applyMuteState(userName, userInfo, event);
     return true;
@@ -206,6 +219,13 @@ function _handleHookEvent(macAddress, event) {
 
     if (!userInfo.fsMemberId) {
         logUser(userInfo.userName, 'PHONE', `not in conference, skipping ${event}`);
+        return;
+    }
+
+    // Off-hook: check for pending direct call before normal unmute
+    if (event === 'off_hook' && hasPendingCall(userInfo.userName)) {
+        logUser(userInfo.userName, 'PHONE', 'OFF HOOK → accepting direct call');
+        acceptByUserName(userInfo.userName);
         return;
     }
 

@@ -166,7 +166,7 @@ function Tip({ label, children }) {
 
 const EMPTY_FORM = {
   email: "", password: "", display_name: "", company_name: "",
-  company_phone: "", company_address: "", city: "", state: "", zip: "", room: "",
+  company_phone: "", company_address: "", city: "", state: "", zip: "", room: "", extension: "",
 };
 
 function ClientTypeIcon({ clientType }) {
@@ -404,6 +404,7 @@ export default function UsersPage() {
       state: acc?.state || "",
       zip: acc?.zip || "",
       room: acc?.room ? String(acc.room) : user.room ? String(user.room) : "",
+      extension: acc?.extension ? String(acc.extension) : "",
     });
     setFormDialogOpen(true);
   }
@@ -413,6 +414,8 @@ export default function UsersPage() {
     try {
       const body = { ...form };
       if (editing && !body.password) delete body.password;
+      if (body.extension) body.extension = parseInt(body.extension);
+      else body.extension = null;
 
       const url = editing?.id
         ? `/api/v1/admin/accounts/${editing.id}`
@@ -1532,24 +1535,42 @@ export default function UsersPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Room</Label>
-              <Select
-                value={form.room}
-                onValueChange={(val) => updateField("room", val)}
-                items={ROOM_NAMES}
-              >
-                <SelectTrigger className="!w-full">
-                  <SelectValue placeholder="Select room" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ROOM_NAMES).map(([id, name]) => (
-                    <SelectItem key={id} value={id}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Room</Label>
+                <Select
+                  value={form.room}
+                  onValueChange={(val) => updateField("room", val)}
+                  items={ROOM_NAMES}
+                >
+                  <SelectTrigger className="!w-full">
+                    <SelectValue placeholder="Select room" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ROOM_NAMES).map(([id, name]) => (
+                      <SelectItem key={id} value={id}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Direct Call Extension</Label>
+                <div className="flex items-center gap-0">
+                  <span className="inline-flex items-center justify-center h-9 px-2.5 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm font-mono select-none">*</span>
+                  <Input
+                    type="number"
+                    min={100}
+                    max={999}
+                    placeholder="101"
+                    className="rounded-l-none font-mono"
+                    value={form.extension}
+                    onChange={(e) => updateField("extension", e.target.value)}
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground/50">3-digit ext for private calls</p>
+              </div>
             </div>
             <Button
               className="w-full mt-2"
