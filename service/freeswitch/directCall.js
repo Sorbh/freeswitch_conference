@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { logSystem } from '../logger.js';
 import { getConnection, getConnectionHandlers, onCustomEvent, onDtmfEvent, onHangupEvent } from './connection.js';
-import { playTone, showMessage, stopTone } from './notifications.js';
+import { playTone, showMessage, stopTone, speak } from './notifications.js';
 
 // Conference DTMF events (from <control action="event"> in conference.conf.xml)
 onCustomEvent((event) => {
@@ -52,6 +52,20 @@ function _fsApi(command) {
             resolve(res?.getBody?.() || res?.body || '');
         });
     });
+}
+
+function _lineCheck(uuid) {
+    const caller = _getConferenceInfo(uuid);
+    if (!caller) return;
+
+    const room = caller.room;
+    const onlineCount = global.db.filter(u =>
+        u.connectionState === 'connected' && (u.currentRoom || u.room) === room
+    ).length;
+
+    const roomName = caller.roomName;
+    logSystem('DIRECT', `LINE CHECK by ${caller.displayName} in ${roomName} — ${onlineCount} online`);
+    speak(`Line Check. Online user in ${roomName} is ${onlineCount}.`, { targets: [caller.userName] });
 }
 
 function _getConferenceInfo(uuid) {
@@ -133,6 +147,14 @@ export function handleDTMF(uuid, digit) {
     if (digit >= '0' && digit <= '9') {
         buf.digits += digit;
         if (buf.timer) clearTimeout(buf.timer);
+        // Auto-trigger *99 (line check) at 2 digits
+        if (buf.digits === '99') {
+            if (buf.timer) clearTimeout(buf.timer);
+            dtmfBuffers.delete(uuid);
+            _lineCheck(uuid);
+            return;
+        }
+
         // Wait for more digits (up to 2s between digits)
         buf.timer = setTimeout(() => {
             const ext = parseInt(buf.digits);

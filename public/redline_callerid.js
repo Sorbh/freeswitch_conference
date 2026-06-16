@@ -58,7 +58,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
-    var config = window.CALLERID_CONFIG || { sseBase: 'https://hotline.redlineusedautoparts.com/fs/' };
+    var config = window.CALLERID_CONFIG || { sseBase: 'https://hotline.redlineusedautoparts.com/fs' };
     var sseBase = config.sseBase || window.CALLERID_SSE_BASE || '';
     var room = config.room || window.CALLERID_ROOM || localStorage.getItem("room");
     var clientToken = config.token || null;
@@ -106,7 +106,7 @@
     }
 
     function doLogin(cb) {
-        var base = sseBase.indexOf('://') === -1 ? 'https://' + sseBase : sseBase;
+        var base = sseBase;
         var email = config.email || '';
         var password = config.password || '12345678';
 
@@ -149,7 +149,7 @@
         try {
             if (eventSource) { eventSource.close(); eventSource = null; }
 
-            var base = sseBase.indexOf('://') === -1 ? 'https://' + sseBase : sseBase;
+            var base = sseBase;
             var url = base + "/api/v1/client/events/room/" + room + "?token=" + clientToken;
             console.log("[CallerID] Connecting to SSE:", url);
             eventSource = new EventSource(url);

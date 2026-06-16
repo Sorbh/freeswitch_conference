@@ -79,11 +79,21 @@ clientRouter.post("/login", (req, res) => {
     }
 });
 
+function _checkUserInCall(userName) {
+    const userInfo = global.db.getUserInfo(userName);
+    if (!userInfo || Object.keys(userInfo).length === 0) return { ok: false, code: 404, error: "User not found" };
+    if (userInfo.connectionState !== 'connected') return { ok: false, code: 409, error: "User is not in a call" };
+    if (!userInfo.fsMemberId) return { ok: false, code: 409, error: "User is not in a conference" };
+    return { ok: true };
+}
+
 // POST /mute — mute user in conference
 clientRouter.post("/mute", requireClientAuth, (req, res) => {
     try {
         const userName = `sip:${req.client.email}`;
         logUser(userName, 'CLIENT', 'MUTE');
+        const check = _checkUserInCall(userName);
+        if (!check.ok) return res.status(check.code).json({ status: false, error: check.error });
         const result = handleHttpHookEvent(userName, 'on_hook');
         if (!result) return res.status(400).json({ status: false, error: "Failed to mute" });
         global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', detail: { userName } });
@@ -98,6 +108,8 @@ clientRouter.post("/unmute", requireClientAuth, (req, res) => {
     try {
         const userName = `sip:${req.client.email}`;
         logUser(userName, 'CLIENT', 'UNMUTE');
+        const check = _checkUserInCall(userName);
+        if (!check.ok) return res.status(check.code).json({ status: false, error: check.error });
         const result = handleHttpHookEvent(userName, 'off_hook');
         if (!result) return res.status(400).json({ status: false, error: "Failed to unmute" });
         global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', detail: { userName } });

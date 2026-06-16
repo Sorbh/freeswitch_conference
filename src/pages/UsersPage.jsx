@@ -1374,7 +1374,7 @@ export default function UsersPage() {
                       <div className="grid grid-cols-2 gap-2">
                         {[
                           { icon: <NetworkIcon className="size-3.5" />, label: "MAC", value: selectedUser.mac, mono: true, copyable: true },
-                          { icon: <WifiIcon className="size-3.5" />, label: "IP", value: selectedUser.ip ? `${selectedUser.ip}${selectedUser.port ? `:${selectedUser.port}` : ""}` : null, mono: true, copyable: true },
+                          { icon: <WifiIcon className="size-3.5" />, label: "IP", value: selectedUser.ip ? `${selectedUser.ip}${selectedUser.port ? `:${selectedUser.port}` : ""}` : null, mono: true, copyable: true, badge: (() => { const c = selectedUser.contact || ""; if (c.includes("transport=ws")) return "WSS"; if (c.includes("transport=tls") || c.includes(";tls")) return "TLS"; if (c.includes("transport=TCP") || c.includes("transport=tcp")) return "TCP"; return "UDP"; })() },
                           { icon: <ShieldIcon className="size-3.5" />, label: "Auth", value: selectedUser.authState, mono: true },
                           { icon: <MicIcon className="size-3.5" />, label: "Muted", value: selectedUser.mute ? "Yes" : "No" },
                         ].map((field) => (
@@ -1383,6 +1383,7 @@ export default function UsersPage() {
                               <div className="flex items-center gap-1.5">
                                 <span className="text-muted-foreground/50">{field.icon}</span>
                                 <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
+                                {field.badge && <span className="text-[9px] font-semibold px-1.5 py-px rounded bg-muted/60 text-muted-foreground/70 uppercase">{field.badge}</span>}
                               </div>
                               {field.copyable && field.value && (
                                 <button onClick={() => copyToClipboard(field.value)} className="text-muted-foreground/30 hover:text-foreground transition-colors opacity-0 group-hover/conn:opacity-100">

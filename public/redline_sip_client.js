@@ -80,7 +80,7 @@ import "./jssip.bundle.js";
     function init() {
         console.log('[SIP] init() called');
         var config = window.HOTLINE_CONFIG || {};
-        var apiBase = config.apiBase || 'https://hotline.redlineusedautoparts.com/fs/';
+        var apiBase = config.apiBase || 'https://hotline.redlineusedautoparts.com/fs';
         var wsServer = config.wsServer || 'wss://hotline.redlineusedautoparts.com/fs_wss/';
         var sipDomain = '50.28.84.57';
         var defaultPassword = config.defaultPassword || '12345678';

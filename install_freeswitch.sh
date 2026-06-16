@@ -138,7 +138,7 @@ run_cmd "sudo dnf install -y git wget gcc gcc-c++ make autoconf automake libtool
     libpcap-devel curl-devel json-c-devel libevent-devel \
     yasm nasm diffutils which zlib-devel libshout-devel libmpg123-devel \
     libvpx-devel unixODBC-devel e2fsprogs-devel \
-    ffmpeg-free"
+    ffmpeg-free flite flite-devel"
 
 # Step 3: Install autoconf 2.71 (required by FreeSWITCH)
 progress "Installing autoconf 2.71..."
@@ -222,8 +222,9 @@ sed -i 's/^#xml_int\/mod_xml_curl/xml_int\/mod_xml_curl/' modules.conf
 sed -i 's/^#\(applications\/mod_conference\)/\1/' modules.conf
 sed -i 's/^#\(codecs\/mod_opus\)/\1/' modules.conf
 sed -i 's/^#\(formats\/mod_sndfile\)/\1/' modules.conf
+sed -i 's/^#\(asr_tts\/mod_tts_commandline\)/\1/' modules.conf
 
-log "Key modules: mod_sofia, mod_conference, mod_event_socket, mod_xml_curl, mod_opus, mod_dptools, mod_commands, mod_sndfile"
+log "Key modules: mod_sofia, mod_conference, mod_event_socket, mod_xml_curl, mod_opus, mod_dptools, mod_commands, mod_sndfile, mod_tts_commandline"
 
 # Step 11: Build FreeSWITCH
 progress "Configuring FreeSWITCH build (this may take a few minutes)..."

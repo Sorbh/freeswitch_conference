@@ -11,7 +11,7 @@ import {
     honkRoom,
     getConferenceList,
 } from './freeswitch/callAction.js';
-import { showMessage, sendCommands, sendActionUri, playTone, stopTone } from './freeswitch/notifications.js';
+import { showMessage, sendCommands, sendActionUri, playTone, stopTone, speak } from './freeswitch/notifications.js';
 import { getTalkingUsers } from './freeswitch/callEvents.js';
 import './freeswitch/broadcast.js';
 import './freeswitch/onlineSync.js';
@@ -35,6 +35,7 @@ freeswitch.sendCommands = sendCommands;
 freeswitch.sendActionUri = sendActionUri;
 freeswitch.playTone = playTone;
 freeswitch.stopTone = stopTone;
+freeswitch.speak = speak;
 freeswitch.getConferenceList = getConferenceList;
 freeswitch.ensureInConference = ensureInConference;
 freeswitch.initiateCall = initiateCall;
