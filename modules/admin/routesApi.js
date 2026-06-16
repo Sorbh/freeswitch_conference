@@ -15,22 +15,6 @@ function emitStateChange(scope, detail = {}) {
     global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope, ...detail });
 }
 
-// GET /account-lookup?email=... — public endpoint to get account info after SIP auth
-adminRouter.get("/account-lookup", (req, res) => {
-    try {
-        const email = req.query.email;
-        if (!email) return res.status(400).json({ status: false, error: "Email is required" });
-        const account = global.db.getAccountByEmail(email);
-        if (!account) {
-            return res.status(404).json({ status: false, error: "Account not found" });
-        }
-        const { password, ...safe } = account;
-        res.json({ status: true, data: safe });
-    } catch (err) {
-        res.status(500).json({ status: false, error: err.message });
-    }
-});
-
 // GET /dashboard — returns dashboard stats
 adminRouter.get("/dashboard", (req, res) => {
     try {
@@ -331,6 +315,34 @@ adminRouter.get("/broadcasts/activity", (req, res) => {
     }
 });
 
+// ── Settings (general) ──
+
+adminRouter.get("/settings/general", (req, res) => {
+    try {
+        const s = global.db.getSettingsByPrefix('automute_');
+        res.json({
+            status: true,
+            data: {
+                automute_enabled: s.automute_enabled === '1',
+                automute_timeout_ms: parseInt(s.automute_timeout_ms || '180000', 10),
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+adminRouter.put("/settings/general", (req, res) => {
+    try {
+        const { automute_enabled, automute_timeout_ms } = req.body;
+        if (automute_enabled !== undefined) global.db.setSetting('automute_enabled', automute_enabled ? '1' : '0');
+        if (automute_timeout_ms !== undefined) global.db.setSetting('automute_timeout_ms', String(Math.max(30000, parseInt(automute_timeout_ms))));
+        res.json({ status: true, message: 'General settings updated' });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // ── Settings (audio/transcription) ──
 
 adminRouter.get("/settings/audio", (req, res) => {
@@ -513,65 +525,6 @@ adminRouter.get("/events/room/:room", (req, res) => {
 
     global.db.eventEmitter.on('STATE_CHANGE', onEvent);
     req.on('close', () => global.db.eventEmitter.off('STATE_CHANGE', onEvent));
-});
-
-// GET /events/fs-log — SSE endpoint for FreeSWITCH log stream
-adminRouter.get("/events/fs-log", (req, res) => {
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-    });
-
-    res.write('data: {"type":"connected"}\n\n');
-
-    const onLog = (entry) => {
-        res.write(`data: ${JSON.stringify(entry)}\n\n`);
-    };
-
-    global.db.eventEmitter.on('FS_LOG', onLog);
-
-    req.on('close', () => {
-        global.db.eventEmitter.off('FS_LOG', onLog);
-    });
-});
-
-// GET /events/phone-log — SSE endpoint for phone syslog stream
-adminRouter.get("/events/phone-log", (req, res) => {
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-    });
-
-    res.write('data: {"type":"connected"}\n\n');
-
-    const onLog = (entry) => {
-        res.write(`data: ${JSON.stringify(entry)}\n\n`);
-    };
-
-    global.db.eventEmitter.on('PHONE_LOG', onLog);
-
-    req.on('close', () => {
-        global.db.eventEmitter.off('PHONE_LOG', onLog);
-    });
-});
-
-// GET /events/debug-log — SSE endpoint for debug log stream
-adminRouter.get("/events/debug-log", (req, res) => {
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-    });
-    res.write('data: {"type":"connected"}\n\n');
-
-    const onLog = (entry) => {
-        res.write(`data: ${JSON.stringify(entry)}\n\n`);
-    };
-
-    global.db.eventEmitter.on('DEBUG_LOG', onLog);
-    req.on('close', () => { global.db.eventEmitter.off('DEBUG_LOG', onLog); });
 });
 
 // GET /system — returns system health

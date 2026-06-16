@@ -234,6 +234,42 @@ export function shouldAutoTranscribe(room) {
     return roomData?.auto_transcribe === 1;
 }
 
+export async function transcribeDirectCall(callId) {
+    const call = global.db.getDirectCallById(callId);
+    if (!call) throw new Error('Direct call not found');
+    if (!call.recording_path || !fs.existsSync(call.recording_path)) {
+        throw new Error('Recording file not found');
+    }
+
+    const settings = _getSettings();
+    if (!settings.enabled) throw new Error('Transcription is disabled');
+
+    const provider = settings.provider;
+    const apiKey = provider === 'deepgram' ? settings.deepgramApiKey : settings.openrouterApiKey;
+    const model = provider === 'deepgram' ? settings.deepgramModel : settings.openrouterModel;
+
+    if (!apiKey) throw new Error(`No API key configured for ${provider}`);
+
+    const providerName = provider === 'deepgram' ? 'Deepgram' : 'OpenRouter';
+    global.db.updateDirectCall(callId, { transcription_status: 'processing' });
+
+    try {
+        const transcript = provider === 'deepgram'
+            ? await _deepgramTranscribe(call.recording_path, apiKey, model, settings.language)
+            : await _openrouterTranscribe(call.recording_path, apiKey, model, settings.language);
+
+        global.db.updateDirectCall(callId, {
+            transcription: transcript || '',
+            transcription_status: 'completed',
+        });
+        return transcript;
+    } catch (err) {
+        global.db.updateDirectCall(callId, { transcription_status: 'failed' });
+        logSystem('STT', `Direct call #${callId} FAILED [${providerName} / ${model}]: ${err.message}`);
+        throw err;
+    }
+}
+
 export function getAudioSettings() {
     return _getSettings();
 }

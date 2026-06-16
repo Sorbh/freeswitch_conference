@@ -14,6 +14,7 @@ import { logUser, logSystem, logBroadcast } from '../logger.js';
 import { isPlaying, stopAd } from '../announcements.js';
 import { notifyBroadcast } from '../notifier.js';
 import { shouldAutoTranscribe, transcribeBroadcast } from '../transcription.js';
+import { isInDirectCall } from './directCall.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
 const BROADCAST_RESPONSE_WINDOW_MS = 5000;
@@ -101,6 +102,10 @@ onCustomEvent((event) => {
     const conferenceName = event.getHeader('Conference-Name');
     const memberId = event.getHeader('Member-ID');
     const room = parseInt(conferenceName) || null;
+
+    // Skip broadcast tracking for members involved in a direct call
+    const uuid = event.getHeader('Unique-ID');
+    if (uuid && isInDirectCall(uuid)) return;
 
     if (action === 'unmute-member') _handleUnmute(conferenceName, memberId, room, event);
     else if (action === 'mute-member') _handleParticipantLeft(conferenceName, memberId, room);

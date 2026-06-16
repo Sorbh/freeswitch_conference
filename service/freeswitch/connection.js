@@ -14,6 +14,7 @@ const eventHandlers = {
     answer: [],
     hangup: [],
     message: [],
+    dtmf: [],
     log: [],
 };
 
@@ -25,6 +26,7 @@ export function onCustomEvent(fn) { eventHandlers.custom.push(fn); }
 export function onAnswerEvent(fn) { eventHandlers.answer.push(fn); }
 export function onHangupEvent(fn) { eventHandlers.hangup.push(fn); }
 export function onMessageEvent(fn) { eventHandlers.message.push(fn); }
+export function onDtmfEvent(fn) { eventHandlers.dtmf.push(fn); }
 export function onLogEvent(fn) { eventHandlers.log.push(fn); }
 
 export async function connect() {
@@ -38,7 +40,7 @@ export async function connect() {
             () => {
                 logSystem('ESL', 'connected to FreeSWITCH');
 
-                eslConnection.subscribe('CHANNEL_ANSWER CHANNEL_HANGUP_COMPLETE');
+                eslConnection.subscribe('CHANNEL_ANSWER CHANNEL_HANGUP_COMPLETE DTMF');
                 eslConnection.subscribe('CUSTOM sofia::register sofia::unregister sofia::expire sofia::keepalive conference::maintenance');
                 eslConnection.subscribe('RECV_MESSAGE MESSAGE NOTIFY_IN RECV_INFO');
 
@@ -50,6 +52,9 @@ export async function connect() {
                 });
                 eslConnection.on('esl::event::CHANNEL_HANGUP_COMPLETE::*', (event) => {
                     for (const fn of eventHandlers.hangup) fn(event);
+                });
+                eslConnection.on('esl::event::DTMF::*', (event) => {
+                    for (const fn of eventHandlers.dtmf) fn(event);
                 });
                 eslConnection.on('esl::event::RECV_MESSAGE::*', (event) => {
                     for (const fn of eventHandlers.message) fn(event);

@@ -16,6 +16,8 @@ import { getTalkingUsers } from './freeswitch/callEvents.js';
 import './freeswitch/broadcast.js';
 import './freeswitch/onlineSync.js';
 import './freeswitch/fsLogService.js';
+import './freeswitch/directCall.js';
+import './freeswitch/autoMute.js';
 
 const freeswitch = {};
 

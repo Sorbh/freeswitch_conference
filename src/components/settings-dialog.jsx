@@ -38,6 +38,7 @@ import {
   SettingsIcon,
   XIcon,
   MicIcon,
+  TimerIcon,
 } from "lucide-react";
 
 const ROLE_LABELS = { admin: "Admin", editor: "Editor", analytics: "Analytics" };
@@ -233,9 +234,44 @@ function Row({ label, hint, children, noBorder }) {
 
 function GeneralPane({ user }) {
   const initials = (user?.name || "U").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [automuteEnabled, setAutomuteEnabled] = useState(false);
+  const [automuteMinutes, setAutomuteMinutes] = useState(3);
+
+  useEffect(() => {
+    apiFetch('/api/v1/admin/settings/general').then(r => r.json()).then(j => {
+      if (j.status && j.data) {
+        setAutomuteEnabled(j.data.automute_enabled);
+        setAutomuteMinutes(Math.round(j.data.automute_timeout_ms / 60000));
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await apiFetch('/api/v1/admin/settings/general', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          automute_enabled: automuteEnabled,
+          automute_timeout_ms: automuteMinutes * 60000,
+        }),
+      });
+      const json = await res.json();
+      if (json.status) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {} finally { setSaving(false); }
+  };
+
   return (
     <>
-      <Heading sub="Your profile and console preferences">General</Heading>
+      <Heading sub="Your profile and conference preferences">General</Heading>
 
       <section className="mb-7">
         <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest mb-3">Profile</p>
@@ -254,6 +290,117 @@ function GeneralPane({ user }) {
           </Row>
         </div>
       </section>
+
+      {/* ─── Auto-Mute ─── */}
+      <section className="mb-7">
+        <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest mb-3">Conference</p>
+
+        <div className={cn(
+          "relative rounded-xl border px-4 py-3.5 mb-4 overflow-hidden transition-all duration-300",
+          automuteEnabled
+            ? "border-amber-500/25 bg-amber-500/[0.04]"
+            : "border-border/40 bg-card/50"
+        )}>
+          {automuteEnabled && (
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 1px, transparent 1px, transparent 6px)',
+              color: '#f59e0b',
+            }} />
+          )}
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "flex size-9 items-center justify-center rounded-lg transition-all duration-300",
+                automuteEnabled
+                  ? "bg-amber-500/15 text-amber-400"
+                  : "bg-muted/60 text-muted-foreground/40"
+              )}>
+                <TimerIcon className="size-[18px]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium">Auto-Mute</span>
+                  {automuteEnabled && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-px">
+                      <span className="size-1 rounded-full bg-amber-400 animate-pulse" />
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                  {automuteEnabled
+                    ? `Unmuted users will be auto-muted after ${automuteMinutes} min`
+                    : 'Automatically mute users who forget to mute'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setAutomuteEnabled(!automuteEnabled); setSaved(false); }}
+              className={cn(
+                "relative inline-flex h-[22px] w-10 shrink-0 cursor-pointer rounded-full border-2 transition-all duration-300",
+                automuteEnabled
+                  ? "bg-amber-500 border-amber-500/80"
+                  : "bg-muted/80 border-border/60"
+              )}
+            >
+              <span className={cn(
+                "pointer-events-none block size-[18px] rounded-full bg-white shadow-md ring-0 transition-transform duration-300",
+                automuteEnabled ? "translate-x-[18px]" : "translate-x-0"
+              )} />
+            </button>
+          </div>
+        </div>
+
+        {automuteEnabled && (
+          <div className="rounded-xl border border-border/40 bg-card/50 px-4">
+            <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+              <div className="min-w-0">
+                <p className="text-[13px]">Timeout</p>
+                <p className="text-[11px] text-muted-foreground/50 mt-px">Max unmuted duration before auto-mute</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={automuteMinutes}
+                  onChange={e => { setAutomuteMinutes(Math.max(1, Math.min(30, parseInt(e.target.value) || 1))); setSaved(false); }}
+                  className="w-[70px] h-7 text-[12px] text-center"
+                />
+                <span className="text-[12px] text-muted-foreground/50">min</span>
+              </div>
+            </div>
+            <Row label="Warning" hint="Tone + screen notification 30s before mute" noBorder>
+              <span className="text-[12px] text-muted-foreground/50">
+                at {Math.max(0, automuteMinutes * 60 - 30)}s
+              </span>
+            </Row>
+          </div>
+        )}
+      </section>
+
+      {/* ─── Save ─── */}
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] text-muted-foreground/30">
+          {automuteEnabled ? `Auto-mute after ${automuteMinutes} min` : ''}
+        </p>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={saving || loading}
+          className={cn(
+            "h-8 text-xs px-5 transition-all duration-200",
+            saved && "bg-emerald-600 hover:bg-emerald-600 text-white"
+          )}
+        >
+          {saving
+            ? <><Loader2Icon className="size-3.5 animate-spin mr-1.5" />Saving…</>
+            : saved
+              ? <><CheckIcon className="size-3.5 mr-1.5" />Saved</>
+              : 'Save Settings'
+          }
+        </Button>
+      </div>
     </>
   );
 }

@@ -55,9 +55,14 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
-    var config = window.CALLERID_CONFIG || { sseBase: '50.28.84.57:4007' };
+    var config = window.CALLERID_CONFIG || { sseBase: 'https://hotline.redlineusedautoparts.com/fs/' };
     var sseBase = config.sseBase || window.CALLERID_SSE_BASE || '';
     var room = config.room || window.CALLERID_ROOM || localStorage.getItem("room");
+
+    console.log("[CallerID] Initializing...");
+    console.log("[CallerID] Config:", JSON.stringify(config));
+    console.log("[CallerID] sseBase:", sseBase);
+    console.log("[CallerID] Room:", room);
 
     if (!room) {
         console.error("[CallerID] No room configured. Set localStorage 'room' or window.CALLERID_CONFIG.room");
@@ -76,7 +81,11 @@
     function renderCallerIds(callerIdHtml) {
         try {
             var grid = getGrid();
-            if (!grid) return;
+            if (!grid) {
+                console.warn("[CallerID] #caller_grid element not found in DOM");
+                return;
+            }
+            console.log("[CallerID] Rendering", (callerIdHtml || []).length, "caller IDs");
             grid.innerHTML = (callerIdHtml || []).join('');
             if (typeof window.onCallerIdUpdate === 'function') {
                 window.onCallerIdUpdate(callerIdHtml);
@@ -96,13 +105,15 @@
         try {
             if (eventSource) { eventSource.close(); eventSource = null; }
 
-            var url = sseBase + "/api/v1/admin/events/room/" + room;
+            var base = sseBase.indexOf('://') === -1 ? 'https://' + sseBase : sseBase;
+            var url = base + "/api/v1/admin/events/room/" + room;
+            console.log("[CallerID] Connecting to SSE:", url);
             eventSource = new EventSource(url);
 
             eventSource.onopen = function () {
                 reconnectAttempts = 0;
                 if (reconnectTimeout) { clearTimeout(reconnectTimeout); reconnectTimeout = null; }
-                console.log("[CallerID] Connected to room", room);
+                console.log("[CallerID] SSE connected to room", room);
                 try {
                     if (typeof Offline !== 'undefined' && Offline.state !== 'up') {
                         Offline.options.checks.active = 'up';
@@ -113,19 +124,22 @@
 
             eventSource.onmessage = function (event) {
                 try {
+                    console.log("[CallerID] SSE message received:", event.data.substring(0, 200));
                     var data = JSON.parse(event.data);
                     if (data.callerIdHtml) {
                         renderCallerIds(data.callerIdHtml);
                     }
                     if (data.online && typeof window.updateOnlineCounts === 'function') {
+                        console.log("[CallerID] Online counts:", JSON.stringify(data.online));
                         window.updateOnlineCounts(data.online);
                     }
                 } catch (e) {
-                    console.error("[CallerID] Message parse error:", e.message);
+                    console.error("[CallerID] Message parse error:", e.message, "Raw:", event.data.substring(0, 200));
                 }
             };
 
-            eventSource.onerror = function () {
+            eventSource.onerror = function (err) {
+                console.error("[CallerID] SSE error event fired. readyState:", eventSource ? eventSource.readyState : "null");
                 try {
                     if (eventSource) { eventSource.close(); eventSource = null; }
                     var grid = getGrid();

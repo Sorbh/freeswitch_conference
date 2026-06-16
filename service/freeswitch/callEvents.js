@@ -200,7 +200,7 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'mute-member': {
-            const muteUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
+            const muteUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (muteUser) {
                 muteUser.mute = true;
                 global.db.setUserInfo(muteUser.userName, muteUser);
@@ -215,7 +215,7 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'start-talking': {
-            const talkUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
+            const talkUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (talkUser && !talkUser.mute) {
                 _talkingUsers.add(talkUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
@@ -223,7 +223,7 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'stop-talking': {
-            const stopUser = _findUserByMember(conferenceName, memberId) || _findUserByUuid(event.getHeader('Unique-ID'));
+            const stopUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (stopUser) {
                 _talkingUsers.delete(stopUser.userName);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
@@ -232,7 +232,7 @@ function _handleConferenceEvent(event) {
             break;
         }
         case 'unmute-member': {
-            const unmuteUser = _findUserByMember(conferenceName, memberId);
+            const unmuteUser = findUserByMember(conferenceName, memberId);
             if (unmuteUser) {
                 unmuteUser.mute = false;
                 global.db.setUserInfo(unmuteUser.userName, unmuteUser);
@@ -260,13 +260,13 @@ function _updateMemberMapping(conferenceName, memberId, callerIdName, event) {
     getMemberIdMap().set(`${conferenceName}:${memberId}`, { uuid, callerIdName });
 }
 
-function _findUserByUuid(uuid) {
+export function findUserByUuid(uuid) {
     if (!uuid) return null;
     const users = global.db.filter(u => u.fsChannelUUID === uuid);
     return users.length > 0 ? users[0] : null;
 }
 
-function _findUserByMember(conferenceName, memberId) {
+export function findUserByMember(conferenceName, memberId) {
     // Try memberIdMap first
     const mapping = getMemberIdMap().get(`${conferenceName}:${memberId}`);
     if (mapping) {

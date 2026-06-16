@@ -2,7 +2,7 @@
   <advertise/>
   <caller-controls>
     <group name="default">
-      <control action="mute" digits="0"/>
+      <!-- No DTMF controls — mute/unmute handled by admin dashboard and softkeys -->
     </group>
   </caller-controls>
 

@@ -19,7 +19,7 @@
 //   <script src="/redline_sip_client.js"></script>
 //
 //   That's it. JsSIP is auto-loaded from /jssip.bundle.js.
-//   If localStorage has "user_data" with is_sip=1, it auto-connects.
+//   If localStorage has "user_data" with is_sip=0, it auto-connects.
 //
 //   To load JsSIP from a custom path:
 //   window.HOTLINE_CONFIG = { jssipUrl: '/path/to/jssip.bundle.js' };
@@ -45,8 +45,8 @@
 //
 // OPTIONAL CONFIG (set before loading this script):
 //   window.HOTLINE_CONFIG = {
-//     wsPort: 5072,              // WebSocket port for SIP
-//     apiBase: '',               // API base URL (empty = same origin)
+//     wsServer: '',              // WebSocket URL for SIP (default: wss://hotline.redlineusedautoparts.com/fs_wss/)
+//     apiBase: '',               // API base URL (default: https://hotline.redlineusedautoparts.com/fs/)
 //     defaultPassword: '12345678' // SIP password
 //   };
 //
@@ -67,29 +67,16 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
-(function () {
-    // ── Load JsSIP if not already loaded ──
-    function loadJsSIPAndInit() {
-        if (typeof JsSIP !== 'undefined') { init(); return; }
-        var script = document.createElement('script');
-        script.src = (window.HOTLINE_CONFIG && window.HOTLINE_CONFIG.jssipUrl) || '/jssip.bundle.js';
-        script.onload = function () { init(); };
-        script.onerror = function () { console.error('[SIP] Failed to load jssip.bundle.js'); };
-        document.head.appendChild(script);
-    }
+import "./jssip.bundle";
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', loadJsSIPAndInit);
-    } else {
-        loadJsSIPAndInit();
-    }
+(function () {
 
     function init() {
+        console.log('[SIP] init() called');
         var config = window.HOTLINE_CONFIG || {};
-        var host = '50.28.84.57';
+        var apiBase = config.apiBase || 'https://hotline.redlineusedautoparts.com/fs/';
+        var wsServer = config.wsServer || 'wss://hotline.redlineusedautoparts.com/fs_wss/';
         var sipDomain = '50.28.84.57';
-        var wsServer = 'wss://' + host + ':' + (config.wsPort || 5072);
-        var apiBase = config.apiBase || '';
         var defaultPassword = config.defaultPassword || '12345678';
 
         var ua = null;
@@ -107,18 +94,13 @@
             try {
                 var now = Date.now();
                 if (now - lastHeartbeat > 15000 && ua && !loggingOut) {
-                    console.warn('[SIP] Sleep/wake detected, forcing reconnect');
                     try {
                         ua.stop();
                         setTimeout(function () { if (!loggingOut && ua) ua.start(); }, 1000);
-                    } catch (e) {
-                        console.error('[SIP] Reconnect after wake failed:', e.message);
-                    }
+                    } catch (e) { }
                 }
                 lastHeartbeat = now;
-            } catch (e) {
-                console.error('[SIP] Heartbeat error:', e.message);
-            }
+            } catch (e) { }
         }, 5000);
 
         function generateMac(email) {
@@ -199,9 +181,7 @@
                         if (data.online && typeof window.updateOnlineCounts === 'function') {
                             window.updateOnlineCounts(data.online);
                         }
-                    } catch (e) {
-                        console.error('[CallerID] Message parse error:', e.message);
-                    }
+                    } catch (e) { }
                 };
 
                 callerIdSource.onerror = function () {
@@ -209,7 +189,6 @@
                     if (loggingOut || !accountData) return;
                     callerIdReconnectAttempts++;
                     var delay = Math.min(1000 * Math.pow(2, callerIdReconnectAttempts), 30000);
-                    console.warn('[CallerID] Connection lost, reconnecting in ' + (delay / 1000) + 's');
                     setTimeout(function () { if (!loggingOut && accountData) connectCallerIdSSE(room); }, delay);
                 };
             } catch (e) {
@@ -231,6 +210,17 @@
         }
 
         // ── Audio ──
+        var audioElement = null;
+
+        function ensureAudioElement() {
+            if (audioElement) return audioElement;
+            var container = document.getElementById("mixedaudio");
+            if (!container) return null;
+            container.innerHTML = '<audio id="roomaudio" autoplay hidden></audio>';
+            audioElement = document.getElementById("roomaudio");
+            return audioElement;
+        }
+
         function attachRemoteAudio(session) {
             try {
                 if (!session || !session.connection) return;
@@ -238,17 +228,12 @@
                     .filter(function (r) { return r.track && r.track.kind === 'audio'; })
                     .map(function (r) { return r.track; });
                 if (tracks.length > 0) {
-                    var audio = document.getElementById('remoteAudio');
-                    if (audio) {
-                        audio.srcObject = new MediaStream(tracks);
-                        audio.play().catch(function (e) {
-                            console.warn('[SIP] Audio autoplay blocked:', e.message);
-                        });
-                    }
+                    var el = ensureAudioElement();
+                    if (!el) return;
+                    el.srcObject = new MediaStream(tracks);
+                    el.play().catch(function (e) { });
                 }
-            } catch (e) {
-                console.error('[SIP] attachRemoteAudio error:', e.message);
-            }
+            } catch (e) { }
         }
 
         function muteAudio(mute) {
@@ -259,9 +244,7 @@
                         sender.track.enabled = !mute;
                     }
                 });
-            } catch (e) {
-                console.error('[SIP] muteAudio error:', e.message);
-            }
+            } catch (e) { }
         }
 
         // ── SIP ──
@@ -276,10 +259,7 @@
             }
 
             try {
-                if (typeof JsSIP === 'undefined') {
-                    console.error('[SIP] JsSIP is undefined — jssip.bundle.js not loaded');
-                    return;
-                }
+                if (typeof JsSIP === 'undefined') return;
 
                 var sipUser = email.replace('@', '.at.');
                 var mac = generateMac(email);
@@ -289,10 +269,7 @@
                 var socket;
                 try {
                     socket = new JsSIP.WebSocketInterface(wsServer);
-                } catch (e) {
-                    console.error('[SIP] WebSocket creation error:', e.message);
-                    return;
-                }
+                } catch (e) { return; }
 
                 ua = new JsSIP.UA({
                     sockets: [socket],
@@ -305,6 +282,7 @@
                     connection_recovery_min_interval: 2,
                     connection_recovery_max_interval: 30,
                     user_agent: 'Redline-WebClient/1.0 ' + mac,
+                    contact_uri: 'sip:' + email.split('@')[0] + '@' + sipDomain + ';transport=ws',
                 });
 
                 ua.on('registered', function () {
@@ -345,9 +323,7 @@
                                     if (typeof window.onHotlineReady === 'function') {
                                         window.onHotlineReady(accountData);
                                     }
-                                } catch (e) {
-                                    console.error('[SIP] Account processing error:', e);
-                                }
+                                } catch (e) { }
                             })
                             .catch(function (e) {
                                 console.error('[SIP] Account lookup failed:', e);
@@ -415,21 +391,16 @@
                                     isMuted = true;
                                     muteAudio(true);
                                     attachRemoteAudio(session);
-                                    console.log('[SIP] Call connected');
                                     if (typeof window.onHotlineCallState === 'function') {
                                         window.onHotlineCallState('connected');
                                     }
-                                } catch (e) {
-                                    console.error('[SIP] Session accepted error:', e.message);
-                                }
+                                } catch (e) { }
                             });
                             session.on('failed', function (e) {
-                                console.warn('[SIP] Session failed:', e && e.cause || 'unknown');
                                 currentSession = null;
                                 if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
                             });
                             session.on('ended', function (e) {
-                                console.log('[SIP] Session ended:', e && e.cause || 'normal');
                                 currentSession = null;
                                 if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
                             });
@@ -438,9 +409,7 @@
                                 pcConfig: { iceServers: [] },
                             });
                         }
-                    } catch (e) {
-                        console.error('[SIP] newRTCSession handler error:', e);
-                    }
+                    } catch (e) { }
                 });
 
                 console.log('[SIP] Starting UA, server:', wsServer, 'user:', sipUser);
@@ -535,13 +504,18 @@
         // ── Auto-login from localStorage (production Vue app) ──
         try {
             var lsAutoData = getLocalStorageUserData();
-            if (lsAutoData && lsAutoData.email && lsAutoData.isSip) {
+            console.log('[SIP] localStorage data:', lsAutoData);
+            if (lsAutoData && lsAutoData.email) {
                 console.log('[SIP] Auto-login from localStorage:', lsAutoData.email);
                 doLogin(lsAutoData.email);
+            } else {
+                console.warn('[SIP] No email found in localStorage, skipping auto-login');
             }
         } catch (e) {
             console.warn('[SIP] localStorage auto-login failed:', e.message);
         }
 
     } // end init()
+
+    init();
 })();

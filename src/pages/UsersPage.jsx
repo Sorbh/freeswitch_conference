@@ -805,6 +805,7 @@ export default function UsersPage() {
                 <TableHead className="hidden md:table-cell cursor-pointer select-none" onClick={() => toggleSort("room")}>
                   <span className="inline-flex items-center gap-1">Room <SortIcon col="room" /></span>
                 </TableHead>
+                <TableHead className="hidden lg:table-cell w-[60px]">Ext</TableHead>
                 <TableHead className="hidden md:table-cell">Account</TableHead>
                 <TableHead>Last Seen</TableHead>
                 <TableHead className="text-right w-[100px]"></TableHead>
@@ -813,7 +814,7 @@ export default function UsersPage() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
                     No yards found
                   </TableCell>
                 </TableRow>
@@ -908,6 +909,13 @@ export default function UsersPage() {
                           <span className="text-muted-foreground cursor-pointer hover:text-foreground">{code}</span>
                         );
                       })()}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {user.account?.extension ? (
+                        <code className="text-[11px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">*{user.account.extension}</code>
+                      ) : (
+                        <span className="text-muted-foreground/30 text-xs">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {user.account ? (

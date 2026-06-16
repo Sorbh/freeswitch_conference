@@ -188,6 +188,7 @@ function init() {
         ['sip_server_host', "ALTER TABLE accounts ADD COLUMN sip_server_host TEXT"],
         ['sip_server_port', "ALTER TABLE accounts ADD COLUMN sip_server_port TEXT"],
         ['debug', "ALTER TABLE accounts ADD COLUMN debug INTEGER DEFAULT 0"],
+        ['extension', "ALTER TABLE accounts ADD COLUMN extension INTEGER"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);
@@ -235,6 +236,54 @@ function init() {
     const ncCols = sqlite.prepare("PRAGMA table_info(notification_channels)").all().map(c => c.name);
     if (!ncCols.includes('message_template')) {
         sqlite.exec("ALTER TABLE notification_channels ADD COLUMN message_template TEXT");
+    }
+
+    // ── Direct calls table ──
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS direct_calls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            caller_email TEXT NOT NULL,
+            caller_extension INTEGER,
+            caller_display_name TEXT,
+            caller_company TEXT,
+            caller_room INTEGER,
+            caller_room_name TEXT,
+            callee_email TEXT NOT NULL,
+            callee_extension INTEGER,
+            callee_display_name TEXT,
+            callee_company TEXT,
+            callee_room INTEGER,
+            callee_room_name TEXT,
+            status TEXT NOT NULL DEFAULT 'ringing',
+            started_at INTEGER,
+            answered_at INTEGER,
+            ended_at INTEGER,
+            duration_ms INTEGER DEFAULT 0,
+            end_reason TEXT,
+            recording_path TEXT,
+            transcription TEXT,
+            transcription_status TEXT,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_direct_calls_created ON direct_calls(created_at);
+        CREATE INDEX IF NOT EXISTS idx_direct_calls_caller ON direct_calls(caller_email);
+        CREATE INDEX IF NOT EXISTS idx_direct_calls_callee ON direct_calls(callee_email);
+    `);
+
+    const dcCols = sqlite.prepare("PRAGMA table_info(direct_calls)").all().map(c => c.name);
+    const dcMigrations = [
+        ['caller_display_name', "ALTER TABLE direct_calls ADD COLUMN caller_display_name TEXT"],
+        ['caller_company', "ALTER TABLE direct_calls ADD COLUMN caller_company TEXT"],
+        ['caller_room_name', "ALTER TABLE direct_calls ADD COLUMN caller_room_name TEXT"],
+        ['callee_display_name', "ALTER TABLE direct_calls ADD COLUMN callee_display_name TEXT"],
+        ['callee_company', "ALTER TABLE direct_calls ADD COLUMN callee_company TEXT"],
+        ['callee_room_name', "ALTER TABLE direct_calls ADD COLUMN callee_room_name TEXT"],
+        ['recording_path', "ALTER TABLE direct_calls ADD COLUMN recording_path TEXT"],
+        ['transcription', "ALTER TABLE direct_calls ADD COLUMN transcription TEXT"],
+        ['transcription_status', "ALTER TABLE direct_calls ADD COLUMN transcription_status TEXT"],
+    ];
+    for (const [col, sql] of dcMigrations) {
+        if (!dcCols.includes(col)) sqlite.exec(sql);
     }
 
     // ── Settings table ──
@@ -753,12 +802,16 @@ function getAccountById(id) {
     return sqlite.prepare('SELECT * FROM accounts WHERE id = ?').get(id) || null;
 }
 
+function getAccountByExtension(ext) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE extension = ?').get(ext) || null;
+}
+
 function getAllAccounts() {
     return sqlite.prepare('SELECT * FROM accounts ORDER BY created_at DESC').all();
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'sip_server_host', 'sip_server_port', 'debug'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -1065,6 +1118,7 @@ db.createAccount = createAccount;
 db.getAccountByEmail = getAccountByEmail;
 db.getAccountByUserName = getAccountByUserName;
 db.getAccountById = getAccountById;
+db.getAccountByExtension = getAccountByExtension;
 db.getAllAccounts = getAllAccounts;
 db.updateAccount = updateAccount;
 db.deleteAccount = deleteAccount;
@@ -1098,6 +1152,52 @@ db.generateBroadcastShareToken = generateBroadcastShareToken;
 db.revokeBroadcastShareToken = revokeBroadcastShareToken;
 db.getBroadcastByShareToken = getBroadcastByShareToken;
 db.getBroadcastById = getBroadcastById;
+// ── Direct calls ──
+
+function logDirectCall(data) {
+    const result = sqlite.prepare(`
+        INSERT INTO direct_calls (
+            caller_email, caller_extension, caller_display_name, caller_company, caller_room, caller_room_name,
+            callee_email, callee_extension, callee_display_name, callee_company, callee_room, callee_room_name,
+            status, started_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        data.callerEmail, data.callerExtension, data.callerDisplayName, data.callerCompany, data.callerRoom, data.callerRoomName,
+        data.calleeEmail, data.calleeExtension, data.calleeDisplayName, data.calleeCompany, data.calleeRoom, data.calleeRoomName,
+        data.status || 'ringing', Math.floor(Date.now() / 1000)
+    );
+    return result.lastInsertRowid;
+}
+
+function updateDirectCall(id, fields) {
+    const sets = [];
+    const vals = [];
+    if (fields.status !== undefined) { sets.push('status = ?'); vals.push(fields.status); }
+    if (fields.answered_at !== undefined) { sets.push('answered_at = ?'); vals.push(fields.answered_at); }
+    if (fields.ended_at !== undefined) { sets.push('ended_at = ?'); vals.push(fields.ended_at); }
+    if (fields.duration_ms !== undefined) { sets.push('duration_ms = ?'); vals.push(fields.duration_ms); }
+    if (fields.end_reason !== undefined) { sets.push('end_reason = ?'); vals.push(fields.end_reason); }
+    if (fields.recording_path !== undefined) { sets.push('recording_path = ?'); vals.push(fields.recording_path); }
+    if (fields.transcription !== undefined) { sets.push('transcription = ?'); vals.push(fields.transcription); }
+    if (fields.transcription_status !== undefined) { sets.push('transcription_status = ?'); vals.push(fields.transcription_status); }
+    if (sets.length === 0) return;
+    vals.push(id);
+    sqlite.prepare(`UPDATE direct_calls SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+}
+
+function getDirectCallById(id) {
+    return sqlite.prepare('SELECT * FROM direct_calls WHERE id = ?').get(id) || null;
+}
+
+function getDirectCalls(limit = 50) {
+    return sqlite.prepare('SELECT * FROM direct_calls ORDER BY created_at DESC LIMIT ?').all(limit);
+}
+
+db.logDirectCall = logDirectCall;
+db.updateDirectCall = updateDirectCall;
+db.getDirectCalls = getDirectCalls;
+db.getDirectCallById = getDirectCallById;
+
 db.getSetting = getSetting;
 db.setSetting = setSetting;
 db.getSettingsByPrefix = getSettingsByPrefix;

@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import ActionApiRouter from "../modules/sip-action/routesApi.js";
-import { testRouter } from "../modules/test/routesApi.js";
 import { freeswitchRouter } from "../modules/freeswitch/routesApi.js";
 import { adminRouter } from "../modules/admin/routesApi.js";
+import { handleHttpHookEvent } from "../service/phoneEvents.js";
+import { getConnectionHandlers } from "../service/freeswitch/connection.js";
 import { authRouter } from "../modules/auth/routesApi.js";
 import {
     requireAuth,
@@ -67,11 +68,139 @@ export default class ApiRouter {
     constructor() {
         this.apiRouter = express.Router();
 
-        this.apiRouter.use("/test", testRouter);
         this.apiRouter.use("/auth", authRouter);
         this.apiRouter.use("/public", publicRouter);
         this.apiRouter.use("/freeswitch", requireLocalhost, freeswitchRouter);
         this.apiRouter.use("/action", requireApiKey, new ActionApiRouter().actionRouter);
+
+        // Public admin endpoints (no auth)
+        this.apiRouter.get("/admin/account-lookup", (req, res) => {
+            try {
+                const email = req.query.email;
+                if (!email) return res.status(400).json({ status: false, error: "Email is required" });
+                const account = global.db.getAccountByEmail(email);
+                if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+                const { password, ...safe } = account;
+                res.json({ status: true, data: safe });
+            } catch (err) {
+                res.status(500).json({ status: false, error: err.message });
+            }
+        });
+
+        // Public hook endpoint (no auth) — used by SIP web client mute/unmute
+        this.apiRouter.post("/admin/users/:userName/hook", (req, res) => {
+            try {
+                const userName = req.params.userName;
+                const { event } = req.body;
+                if (!event) return res.status(400).json({ status: false, error: "event is required (off_hook or on_hook)" });
+                const result = handleHttpHookEvent(userName, event);
+                if (!result) return res.status(400).json({ status: false, error: "Failed to process hook event" });
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', detail: { userName } });
+                res.json({ status: true, muted: event === 'on_hook' });
+            } catch (err) {
+                res.status(500).json({ status: false, error: err.message });
+            }
+        });
+
+        // Public reconnect endpoint (no auth) — used by SIP web client join
+        this.apiRouter.post("/admin/users/:userName/reconnect", async (req, res) => {
+            try {
+                const userName = req.params.userName;
+                const userInfo = global.db.getUserInfo(userName);
+                if (!userInfo || Object.keys(userInfo).length === 0) {
+                    return res.status(404).json({ status: false, error: "User not found" });
+                }
+                if (userInfo.fsChannelUUID) {
+                    const savedUuid = userInfo.fsChannelUUID;
+                    userInfo.connectionState = 'hangup';
+                    userInfo.fsChannelUUID = null;
+                    userInfo.fsMemberId = null;
+                    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                    global.db.setUserInfo(userName, userInfo);
+                    getConnectionHandlers().delete(savedUuid);
+                    await global.freeswitch.hangupCall(savedUuid, userName);
+                }
+                userInfo.connectionState = 'ideal';
+                userInfo.error = null;
+                userInfo.retryCount = 0;
+                userInfo.errFallbackStage = 0;
+                userInfo.errFallbackAt = null;
+                userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+                global.db.setUserInfo(userName, userInfo);
+                const result = await global.freeswitch.initiateCall(userName);
+                global.db.logEvent('reconnect', userName, userInfo.room, 'Reconnect from web client');
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', detail: { userName } });
+                res.json({ status: true, data: { reconnected: result } });
+            } catch (err) {
+                res.status(500).json({ status: false, error: err.message });
+            }
+        });
+
+        // Public room SSE (no auth) — used by SIP web client CallerID
+        this.apiRouter.get("/admin/events/room/:room", (req, res) => {
+            const room = parseInt(req.params.room);
+            if (!room) return res.status(400).end();
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+            });
+
+            function buildRoomSnapshot() {
+                const connectedUsers = global.db.filter(u =>
+                    u.connectionState === 'connected' && (u.currentRoom || u.room) === room && !u.payment
+                );
+                const unmutedUsers = connectedUsers.filter(u => !u.mute);
+                const callerIds = [];
+                const callerIdHtml = [];
+                const roomData = global.db.getRoom(room);
+                const template = roomData?.caller_id_template || '';
+
+                for (const u of unmutedUsers) {
+                    const email = u.userName?.replace('sip:', '');
+                    const account = email ? global.db.getAccountByEmail(email) : null;
+                    const name = account
+                        ? `${account.company_name || ''} / ${account.display_name || email}`
+                        : (u.callerIdName || u.userName);
+                    callerIds.push(name);
+
+                    if (template && account) {
+                        callerIdHtml.push(template
+                            .replace(/\{\{name\}\}/g, name)
+                            .replace(/\{\{city\}\}/g, account.city || '')
+                            .replace(/\{\{phone\}\}/g, account.company_phone || '')
+                            .replace(/\{\{userId\}\}/g, account.id || '')
+                        );
+                    } else {
+                        callerIdHtml.push(name);
+                    }
+                }
+                return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds, callerIdHtml };
+            }
+
+            function buildOnlineCounts() {
+                const online = {};
+                const rooms = global.db.getAllRooms();
+                for (const r of rooms) {
+                    const count = global.db.filter(u =>
+                        u.connectionState === 'connected' && u.room === r.id && !u.payment
+                    ).length;
+                    online[r.id] = count;
+                }
+                return online;
+            }
+
+            res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(), online: buildOnlineCounts() })}\n\n`);
+
+            const onEvent = (eventData) => {
+                if (eventData.scope === 'callerid' && eventData.room === room) {
+                    res.write(`data: ${JSON.stringify({ type: 'callerid', ...buildRoomSnapshot(), online: buildOnlineCounts() })}\n\n`);
+                }
+            };
+
+            global.db.eventEmitter.on('STATE_CHANGE', onEvent);
+            req.on('close', () => global.db.eventEmitter.off('STATE_CHANGE', onEvent));
+        });
 
         // Admin: SSE event endpoints use cookie auth, everything else uses Bearer
         this.apiRouter.use("/admin/events", requireSSEAuth, _sseRouter());
@@ -125,6 +254,30 @@ function _sseRouter() {
             global.db.eventEmitter.off('STATE_CHANGE', onEvent);
             global.db.eventEmitter.off('BROADCAST', onEvent);
         });
+    });
+
+    router.get("/fs-log", (req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.write('data: {"type":"connected"}\n\n');
+        const onLog = (entry) => { res.write(`data: ${JSON.stringify(entry)}\n\n`); };
+        global.db.eventEmitter.on('FS_LOG', onLog);
+        req.on('close', () => { global.db.eventEmitter.off('FS_LOG', onLog); });
+    });
+
+    router.get("/phone-log", (req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.write('data: {"type":"connected"}\n\n');
+        const onLog = (entry) => { res.write(`data: ${JSON.stringify(entry)}\n\n`); };
+        global.db.eventEmitter.on('PHONE_LOG', onLog);
+        req.on('close', () => { global.db.eventEmitter.off('PHONE_LOG', onLog); });
+    });
+
+    router.get("/debug-log", (req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.write('data: {"type":"connected"}\n\n');
+        const onLog = (entry) => { res.write(`data: ${JSON.stringify(entry)}\n\n`); };
+        global.db.eventEmitter.on('DEBUG_LOG', onLog);
+        req.on('close', () => { global.db.eventEmitter.off('DEBUG_LOG', onLog); });
     });
 
     return router;
