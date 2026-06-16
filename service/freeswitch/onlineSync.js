@@ -175,7 +175,6 @@ onMessageEvent((event) => {
     logUser(`sip:${email}`, 'ALIVE', 'keep-alive');
 
     global.db.touchLastSeen(userName);
-    _checkLoginExpiry(userName, userInfo);
     _resetOnlineTimer(userName);
     _autoReconnect(userName);
 
@@ -186,26 +185,6 @@ onMessageEvent((event) => {
     }
 });
 
-function _checkLoginExpiry(userName, userInfo) {
-    if (userInfo.authState === global.AuthState.LOGOUT) return;
-    if (!userInfo.login_expire) return;
-
-    const now = Math.floor(Date.now() / 1000);
-    if (now < userInfo.login_expire) return;
-
-    logUser(userName, 'ALIVE', 'EXPIRED login');
-
-    if (userInfo.connectionState === global.ConnectionState.CONNECTED) {
-        const service = global.callService;
-        if (service) service.endCall(userName);
-    }
-
-    global.db.updateUserInfo(userName, {
-        authState: global.AuthState.LOGOUT,
-        login_expire: null,
-        mute: true,
-    });
-}
 
 function _resetOnlineTimer(userName) {
     if (onlineTimers.has(userName)) {

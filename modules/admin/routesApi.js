@@ -15,6 +15,27 @@ function emitStateChange(scope, detail = {}) {
     global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope, ...detail });
 }
 
+// ── Call lifecycle helpers (used by admin API + shutdown) ──
+
+export async function endCall(userName) {
+    const userInfo = global.db.getUserInfo(userName);
+    userInfo.connectionState = global.ConnectionState.HANGUP;
+    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+    if (userInfo.fsChannelUUID) {
+        try { await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName); } catch (err) { console.error(`${userName} hangup error: ${err.message}`); }
+        userInfo.fsChannelUUID = null;
+        userInfo.fsMemberId = null;
+    }
+    global.db.setUserInfo(userName, userInfo);
+    return userInfo;
+}
+
+export async function allEndCall() {
+    const usersInfo = global.db.getAllUserInfo();
+    for (const userInfo of usersInfo) { await endCall(userInfo.userName); }
+    return global.db.getAllUserInfo();
+}
+
 // GET /dashboard — returns dashboard stats
 adminRouter.get("/dashboard", (req, res) => {
     try {
@@ -786,6 +807,39 @@ adminRouter.post("/users/reconnect-all", async (req, res) => {
         emitStateChange('rooms');
         emitStateChange('dashboard');
         res.json({ status: true, reconnected });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/:userName/endcall — end a user's active call
+adminRouter.post("/users/:userName/endcall", async (req, res) => {
+    try {
+        const userName = req.params.userName;
+        logUser(userName, 'API', 'ENDCALL');
+        const userInfo = global.db.getUserInfo(userName);
+        if (!userInfo || Object.keys(userInfo).length === 0) {
+            return res.status(404).json({ status: false, error: "User not found" });
+        }
+        await endCall(userName);
+        emitStateChange('users', { userName });
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
+        res.json({ status: true });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/endcall-all — end all active calls
+adminRouter.post("/users/endcall-all", async (req, res) => {
+    try {
+        logUser('ALL', 'API', 'ENDCALL-ALL');
+        await allEndCall();
+        emitStateChange('users');
+        emitStateChange('rooms');
+        emitStateChange('dashboard');
+        res.json({ status: true });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

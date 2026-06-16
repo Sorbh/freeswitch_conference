@@ -47,8 +47,14 @@
 //   window.HOTLINE_CONFIG = {
 //     wsServer: '',              // WebSocket URL for SIP (default: wss://hotline.redlineusedautoparts.com/fs_wss/)
 //     apiBase: '',               // API base URL (default: https://hotline.redlineusedautoparts.com/fs/)
-//     defaultPassword: '12345678' // SIP password
+//     defaultPassword: '12345678' // SIP password (also used for /client/login)
 //   };
+//
+// API ENDPOINTS USED:
+//   POST /api/v1/client/login          — authenticate, get JWT + account info
+//   POST /api/v1/client/mute           — mute in conference (Bearer token)
+//   POST /api/v1/client/unmute         — unmute in conference (Bearer token)
+//   GET  /api/v1/client/events/room/:room?token=<jwt>  — CallerID SSE
 //
 // OPTIONAL CALLBACKS (set before or after loading):
 //   window.onHotlineReady = function(accountData) { ... }     // fired when registered + account loaded
@@ -67,7 +73,7 @@
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
-import "./jssip.bundle";
+import "./jssip.bundle.js";
 
 (function () {
 
@@ -83,6 +89,7 @@ import "./jssip.bundle";
         var currentSession = null;
         var isMuted = true;
         var accountData = null;
+        var clientToken = null;
         var loggingOut = false;
         var regRetryTimer = null;
         var callerIdSource = null;
@@ -165,7 +172,7 @@ import "./jssip.bundle";
 
         function connectCallerIdSSE(room) {
             try {
-                callerIdSource = new EventSource(apiBase + '/api/v1/admin/events/room/' + room);
+                callerIdSource = new EventSource(apiBase + '/api/v1/client/events/room/' + room + (clientToken ? '?token=' + clientToken : ''));
 
                 callerIdSource.onopen = function () {
                     callerIdReconnectAttempts = 0;
@@ -292,13 +299,18 @@ import "./jssip.bundle";
 
                         if (accountData) { console.log('[SIP] Re-registered'); return; }
 
-                        fetch(apiBase + '/api/v1/admin/account-lookup?email=' + encodeURIComponent(email))
+                        fetch(apiBase + '/api/v1/client/login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: email, password: password }),
+                            })
                             .then(function (r) {
                                 if (!r.ok) throw new Error('HTTP ' + r.status);
                                 return r.json();
                             })
                             .then(function (json) {
                                 try {
+                                    clientToken = json.token;
                                     accountData = json.data || json;
 
                                     if (!accountData.room && lsData && lsData.room) {
@@ -326,7 +338,7 @@ import "./jssip.bundle";
                                 } catch (e) { }
                             })
                             .catch(function (e) {
-                                console.error('[SIP] Account lookup failed:', e);
+                                console.error('[SIP] Client login failed:', e);
                             });
                     } catch (e) {
                         console.error('[SIP] Registration handler error:', e);
@@ -425,30 +437,19 @@ import "./jssip.bundle";
                 isMuted = !isMuted;
                 muteAudio(isMuted);
 
-                if (!accountData) return;
-                var userName = 'sip:' + accountData.email;
-                var hookEvent = isMuted ? 'on_hook' : 'off_hook';
-                fetch(apiBase + '/api/v1/admin/users/' + encodeURIComponent(userName) + '/hook', {
+                if (!accountData || !clientToken) return;
+                var muteUrl = apiBase + '/api/v1/client/' + (isMuted ? 'mute' : 'unmute');
+                fetch(muteUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ event: hookEvent }),
-                }).catch(function (e) { console.error('[HOOK] Failed:', e.message); });
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+                }).catch(function (e) { console.error('[MUTE] Failed:', e.message); });
             } catch (e) {
                 console.error('[SIP] toggleMute error:', e.message);
             }
         }
 
         function joinConference() {
-            try {
-                if (!accountData) return;
-                var userName = 'sip:' + accountData.email;
-                fetch(apiBase + '/api/v1/admin/users/' + encodeURIComponent(userName) + '/reconnect', { method: 'POST' })
-                    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-                    .then(function (json) { if (!json.status) console.error('[SIP] Join failed:', json.error); })
-                    .catch(function (e) { console.error('[SIP] Join request failed:', e.message); });
-            } catch (e) {
-                console.error('[SIP] joinConference error:', e.message);
-            }
+            console.log('[SIP] joinConference — auto-join on SIP register, no explicit API call needed');
         }
 
         function hangup() {

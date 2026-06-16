@@ -39,8 +39,11 @@
 //
 // OPTIONAL CONFIG (set before loading this script):
 //   window.CALLERID_CONFIG = {
-//     sseBase: '',              // SSE server base URL (empty = same origin)
+//     sseBase: '',              // API server base URL (empty = same origin)
 //     room: '123456701',        // override room (default: reads localStorage)
+//     email: '',                // email for client login (default: reads localStorage user_data)
+//     password: '12345678',     // SIP password (default: 12345678)
+//     token: '',                // pre-fetched client JWT (skips login if set)
 //   };
 //
 // OPTIONAL CALLBACKS (set before or after loading):
@@ -58,6 +61,7 @@
     var config = window.CALLERID_CONFIG || { sseBase: 'https://hotline.redlineusedautoparts.com/fs/' };
     var sseBase = config.sseBase || window.CALLERID_SSE_BASE || '';
     var room = config.room || window.CALLERID_ROOM || localStorage.getItem("room");
+    var clientToken = config.token || null;
 
     console.log("[CallerID] Initializing...");
     console.log("[CallerID] Config:", JSON.stringify(config));
@@ -101,12 +105,49 @@
         return delay;
     }
 
+    function doLogin(cb) {
+        var base = sseBase.indexOf('://') === -1 ? 'https://' + sseBase : sseBase;
+        var email = config.email || '';
+        var password = config.password || '12345678';
+
+        if (!email) {
+            try {
+                var raw = localStorage.getItem("user_data");
+                if (raw) { var ud = JSON.parse(raw); email = ud.email || (ud.user_detail || {}).email || ''; }
+            } catch (e) { }
+        }
+
+        if (!email) {
+            console.error("[CallerID] No email for login. Set CALLERID_CONFIG.email or localStorage user_data");
+            return;
+        }
+
+        fetch(base + "/api/v1/client/login", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, password: password }),
+        })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (json) {
+            clientToken = json.token;
+            console.log("[CallerID] Login successful, token acquired");
+            if (cb) cb();
+        })
+        .catch(function (e) {
+            console.error("[CallerID] Login failed:", e.message);
+            var delay = getReconnectDelay();
+            reconnectTimeout = setTimeout(function () { doLogin(cb); }, delay);
+        });
+    }
+
     function connect() {
+        if (!clientToken) { doLogin(connect); return; }
+
         try {
             if (eventSource) { eventSource.close(); eventSource = null; }
 
             var base = sseBase.indexOf('://') === -1 ? 'https://' + sseBase : sseBase;
-            var url = base + "/api/v1/admin/events/room/" + room;
+            var url = base + "/api/v1/client/events/room/" + room + "?token=" + clientToken;
             console.log("[CallerID] Connecting to SSE:", url);
             eventSource = new EventSource(url);
 

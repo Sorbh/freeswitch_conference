@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hotline HQ — API Route Map</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'JetBrains Mono', 'Courier New', monospace; background: #0f172a; color: #e2e8f0; padding: 24px; font-size: 13px; }
+        h1 { font-size: 20px; color: #fff; margin-bottom: 4px; }
+        .subtitle { color: #64748b; margin-bottom: 24px; font-size: 12px; }
+        .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; padding: 12px 16px; background: #1e293b; border-radius: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .dot.green { background: #22c55e; }
+        .dot.blue { background: #3b82f6; }
+        .dot.yellow { background: #eab308; }
+        .dot.purple { background: #a855f7; }
+        .dot.orange { background: #f97316; }
+        .dot.red { background: #ef4444; }
+        .dot.gray { background: #475569; }
+        .group { margin-bottom: 20px; border: 1px solid #1e293b; border-radius: 10px; overflow: hidden; }
+        .group-header { padding: 10px 16px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+        .group-header:hover { background: #253348; }
+        .group-title { font-weight: 700; font-size: 14px; color: #fff; }
+        .group-meta { font-size: 11px; color: #94a3b8; display: flex; gap: 12px; align-items: center; }
+        .group-body { padding: 0; }
+        .route { display: grid; grid-template-columns: 64px 1fr auto; align-items: center; padding: 6px 16px; border-top: 1px solid #1e293b; gap: 12px; }
+        .route:hover { background: #1e293b44; }
+        .method { font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 4px; text-align: center; }
+        .method.get { background: #22c55e22; color: #4ade80; }
+        .method.post { background: #3b82f622; color: #60a5fa; }
+        .method.put { background: #eab30822; color: #facc15; }
+        .method.delete { background: #ef444422; color: #f87171; }
+        .path { color: #cbd5e1; }
+        .path .param { color: #f97316; }
+        .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .tag { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+        .tag.no-auth { background: #22c55e18; color: #4ade80; border: 1px solid #22c55e33; }
+        .tag.cookie { background: #a855f718; color: #c084fc; border: 1px solid #a855f733; }
+        .tag.bearer { background: #3b82f618; color: #60a5fa; border: 1px solid #3b82f633; }
+        .tag.api-key { background: #eab30818; color: #facc15; border: 1px solid #eab30833; }
+        .tag.localhost { background: #f9731618; color: #fb923c; border: 1px solid #f9731633; }
+        .tag.admin-role { background: #3b82f618; color: #93c5fd; border: 1px solid #3b82f633; }
+        .tag.client-jwt { background: #14b8a618; color: #2dd4bf; border: 1px solid #14b8a633; }
+        .tag.dead { background: #ef444418; color: #f87171; border: 1px solid #ef444433; }
+        .tag.dup { background: #f9731618; color: #fb923c; border: 1px solid #f9731633; }
+        .tag.rate-limit { background: #64748b18; color: #94a3b8; border: 1px solid #64748b33; }
+        .tag.upload { background: #06b6d418; color: #22d3ee; border: 1px solid #06b6d433; }
+        .tag.sse { background: #8b5cf618; color: #a78bfa; border: 1px solid #8b5cf633; }
+        .search { width: 100%; padding: 10px 16px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-family: inherit; font-size: 13px; margin-bottom: 20px; outline: none; }
+        .search:focus { border-color: #3b82f6; }
+        .stats { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat { background: #1e293b; padding: 10px 16px; border-radius: 8px; }
+        .stat-num { font-size: 22px; font-weight: 700; color: #fff; }
+        .stat-label { font-size: 11px; color: #64748b; }
+        .hidden { display: none; }
+        .chevron { transition: transform 0.2s; display: inline-block; }
+        .chevron.collapsed { transform: rotate(-90deg); }
+    </style>
+</head>
+<body>
+    <h1>Hotline HQ — API Route Map</h1>
+    <p class="subtitle">Base: /api/v1 &nbsp;·&nbsp; 94 endpoints &nbsp;·&nbsp; 6 routers &nbsp;·&nbsp; 2 dead routes</p>
+
+    <input type="text" class="search" id="search" placeholder="Filter routes... (e.g. broadcasts, POST, bearer, dead)">
+
+    <div class="stats">
+        <div class="stat"><div class="stat-num" id="totalCount">94</div><div class="stat-label">Total Routes</div></div>
+        <div class="stat"><div class="stat-num" id="visibleCount">94</div><div class="stat-label">Visible</div></div>
+        <div class="stat"><div class="stat-num">2</div><div class="stat-label">Dead Routes</div></div>
+        <div class="stat"><div class="stat-num">0</div><div class="stat-label">Duplicates</div></div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><span class="dot green"></span> No Auth</div>
+        <div class="legend-item"><span class="dot blue"></span> Bearer Token</div>
+        <div class="legend-item"><span class="dot purple"></span> Cookie (SSE)</div>
+        <div class="legend-item"><span class="dot yellow"></span> API Key</div>
+        <div class="legend-item"><span class="dot" style="background:#2dd4bf"></span> Client JWT (7d)</div>
+        <div class="legend-item"><span class="dot orange"></span> Localhost Only</div>
+        <div class="legend-item"><span class="dot red"></span> Dead (unreachable)</div>
+        <div class="legend-item"><span class="dot gray"></span> Duplicate</div>
+    </div>
+
+    <div id="routes"></div>
+
+    <script>
+        const groups = [
+            {
+                name: "Public", file: "routes/api.js → publicRouter", mount: "/api/v1/public", auth: "no-auth", authLabel: "No Auth",
+                routes: [
+                    { m: "GET", p: "/broadcast/:token", desc: "Get shared broadcast details by public token" },
+                    { m: "GET", p: "/broadcast/:token/audio", desc: "Stream broadcast recording audio" },
+                ]
+            },
+            {
+                name: "Auth", file: "modules/auth/routesApi.js", mount: "/api/v1/auth", auth: "no-auth", authLabel: "Mixed",
+                routes: [
+                    { m: "POST", p: "/login", tags: ["no-auth", "rate-limit"], desc: "Admin login, returns JWT + refresh token" },
+                    { m: "POST", p: "/refresh", tags: ["no-auth"], desc: "Refresh expired JWT using refresh token cookie" },
+                    { m: "POST", p: "/logout", tags: ["bearer"], desc: "Clear refresh token cookie" },
+                    { m: "GET", p: "/me", tags: ["bearer"], desc: "Get current logged-in admin info" },
+                    { m: "GET", p: "/admins", tags: ["bearer", "admin-role"], desc: "List all admin users" },
+                    { m: "POST", p: "/admins", tags: ["bearer", "admin-role"], desc: "Create a new admin user" },
+                    { m: "PUT", p: "/admins/:id", tags: ["bearer", "admin-role"], desc: "Update admin user" },
+                    { m: "DELETE", p: "/admins/:id", tags: ["bearer", "admin-role"], desc: "Delete admin user" },
+                    { m: "GET", p: "/api-keys", tags: ["bearer", "admin-role"], desc: "List API keys for SIP action endpoints" },
+                    { m: "POST", p: "/api-keys", tags: ["bearer", "admin-role"], desc: "Create a new API key" },
+                    { m: "DELETE", p: "/api-keys/:id", tags: ["bearer", "admin-role"], desc: "Revoke an API key" },
+                ]
+            },
+            {
+                name: "FreeSWITCH", file: "modules/freeswitch/routesApi.js", mount: "/api/v1/freeswitch", auth: "localhost", authLabel: "Localhost Only",
+                routes: [
+                    { m: "POST", p: "/directory", desc: "XML directory lookup for FS digest auth (mod_xml_curl)" },
+                ]
+            },
+            {
+                name: "Client (SIP Web Client)", file: "modules/client/routesApi.js", mount: "/api/v1/client", auth: "no-auth", authLabel: "Client JWT",
+                routes: [
+                    { m: "POST", p: "/login", tags: ["no-auth"], desc: "Authenticate with email + SIP password, returns 7-day client JWT + account info" },
+                    { m: "POST", p: "/mute", tags: ["client-jwt"], desc: "Mute user in conference (client JWT Bearer required)" },
+                    { m: "POST", p: "/unmute", tags: ["client-jwt"], desc: "Unmute user in conference (client JWT Bearer required)" },
+                    { m: "GET", p: "/events/room/:room", tags: ["client-jwt", "sse"], desc: "Room SSE — callerIdHtml, online counts. Auth via ?token= query param (client JWT)" },
+                ]
+            },
+            {
+                name: "SSE Events", file: "routes/api.js → _sseRouter()", mount: "/api/v1/admin/events", auth: "cookie", authLabel: "Cookie Auth (requireSSEAuth)",
+                routes: [
+                    { m: "GET", p: "/stream", tags: ["cookie", "sse"], desc: "Main dashboard SSE — all user, state, broadcast events" },
+                    { m: "GET", p: "/room/:room", tags: ["cookie", "sse"], desc: "Room-filtered SSE with callerIdHtml" },
+                    { m: "GET", p: "/fs-log", tags: ["cookie", "sse"], desc: "Live FreeSWITCH log stream" },
+                    { m: "GET", p: "/phone-log", tags: ["cookie", "sse"], desc: "Live phone syslog stream (Yealink UDP 515)" },
+                    { m: "GET", p: "/debug-log", tags: ["cookie", "sse"], desc: "Live debug log stream (per-account debug)" },
+                ]
+            },
+            {
+                name: "Yealink Phone (Softkeys)", file: "modules/yealink/routesApi.js", mount: "/api/v1/yealink", auth: "api-key", authLabel: "API Key",
+                routes: [
+                    { m: "GET", p: "/onhook", desc: "Phone on-hook — mute user by MAC address" },
+                    { m: "GET", p: "/offhook", desc: "Phone off-hook — unmute user by MAC address" },
+                    { m: "GET", p: "/updateroom", desc: "Softkey room switch — hang up old call, reconnect to new room" },
+                ]
+            },
+            {
+                name: "Admin — Dashboard", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/dashboard", desc: "Dashboard stats — user counts, room totals, recent activity" },
+                ]
+            },
+            {
+                name: "Admin — Users", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/users", desc: "List all users with live SIP state (online, mute, room)" },
+                    { m: "GET", p: "/users/:userName", desc: "Get single user details" },
+                    { m: "POST", p: "/users/:userName/reconnect", desc: "Force reconnect user to conference" },
+                    { m: "POST", p: "/users/:userName/kickout", desc: "Kick user out — hang up and prevent reconnect" },
+                    { m: "POST", p: "/users/kickout-all", desc: "Kick out all users (optional room filter)" },
+                    { m: "POST", p: "/users/kickin-all", desc: "Re-enable all kicked-out users" },
+                    { m: "POST", p: "/users/reconnect-all", desc: "Hang up and reconnect all online users" },
+                    { m: "POST", p: "/users/:userName/endcall", desc: "End a user's active call" },
+                    { m: "POST", p: "/users/endcall-all", desc: "End all active calls (shutdown-safe)" },
+                    { m: "POST", p: "/users/:userName/mute", desc: "Mute user via FS conference API" },
+                    { m: "POST", p: "/users/:userName/unmute", desc: "Unmute user via FS conference API" },
+                    { m: "POST", p: "/users/:userName/hook", desc: "Hook event (mute/unmute) from admin dashboard" },
+                    { m: "POST", p: "/users/:userName/room", desc: "Change user's active room and reconnect call" },
+                ]
+            },
+            {
+                name: "Admin — Rooms", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/rooms", desc: "List all rooms with live member counts" },
+                    { m: "GET", p: "/rooms/config", desc: "Get room config (names, short codes, timezones)" },
+                    { m: "GET", p: "/rooms/:roomId", desc: "Get single room details with members" },
+                    { m: "POST", p: "/rooms/create", desc: "Create a new conference room" },
+                    { m: "PUT", p: "/rooms/:roomId", desc: "Update room settings (name, short code, timezone)" },
+                    { m: "DELETE", p: "/rooms/:roomId/delete", desc: "Delete a room" },
+                    { m: "POST", p: "/rooms/:roomId/honk", desc: "Play honk sound in room" },
+                    { m: "POST", p: "/rooms/:roomId/listen", desc: "Start listening to room audio via FS conference" },
+                ]
+            },
+            {
+                name: "Admin — Broadcasts", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/broadcasts", desc: "Get broadcast summary stats" },
+                    { m: "GET", p: "/broadcasts/list", desc: "Paginated broadcast list with filters" },
+                    { m: "GET", p: "/broadcasts/recent", desc: "Recent broadcasts for dashboard cards" },
+                    { m: "GET", p: "/broadcasts/timeline", desc: "Broadcast timeline chart data" },
+                    { m: "GET", p: "/broadcasts/availability", desc: "Room availability heatmap data" },
+                    { m: "GET", p: "/broadcasts/hourly", desc: "Hourly broadcast distribution" },
+                    { m: "GET", p: "/broadcasts/activity", desc: "Per-user broadcast activity stats" },
+                    { m: "POST", p: "/broadcasts/:id/share", desc: "Generate public share link for broadcast" },
+                    { m: "DELETE", p: "/broadcasts/:id/share", desc: "Revoke public share link" },
+                    { m: "POST", p: "/broadcasts/:id/transcribe", desc: "Transcribe broadcast recording (Deepgram/OpenRouter)" },
+                    { m: "GET", p: "/broadcasts/:id/transcription", desc: "Get transcription text for broadcast" },
+                ]
+            },
+            {
+                name: "Admin — Settings", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/settings/audio", desc: "Get audio/transcription settings" },
+                    { m: "PUT", p: "/settings/audio", desc: "Update audio/transcription settings" },
+                ]
+            },
+            {
+                name: "Admin — Events (on adminRouter)", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/events", desc: "Paginated event log list from DB" },
+                    { m: "GET", p: "/events/stream", tags: ["dead", "sse"], deadNote: "_sseRouter catches /admin/events/* first", desc: "Main SSE stream (dead — _sseRouter handles this)" },
+                    { m: "GET", p: "/events/room/:room", tags: ["dead", "sse"], deadNote: "_sseRouter catches /admin/events/* first", desc: "Room SSE (dead — _sseRouter handles this)" },
+                ]
+            },
+            {
+                name: "Admin — System", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/system", desc: "System health — DB size, uptime, FS status, memory" },
+                    { m: "GET", p: "/system/audio-health", desc: "Audio health check — FS channels, conference, media path" },
+                ]
+            },
+            {
+                name: "Admin — Accounts", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/accounts", desc: "List all yard accounts" },
+                    { m: "GET", p: "/accounts/:id", desc: "Get single account details" },
+                    { m: "POST", p: "/accounts", desc: "Create new yard account (email, room, SIP creds)" },
+                    { m: "PUT", p: "/accounts/:id", desc: "Update account fields" },
+                    { m: "DELETE", p: "/accounts/:id", desc: "Delete account" },
+                    { m: "POST", p: "/accounts/:id/refresh-account-id", desc: "Fetch YMCS account ID from cloud" },
+                    { m: "POST", p: "/accounts/:id/refresh-device-id", desc: "Fetch YMCS device ID from cloud" },
+                    { m: "POST", p: "/accounts/:id/ymcs/reboot", desc: "Reboot Yealink phone via YMCS" },
+                    { m: "GET", p: "/accounts/:id/ymcs/device-config", desc: "Get device config from YMCS" },
+                    { m: "POST", p: "/accounts/:id/ymcs/push-config", desc: "Push config to Yealink phone via YMCS" },
+                    { m: "POST", p: "/accounts/:id/ymcs/update-sip-server", desc: "Update SIP server on YMCS account" },
+                    { m: "POST", p: "/accounts/:id/ymcs/rebind", desc: "Rebind YMCS device to different account" },
+                ]
+            },
+            {
+                name: "Admin — YMCS Bulk", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/ymcs/sync-all-device-ids", tags: ["sse"], desc: "SSE: sync all YMCS device IDs to local DB" },
+                    { m: "GET", p: "/ymcs/update-all-device-accounts", tags: ["sse"], desc: "SSE: update SIP accounts on all YMCS devices" },
+                    { m: "GET", p: "/ymcs/update-all-sip-server", tags: ["sse"], desc: "SSE: update SIP server host/port on all devices" },
+                    { m: "GET", p: "/ymcs/reboot-all-devices", tags: ["sse"], desc: "SSE: reboot all Yealink phones" },
+                    { m: "GET", p: "/ymcs/sync-room-sites", tags: ["sse"], desc: "SSE: match YMCS sites to local rooms" },
+                    { m: "GET", p: "/ymcs/push-config", tags: ["sse"], desc: "SSE: push config content to all devices" },
+                ]
+            },
+            {
+                name: "Admin — Notifications", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/notifications", desc: "List notification channels (Telegram, WhatsApp)" },
+                    { m: "GET", p: "/notifications/template-info", desc: "Get available template variables" },
+                    { m: "POST", p: "/notifications", desc: "Create notification channel" },
+                    { m: "PUT", p: "/notifications/:id", desc: "Update notification channel" },
+                    { m: "DELETE", p: "/notifications/:id", desc: "Delete notification channel" },
+                    { m: "POST", p: "/notifications/:id/test", desc: "Send test message to channel" },
+                ]
+            },
+            {
+                name: "Admin — WhatsApp", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/whatsapp/statuses", desc: "Get all WhatsApp channel connection states" },
+                    { m: "GET", p: "/whatsapp/status/:id", desc: "Get single channel status + QR code" },
+                    { m: "POST", p: "/whatsapp/connect/:id", desc: "Connect WhatsApp channel (generates QR)" },
+                    { m: "POST", p: "/whatsapp/disconnect/:id", desc: "Disconnect WhatsApp channel" },
+                    { m: "GET", p: "/whatsapp/groups/:id", desc: "List WhatsApp groups for a connected channel" },
+                ]
+            },
+            {
+                name: "Admin — Audio Ads", file: "modules/admin/routesApi.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/audio-ads", desc: "List all audio ads/announcements" },
+                    { m: "POST", p: "/audio-ads", tags: ["upload"], desc: "Upload new audio ad (WAV/MP3)" },
+                    { m: "PUT", p: "/audio-ads/:id", desc: "Update audio ad metadata" },
+                    { m: "POST", p: "/audio-ads/:id/replace", tags: ["upload"], desc: "Replace audio file for existing ad" },
+                    { m: "DELETE", p: "/audio-ads/:id", desc: "Delete audio ad and file" },
+                    { m: "POST", p: "/audio-ads/:id/play", desc: "Play audio ad into conference rooms" },
+                    { m: "POST", p: "/audio-ads/:id/stop", desc: "Stop playing audio ad" },
+                    { m: "GET", p: "/audio-ads/:id/stats", desc: "Get play count and stats for ad" },
+                    { m: "GET", p: "/audio-ads/play-log", desc: "Play history log for all ads" },
+                ]
+            },
+        ];
+
+        const tagLabels = {
+            "no-auth": "No Auth",
+            "bearer": "Bearer",
+            "client-jwt": "Client JWT",
+            "cookie": "Cookie",
+            "api-key": "API Key",
+            "localhost": "Localhost",
+            "admin-role": "Admin Role",
+            "dead": "DEAD",
+            "dup": "DUPLICATE",
+            "rate-limit": "Rate Limited",
+            "upload": "File Upload",
+            "sse": "SSE",
+        };
+
+        function renderPath(p) {
+            return p.replace(/:(\w+)/g, '<span class="param">:$1</span>');
+        }
+
+        function render(filter) {
+            const container = document.getElementById("routes");
+            container.innerHTML = "";
+            let visible = 0;
+            const f = (filter || "").toLowerCase();
+
+            for (const g of groups) {
+                const filteredRoutes = g.routes.filter(r => {
+                    if (!f) return true;
+                    const tags = (r.tags || [g.auth]).map(t => tagLabels[t] || t).join(" ").toLowerCase();
+                    const text = `${r.m} ${g.mount}${r.p} ${tags} ${r.note || ""} ${r.deadNote || ""} ${r.dupNote || ""} ${g.name}`.toLowerCase();
+                    return text.includes(f);
+                });
+
+                if (filteredRoutes.length === 0) continue;
+                visible += filteredRoutes.length;
+
+                const div = document.createElement("div");
+                div.className = "group";
+
+                const authTag = { "no-auth": "No Auth", "bearer": "Bearer + Role Guard", "cookie": "Cookie Auth", "api-key": "API Key", "localhost": "Localhost Only" }[g.auth] || g.auth;
+
+                div.innerHTML = `
+                    <div class="group-header" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('collapsed')">
+                        <span class="group-title"><span class="chevron">▾</span> ${g.name}</span>
+                        <span class="group-meta">
+                            <span>${g.file}</span>
+                            <span>${g.mount}</span>
+                            <span class="tag ${g.auth}">${authTag}</span>
+                            <span>${filteredRoutes.length} routes</span>
+                        </span>
+                    </div>
+                    <div class="group-body">
+                        ${filteredRoutes.map(r => {
+                            const fullPath = g.mount + r.p;
+                            const tags = r.tags ? r.tags : (g.auth !== "no-auth" ? [g.auth] : ["no-auth"]);
+                            const tagsHtml = tags.map(t => `<span class="tag ${t}" title="${r.deadNote || r.dupNote || ""}">${tagLabels[t] || t}</span>`).join("");
+                            const noteHtml = r.note ? `<span style="color:#64748b;font-size:11px;margin-left:8px">(${r.note})</span>` : "";
+                            const descHtml = r.desc ? `<div style="color:#64748b;font-size:11px;margin-top:2px;margin-left:0">${r.desc}</div>` : "";
+                            const deadNote = r.deadNote ? `<span style="color:#f87171;font-size:10px;margin-left:6px">↳ ${r.deadNote}</span>` : "";
+                            const dupNote = r.dupNote ? `<span style="color:#fb923c;font-size:10px;margin-left:6px">↳ ${r.dupNote}</span>` : "";
+                            return `<div class="route">
+                                <span class="method ${r.m.toLowerCase()}">${r.m}</span>
+                                <span class="path">${renderPath(fullPath)}${noteHtml}${deadNote}${dupNote}${descHtml}</span>
+                                <span class="tags">${tagsHtml}</span>
+                            </div>`;
+                        }).join("")}
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+
+            document.getElementById("visibleCount").textContent = visible;
+        }
+
+        document.getElementById("search").addEventListener("input", (e) => render(e.target.value));
+        render();
+    </script>
+</body>
+</html>

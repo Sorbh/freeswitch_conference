@@ -87,7 +87,6 @@ function _handleChannelAnswer(event) {
         if (Object.keys(userInfo).length > 0) {
             userInfo.connectionState = 'connected';
             userInfo.authState = 'login';
-            userInfo.login_expire = Math.floor(Date.now() / 1000) + global.config.loginExpireTime;
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             userInfo.error = null;
             userInfo.retryCount = 0;

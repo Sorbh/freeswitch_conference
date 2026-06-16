@@ -88,9 +88,11 @@ try {
     _startupLines.push(`FreeSWITCH ESL FAILED: ${err.message} — API only`);
 }
 
-// Call service (depends on freeswitch + db)
-const { default: callService } = await import('./modules/sip-action/service.js');
-global.callService = callService;
+// Global state constants
+global.ConnectionState = { IDEAL: 'ideal', CONNECTING: 'connecting', CONNECTED: 'connected', HANGUP: 'hangup', RETRY: 'retry', ERROR: 'error' };
+global.AuthState = { LOGIN: 'login', LOGOUT: 'logout' };
+
+import { allEndCall } from './modules/admin/routesApi.js';
 
 // Alerting service
 import { checkCriticalUser, startCriticalAlert, stopCriticalAlert } from './service/alerting.js';
@@ -168,7 +170,7 @@ function shutdown(signal) {
 
         // End all active FreeSWITCH calls first — sends BYE to clients
         try {
-            await callService.allEndCall();
+            await allEndCall();
             console.log('All calls ended — BYE sent to clients');
         } catch (e) {
             console.error('Failed to end calls:', e.message);
