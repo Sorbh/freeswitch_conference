@@ -302,7 +302,8 @@ export default function UsersPage() {
   const [ymcsAction, setYmcsAction] = useState(null);
   const [sipEditHost, setSipEditHost] = useState("");
   const [sipEditPort, setSipEditPort] = useState("");
-  const [configEditContent, setConfigEditContent] = useState("static.syslog.server_port=515");
+  const [configEditContent, setConfigEditContent] = useState("");
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("bjs-view-mode") || "list");
 
   function toggleSort(col) {
@@ -548,6 +549,7 @@ export default function UsersPage() {
       });
       const json = await res.json();
       if (!json.status) console.error("Config push failed:", json.error);
+      if (json.ymcs_config_id) refetch();
     } catch (e) {
       console.error("YMCS config push failed:", e);
     } finally {
@@ -766,7 +768,7 @@ export default function UsersPage() {
               <Tooltip key={user.userName}>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => { setSelectedUserName(user.userName); setSheetOpen(true); const a = user.account; if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); } }}
+                    onClick={() => { setSelectedUserName(user.userName); setSheetOpen(true); setConfigEditContent(""); setConfigLoaded(false); const a = user.account; if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); } }}
                     className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-tight cursor-pointer hover:opacity-80 transition-opacity ${bg}`}
                   >
                     {isError && <PhoneOffIcon className="size-2.5 shrink-0" />}
@@ -829,6 +831,8 @@ export default function UsersPage() {
                     onClick={() => {
                       setSelectedUserName(user.userName);
                       setSheetOpen(true);
+                      setConfigEditContent("");
+                      setConfigLoaded(false);
                       const a = user.account;
                       if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); }
                     }}
@@ -1217,6 +1221,7 @@ export default function UsersPage() {
                         })(),
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Account ID", value: acc.ymcs_account_id || "—", refreshKey: "account", copyable: !!acc.ymcs_account_id },
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Device ID", value: acc.ymcs_device_id || "—", refreshKey: "device", copyable: !!acc.ymcs_device_id },
+                        { icon: <HashIcon className="size-3.5" />, label: "YMCS Config ID", value: acc.ymcs_config_id || "—", copyable: !!acc.ymcs_config_id },
                       ].filter(f => f.value).map((field) => (
                         <div key={field.label} className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/40 transition-colors group">
                           <span className="text-muted-foreground/60 mt-0.5 group-hover:text-muted-foreground transition-colors">{field.icon}</span>
@@ -1329,6 +1334,7 @@ export default function UsersPage() {
                                       const json = await res.json();
                                       if (json.status && json.content) setConfigEditContent(json.content);
                                       else if (json.status) setConfigEditContent("");
+                                      if (json.status) setConfigLoaded(true);
                                     } catch (e) { console.error("Load config failed:", e); }
                                     finally { setYmcsAction(null); }
                                   }}
@@ -1339,7 +1345,7 @@ export default function UsersPage() {
                                 </button>
                                 <button
                                   onClick={() => ymcsPushConfig(acc.id, configEditContent)}
-                                  disabled={inCall || !!ymcsAction || !acc.ymcs_device_id || !configEditContent.trim()}
+                                  disabled={inCall || !!ymcsAction || !acc.ymcs_device_id || !configLoaded || !configEditContent.trim()}
                                   className="h-8 px-3 flex items-center gap-1.5 rounded-lg text-xs font-medium border border-border/40 bg-muted/30 hover:bg-muted/50 hover:border-border/60 transition-all disabled:opacity-40 shrink-0"
                                 >
                                   {ymcsAction === "config" ? <Loader2Icon className="size-3 animate-spin" /> : <FileCodeIcon className="size-3" />}
@@ -1350,13 +1356,13 @@ export default function UsersPage() {
                             <textarea
                               value={configEditContent}
                               onChange={(e) => setConfigEditContent(e.target.value)}
-                              disabled={inCall || !!ymcsAction}
-                              placeholder={"static.syslog.server_port=515"}
+                              disabled={inCall || !!ymcsAction || !configLoaded}
+                              placeholder={configLoaded ? "Enter config parameters..." : "Click refresh to load config"}
                               className="w-full rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-xs font-mono placeholder:text-muted-foreground/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
                               style={{ minHeight: "3.75rem", maxHeight: "15rem" }}
                               rows={3}
                             />
-                            <p className="flex items-center gap-1 text-[10px] text-amber-500/80"><TriangleAlertIcon className="size-3 shrink-0" />Refresh config before pushing to avoid overwriting existing settings</p>
+                            {!configLoaded && <p className="flex items-center gap-1 text-[10px] text-amber-500/80"><TriangleAlertIcon className="size-3 shrink-0" />Refresh config before pushing to avoid overwriting existing settings</p>}
                           </div>
                         </div>
                       </>

@@ -276,12 +276,10 @@ router.get("/accounts/:id/ymcs/device-config", async (req, res) => {
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
         if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
 
-        const { ymcs } = await import("../../service/yealink/yealinkApi.js");
-        const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: account.ymcs_device_id }, limit: 100 });
-        const configs = existing?.data || [];
         let content = "";
-        if (configs.length > 0) {
-            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${configs[0].id}`);
+        if (account.ymcs_config_id) {
+            const { ymcs } = await import("../../service/yealink/yealinkApi.js");
+            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${account.ymcs_config_id}`);
             content = detail?.content || "";
         }
         res.json({ status: true, content });
@@ -303,11 +301,8 @@ router.post("/accounts/:id/ymcs/push-config", async (req, res) => {
 
         const { ymcs } = await import("../../service/yealink/yealinkApi.js");
 
-        const existing = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { deviceId: account.ymcs_device_id }, limit: 100 });
-        const existingConfigs = existing?.data || [];
-
-        if (existingConfigs.length > 0) {
-            await ymcs.post('/v2/dm/delDeviceConfigs', { configIds: existingConfigs.map(c => c.id) });
+        if (account.ymcs_config_id) {
+            await ymcs.post('/v2/dm/delDeviceConfigs', { configIds: [account.ymcs_config_id] });
         }
 
         const result = await ymcs.post('/v2/dm/deviceConfigs', {
@@ -315,15 +310,42 @@ router.post("/accounts/:id/ymcs/push-config", async (req, res) => {
             content: content.trim(),
             autoPush: true,
         });
-        if (result?.id) {
-            await ymcs.post(`/v2/dm/deviceConfigs/${result.id}/push`);
+        const newConfigId = result?.id || null;
+        if (newConfigId) {
+            global.db.updateAccount(id, { ymcs_config_id: newConfigId });
         }
 
         logUser(account.email || `account:${id}`, 'API', `PUSH-CONFIG to device ${account.ymcs_device_id}`);
-        res.json({ status: true, message: "Config pushed" });
+        res.json({ status: true, message: "Config pushed", ymcs_config_id: newConfigId });
     } catch (err) {
         console.error('[PUSH-CONFIG]', err.message, err.response ? JSON.stringify(err.response) : '');
         res.status(500).json({ status: false, error: err.message, detail: err.response || null });
+    }
+});
+
+// POST /accounts/:id/ymcs/sync-config-id — look up device config via MAC and store config ID
+router.post("/accounts/:id/ymcs/sync-config-id", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const account = global.db.getAccountById(id);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
+
+        const user = global.db.getUserInfo(`sip:${account.email}`);
+        if (!user?.mac) return res.status(400).json({ status: false, error: "No MAC address" });
+
+        const { ymcs } = await import("../../service/yealink/yealinkApi.js");
+        const mac = user.mac.replace(/[:\-]/g, '');
+        const result = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { mac }, limit: 1 });
+        const configs = result?.data || [];
+
+        if (configs.length === 0) return res.status(404).json({ status: false, error: "No config found" });
+
+        global.db.updateAccount(id, { ymcs_config_id: configs[0].id });
+        logUser(account.email || `account:${id}`, 'API', `SYNC-CONFIG-ID → ${configs[0].id}`);
+        res.json({ status: true, ymcs_config_id: configs[0].id });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
     }
 });
 

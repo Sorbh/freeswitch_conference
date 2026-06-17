@@ -118,13 +118,11 @@ export default function YmcsControlPage() {
   const [rebootRoom, setRebootRoom] = useState("all");
   const [rebindRoom, setRebindRoom] = useState("all");
   const [rooms, setRooms] = useState([]);
-  const [pushingConfig, setPushingConfig] = useState(false);
-  const [configLog, setConfigLog] = useState([]);
-  const [configResult, setConfigResult] = useState(null);
-  const [configRoom, setConfigRoom] = useState("all");
-  const [configContent, setConfigContent] = useState("static.syslog.server_port=515");
+  const [syncingConfigs, setSyncingConfigs] = useState(false);
+  const [configSyncLog, setConfigSyncLog] = useState([]);
+  const [configSyncResult, setConfigSyncResult] = useState(null);
   const abortRef = useRef(null);
-  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites || pushingConfig;
+  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites || syncingConfigs;
   const [confirmAction, setConfirmAction] = useState(null);
   const [stats, setStats] = useState(null);
   const [missingDialog, setMissingDialog] = useState(null);
@@ -144,6 +142,7 @@ export default function YmcsControlPage() {
       const missingAccount = accounts.filter(a => !a.ymcs_account_id);
       const notEligible = accounts.filter(a => !a.ymcs_account_id || !a.ymcs_device_id);
       const missingSite = roomsList.filter(r => !r.ymcs_site_id);
+      const missingConfig = accounts.filter(a => a.ymcs_device_id && !a.ymcs_config_id);
       setStats({
         total: accounts.length,
         missingAccountId: missingAccount.length,
@@ -154,6 +153,8 @@ export default function YmcsControlPage() {
         notEligibleList: notEligible.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id, hasDeviceId: !!a.ymcs_device_id })),
         missingSiteId: missingSite.length,
         missingSiteList: missingSite.map(r => ({ name: r.name, id: String(r.id), short_code: r.short_code })),
+        missingConfigId: missingConfig.length,
+        missingConfigList: missingConfig.map(a => ({ email: a.email, name: a.display_name })),
         totalRooms: roomsList.length,
       });
     } catch {}
@@ -287,6 +288,55 @@ export default function YmcsControlPage() {
     }
   }
 
+  async function syncConfigIds() {
+    setSyncingConfigs(true);
+    setConfigSyncLog([]);
+    setConfigSyncResult(null);
+    const start = Date.now();
+    let success = 0, failed = 0, skipped = 0;
+
+    try {
+      addLog(setConfigSyncLog, { type: "info", message: "Fetching accounts..." });
+      const res = await apiFetch("/api/v1/admin/accounts");
+      const json = await res.json();
+      const accounts = (json.data || []).filter(a => a.ymcs_device_id && !a.ymcs_config_id);
+      addLog(setConfigSyncLog, { type: "info", message: `Found ${accounts.length} accounts missing config ID` });
+
+      for (let i = 0; i < accounts.length; i++) {
+        const acc = accounts[i];
+        const prefix = `[${i + 1}/${accounts.length}] ${acc.email}`;
+
+        try {
+          const r = await apiFetch(`/api/v1/admin/accounts/${acc.id}/ymcs/sync-config-id`, { method: "POST" });
+          const data = await r.json();
+          if (data.status) {
+            success++;
+            addLog(setConfigSyncLog, { type: "success", message: `${prefix} → ${data.ymcs_config_id}` });
+          } else {
+            if (r.status === 404) {
+              skipped++;
+              addLog(setConfigSyncLog, { type: "skip", message: `${prefix} — ${data.error}` });
+            } else {
+              failed++;
+              addLog(setConfigSyncLog, { type: "error", message: `${prefix} — ${data.error}` });
+            }
+          }
+        } catch (e) {
+          failed++;
+          addLog(setConfigSyncLog, { type: "error", message: `${prefix} — ${e.message}` });
+        }
+      }
+
+      const duration = ((Date.now() - start) / 1000).toFixed(1);
+      setConfigSyncResult({ success, failed, skipped, total: accounts.length, duration });
+      addLog(setConfigSyncLog, { type: "info", message: `Done — ${success} synced, ${failed} failed, ${skipped} skipped (${duration}s)` });
+    } catch (e) {
+      addLog(setConfigSyncLog, { type: "error", message: `Fatal: ${e.message}` });
+    } finally {
+      setSyncingConfigs(false); fetchStats();
+    }
+  }
+
   async function syncAllDeviceAccounts() {
     setSyncingBind(true);
     setBindLog([]);
@@ -387,41 +437,6 @@ export default function YmcsControlPage() {
     } catch (e) {
       addLog(setRebootLog, { type: "error", message: `Fatal: ${e.message}` });
       setRebooting(false);
-    }
-  }
-
-  async function pushConfigToDevices() {
-    setPushingConfig(true);
-    setConfigLog([]);
-    setConfigResult(null);
-    const start = Date.now();
-
-    try {
-      const params = new URLSearchParams({ content: configContent });
-      if (configRoom !== "all") params.set("room", configRoom);
-      const eventSource = new EventSource(`/api/v1/admin/ymcs/push-config?${params}`);
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === "done") {
-          eventSource.close();
-          const duration = ((Date.now() - start) / 1000).toFixed(1);
-          setConfigResult({ success: data.success, failed: data.failed, skipped: data.skipped, total: data.total, duration });
-          addLog(setConfigLog, { type: "info", message: `Done — ${data.success} pushed, ${data.failed} failed (${duration}s)` });
-          setPushingConfig(false); fetchStats();
-        } else {
-          addLog(setConfigLog, data);
-        }
-      };
-
-      eventSource.onerror = () => {
-        eventSource.close();
-        addLog(setConfigLog, { type: "error", message: "Connection lost" });
-        setPushingConfig(false);
-      };
-    } catch (e) {
-      addLog(setConfigLog, { type: "error", message: `Fatal: ${e.message}` });
-      setPushingConfig(false);
     }
   }
 
@@ -578,6 +593,49 @@ export default function YmcsControlPage() {
             <SyncResult result={siteResult} />
             {siteLog.length > 0 && (
               <div data-sync-log><SyncLog entries={siteLog} /></div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sync Config IDs */}
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <FileCodeIcon className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Sync Config IDs</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Match YMCS device configs to accounts via MAC
+                  </p>
+                  {stats && (
+                    stats.missingConfigId > 0 ? (
+                      <button onClick={() => setMissingDialog({ title: "Accounts Missing YMCS Config ID", list: stats.missingConfigList, columns: ["email", "name"] })} className="text-[11px] mt-1.5 font-mono text-red-400 hover:text-red-300 transition-colors cursor-pointer underline underline-offset-2 decoration-red-400/30">
+                        {stats.missingConfigId} missing
+                      </button>
+                    ) : (
+                      <p className="text-[11px] mt-1.5 font-mono text-emerald-400">all synced</p>
+                    )
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setConfirmAction({ title: "Sync Config IDs", description: "This will look up each account's MAC address in YMCS device configs and store the matching config ID. Only targets accounts with a device ID but no config ID.", action: syncConfigIds })}
+                disabled={anySyncing}
+                className="shrink-0"
+              >
+                {syncingConfigs
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
+                }
+              </Button>
+            </div>
+            <SyncResult result={configSyncResult} />
+            {configSyncLog.length > 0 && (
+              <div data-sync-log><SyncLog entries={configSyncLog} /></div>
             )}
           </CardContent>
         </Card>

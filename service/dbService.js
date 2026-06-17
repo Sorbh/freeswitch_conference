@@ -189,6 +189,7 @@ function init() {
         ['sip_server_port', "ALTER TABLE accounts ADD COLUMN sip_server_port TEXT"],
         ['debug', "ALTER TABLE accounts ADD COLUMN debug INTEGER DEFAULT 0"],
         ['extension', "ALTER TABLE accounts ADD COLUMN extension INTEGER"],
+        ['ymcs_config_id', "ALTER TABLE accounts ADD COLUMN ymcs_config_id TEXT"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);
@@ -827,7 +828,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
