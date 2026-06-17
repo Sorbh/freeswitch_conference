@@ -69,7 +69,7 @@ System logs the broadcast: answered / unanswered, who responded, recording
 
 ### Mute / unmute (three paths)
 1. **Yealink hardware** — phone hook events arrive via **syslog (UDP 515)**; off-hook = unmute, on-hook = mute.
-2. **Web client** — HTTP POST to `/api/v1/action/*`.
+2. **Yealink HTTP hooks** — GET to `/api/v1/yealink/onhook` and `/api/v1/yealink/offhook`.
 3. **Admin UI** — manual per-user buttons.
 
 ### Critical-yard alerting
@@ -117,26 +117,19 @@ service → critical-user alerting → syslog server → periodic tasks (5-min r
 
 **SIP auth:** FreeSWITCH `xml_curl` directory callback (`POST /api/v1/freeswitch/directory`)
 returns the account password for digest challenge. This authenticates *joining a room* —
-it does **not** protect the HTTP control API (see Security).
+it also protects the HTTP control API (see Security).
 
 ---
 
-## 5. Security decision (resolved this session)
+## 5. Security — Authentication and access control policies
 
-**Finding:** Two independent layers exist. (1) FreeSWITCH SIP auth gating room join — OK.
-(2) The **HTTP control API** (`/api/v1/admin/*`, `/api/v1/action/*`) has **no
-authentication** and the app ports are **reachable from the public internet** on a
-**live 100–500-yard network.** Anyone who finds the IP can, unauthenticated:
-- `GET /action/allendcall` → drop **every** yard at once
-- `POST /action/delete` → delete accounts
-- `/action/onhook`, `/action/honkRoom` → mute/honk anyone
-- `/admin/users`, `/admin/broadcasts/recent` → exfiltrate all member data + recordings
+**Two authentication layers protect the system:**
 
-**Decision (owner, 2026-05-31):** No interim network lockdown. Security will be addressed
-**in the future** via a **login page + a JWT-protected API** (all endpoints require a
-token). The owner has **explicitly accepted the live public-exposure risk** until then.
-> ⚠️ Until JWT ships, the control plane remains world-reachable and unauthenticated; the
-> exposure described above stays open. Recommend prioritizing the JWT work.
+1. **SIP auth** — FreeSWITCH digest challenge gates room join (via `xml_curl` directory callback).
+2. **HTTP API auth** — all control endpoints are authenticated:
+   - `/api/v1/admin/*` — JWT Bearer token (login UI with role-based access: Admin, Editor, Analytics)
+   - `/api/v1/yealink/*` — per-integration API key (`X-API-Key` header or `?api_key=` query param)
+   - `/api/v1/freeswitch/*` — localhost-only (IP check)
 
 **Secondary security notes (documented, not blocking):**
 - SIP passwords stored **plaintext** in SQLite. Partly inherent to SIP digest auth, but

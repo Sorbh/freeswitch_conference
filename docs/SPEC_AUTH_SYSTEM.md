@@ -7,7 +7,7 @@ Add login authentication and role-based access control (RBAC) to the FreeSWITCH 
 ### Goals
 - Protect all dashboard API endpoints with JWT authentication
 - Implement three roles: Admin, Editor, Analytics
-- Protect SIP-action endpoints with per-integration API keys
+- Protect Yealink endpoints with per-integration API keys
 - Lock FreeSWITCH XML directory to localhost only
 - Add login UI with redirect flow
 - Remove raw SQL debug endpoint
@@ -144,7 +144,7 @@ Response: { accessToken }
 
 - Key is a random 32-byte hex string, shown once on creation
 - Stored as SHA-256 hash in `api_keys` table
-- Validated by middleware on `/api/v1/action/*` routes
+- Validated by middleware on `/api/v1/yealink/*` routes
 
 ### 6. FreeSWITCH XML Directory
 
@@ -192,7 +192,7 @@ Response: { accessToken }
 ### Modified Endpoints
 
 All existing `/api/v1/admin/*` endpoints: add JWT middleware  
-All existing `/api/v1/action/*` endpoints: add API key middleware  
+All existing `/api/v1/yealink/*` endpoints: add API key middleware  
 `POST /api/v1/freeswitch/directory`: add localhost IP check
 
 ---

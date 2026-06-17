@@ -175,17 +175,17 @@ export default function LoginPage() {
         }}
       />
 
-      {/* Corner brackets */}
-      <div className="absolute top-6 left-6 w-12 h-12 border-l-2 border-t-2 border-[#d92d20]/20 pointer-events-none" />
-      <div className="absolute top-6 right-6 w-12 h-12 border-r-2 border-t-2 border-[#d92d20]/20 pointer-events-none" />
-      <div className="absolute bottom-6 left-6 w-12 h-12 border-l-2 border-b-2 border-[#d92d20]/20 pointer-events-none" />
-      <div className="absolute bottom-6 right-6 w-12 h-12 border-r-2 border-b-2 border-[#d92d20]/20 pointer-events-none" />
+      {/* Corner brackets — hidden on small screens */}
+      <div className="hidden sm:block absolute top-6 left-6 w-12 h-12 border-l-2 border-t-2 border-[#d92d20]/20 pointer-events-none" />
+      <div className="hidden sm:block absolute top-6 right-6 w-12 h-12 border-r-2 border-t-2 border-[#d92d20]/20 pointer-events-none" />
+      <div className="hidden sm:block absolute bottom-6 left-6 w-12 h-12 border-l-2 border-b-2 border-[#d92d20]/20 pointer-events-none" />
+      <div className="hidden sm:block absolute bottom-6 right-6 w-12 h-12 border-r-2 border-b-2 border-[#d92d20]/20 pointer-events-none" />
 
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full px-4">
         {/* Logo + pulse */}
         <div
-          className="relative mb-10"
+          className="relative mb-6 sm:mb-10"
           style={{
             animation: mounted ? "login-fadein 0.6s ease-out forwards" : "none",
             opacity: mounted ? 1 : 0,
@@ -216,7 +216,7 @@ export default function LoginPage() {
               style={{ animation: "login-scan 4s linear infinite" }}
             />
 
-            <div className="p-8 pt-7">
+            <div className="p-5 sm:p-8 sm:pt-7">
               {/* Header */}
               <div className="text-center mb-7">
                 <h1 className="text-lg font-semibold tracking-tight text-white/90">
@@ -253,7 +253,7 @@ export default function LoginPage() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-transparent px-3.5 py-2.5 text-sm text-white/90 placeholder:text-white/20 focus:outline-none"
+                      className="w-full bg-transparent px-3.5 py-2.5 text-base sm:text-sm text-white/90 placeholder:text-white/20 focus:outline-none"
                       placeholder="you@example.com"
                     />
                   </div>
@@ -271,7 +271,7 @@ export default function LoginPage() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-transparent px-3.5 py-2.5 text-sm text-white/90 placeholder:text-white/20 focus:outline-none"
+                      className="w-full bg-transparent px-3.5 py-2.5 text-base sm:text-sm text-white/90 placeholder:text-white/20 focus:outline-none"
                       placeholder="••••••••"
                     />
                     <button
@@ -332,7 +332,7 @@ export default function LoginPage() {
             </div>
 
             {/* Bottom bar */}
-            <div className="px-8 py-3 border-t border-white/[0.04] bg-white/[0.01]">
+            <div className="px-5 sm:px-8 py-3 border-t border-white/[0.04] bg-white/[0.01]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -346,7 +346,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p
-          className="mt-8 text-[11px] text-white/15 font-mono tracking-wide"
+          className="mt-4 sm:mt-8 pb-4 text-[11px] text-white/15 font-mono tracking-wide"
           style={{
             animation: mounted ? "login-fadein 0.6s ease-out 0.3s both" : "none",
             opacity: 0,

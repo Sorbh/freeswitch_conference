@@ -238,6 +238,9 @@ function init() {
     if (!ncCols.includes('message_template')) {
         sqlite.exec("ALTER TABLE notification_channels ADD COLUMN message_template TEXT");
     }
+    if (!ncCols.includes('delivered_count')) {
+        sqlite.exec("ALTER TABLE notification_channels ADD COLUMN delivered_count INTEGER DEFAULT 0");
+    }
 
     // ── Direct calls table ──
     sqlite.exec(`
@@ -341,6 +344,13 @@ function init() {
             key_prefix TEXT NOT NULL,
             active INTEGER NOT NULL DEFAULT 1,
             created_by INTEGER NOT NULL,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+    `);
+
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS sip_ua_blocklist (
+            user_agent TEXT PRIMARY KEY,
             created_at INTEGER DEFAULT (strftime('%s', 'now'))
         );
     `);
@@ -869,6 +879,10 @@ function deleteNotificationChannel(id) {
     sqlite.prepare('DELETE FROM notification_channels WHERE id = ?').run(id);
 }
 
+function incrementNotificationDelivered(id) {
+    sqlite.prepare('UPDATE notification_channels SET delivered_count = COALESCE(delivered_count, 0) + 1 WHERE id = ?').run(id);
+}
+
 function getEnabledNotificationChannels(room, answered) {
     let rows = sqlite.prepare('SELECT * FROM notification_channels WHERE enabled = 1').all();
     return rows.filter(ch => {
@@ -1141,6 +1155,7 @@ db.createNotificationChannel = createNotificationChannel;
 db.updateNotificationChannel = updateNotificationChannel;
 db.deleteNotificationChannel = deleteNotificationChannel;
 db.getEnabledNotificationChannels = getEnabledNotificationChannels;
+db.incrementNotificationDelivered = incrementNotificationDelivered;
 db.getAllAudioAds = getAllAudioAds;
 db.getAudioAd = getAudioAd;
 db.createAudioAd = createAudioAd;
@@ -1220,5 +1235,9 @@ db.getAllApiKeys = getAllApiKeys;
 db.getApiKeyByHash = getApiKeyByHash;
 db.createApiKey = createApiKey;
 db.deleteApiKey = deleteApiKey;
+
+db.getBlockedUAs = () => sqlite.prepare('SELECT user_agent FROM sip_ua_blocklist ORDER BY created_at').all().map(r => r.user_agent);
+db.addBlockedUA = (ua) => sqlite.prepare('INSERT OR IGNORE INTO sip_ua_blocklist (user_agent) VALUES (?)').run(ua);
+db.removeBlockedUA = (ua) => sqlite.prepare('DELETE FROM sip_ua_blocklist WHERE user_agent = ?').run(ua);
 
 export default { db };

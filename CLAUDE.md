@@ -39,7 +39,7 @@ Dev server runs on port 5175 (Vite), production on 4007 (HTTPS) + 4070 (internal
 - `service/yealink/` — YMCS REST API (OAuth2, device mgmt, SIP accounts, config push)
 - `service/phoneEvents.js` — Yealink syslog parser + HTTP hook handler
 - `modules/admin/routesApi.js` — main admin API: user/room CRUD, SSE streams, YMCS control
-- `modules/sip-action/` — SIP call actions (newCall, endCall, login, logout, room change)
+- `modules/yealink/` — Yealink phone actions (onhook/offhook mute, softkey room change)
 - `modules/freeswitch/routesApi.js` — XML directory endpoint for FS digest auth
 
 ### Frontend Layout

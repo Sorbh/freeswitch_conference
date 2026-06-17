@@ -205,6 +205,17 @@ export async function sendChannelMessage(channelId, groupId, text, audioPath) {
     logSystem('WHATSAPP', `[ch:${channelId}] Message sent to ${groupId}`);
 }
 
+export async function sendChannelImage(channelId, groupId, caption, imagePath) {
+    const session = _getSession(channelId);
+    if (session.state !== 'ready' || !session.sock) throw new Error('WhatsApp not connected');
+
+    await session.sock.sendMessage(groupId, {
+        image: { url: imagePath },
+        caption: caption || undefined,
+    });
+    logSystem('WHATSAPP', `[ch:${channelId}] Image sent to ${groupId}`);
+}
+
 export async function initialize() {
     const files = fs.readdirSync(AUTH_DIR).filter(f => f.match(/^whatsapp_\d+\.json$/));
 

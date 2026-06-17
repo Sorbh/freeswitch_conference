@@ -822,7 +822,7 @@ function KeysPane({ keys, loading, onCreate, onDelete }) {
         <div className="rounded-xl border border-dashed border-border/40 py-14 text-center">
           <KeyIcon className="size-6 text-muted-foreground/20 mx-auto mb-2" />
           <p className="text-[13px] text-muted-foreground/60">No API keys yet</p>
-          <p className="text-[12px] text-muted-foreground/40 mt-0.5">Generate a key for Yealink phones to access SIP-action endpoints</p>
+          <p className="text-[12px] text-muted-foreground/40 mt-0.5">Generate a key for Yealink phones to access Yealink API endpoints</p>
         </div>
       ) : (
         <div className="rounded-xl border border-border/40 bg-card/50 divide-y divide-border/40">
@@ -849,7 +849,7 @@ function KeysPane({ keys, loading, onCreate, onDelete }) {
         <p className="text-[12px] text-muted-foreground/50 leading-relaxed">
           Pass as <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">X-API-Key</code> header
           or <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">?api_key=</code> query param
-          on <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">/api/v1/action/*</code> endpoints.
+          on <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">/api/v1/yealink/*</code> endpoints.
         </p>
       </div>
     </>
@@ -873,7 +873,7 @@ function SecurityPane() {
         <Row label="Refresh tokens" hint="7 days default, 30 days with remember-me">
           <code className="text-[12px] text-muted-foreground/60 font-mono">7 / 30d</code>
         </Row>
-        <Row label="SIP-action auth" hint="All /api/v1/action/* require API key">
+        <Row label="Yealink auth" hint="All /api/v1/yealink/* require API key">
           <StatusDot />
         </Row>
         <Row label="FreeSWITCH directory" hint="Restricted to localhost" noBorder>

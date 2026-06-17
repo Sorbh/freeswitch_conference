@@ -41,6 +41,10 @@ if (global.db.adminCount() === 0) {
     _startupLines.push(`Seed admin created: ${seedEmail} / ${process.env.SEED_ADMIN_PASSWORD ? '***' : seedPassword}`);
 }
 
+// Reapply SIP UA blocklist iptables rules from DB
+import { reapplyBlocklist } from "./modules/admin/system.js";
+reapplyBlocklist();
+
 // Express — start HTTP servers first so FreeSWITCH xml_curl can always reach us
 import ApiRouter from "./routes/api.js";
 const { json, urlencoded } = express;

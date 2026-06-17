@@ -24,7 +24,12 @@ import {
   Loader2Icon,
   RadioIcon,
   WifiIcon,
+  ShieldBanIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 function StatusDot({ status }) {
   const color = status === "healthy" ? "bg-green-500" : status === "degraded" ? "bg-yellow-500" : "bg-red-500";
@@ -178,6 +183,8 @@ export default function SystemPage() {
           </CardContent>
         </Card>
       </div>
+
+      <SipBlocklistSection />
 
       <AudioHealthSection />
 
@@ -381,6 +388,148 @@ function AudioHealthSection() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SipBlocklistSection() {
+  const [blocked, setBlocked] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [input, setInput] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fetchList = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/v1/admin/system/sip-blocklist");
+      const json = await res.json();
+      if (json.status) setBlocked(json.data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useState(() => { fetchList(); });
+
+  async function handleAdd(e) {
+    e.preventDefault();
+    const ua = input.trim();
+    if (!ua) return;
+    setAdding(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/api/v1/admin/system/sip-blocklist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_agent: ua }),
+      });
+      const json = await res.json();
+      if (json.status) {
+        setBlocked(json.data);
+        setInput("");
+      } else {
+        setError(json.error);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleRemove(ua) {
+    setRemoving(ua);
+    setError(null);
+    try {
+      const res = await apiFetch(`/api/v1/admin/system/sip-blocklist/${encodeURIComponent(ua)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.status) setBlocked(json.data);
+      else setError(json.error);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setRemoving(null);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <ShieldBanIcon className="size-4 text-muted-foreground" />
+        <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+          SIP User-Agent Blocklist
+        </span>
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+          port 5070
+        </Badge>
+        {blocked.length > 0 && (
+          <Badge className="text-[10px] px-1.5 py-0 bg-red-500/15 text-red-400 border-red-500/30">
+            {blocked.length} blocked
+          </Badge>
+        )}
+      </div>
+
+      <Card className="border-border/40">
+        <CardContent className="pt-4 pb-4">
+          <form onSubmit={handleAdd} className="flex gap-2 mb-4">
+            <Input
+              placeholder="e.g. friendly-scanner"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="font-mono text-sm h-9"
+              disabled={adding}
+            />
+            <Button type="submit" size="sm" className="h-9 px-4 shrink-0" disabled={adding || !input.trim()}>
+              {adding ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <PlusIcon className="size-3 mr-1.5" />}
+              Block
+            </Button>
+          </form>
+
+          {error && (
+            <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-red-500/[0.06] border border-red-500/20 text-xs text-red-400">
+              <XCircleIcon className="size-3.5 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="py-6 text-center">
+              <Loader2Icon className="size-5 animate-spin text-muted-foreground/30 mx-auto" />
+            </div>
+          ) : blocked.length === 0 ? (
+            <div className="py-6 text-center">
+              <ShieldBanIcon className="size-7 text-muted-foreground/15 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground/50">No user agents blocked</p>
+              <p className="text-[11px] text-muted-foreground/30 mt-0.5">
+                Add a User-Agent string to drop SIP packets from that client
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {blocked.map((ua) => (
+                <span
+                  key={ua}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-xs font-mono text-zinc-700 dark:text-zinc-300"
+                >
+                  {ua}
+                  <button
+                    className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                    onClick={() => handleRemove(ua)}
+                    disabled={removing === ua}
+                  >
+                    {removing === ua ? <Loader2Icon className="size-3.5 animate-spin" /> : <XIcon className="size-3.5 stroke-[2.5]" />}
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

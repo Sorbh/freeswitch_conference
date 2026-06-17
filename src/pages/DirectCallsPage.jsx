@@ -15,7 +15,7 @@ import {
   PhoneCallIcon, PhoneOffIcon, PhoneMissedIcon, PhoneIncomingIcon,
   PlayIcon, ClockIcon, UserIcon, ArrowRightIcon,
   BuildingIcon, XCircleIcon, CheckCircle2Icon,
-  ListIcon, TimerIcon, PhoneForwardedIcon,
+  ListIcon,
 } from "lucide-react";
 
 function formatDuration(ms) {
@@ -315,145 +315,158 @@ export default function DirectCallsPage() {
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-[420px] sm:w-[460px] overflow-y-auto border-border/40">
-          <SheetHeader className="pb-4 border-b border-border/40">
-            <SheetTitle className="flex items-center gap-2 text-base">
-              <PhoneForwardedIcon className="size-4 text-violet-400" />
-              Call Detail
-            </SheetTitle>
-            <SheetDescription className="text-xs font-mono tabular-nums">
-              {selectedCall && formatFullDateTime(selectedCall.created_at)}
-            </SheetDescription>
+        <SheetContent className="w-[420px] sm:w-[460px] p-0 flex flex-col gap-0 overflow-y-auto border-border/40">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Call Detail</SheetTitle>
+            <SheetDescription>Extension call detail view</SheetDescription>
           </SheetHeader>
 
           {selectedCall && (() => {
             const st = STATUS_MAP[selectedCall.status] || STATUS_MAP.cancelled;
+            const isAnswered = selectedCall.status === "completed" || selectedCall.status === "answered";
             const url = selectedCall.recording_path ? `/recordings/direct/${selectedCall.recording_path.split("/").pop()}` : null;
             return (
-              <div className="mt-5 space-y-4">
-                {/* Status + End Reason */}
-                <div className="flex items-center gap-3">
-                  <Badge className={`${st.cls} text-[10px] px-1.5 py-0`}>{st.label}</Badge>
-                  {selectedCall.end_reason && (
-                    <span className="text-[11px] text-muted-foreground/50">{END_REASON_LABELS[selectedCall.end_reason] || selectedCall.end_reason}</span>
-                  )}
+              <>
+                {/* Hero header */}
+                <div className={`relative px-5 pt-12 pb-5 ${isAnswered ? "bg-emerald-500/[0.04]" : "bg-red-500/[0.04]"}`}>
+                  <div className={`absolute top-0 left-0 right-0 h-px ${isAnswered ? "bg-emerald-500/30" : "bg-red-500/30"}`} />
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className={`size-2 rounded-full ${isAnswered ? "bg-emerald-500" : "bg-red-500"}`} />
+                        <Badge className={`${st.cls} text-[10px] px-1.5 py-0`}>{st.label}</Badge>
+                        {selectedCall.end_reason && (
+                          <span className="text-[11px] text-muted-foreground/40">{END_REASON_LABELS[selectedCall.end_reason] || selectedCall.end_reason}</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground/50 font-mono tabular-nums">
+                        {formatFullDateTime(selectedCall.created_at)}
+                      </p>
+                    </div>
+                    {selectedCall.duration_ms > 0 && (
+                      <div className="text-right">
+                        <p className="text-xl font-bold font-mono tabular-nums tracking-tight">{formatDuration(selectedCall.duration_ms)}</p>
+                        <p className="text-[10px] text-muted-foreground/40 uppercase tracking-widest">duration</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Caller → Callee */}
-                <div className="rounded-xl border border-border/40 bg-card/30 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border/30">
-                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest mb-2">Caller</p>
-                    <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-                        <UserIcon className="size-3.5 text-violet-400" />
+                <div className="px-5 py-4 space-y-4">
+                  {/* Caller → Callee flow */}
+                  <div className="space-y-0">
+                    {/* Caller */}
+                    <div className="flex items-center gap-3 py-3">
+                      <div className="size-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                        <PhoneCallIcon className="size-4 text-violet-400" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium truncate">{selectedCall.caller_display_name || selectedCall.caller_email}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {selectedCall.caller_company && (
-                            <span className="text-[11px] text-muted-foreground/50 flex items-center gap-1">
-                              <BuildingIcon className="size-2.5" />{selectedCall.caller_company}
-                            </span>
-                          )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold truncate">{selectedCall.caller_display_name || selectedCall.caller_email}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
                           {selectedCall.caller_extension && (
-                            <code className="text-[10px] font-mono text-muted-foreground/50 bg-muted/30 px-1 rounded">*{selectedCall.caller_extension}</code>
+                            <code className="text-[10px] font-mono text-violet-400/70 bg-violet-500/10 px-1.5 py-px rounded">*{selectedCall.caller_extension}</code>
+                          )}
+                          {selectedCall.caller_company && (
+                            <span className="text-[11px] text-muted-foreground/40 truncate">{selectedCall.caller_company}</span>
                           )}
                         </div>
                       </div>
+                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground/30 font-medium shrink-0">Caller</span>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-center py-1.5 bg-muted/5">
-                    <ArrowRightIcon className="size-3 text-muted-foreground/25 rotate-90" />
-                  </div>
-                  <div className="px-4 py-3">
-                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest mb-2">Callee</p>
-                    <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-full bg-cyan-500/10 flex items-center justify-center shrink-0">
-                        <UserIcon className="size-3.5 text-cyan-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium truncate">{selectedCall.callee_display_name || selectedCall.callee_email}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {selectedCall.callee_company && (
-                            <span className="text-[11px] text-muted-foreground/50 flex items-center gap-1">
-                              <BuildingIcon className="size-2.5" />{selectedCall.callee_company}
-                            </span>
-                          )}
-                          {selectedCall.callee_extension && (
-                            <code className="text-[10px] font-mono text-muted-foreground/50 bg-muted/30 px-1 rounded">*{selectedCall.callee_extension}</code>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Metadata */}
-                <Table>
-                  <TableBody>
-                    <TableRow className="border-border/30">
-                      <TableCell className="text-[12px] text-muted-foreground/60 py-2">Room</TableCell>
-                      <TableCell className="text-[12px] text-right py-2 font-medium">{selectedCall.caller_room_name || "—"}</TableCell>
-                    </TableRow>
-                    <TableRow className="border-border/30">
-                      <TableCell className="text-[12px] text-muted-foreground/60 py-2">Started</TableCell>
-                      <TableCell className="text-[12px] text-right py-2 font-mono tabular-nums">{formatFullDateTime(selectedCall.started_at || selectedCall.created_at)}</TableCell>
-                    </TableRow>
+                    {/* Connection line */}
+                    <div className="flex items-center gap-3 py-0.5">
+                      <div className="w-9 flex justify-center">
+                        <div className="w-px h-5 bg-border/50" />
+                      </div>
+                      <ArrowRightIcon className="size-3 text-muted-foreground/20 rotate-90" />
+                    </div>
+
+                    {/* Callee */}
+                    <div className="flex items-center gap-3 py-3">
+                      <div className="size-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                        <PhoneIncomingIcon className="size-4 text-cyan-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold truncate">{selectedCall.callee_display_name || selectedCall.callee_email}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {selectedCall.callee_extension && (
+                            <code className="text-[10px] font-mono text-cyan-400/70 bg-cyan-500/10 px-1.5 py-px rounded">*{selectedCall.callee_extension}</code>
+                          )}
+                          {selectedCall.callee_company && (
+                            <span className="text-[11px] text-muted-foreground/40 truncate">{selectedCall.callee_company}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-[9px] uppercase tracking-widest text-muted-foreground/30 font-medium shrink-0">Callee</span>
+                    </div>
+                  </div>
+
+                  {/* Metadata grid */}
+                  <div className="rounded-lg border border-border/40 overflow-hidden divide-y divide-border/30">
+                    {selectedCall.caller_room_name && (
+                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                        <span className="text-[12px] text-muted-foreground/50">Room</span>
+                        <span className="text-[12px] font-medium">{selectedCall.caller_room_name}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between px-3.5 py-2.5">
+                      <span className="text-[12px] text-muted-foreground/50">Started</span>
+                      <span className="text-[12px] font-mono tabular-nums">{formatFullDateTime(selectedCall.started_at || selectedCall.created_at)}</span>
+                    </div>
                     {selectedCall.answered_at && (
-                      <TableRow className="border-border/30">
-                        <TableCell className="text-[12px] text-muted-foreground/60 py-2">Answered</TableCell>
-                        <TableCell className="text-[12px] text-right py-2 font-mono tabular-nums">{formatTime(selectedCall.answered_at)}</TableCell>
-                      </TableRow>
+                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                        <span className="text-[12px] text-muted-foreground/50">Answered</span>
+                        <span className="text-[12px] font-mono tabular-nums">{formatTime(selectedCall.answered_at)}</span>
+                      </div>
                     )}
                     {selectedCall.ended_at && (
-                      <TableRow className="border-border/30">
-                        <TableCell className="text-[12px] text-muted-foreground/60 py-2">Ended</TableCell>
-                        <TableCell className="text-[12px] text-right py-2 font-mono tabular-nums">{formatTime(selectedCall.ended_at)}</TableCell>
-                      </TableRow>
+                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                        <span className="text-[12px] text-muted-foreground/50">Ended</span>
+                        <span className="text-[12px] font-mono tabular-nums">{formatTime(selectedCall.ended_at)}</span>
+                      </div>
                     )}
-                    <TableRow className="border-border/30">
-                      <TableCell className="text-[12px] text-muted-foreground/60 py-2">Duration</TableCell>
-                      <TableCell className="text-[12px] text-right py-2 font-mono tabular-nums font-medium">{selectedCall.duration_ms > 0 ? formatDuration(selectedCall.duration_ms) : "—"}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                  </div>
 
-                {/* Recording */}
-                {url && (
-                  <div className="rounded-xl border border-border/40 bg-card/30 px-4 py-3">
-                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest mb-2">Recording</p>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => toggle(selectedCall.id, url)}
-                        className={`flex size-8 items-center justify-center rounded-full border transition-all cursor-pointer ${
-                          playingId === selectedCall.id
-                            ? "bg-violet-500/15 border-violet-500/30 text-violet-400"
-                            : "bg-muted/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
-                        }`}
-                      >
-                        {playingId === selectedCall.id ? (
-                          <div className="flex items-end gap-[2px] h-3">
-                            {[0, 1, 2].map(i => (
-                              <div key={i} className="w-[2px] bg-violet-400 rounded-full" style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }} />
-                            ))}
-                          </div>
-                        ) : (
-                          <PlayIcon className="size-3 ml-0.5" />
-                        )}
-                      </button>
-                      <span className="text-[10px] text-muted-foreground/40 font-mono truncate">{selectedCall.recording_path.split("/").pop()}</span>
+                  {/* Recording */}
+                  {url && (
+                    <div className="rounded-lg border border-border/40 px-3.5 py-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => toggle(selectedCall.id, url)}
+                          className={`flex size-9 items-center justify-center rounded-lg border transition-all cursor-pointer ${
+                            playingId === selectedCall.id
+                              ? "bg-violet-500/15 border-violet-500/30 text-violet-400"
+                              : "bg-muted/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+                          }`}
+                        >
+                          {playingId === selectedCall.id ? (
+                            <div className="flex items-end gap-[2px] h-3">
+                              {[0, 1, 2].map(i => (
+                                <div key={i} className="w-[2px] bg-violet-400 rounded-full" style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }} />
+                              ))}
+                            </div>
+                          ) : (
+                            <PlayIcon className="size-3.5 ml-0.5" />
+                          )}
+                        </button>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-medium">Recording</p>
+                          <p className="text-[10px] text-muted-foreground/40 font-mono truncate">{selectedCall.recording_path.split("/").pop()}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Transcription */}
-                {selectedCall.transcription && (
-                  <div className="rounded-xl border border-border/40 bg-card/30 px-4 py-3">
-                    <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest mb-2">Transcription</p>
-                    <p className="text-[12px] text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">{selectedCall.transcription}</p>
-                  </div>
-                )}
-              </div>
+                  {/* Transcription */}
+                  {selectedCall.transcription && (
+                    <div className="rounded-lg border border-border/40 px-3.5 py-3">
+                      <p className="text-[10px] font-medium text-muted-foreground/40 uppercase tracking-widest mb-2">Transcription</p>
+                      <p className="text-[12px] text-muted-foreground/80 leading-relaxed whitespace-pre-wrap">{selectedCall.transcription}</p>
+                    </div>
+                  )}
+                </div>
+              </>
             );
           })()}
         </SheetContent>

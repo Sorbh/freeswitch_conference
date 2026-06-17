@@ -34,6 +34,9 @@ import {
   SmartphoneIcon,
   QrCodeIcon,
   WifiOffIcon,
+  MailCheckIcon,
+  MessageSquareIcon,
+  ImagePlusIcon,
 } from "lucide-react";
 
 const EMPTY_FORM = {
@@ -61,6 +64,14 @@ export default function NotificationsPage() {
   const [deleteId, setDeleteId] = useState(null);
   const [templateInfo, setTemplateInfo] = useState(null);
   const templateRef = useRef(null);
+
+  // Send message state
+  const [sendOpen, setSendOpen] = useState(null);
+  const [sendText, setSendText] = useState("");
+  const [sendImage, setSendImage] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
+  const sendFileRef = useRef(null);
 
   // WhatsApp per-channel state
   const [waStatuses, setWaStatuses] = useState({});
@@ -275,6 +286,39 @@ export default function NotificationsPage() {
     }
   }
 
+  function openSend(ch) {
+    setSendOpen(ch);
+    setSendText("");
+    setSendImage(null);
+    setSendResult(null);
+  }
+
+  async function handleSend() {
+    if (!sendOpen) return;
+    setSending(true);
+    setSendResult(null);
+    try {
+      const formData = new FormData();
+      if (sendText) formData.append("text", sendText);
+      if (sendImage) formData.append("image", sendImage);
+      const res = await apiFetch(`/api/v1/admin/notifications/${sendOpen.id}/send`, {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.status) {
+        setSendResult({ success: true });
+        fetchChannels();
+      } else {
+        setSendResult({ success: false, error: json.error });
+      }
+    } catch (e) {
+      setSendResult({ success: false, error: e.message });
+    } finally {
+      setSending(false);
+    }
+  }
+
   const canSave = form.chat_id && (form.type === "whatsapp" || form.bot_token);
 
   if (loading) {
@@ -374,6 +418,15 @@ export default function NotificationsPage() {
                             {ch.send_unanswered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
                             Unanswered
                           </span>
+                          {(ch.delivered_count > 0) && (
+                            <>
+                              <span className="text-muted-foreground/40">•</span>
+                              <span className="flex items-center gap-1 text-emerald-400">
+                                <MailCheckIcon className="size-3" />
+                                {ch.delivered_count} delivered
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -391,23 +444,17 @@ export default function NotificationsPage() {
                           Disconnect
                         </Button>
                       )}
-                      {testResult?.id === ch.id && (
-                        <span className={`text-xs ${testResult.success ? "text-emerald-400" : "text-red-400"}`}>
-                          {testResult.success ? "Sent!" : testResult.error || "Failed"}
-                        </span>
-                      )}
                       <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8"
-                        disabled={testing === ch.id || !ch.enabled || waNotReady}
+                        size="icon"
+                        variant="ghost"
+                        className="size-8"
+                        disabled={!ch.enabled || waNotReady}
                         onClick={() => {
                           if (waMissingGroup) { openEdit(ch); return; }
-                          handleTest(ch.id);
+                          openSend(ch);
                         }}
                       >
-                        {testing === ch.id ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <SendIcon className="size-3 mr-1.5" />}
-                        Test
+                        <SendIcon className="size-3.5" />
                       </Button>
                       <Switch
                         checked={!!ch.enabled}
@@ -663,6 +710,102 @@ export default function NotificationsPage() {
           <div className="flex gap-2 mt-4">
             <Button variant="outline" className="flex-1" onClick={() => setDeleteId(null)}>Cancel</Button>
             <Button variant="destructive" className="flex-1" onClick={handleDelete}>Delete</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Message Dialog */}
+      <Dialog open={!!sendOpen} onOpenChange={(open) => { if (!open) setSendOpen(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Message</DialogTitle>
+            <DialogDescription>
+              Send to {sendOpen?.label || "channel"} via {sendOpen?.type}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 mt-2">
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <textarea
+                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                placeholder="Type your message..."
+                value={sendText}
+                onChange={(e) => setSendText(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Image (optional)</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => sendFileRef.current?.click()}
+                >
+                  <ImagePlusIcon className="size-3.5 mr-1.5" />
+                  {sendImage ? "Change" : "Attach"}
+                </Button>
+                {sendImage && (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs text-muted-foreground truncate max-w-[180px]">{sendImage.name}</span>
+                    <button className="text-muted-foreground/50 hover:text-foreground cursor-pointer" onClick={() => { setSendImage(null); if (sendFileRef.current) sendFileRef.current.value = ""; }}>
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+                )}
+                <input
+                  ref={sendFileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setSendImage(e.target.files?.[0] || null)}
+                />
+              </div>
+            </div>
+
+            {sendResult && (
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                sendResult.success
+                  ? "bg-emerald-500/[0.06] border border-emerald-500/20 text-emerald-400"
+                  : "bg-red-500/[0.06] border border-red-500/20 text-red-400"
+              }`}>
+                {sendResult.success ? <CheckIcon className="size-3.5" /> : <XIcon className="size-3.5" />}
+                {sendResult.success ? "Message sent!" : sendResult.error || "Failed"}
+              </div>
+            )}
+
+            <Button
+              className="w-full"
+              onClick={handleSend}
+              disabled={sending || (!sendText.trim() && !sendImage)}
+            >
+              {sending ? <Loader2Icon className="size-3.5 animate-spin mr-1.5" /> : <SendIcon className="size-3.5 mr-1.5" />}
+              {sending ? "Sending..." : "Send"}
+            </Button>
+            {sendOpen && (
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleTest(sendOpen.id)}
+                  disabled={testing === sendOpen.id}
+                >
+                  {testing === sendOpen.id ? <Loader2Icon className="size-3.5 animate-spin mr-1.5" /> : <SendIcon className="size-3.5 mr-1.5" />}
+                  Send Test Message
+                </Button>
+                {testResult?.id === sendOpen.id && (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                    testResult.success
+                      ? "bg-emerald-500/[0.06] border border-emerald-500/20 text-emerald-400"
+                      : "bg-red-500/[0.06] border border-red-500/20 text-red-400"
+                  }`}>
+                    {testResult.success ? <CheckIcon className="size-3.5" /> : <XIcon className="size-3.5" />}
+                    {testResult.success ? "Test message sent!" : testResult.error || "Failed"}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

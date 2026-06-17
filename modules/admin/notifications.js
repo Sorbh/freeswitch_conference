@@ -1,6 +1,9 @@
 import express from "express";
+import multer from "multer";
+import fs from "fs";
 
 const router = express.Router();
+const msgUpload = multer({ dest: '/tmp/hq-msg-uploads/', limits: { fileSize: 10 * 1024 * 1024 } });
 
 // --- Notification Channels ---
 
@@ -82,6 +85,32 @@ router.post("/notifications/:id/test", async (req, res) => {
         const result = await testNotificationChannel(channel);
         res.json({ status: true, data: result });
     } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /notifications/:id/send — send custom text + optional image
+router.post("/notifications/:id/send", msgUpload.single("image"), async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const channel = global.db.getNotificationChannel(id);
+        if (!channel) return res.status(404).json({ status: false, error: "Channel not found" });
+
+        const text = req.body.text || "";
+        const imagePath = req.file?.path || null;
+
+        if (!text && !imagePath) {
+            return res.status(400).json({ status: false, error: "Provide text or image" });
+        }
+
+        const { sendCustomMessage } = await import("../../service/notifier.js");
+        await sendCustomMessage(channel, text, imagePath);
+
+        if (imagePath) { try { fs.unlinkSync(imagePath); } catch {} }
+
+        res.json({ status: true });
+    } catch (err) {
+        if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch {} }
         res.status(500).json({ status: false, error: err.message });
     }
 });

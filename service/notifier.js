@@ -113,6 +113,7 @@ export async function notifyBroadcast(broadcastData) {
             } else if (channel.type === 'whatsapp') {
                 await _sendWhatsApp(channel, caption, oggPath);
             }
+            global.db.incrementNotificationDelivered(channel.id);
         } catch (err) {
             logSystem('NOTIFY', `ERR ${channel.type}/${channel.label || channel.id}: ${err.message}`);
         }
@@ -175,6 +176,47 @@ async function _sendWhatsApp(channel, caption, oggPath) {
 
     await sendChannelMessage(channel.id, groupId, caption, oggPath);
     logSystem('NOTIFY', `WhatsApp sent to ${channel.label || groupId}`);
+}
+
+export async function sendCustomMessage(channel, text, imagePath) {
+    if (channel.type === 'telegram') {
+        const { bot_token, chat_id } = channel;
+        if (!bot_token || !chat_id) throw new Error('Missing bot_token or chat_id');
+
+        if (imagePath && fs.existsSync(imagePath)) {
+            const { FormData, File } = await import('node-fetch');
+            const fileBuffer = fs.readFileSync(imagePath);
+            const fileName = imagePath.split('/').pop();
+            const form = new FormData();
+            form.append('chat_id', chat_id);
+            if (text) form.append('caption', text);
+            form.append('photo', new File([fileBuffer], fileName, { type: 'image/jpeg' }));
+            const res = await fetch(`${TELEGRAM_API}${bot_token}/sendPhoto`, { method: 'POST', body: form });
+            if (!res.ok) { const body = await res.text(); throw new Error(`Telegram sendPhoto ${res.status}: ${body}`); }
+        } else if (text) {
+            const res = await fetch(`${TELEGRAM_API}${bot_token}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id, text }),
+            });
+            if (!res.ok) { const body = await res.text(); throw new Error(`Telegram sendMessage ${res.status}: ${body}`); }
+        }
+        logSystem('NOTIFY', `Telegram custom msg sent to ${channel.label || chat_id}`);
+    } else if (channel.type === 'whatsapp') {
+        const { sendChannelImage, sendChannelMessage, getChannelStatus } = await import('./whatsapp.js');
+        const status = getChannelStatus(channel.id);
+        if (status.state !== 'ready') throw new Error('WhatsApp not connected');
+        const groupId = channel.chat_id;
+        if (!groupId) throw new Error('No group selected');
+
+        if (imagePath && fs.existsSync(imagePath)) {
+            await sendChannelImage(channel.id, groupId, text, imagePath);
+        } else if (text) {
+            await sendChannelMessage(channel.id, groupId, text, null);
+        }
+        logSystem('NOTIFY', `WhatsApp custom msg sent to ${channel.label || groupId}`);
+    }
+    global.db.incrementNotificationDelivered(channel.id);
 }
 
 function _findLatestRecording() {

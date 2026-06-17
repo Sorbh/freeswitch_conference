@@ -431,7 +431,7 @@ function ApiKeysSection({ apiKeys, loading, onCreateKey, onDeleteKey }) {
         <div className="rounded-lg border py-12 text-center">
           <KeyIcon className="size-8 text-muted-foreground/30 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No API keys yet</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Generate a key so Yealink phones can access SIP-action endpoints</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Generate a key so Yealink phones can access Yealink API endpoints</p>
         </div>
       ) : (
         <div className="rounded-lg border divide-y">
@@ -460,7 +460,7 @@ function ApiKeysSection({ apiKeys, loading, onCreateKey, onDeleteKey }) {
       )}
       <div className="mt-4 rounded-lg border bg-muted/20 px-4 py-3">
         <p className="text-xs text-muted-foreground">
-          Pass the key as an <code className="text-[11px] bg-muted px-1 rounded font-mono">X-API-Key</code> header or <code className="text-[11px] bg-muted px-1 rounded font-mono">?api_key=</code> query param on <code className="text-[11px] bg-muted px-1 rounded font-mono">/api/v1/action/*</code> endpoints.
+          Pass the key as an <code className="text-[11px] bg-muted px-1 rounded font-mono">X-API-Key</code> header or <code className="text-[11px] bg-muted px-1 rounded font-mono">?api_key=</code> query param on <code className="text-[11px] bg-muted px-1 rounded font-mono">/api/v1/yealink/*</code> endpoints.
         </p>
       </div>
     </>
@@ -485,7 +485,7 @@ function SecuritySection() {
           <SettingRow label="Refresh tokens" description="Long-lived tokens, 7 days default, 30 days with remember-me">
             <span className="text-xs text-muted-foreground font-mono">7d / 30d</span>
           </SettingRow>
-          <SettingRow label="SIP-action auth" description="All /api/v1/action/* endpoints require API key">
+          <SettingRow label="Yealink auth" description="All /api/v1/yealink/* endpoints require API key">
             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs">Active</Badge>
           </SettingRow>
           <SettingRow label="FreeSWITCH directory" description="XML directory endpoint restricted to localhost only">
