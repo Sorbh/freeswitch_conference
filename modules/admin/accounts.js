@@ -312,6 +312,7 @@ router.post("/accounts/:id/ymcs/push-config", async (req, res) => {
         });
         const newConfigId = result?.id || null;
         if (newConfigId) {
+            await ymcs.post(`/v2/dm/deviceConfigs/${newConfigId}/push`);
             global.db.updateAccount(id, { ymcs_config_id: newConfigId });
         }
 
