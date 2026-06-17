@@ -1,6 +1,6 @@
 import express from "express";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
-import { handleHttpHookEvent } from "../../service/phoneEvents.js";
+import { handleHttpHookEvent, getActiveMacs } from "../../service/phoneEvents.js";
 import { logUser } from "../../service/logger.js";
 import { emitStateChange, endCall, allEndCall } from "./routesApi.js";
 
@@ -20,6 +20,7 @@ router.get("/users", (req, res) => {
         const matchedEmails = new Set();
 
         const talkingUsers = global.freeswitch?.getTalkingUsers?.() || new Set();
+        const activeMacs = getActiveMacs();
 
         const enriched = users.map(u => {
             const email = u.userName.replace(/^sip:/, '');
@@ -33,6 +34,7 @@ router.get("/users", (req, res) => {
                     : 0,
                 last_seen: u.lastSeen || u.updatedAt || u.createdAt,
                 talking: talkingUsers.has(u.userName),
+                syslogActive: u.mac ? activeMacs.has(u.mac) : false,
                 account: account ? safeAccount : null,
             };
         });

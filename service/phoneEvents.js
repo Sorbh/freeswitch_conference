@@ -3,17 +3,37 @@
 // 2. HTTP POST from web client — receives { userName, event: 'off_hook'|'on_hook' }
 // Both call callAction.muteByMemberId / unmuteByMemberId via FreeSWITCH conference API.
 import SyslogServer from 'syslog-server';
+import { acceptByUserName, handleDTMF, hasPendingCall } from './freeswitch/directCall.js';
 import { logSystem, logUser } from './logger.js';
-import { acceptByUserName, hasPendingCall, handleDTMF } from './freeswitch/directCall.js';
 
 let syslogServer = null;
 const sipBlocks = new Map();
 const SIP_BLOCK_TIMEOUT = 3000;
 const macByIp = new Map();
+const activeMac = new Map();
+const SYSLOG_STALE_MS = 30000;
 
 export function getMacByIp(ip) {
     return macByIp.get(ip) || null;
 }
+
+export function getActiveMacs() {
+    return activeMac;
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [mac, lastSeen] of activeMac.entries()) {
+        if (now - lastSeen > SYSLOG_STALE_MS) {
+            activeMac.delete(mac);
+            const userInfo = global.db.findUserInfo('mac', mac);
+            if (userInfo.userName) {
+                logUser(userInfo.userName, 'PHONE', `Syslog stale (${mac})`);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
+            }
+        }
+    }
+}, 5000);
 
 function _extractSipPayload(msg) {
     return msg.replace(/.*?DLG\s*<\d+\+\w+\s*>\s*\[\d+\]\s?/, '');
@@ -73,8 +93,10 @@ export function startSyslogServer(port = 515) {
         const macAddress = macMatch ? macMatch[1].toLowerCase() : null;
         const logLevel = levelMatch ? levelMatch[1].toUpperCase() : 'INFO';
 
-        if (macAddress && value.address) {
-            macByIp.set(value.address, macAddress);
+        if (macAddress) {
+            activeMac.set(macAddress, Date.now());
+            const ip = value.address || value.host;
+            if (ip) macByIp.set(ip, macAddress);
         }
 
         // SIP block detection (Yealink multi-line format)

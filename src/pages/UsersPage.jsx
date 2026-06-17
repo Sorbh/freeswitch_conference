@@ -85,6 +85,7 @@ import {
   FileCodeIcon,
   TriangleAlertIcon,
   XIcon,
+  LogsIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -288,7 +289,7 @@ export default function UsersPage() {
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false });
+  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false, noSyslog: false });
   const [roomFilter, setRoomFilter] = useState("all");
   const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   const [form, setForm] = useState(EMPTY_FORM);
@@ -347,6 +348,7 @@ export default function UsersPage() {
       if (filters.notInCall && u.connectionState === "connected") return false;
       if (filters.talking && !u.talking) return false;
       if (filters.error && u.connectionState !== "error") return false;
+      if (filters.noSyslog && u.syslogActive) return false;
       if (filters.crossRoom) {
         const defaultRoom = u.account?.room ?? u.room;
         const currentRoom = u.currentRoom ?? u.room;
@@ -695,6 +697,7 @@ export default function UsersPage() {
             { key: "talking", label: "Talking", active: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30", dot: "bg-cyan-400" },
             { key: "error", label: "Error", active: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400" },
             { key: "crossRoom", label: "Cross Room", active: "bg-violet-500/15 text-violet-400 border-violet-500/30", dot: "bg-violet-400" },
+            { key: "noSyslog", label: "No Syslog", active: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400" },
           ].map(({ key, label, active, dot }) => (
             <button
               key={key}
@@ -774,6 +777,7 @@ export default function UsersPage() {
                     {isError && <PhoneOffIcon className="size-2.5 shrink-0" />}
                     {isInCall && <PhoneCallIcon className="size-2.5 shrink-0" />}
                     {user.clientType === "web" && <GlobeIcon className="size-2.5 shrink-0" />}
+                    {user.syslogActive && <LogsIcon className="size-2.5 text-emerald-500 shrink-0" />}
                     <span className="truncate max-w-[80px]">{company || name}</span>
                   </button>
                 </TooltipTrigger>
@@ -895,6 +899,7 @@ export default function UsersPage() {
                       <div className="flex items-center gap-1.5">
                         <CopyableCell text={user.account?.email || user.userName} />
                         <ClientTypeIcon clientType={user.clientType} />
+                        {user.syslogActive && <Tip label="Syslog Active"><LogsIcon className="size-3 text-emerald-500 shrink-0" /></Tip>}
                       </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[120px]">
@@ -1379,7 +1384,7 @@ export default function UsersPage() {
                       <p className="text-[11px] uppercase tracking-widest text-muted-foreground/70 font-semibold">Connection</p>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { icon: <NetworkIcon className="size-3.5" />, label: "MAC", value: selectedUser.mac, mono: true, copyable: true },
+                          { icon: <NetworkIcon className="size-3.5" />, label: "MAC", value: selectedUser.mac, mono: true, copyable: true, badge: selectedUser.syslogActive ? "Syslog" : null },
                           { icon: <WifiIcon className="size-3.5" />, label: "IP", value: selectedUser.ip ? `${selectedUser.ip}${selectedUser.port ? `:${selectedUser.port}` : ""}` : null, mono: true, copyable: true, badge: (() => { const c = selectedUser.contact || ""; if (c.includes("transport=ws")) return "WSS"; if (c.includes("transport=tls") || c.includes(";tls")) return "TLS"; if (c.includes("transport=TCP") || c.includes("transport=tcp")) return "TCP"; return "UDP"; })() },
                           { icon: <ShieldIcon className="size-3.5" />, label: "Auth", value: selectedUser.authState, mono: true },
                           { icon: <MicIcon className="size-3.5" />, label: "Muted", value: selectedUser.mute ? "Yes" : "No" },
