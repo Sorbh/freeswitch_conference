@@ -1,4 +1,6 @@
 import fs from 'fs';
+import { execFileSync } from 'child_process';
+import config from '../config/config.js';
 import { logSystem } from './logger.js';
 
 function _logSTT(title, lines) {
@@ -273,3 +275,62 @@ export async function transcribeDirectCall(callId) {
 export function getAudioSettings() {
     return _getSettings();
 }
+
+// ── Local Whisper transcription (whisper.cpp) ──
+
+const NUMBER_WORDS = new Set([
+    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+    "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+    "hundred", "thousand"
+]);
+
+function checkContainsYearOrNumber(text) {
+    if (/\b(1[0-9]{3}|2[0-9]{3})\b|\d/.test(text)) return true;
+    const words = text.toLowerCase().split(/\s+/);
+    for (const word of words) {
+        if (NUMBER_WORDS.has(word)) return true;
+    }
+    return false;
+}
+
+export function whisperTranscribe(audioPath) {
+    if (!fs.existsSync(config.WHISPER_CLI)) throw new Error('whisper-cli not found');
+    if (!fs.existsSync(config.WHISPER_MODEL)) throw new Error('whisper model not found');
+    if (!audioPath || !fs.existsSync(audioPath)) throw new Error('Audio file not found');
+
+    const startMs = Date.now();
+    const text = execFileSync(config.WHISPER_CLI, [
+        '-m', config.WHISPER_MODEL,
+        '-f', audioPath,
+        '--no-timestamps',
+        '-t', '4',
+    ], { encoding: 'utf8', timeout: 30000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    const elapsedMs = Date.now() - startMs;
+
+    const hasPartsRequest = checkContainsYearOrNumber(text);
+
+    _logSTT('Whisper Local', [
+        `file: ${audioPath.split('/').pop()}`,
+        `completed in ${elapsedMs}ms │ parts_request: ${hasPartsRequest}`,
+        `result: ${text.length} chars${text.length > 0 ? ' │ "' + text.slice(0, 100) + (text.length > 100 ? '…"' : '"') : ''}`,
+    ]);
+
+    return { text, hasPartsRequest, elapsedMs };
+}
+
+export function whisperTranscribeBroadcast(broadcastId) {
+    const broadcast = global.db.getBroadcastById(broadcastId);
+    if (!broadcast?.recording_path) return null;
+
+    try {
+        const result = whisperTranscribe(broadcast.recording_path);
+        global.db.updateBroadcastLocalTranscription(broadcastId, result.text, result.hasPartsRequest);
+        return result;
+    } catch (err) {
+        logSystem('STT', `Whisper local #${broadcastId} FAILED: ${err.message}`);
+        return null;
+    }
+}
+
+export { checkContainsYearOrNumber };

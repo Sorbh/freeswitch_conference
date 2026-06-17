@@ -509,10 +509,15 @@ export default function BroadcastsPage() {
     else { audio.pause(); audio.src = url; audio.load(); audio.play().catch(() => {}); setPlayingId(id); setPlayingUrl(url); }
   }, []);
 
-  // Transcription
+  // Detail + Transcription
+  const [detailDrawer, setDetailDrawer] = useState(null);
   const [transcriptDrawer, setTranscriptDrawer] = useState(null);
   const [transcribing, setTranscribing] = useState(null);
   const [copiedTranscript, setCopiedTranscript] = useState(false);
+
+  const openDetail = useCallback((b) => {
+    setDetailDrawer(b);
+  }, []);
 
   const openTranscript = useCallback((b) => {
     setTranscriptDrawer(b);
@@ -873,6 +878,7 @@ export default function BroadcastsPage() {
                   <TableHead>Response Time</TableHead>
                   <TableHead>Responded By</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-12">Valid</TableHead>
                   <TableHead className="w-12">STT</TableHead>
                   <TableHead className="pr-6 w-16">Share</TableHead>
                 </TableRow>
@@ -882,8 +888,8 @@ export default function BroadcastsPage() {
                   const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
                   const playing = playingId === b.id;
                   return (
-                    <TableRow key={b.id} className={playing ? "bg-emerald-500/[0.03]" : ""}>
-                      <TableCell className="pl-6">
+                    <TableRow key={b.id} className={`${playing ? "bg-emerald-500/[0.03]" : ""} cursor-pointer hover:bg-muted/30`} onClick={() => openDetail(b)}>
+                      <TableCell className="pl-6" onClick={e => e.stopPropagation()}>
                         {url && (
                           <button
                             onClick={() => toggle(b.id, url)}
@@ -936,7 +942,7 @@ export default function BroadcastsPage() {
                           <span className="text-muted-foreground/40">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-normal">
                         <span className="text-xs text-muted-foreground">{b.responded_by || "—"}</span>
                       </TableCell>
                       <TableCell>
@@ -947,6 +953,15 @@ export default function BroadcastsPage() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {b.has_parts_request == null ? (
+                          <span className="text-muted-foreground/30">—</span>
+                        ) : b.has_parts_request ? (
+                          <span title="Parts request detected">✅</span>
+                        ) : (
+                          <span title="No parts request">❌</span>
+                        )}
+                      </TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         {b.transcription_status === 'completed' && b.transcription ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -990,7 +1005,7 @@ export default function BroadcastsPage() {
                           </Tooltip>
                         ) : null}
                       </TableCell>
-                      <TableCell className="pr-6">
+                      <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                         {b.share_token ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1062,6 +1077,152 @@ export default function BroadcastsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Detail drawer */}
+      <Sheet open={!!detailDrawer} onOpenChange={(open) => { if (!open) setDetailDrawer(null); }}>
+        <SheetContent showCloseButton={false} className="w-[440px] sm:max-w-[440px] p-0 flex flex-col gap-0 border-l border-border/50 bg-background">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Broadcast Detail</SheetTitle>
+            <SheetDescription>Detail view for broadcast</SheetDescription>
+          </SheetHeader>
+          {(() => {
+            const b = detailDrawer;
+            if (!b) return null;
+            const speaker = b.display_name || b.user_name || "Unknown";
+            const speakerInitial = speaker.replace(/^[^a-zA-Z]*/, '')[0]?.toUpperCase() || '?';
+            const ts = b.created_at ? new Date(b.created_at * 1000) : null;
+            const timeStr = ts ? ts.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+            const dateStr = ts ? ts.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "";
+            const audioUrl = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
+            const isAnswered = !!b.answered;
+
+            return (
+              <>
+                {/* Hero header */}
+                <div className={`shrink-0 ${isAnswered ? "bg-emerald-500/[0.04]" : "bg-red-500/[0.04]"}`}>
+                  <div className="px-5 pt-5 pb-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`flex size-11 items-center justify-center rounded-xl border text-sm font-bold shrink-0 ${
+                        isAnswered
+                          ? "bg-emerald-500/15 border-emerald-500/20 text-emerald-400"
+                          : "bg-red-500/15 border-red-500/20 text-red-400"
+                      }`}>
+                        {speakerInitial}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[15px] font-semibold tracking-tight truncate">{speaker}</h3>
+                        <p className="text-[11px] text-muted-foreground/50 font-mono mt-0.5">{dateStr} · {timeStr}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-mono font-bold tabular-nums">{formatDuration(b.duration_ms)}</p>
+                        {isAnswered ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px] px-1.5 py-0">Answered</Badge>
+                        ) : (
+                          <Badge className="bg-red-500/15 text-red-400 border-red-500/25 text-[10px] px-1.5 py-0">Unanswered</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {audioUrl && (
+                    <div className="border-t border-border/30 bg-muted/[0.04]">
+                      <div className="px-5 py-0.5">
+                        <WaveformPlayer
+                          url={audioUrl}
+                          isActive={playingId === b.id}
+                          onToggle={() => toggle(b.id, audioUrl)}
+                          sharedAudioRef={audioRef}
+                        />
+                        {playingId !== b.id && (
+                          <div className="flex items-center gap-2 py-2.5">
+                            <button
+                              onClick={() => toggle(b.id, audioUrl)}
+                              className="flex size-7 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
+                            >
+                              <PlayIcon className="size-3 ml-0.5" />
+                            </button>
+                            <span className="text-[11px] text-muted-foreground/50">Play recording</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Metadata */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="px-5 py-4 space-y-4">
+                    {/* Info grid */}
+                    <div className="space-y-0 divide-y divide-border/20">
+                      {[
+                        { label: "Room", value: b.room_name || ROOM_NAMES[b.room] || "—" },
+                        { label: "Participants", value: b.participant_count || "—" },
+                        { label: "Listeners", value: b.listener_count || "—" },
+                        { label: "Response Time", value: b.answered ? (b.response_time_ms === 0 ? "Instant" : b.response_time_ms != null ? formatDuration(b.response_time_ms) : "—") : "—" },
+                      ].map(row => (
+                        <div key={row.label} className="flex items-center justify-between py-2.5">
+                          <span className="text-xs text-muted-foreground/60">{row.label}</span>
+                          <span className="text-sm text-foreground/80">{row.value}</span>
+                        </div>
+                      ))}
+                      {b.responded_by && (
+                        <div className="py-2.5">
+                          <span className="text-xs text-muted-foreground/60">Responded By</span>
+                          <p className="text-sm text-foreground/80 mt-1.5 leading-relaxed">{b.responded_by}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="text-xs text-muted-foreground/60">Parts Request</span>
+                        <span className="text-sm">{b.has_parts_request == null ? "—" : b.has_parts_request ? "✅ Yes" : "❌ No"}</span>
+                      </div>
+                    </div>
+
+                    {/* Local transcription (whisper) */}
+                    {b.local_transcription && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">Local Transcription</span>
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">whisper</Badge>
+                        </div>
+                        <p className="text-[13px] leading-[1.8] text-foreground/75 whitespace-pre-wrap">{b.local_transcription?.trim()}</p>
+                      </div>
+                    )}
+
+                    {/* API transcription */}
+                    {b.transcription && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">API Transcription</span>
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">deepgram</Badge>
+                        </div>
+                        <p className="text-[13px] leading-[1.8] text-foreground/75 whitespace-pre-wrap">{b.transcription}</p>
+                      </div>
+                    )}
+
+                    {/* No transcriptions */}
+                    {!b.local_transcription && !b.transcription && (
+                      <div className="text-center py-6">
+                        <FileTextIcon className="size-6 text-muted-foreground/15 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground/40">No transcriptions available</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                {b.share_token && (
+                  <div className="shrink-0 border-t border-border/40 bg-muted/[0.04] px-5 py-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground/40">Share link active</span>
+                      <Badge variant="outline" className="text-[10px] px-2 py-0 font-mono">{b.share_token.slice(0, 12)}…</Badge>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
 
       {/* Transcription drawer */}
       <Sheet open={!!transcriptDrawer} onOpenChange={(open) => { if (!open) setTranscriptDrawer(null); }}>

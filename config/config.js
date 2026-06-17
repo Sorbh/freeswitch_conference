@@ -18,7 +18,10 @@ config.TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 config.USER_VALIDATION_API = process.env.USER_VALIDATION_API || 'https://apis.redlineusedautoparts.com/api/user-info';
 config.SIP_DEFAULT_PASSWORD = process.env.SIP_DEFAULT_PASSWORD || '12345678';
-config.HONK_AUDIO_FILE = process.env.HONK_AUDIO_FILE || '/root/sorbh/freeswitch_conference/public/redlinehonk.opus';
+config.HONK_AUDIO_FILE = process.env.HONK_AUDIO_FILE || '/root/sorbh/freeswitch_conference/public/redlinehonk.wav';
 config.RECORDING_DIR = process.env.RECORDING_DIR || '/root/sorbh/freeswitch_conference/recordings';
+
+config.WHISPER_CLI = process.env.WHISPER_CLI || '/root/sorbh/freeswitch_conference/whisper_build/build/bin/whisper-cli';
+config.WHISPER_MODEL = process.env.WHISPER_MODEL || '/root/sorbh/freeswitch_conference/whisper_build/models/ggml-tiny.en.bin';
 
 export default config;

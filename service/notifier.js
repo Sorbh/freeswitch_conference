@@ -72,6 +72,19 @@ export async function notifyBroadcast(broadcastData) {
 
     if (!channels.length) return;
 
+    // Filter out channels with skip_no_parts when broadcast has no parts request
+    const hasPartsRequest = broadcastData.hasPartsRequest;
+    if (hasPartsRequest !== undefined) {
+        channels = channels.filter(ch => {
+            if (ch.skip_no_parts && !hasPartsRequest) {
+                logSystem('NOTIFY', `Skipping ${ch.type}/${ch.label || ch.id}: no parts request detected`);
+                return false;
+            }
+            return true;
+        });
+        if (!channels.length) return;
+    }
+
     const speaker = broadcastData.userName ? broadcastData.userName.replace('sip:', '') : 'Unknown';
     const account = global.db.getAccountByEmail(speaker);
 

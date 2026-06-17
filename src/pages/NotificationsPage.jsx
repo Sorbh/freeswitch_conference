@@ -48,6 +48,7 @@ const EMPTY_FORM = {
   message_template: "",
   send_answered: true,
   send_unanswered: true,
+  skip_no_parts: false,
   enabled: true,
 };
 
@@ -208,6 +209,7 @@ export default function NotificationsPage() {
       message_template: ch.message_template || templateInfo?.defaultTemplate || "",
       send_answered: !!ch.send_answered,
       send_unanswered: !!ch.send_unanswered,
+      skip_no_parts: !!ch.skip_no_parts,
       enabled: !!ch.enabled,
     });
     setFormOpen(true);
@@ -222,6 +224,7 @@ export default function NotificationsPage() {
         message_template: form.message_template || null,
         send_answered: form.send_answered ? 1 : 0,
         send_unanswered: form.send_unanswered ? 1 : 0,
+        skip_no_parts: form.skip_no_parts ? 1 : 0,
         enabled: form.enabled ? 1 : 0,
       };
 
@@ -678,6 +681,17 @@ export default function NotificationsPage() {
                   className="data-checked:bg-emerald-500"
                 />
               </div>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40">
+              <div>
+                <Label className="text-sm">Skip if no parts request</Label>
+                <p className="text-[11px] text-muted-foreground/50 mt-0.5">Only notify when year/part number is detected</p>
+              </div>
+              <Switch
+                checked={form.skip_no_parts}
+                onCheckedChange={(v) => setForm(f => ({ ...f, skip_no_parts: v }))}
+                className="data-checked:bg-amber-500"
+              />
             </div>
             <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40">
               <Label className="text-sm">Enabled</Label>

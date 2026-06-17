@@ -241,6 +241,9 @@ function init() {
     if (!ncCols.includes('delivered_count')) {
         sqlite.exec("ALTER TABLE notification_channels ADD COLUMN delivered_count INTEGER DEFAULT 0");
     }
+    if (!ncCols.includes('skip_no_parts')) {
+        sqlite.exec("ALTER TABLE notification_channels ADD COLUMN skip_no_parts INTEGER DEFAULT 0");
+    }
 
     // ── Direct calls table ──
     sqlite.exec(`
@@ -305,6 +308,8 @@ function init() {
     const bcastTransMigrations = [
         ['transcription_status', "ALTER TABLE broadcast_log ADD COLUMN transcription_status TEXT"],
         ['transcription_error', "ALTER TABLE broadcast_log ADD COLUMN transcription_error TEXT"],
+        ['local_transcription', "ALTER TABLE broadcast_log ADD COLUMN local_transcription TEXT"],
+        ['has_parts_request', "ALTER TABLE broadcast_log ADD COLUMN has_parts_request INTEGER"],
     ];
     for (const [col, sql] of bcastTransMigrations) {
         if (!bcastMigCols.includes(col)) sqlite.exec(sql);
@@ -721,7 +726,7 @@ function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateF
     const offset = (page - 1) * pageSize;
 
     const rows = sqlite.prepare(`
-        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, share_token, listener_count, transcription, transcription_status, created_at
+        SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, response_time_ms, share_token, listener_count, transcription, transcription_status, local_transcription, has_parts_request, created_at
         FROM broadcast_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?
     `).all(...params, pageSize, offset);
 
@@ -859,7 +864,7 @@ function createNotificationChannel({ type, label, bot_token, chat_id, room, mess
 }
 
 function updateNotificationChannel(id, fields) {
-    const allowed = ['type', 'label', 'bot_token', 'chat_id', 'room', 'message_template', 'send_answered', 'send_unanswered', 'enabled'];
+    const allowed = ['type', 'label', 'bot_token', 'chat_id', 'room', 'message_template', 'send_answered', 'send_unanswered', 'enabled', 'skip_no_parts'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -1107,6 +1112,10 @@ function updateBroadcastTranscription(id, { transcription, status, error }) {
     sqlite.prepare(`UPDATE broadcast_log SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
 }
 
+function updateBroadcastLocalTranscription(id, text, hasPartsRequest) {
+    sqlite.prepare('UPDATE broadcast_log SET local_transcription = ?, has_parts_request = ? WHERE id = ?').run(text, hasPartsRequest ? 1 : 0, id);
+}
+
 db.init = init;
 db.getUserInfo = getUserInfo;
 db.setUserInfo = setUserInfo;
@@ -1218,6 +1227,7 @@ db.getSetting = getSetting;
 db.setSetting = setSetting;
 db.getSettingsByPrefix = getSettingsByPrefix;
 db.updateBroadcastTranscription = updateBroadcastTranscription;
+db.updateBroadcastLocalTranscription = updateBroadcastLocalTranscription;
 db.getBroadcastByRecordingPath = getBroadcastByRecordingPath;
 db.getAdminByEmail = getAdminByEmail;
 db.getAdminById = getAdminById;

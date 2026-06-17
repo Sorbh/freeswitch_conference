@@ -13,7 +13,7 @@ import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem, logBroadcast } from '../logger.js';
 import { isPlaying, stopAd } from '../announcements.js';
 import { notifyBroadcast } from '../notifier.js';
-import { shouldAutoTranscribe, transcribeBroadcast } from '../transcription.js';
+import { shouldAutoTranscribe, transcribeBroadcast, whisperTranscribeBroadcast } from '../transcription.js';
 import { isInDirectCall } from './directCall.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
@@ -337,7 +337,22 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         recordingPath: data.recordingPath,
     };
 
-    // If auto-transcribe is enabled, transcribe first then notify (so {{transcription}} is available)
+    // Run local whisper transcription on every broadcast (fast, ~1s)
+    if (data.recordingPath) {
+        const row = global.db.getBroadcastByRecordingPath(data.recordingPath);
+        if (row) {
+            try {
+                const whisperResult = whisperTranscribeBroadcast(row.id);
+                if (whisperResult) {
+                    broadcastNotifyData.hasPartsRequest = whisperResult.hasPartsRequest;
+                }
+            } catch (err) {
+                logSystem('BCAST', `Whisper local failed for #${row.id}: ${err.message}`);
+            }
+        }
+    }
+
+    // If auto-transcribe is enabled, transcribe with API then notify (so {{transcription}} is available)
     if (data.recordingPath && shouldAutoTranscribe(room)) {
         const row = global.db.getBroadcastByRecordingPath(data.recordingPath);
         if (row) {

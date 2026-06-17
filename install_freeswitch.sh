@@ -110,7 +110,7 @@ run_cmd() {
     fi
 }
 
-TOTAL_STEPS=14
+TOTAL_STEPS=16
 CURRENT_STEP=0
 progress() {
     CURRENT_STEP=$((CURRENT_STEP + 1))
@@ -260,6 +260,35 @@ else
     log "TLS certs already exist, skipping."
 fi
 
+# Step 15: Build whisper.cpp (local speech-to-text)
+progress "Building whisper.cpp..."
+WHISPER_DIR="$SCRIPT_DIR/whisper_build"
+if [ ! -d "$WHISPER_DIR" ]; then
+    run_cmd "git clone https://github.com/ggerganov/whisper.cpp.git $WHISPER_DIR"
+fi
+cd "$WHISPER_DIR"
+if [ ! -f "$WHISPER_DIR/build/bin/whisper-cli" ]; then
+    run_cmd "cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF"
+    run_cmd "cmake --build build -j$(nproc)"
+fi
+# Install shared libraries so whisper-cli can find them
+\cp -f "$WHISPER_DIR"/build/ggml/src/libggml*.so* /usr/local/lib/
+\cp -f "$WHISPER_DIR"/build/src/libwhisper.so* /usr/local/lib/
+echo "/usr/local/lib" > /etc/ld.so.conf.d/whisper.conf
+run_cmd "ldconfig"
+log "whisper.cpp ready at $WHISPER_DIR/build/bin/whisper-cli"
+cd $BUILD_DIR
+
+# Step 16: Download Whisper tiny.en model
+progress "Downloading Whisper tiny.en model..."
+if [ ! -f "$WHISPER_DIR/models/ggml-tiny.en.bin" ]; then
+    cd "$WHISPER_DIR"
+    run_cmd "bash models/download-ggml-model.sh tiny.en"
+    cd $BUILD_DIR
+else
+    log "Whisper model already downloaded, skipping."
+fi
+
 log ""
 log "============================================"
 log " FreeSWITCH $FREESWITCH_VERSION — READY"
@@ -280,6 +309,10 @@ log "  8021  Event Socket (ESL, localhost only)"
 log ""
 log "Config source:  $CONFIG_SRC/"
 log "Live config:    $FS_CONF/"
+log ""
+log "Whisper.cpp:"
+log "  Binary: $WHISPER_DIR/build/bin/whisper-cli"
+log "  Model:  $WHISPER_DIR/models/ggml-tiny.en.bin"
 log ""
 log "After editing config/freeswitch/*, run:"
 log "  $0 --sync"

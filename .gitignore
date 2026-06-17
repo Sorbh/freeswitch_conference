@@ -2,6 +2,9 @@
 freeswitch_build/
 freeswitch_install/
 
+# Whisper.cpp build
+whisper_build/
+
 # SQLite database
 data/*.db
 data/*.db-wal
