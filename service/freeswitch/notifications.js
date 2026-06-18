@@ -95,7 +95,7 @@ export function showMessage(targets, message, timeout = 4) {
         _sendNotify(target, 'Yealink-xml', 'application/xml', xmlBody);
         sent++;
     }
-    if (sent > 0) logSystem('NOTIFY', `message -> ${sent} phone${sent > 1 ? 's' : ''}`);
+    // if (sent > 0) logSystem('NOTIFY', `message -> ${sent} phone${sent > 1 ? 's' : ''}`);
 
     global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'message', message, targets });
 }

@@ -87,7 +87,7 @@ export function useConferenceListen() {
 
         const session = ua.call(confUri, {
           mediaStream: silentStream,
-          pcConfig: { iceServers: [] },
+          pcConfig: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
           rtcOfferConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
         });
 

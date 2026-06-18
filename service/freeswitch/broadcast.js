@@ -126,7 +126,7 @@ function _handleUnmute(conferenceName, memberId, room, event) {
             session.responseTimeMs = Date.now() - session.speechEndTime;
         }
         session.speechEndTime = null;
-        logSystem('BCAST', `${member.displayName} responded to ${session.allParticipants[0]?.displayName} in ${roomName} (${session.responseTimeMs}ms)`);
+        logSystem('BCAST', `│  ${member.displayName} responded (${session.responseTimeMs}ms)`);
     }
 
     if (!session) {
@@ -140,7 +140,7 @@ function _handleUnmute(conferenceName, memberId, room, event) {
             u.connectionState === 'connected' && (u.currentRoom || u.room) === room
         ).length;
 
-        logSystem('BCAST', `SESSION START in ${roomName} by ${member.displayName} — recording (${listenerCount} listeners)`);
+        logSystem('BCAST', `┌─ SESSION ── ${roomName} ── ${member.displayName} ── ${listenerCount} listeners ──`);
         getConnection().api(`conference ${conferenceName} record ${recordingFile}`, () => {});
 
         session = {
@@ -167,7 +167,7 @@ function _handleUnmute(conferenceName, memberId, room, event) {
         if (isResponder && session.responseTimeMs === null && !session.responseTimer) {
             session.responseTimeMs = 0;
         }
-        logSystem('BCAST', `${member.displayName} UNMUTE in ${roomName} (${session.participants.size} active)`);
+        logSystem('BCAST', `│  ${member.displayName} UNMUTE (${session.participants.size} active)`);
     }
 }
 
@@ -179,7 +179,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
 
     const leaving = session.participants.get(memberId);
     session.participants.delete(memberId);
-    logSystem('BCAST', `${leaving.displayName} left ${roomName} (${session.participants.size} remaining)`);
+    logSystem('BCAST', `│  ${leaving.displayName} left (${session.participants.size} remaining)`);
 
     if (session.participants.size > 0) return;
 
@@ -190,7 +190,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
     if (durationMs < BROADCAST_MIN_DURATION_MS && !session.responseTimer) {
         roomSessions.delete(conferenceName);
         getConnection().api(`conference ${conferenceName} norecord ${session.recordingPath}`, () => {});
-        logSystem('BCAST', `TOO SHORT in ${roomName} (${durationMs}ms) — discarding`);
+        logSystem('BCAST', `└─ TOO SHORT (${durationMs}ms) — discarding`);
         try { fs.unlinkSync(session.recordingPath); } catch {}
         return;
     }
@@ -199,7 +199,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
     if (session.allParticipants.length <= 1 && !session.responseTimer) {
         session.speechEndTime = Date.now();
         const firstSpeaker = session.allParticipants[0] || { userName: 'Unknown', displayName: 'Unknown' };
-        logSystem('BCAST', `${firstSpeaker.displayName} in ${roomName} (${durationMs}ms) — waiting for response`);
+        logSystem('BCAST', `│  waiting for response (${durationMs}ms)`);
 
         session.responseTimer = setTimeout(() => {
             roomSessions.delete(conferenceName);
@@ -207,7 +207,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
 
             _trimToduration(session.recordingPath, durationMs);
             const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
-            logSystem('BCAST', `UNANSWERED by ${firstSpeaker.displayName} in ${roomName} (${actualDurationMs}ms) — sending notification`);
+            logSystem('BCAST', `└─ UNANSWERED (${actualDurationMs}ms) — sending notification`);
 
             _finalizeBroadcast(conferenceName, room, {
                 firstSpeaker,
@@ -231,8 +231,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
     const responders = session.allParticipants.slice(1).map(p => p.displayName).join(', ');
 
     const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
-    logSystem('BCAST', `SESSION END in ${roomName} (speech ${durationMs}ms, file ${actualDurationMs}ms, ${session.allParticipants.length} participants)`);
-    logSystem('BCAST', `ANSWERED by ${firstSpeaker.displayName} in ${roomName}, responders: ${responders}`);
+    logSystem('BCAST', `└─ ANSWERED (${actualDurationMs}ms, ${session.allParticipants.length} participants) responders: ${responders}`);
 
     _finalizeBroadcast(conferenceName, room, {
         firstSpeaker,

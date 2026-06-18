@@ -423,7 +423,7 @@ import "./jssip.bundle.js";
                             });
                             session.answer({
                                 mediaConstraints: { audio: true, video: false },
-                                pcConfig: { iceServers: [] },
+                                pcConfig: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
                             });
                         }
                     } catch (e) { }

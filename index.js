@@ -8,7 +8,11 @@ import https from 'https';
 import path from "path";
 import { fileURLToPath } from 'url';
 import ViteExpress from "vite-express";
-ViteExpress.config({ mode: "production", inlineViteConfig: { base: "/" } });
+ViteExpress.config({
+    mode: "production",
+    inlineViteConfig: { base: "/" },
+    ignorePaths: /\.(js|css|woff2?|ttf|eot|svg|png|jpe?g|gif|ico|webp|map|json)$/,
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

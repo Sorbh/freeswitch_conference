@@ -1,5 +1,5 @@
 import express from "express";
-import { logUser } from "../../service/logger.js";
+import { logUser, logSystem } from "../../service/logger.js";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { initiateCall } from "../../service/freeswitch/callGate.js";
 
@@ -31,6 +31,7 @@ yealinkRouter.get("/onhook", (req, res) => {
         global.freeswitch.muteUser(userInfo.mac.toLowerCase());
         userInfo.mute = true;
         global.db.setUserInfo(userInfo.userName, userInfo);
+        logSystem('PHONE', `ON HOOK ${userInfo.callerIdName || userInfo.userName} (yealink-api)`);
         logUser(userInfo.userName, 'YEALINK', 'ONHOOK (mute)');
         res.json({ status: true, message: "onHook api working fine" });
     } catch (err) {
@@ -46,6 +47,7 @@ yealinkRouter.get("/offhook", (req, res) => {
         global.freeswitch.unmuteUser(userInfo.mac.toLowerCase());
         userInfo.mute = false;
         global.db.setUserInfo(userInfo.userName, userInfo);
+        logSystem('PHONE', `OFF HOOK ${userInfo.callerIdName || userInfo.userName} (yealink-api)`);
         logUser(userInfo.userName, 'YEALINK', 'OFFHOOK (unmute)');
         res.json({ status: true, message: "offhook api working fine" });
     } catch (err) {

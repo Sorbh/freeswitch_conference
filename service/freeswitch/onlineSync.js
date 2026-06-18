@@ -132,12 +132,41 @@ function _applyRegSync(allUsers, fsUsers) {
 
     syncAllUsers({ markHangup: false, logPrefix: 'REG-POLL' });
     const cleaned = _cleanupDeadHandlers(allUsers);
+    _syncMuteState();
 
     if (changes > 0 || cleaned > 0) {
         const parts = [];
         if (changes > 0) parts.push(`${fsUsers.size} registered, ${changes} changes`);
         if (cleaned > 0) parts.push(`cleaned ${cleaned} dead handlers`);
         logUser('REG-POLL', 'SYNC', parts.join(' | '));
+    }
+}
+
+function _syncMuteState() {
+    if (!isConnected()) return;
+    const conn = getConnection();
+    const rooms = global.db.getAllRooms ? global.db.getAllRooms() : [];
+    for (const room of rooms) {
+        conn.api(`conference ${room.id} list`, (response) => {
+            const body = response.getBody().trim();
+            if (!body || body.startsWith('-ERR') || body.includes('not found')) return;
+            for (const line of body.split('\n')) {
+                const parts = line.split(';');
+                if (parts.length < 6) continue;
+                const memberId = parts[0];
+                const flags = parts[5] || '';
+                const uuid = parts[2];
+                if (!flags.includes('speak')) continue;
+                // This member is unmuted in FS — check DB
+                const users = global.db.filter(u => u.fsChannelUUID === uuid);
+                if (users.length === 0) continue;
+                const user = users[0];
+                if (user.mute) {
+                    logSystem('MUTE-SYNC', `${user.callerIdName || user.userName} muted in DB but unmuted in FS (member ${memberId}) — fixing`);
+                    conn.api(`conference ${room.id} mute ${memberId}`, () => {});
+                }
+            }
+        });
     }
 }
 

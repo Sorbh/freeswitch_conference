@@ -46,24 +46,30 @@ function setAuthCookies(res, admin, refreshToken, refreshDays) {
         httpOnly: true,
         secure,
         sameSite: 'strict',
-        path: '/api/v1/admin/events',
+        path: '/api/v1/admin',
         maxAge: days * 24 * 60 * 60 * 1000,
     });
 }
 
 function clearAuthCookies(res) {
     res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/v1/auth' });
-    res.clearCookie(SSE_COOKIE_NAME, { path: '/api/v1/admin/events' });
+    res.clearCookie(SSE_COOKIE_NAME, { path: '/api/v1/admin' });
 }
 
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const cookieToken = req.cookies?.[SSE_COOKIE_NAME];
+
+    let token;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.slice(7);
+    } else if (cookieToken) {
+        token = cookieToken;
+    } else {
         return res.status(401).json({ status: false, error: 'Authentication required' });
     }
 
     try {
-        const token = authHeader.slice(7);
         req.user = jwt.verify(token, JWT_SECRET);
         next();
     } catch (err) {

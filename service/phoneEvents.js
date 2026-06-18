@@ -171,10 +171,12 @@ export function startSyslogServer(port = 515) {
             const hookUserName = Object.keys(hookUser).length > 0 ? hookUser.userName : null;
 
             if (keyEvent === 'off hook') {
-                logUser(hookUserName, 'PHONE', `OFF HOOK (${macAddress})`);
+                const _name = hookUser.callerIdName || hookUserName || macAddress;
+                logSystem('PHONE', `OFF HOOK ${_name}`);
                 _handleHookEvent(macAddress, 'off_hook');
             } else if (keyEvent === 'on hook') {
-                logUser(hookUserName, 'PHONE', `ON HOOK (${macAddress})`);
+                const _name = hookUser.callerIdName || hookUserName || macAddress;
+                logSystem('PHONE', `ON HOOK ${_name}`);
                 _handleHookEvent(macAddress, 'on_hook');
             } else if (/^[0-9*#]$/.test(keyEvent) && hookUser.fsChannelUUID) {
                 logUser(hookUserName, 'PHONE', `KEY [${keyEvent}] (${macAddress})`);
@@ -227,7 +229,8 @@ export function handleHttpHookEvent(userName, event) {
         return true;
     }
 
-    logUser(userName, 'PHONE', `HTTP event=${event}`);
+    const _name = userInfo.callerIdName || userName;
+    logSystem('PHONE', `HTTP ${event === 'off_hook' ? 'OFF HOOK' : 'ON HOOK'} ${_name}`);
     _applyMuteState(userName, userInfo, event);
     return true;
 }
@@ -251,14 +254,17 @@ function _handleHookEvent(macAddress, event) {
         return;
     }
 
-    // Yealink on_hook: phone will hang up the SIP call (del-member handles cleanup).
-    // Skip the FS mute command — it's redundant and causes double events.
-    // But update DB so UI reflects muted state immediately.
+    // Yealink on_hook: phone usually hangs up, but if it stays connected
+    // FS must still get the mute command to avoid stuck unmuted members.
     if (event === 'on_hook') {
+        const activeRoom = userInfo.currentRoom || userInfo.room;
+        if (userInfo.fsMemberId) {
+            global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userInfo.userName);
+        }
         userInfo.mute = true;
         global.db.setUserInfo(userInfo.userName, userInfo);
         global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
-        logUser(userInfo.userName, 'PHONE', 'MUTED (on_hook — waiting for hangup)');
+        logUser(userInfo.userName, 'PHONE', 'MUTED (on_hook)');
         return;
     }
 
