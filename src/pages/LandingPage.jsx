@@ -213,7 +213,7 @@ export default function LandingPage() {
                 ) : null}
                 <video
                   ref={videoRef}
-                  src="/out/hotlinehq.mp4"
+                  src="./out/hotlinehq.mp4"
                   className="aspect-video w-full rounded-[22px] bg-black object-cover"
                   controls
                   loop

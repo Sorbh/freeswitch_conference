@@ -1547,7 +1547,7 @@ export default function Landing2Page() {
         <div className="l2-video-frame l2-reveal">
           <video
             ref={videoRef}
-            src="/hotlinehq.mp4"
+            src="./hotlinehq.mp4"
             controls={playing}
             preload="metadata"
             playsInline

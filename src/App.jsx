@@ -150,7 +150,7 @@ function AppLayout() {
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
-      <BrowserRouter>
+      <BrowserRouter basename={window.location.pathname.startsWith('/hotlinehq') ? '/hotlinehq' : ''}>
         <ScrollToTop />
         <AuthProvider>
             <Routes>
