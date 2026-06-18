@@ -1626,12 +1626,11 @@ export default function Landing2Page() {
           <HQLogo />
         </a>
         <nav className="l2-nav-links">
-          <a href="#demo">Watch it work</a>
           <a href="#how">How it works</a>
           <a href="#try">Try it</a>
           <a href="#rooms">Coverage</a>
-          <a href="#system">The system</a>
-          <a href="#join" className="l2-nav-cta">
+          <a href="/own-a-hotline">Own a hotline</a>
+          <a href="#get-started" className="l2-nav-cta">
             Get a line
           </a>
         </nav>
