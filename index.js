@@ -8,7 +8,7 @@ import https from 'https';
 import path from "path";
 import { fileURLToPath } from 'url';
 import ViteExpress from "vite-express";
-ViteExpress.config({ mode: "production" });
+ViteExpress.config({ mode: "production", inlineViteConfig: { base: "/" } });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -115,7 +115,10 @@ try {
 import { startSyslogServer } from './service/phoneEvents.js';
 startSyslogServer(global.config.SYSLOG_PORT || 515);
 
-_startupLines.push('Call service loaded');
+// Announcement scheduler
+import { startScheduler } from './service/announcementScheduler.js';
+startScheduler();
+_startupLines.push('Announcement scheduler started');
 
 // On startup: reset all connection states (previous server session is gone)
 global.db.resetAllConnectionStates();

@@ -129,6 +129,19 @@ function init() {
         CREATE INDEX IF NOT EXISTS idx_ad_play_log_created ON ad_play_log(created_at);
     `);
 
+    const adCols = sqlite.prepare("PRAGMA table_info(audio_ads)").all().map(c => c.name);
+    const adMigrations = [
+        ['schedule_times', "ALTER TABLE audio_ads ADD COLUMN schedule_times TEXT DEFAULT '[]'"],
+        ['timezone', "ALTER TABLE audio_ads ADD COLUMN timezone TEXT DEFAULT 'America/Phoenix'"],
+        ['schedule_type', "ALTER TABLE audio_ads ADD COLUMN schedule_type TEXT DEFAULT 'times'"],
+        ['interval_minutes', "ALTER TABLE audio_ads ADD COLUMN interval_minutes INTEGER DEFAULT 0"],
+        ['window_start', "ALTER TABLE audio_ads ADD COLUMN window_start TEXT"],
+        ['window_end', "ALTER TABLE audio_ads ADD COLUMN window_end TEXT"],
+    ];
+    for (const [col, sql] of adMigrations) {
+        if (!adCols.includes(col)) sqlite.exec(sql);
+    }
+
     const broadcastCols = sqlite.prepare("PRAGMA table_info(broadcast_log)").all().map(c => c.name);
     const migrations = [
         ['room_name', "ALTER TABLE broadcast_log ADD COLUMN room_name TEXT"],
@@ -909,21 +922,21 @@ function getAudioAd(id) {
     return sqlite.prepare('SELECT * FROM audio_ads WHERE id = ?').get(id);
 }
 
-function createAudioAd({ label, audio_path, original_filename, rooms, duration_ms }) {
+function createAudioAd({ label, audio_path, original_filename, rooms, duration_ms, schedule_times, timezone, schedule_type, interval_minutes, window_start, window_end }) {
     const result = sqlite.prepare(
-        'INSERT INTO audio_ads (label, audio_path, original_filename, rooms, duration_ms) VALUES (?, ?, ?, ?, ?)'
-    ).run(label, audio_path, original_filename, JSON.stringify(rooms || []), duration_ms || 0);
+        'INSERT INTO audio_ads (label, audio_path, original_filename, rooms, duration_ms, schedule_times, timezone, schedule_type, interval_minutes, window_start, window_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(label, audio_path, original_filename, JSON.stringify(rooms || []), duration_ms || 0, JSON.stringify(schedule_times || []), timezone || 'America/Phoenix', schedule_type || 'times', interval_minutes || 0, window_start || null, window_end || null);
     return getAudioAd(result.lastInsertRowid);
 }
 
 function updateAudioAd(id, fields) {
-    const allowed = ['label', 'rooms', 'enabled', 'audio_path', 'original_filename', 'duration_ms'];
+    const allowed = ['label', 'rooms', 'enabled', 'audio_path', 'original_filename', 'duration_ms', 'schedule_times', 'timezone', 'schedule_type', 'interval_minutes', 'window_start', 'window_end'];
     const updates = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
         if (!allowed.includes(key)) continue;
         updates.push(`${key} = ?`);
-        values.push(key === 'rooms' ? JSON.stringify(val) : val);
+        values.push((key === 'rooms' || key === 'schedule_times') ? JSON.stringify(val) : val);
     }
     if (updates.length === 0) return getAudioAd(id);
     updates.push('updated_at = strftime(\'%s\', \'now\')');
@@ -963,6 +976,10 @@ function getAdStats(adId) {
         FROM ad_play_log WHERE ad_id = ?
     `).get(adId);
     return row || { total_plays: 0, completed: 0, interrupted: 0, avg_duration_ms: 0, total_impressions: 0 };
+}
+
+function getScheduledAds() {
+    return sqlite.prepare("SELECT * FROM audio_ads WHERE enabled = 1 AND ((schedule_times != '[]' AND schedule_times IS NOT NULL) OR (schedule_type = 'interval' AND interval_minutes > 0))").all();
 }
 
 // ── Auth: Admins ──
@@ -1174,6 +1191,7 @@ db.deleteAudioAd = deleteAudioAd;
 db.logAdPlay = logAdPlay;
 db.getAdPlayLog = getAdPlayLog;
 db.getAdStats = getAdStats;
+db.getScheduledAds = getScheduledAds;
 db.generateBroadcastShareToken = generateBroadcastShareToken;
 db.revokeBroadcastShareToken = revokeBroadcastShareToken;
 db.getBroadcastByShareToken = getBroadcastByShareToken;

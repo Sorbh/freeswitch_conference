@@ -41,6 +41,8 @@ import {
   ChevronsLeftIcon,
   ChevronsRightIcon,
   FileAudioIcon,
+  ClockIcon,
+  PlusCircleIcon,
 } from "lucide-react";
 
 function formatDuration(ms) {
@@ -100,10 +102,50 @@ function StatCard({ label, value, icon, color }) {
   );
 }
 
+const TIMEZONES = [
+  { value: "America/Phoenix", label: "Arizona (MST)" },
+  { value: "America/Chicago", label: "Central (CST/CDT)" },
+  { value: "America/New_York", label: "Eastern (EST/EDT)" },
+  { value: "America/Denver", label: "Mountain (MST/MDT)" },
+  { value: "America/Los_Angeles", label: "Pacific (PST/PDT)" },
+  { value: "America/Mexico_City", label: "Mexico City (CST)" },
+  { value: "Europe/Madrid", label: "Spain (CET/CEST)" },
+  { value: "Africa/Accra", label: "Ghana (GMT)" },
+  { value: "Africa/Cairo", label: "Egypt (EET)" },
+];
+
+const ROOM_TIMEZONE = {
+  California: "America/Los_Angeles",
+  Bakersfield: "America/Los_Angeles",
+  SanDiego: "America/Los_Angeles",
+  Texas: "America/Chicago",
+  NewJersey: "America/New_York",
+  Florida: "America/New_York",
+  Mexico: "America/Mexico_City",
+  Egypt: "Africa/Cairo",
+  Spain: "Europe/Madrid",
+  Ghana: "Africa/Accra",
+  Arizona: "America/Phoenix",
+};
+
+function getLocalTimeStr(tz) {
+  try {
+    return new Date().toLocaleTimeString("en-US", {
+      timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: true,
+    });
+  } catch { return ""; }
+}
+
 const EMPTY_FORM = {
   label: "",
   rooms: [],
   enabled: true,
+  schedule_type: "none",
+  schedule_times: [],
+  timezone: "America/Phoenix",
+  interval_minutes: 30,
+  window_start: "08:00",
+  window_end: "18:00",
 };
 
 export default function AnnouncementsPage() {
@@ -155,15 +197,25 @@ export default function AnnouncementsPage() {
     try {
       const res = await apiFetch("/api/v1/admin/audio-ads");
       const json = await res.json();
-      if (json.status) setActive(json.active || {});
+      if (json.status) {
+        setActive(json.active || {});
+        if (Object.keys(json.active || {}).length === 0 && pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+        }
+      }
     } catch {}
   }, []);
 
+  function startPolling() {
+    if (pollRef.current) return;
+    pollRef.current = setInterval(pollActive, 3000);
+  }
+
   useEffect(() => {
     fetchAds();
-    pollRef.current = setInterval(pollActive, 5000);
-    return () => clearInterval(pollRef.current);
-  }, [fetchAds, pollActive]);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [fetchAds]);
 
   const fetchLog = useCallback(async (page) => {
     setLogLoading(true);
@@ -200,10 +252,20 @@ export default function AnnouncementsPage() {
 
   function openEdit(ad) {
     setEditing(ad);
+    let scheduleTimes = [];
+    try { scheduleTimes = JSON.parse(ad.schedule_times || '[]'); } catch {}
+    const hasInterval = ad.schedule_type === 'interval' && ad.interval_minutes > 0;
+    const hasTimes = scheduleTimes.length > 0;
     setForm({
       label: ad.label || "",
       rooms: parseRooms(ad.rooms),
       enabled: !!ad.enabled,
+      schedule_type: hasInterval ? "interval" : hasTimes ? "times" : "none",
+      schedule_times: scheduleTimes,
+      timezone: ad.timezone || "America/Phoenix",
+      interval_minutes: ad.interval_minutes || 30,
+      window_start: ad.window_start || "08:00",
+      window_end: ad.window_end || "18:00",
     });
     setAudioFile(null);
     setAudioDuration(null);
@@ -229,16 +291,30 @@ export default function AnnouncementsPage() {
 
   function toggleRoom(roomId) {
     const id = parseInt(roomId);
-    setForm(f => ({
-      ...f,
-      rooms: f.rooms.includes(id)
+    setForm(f => {
+      const newRooms = f.rooms.includes(id)
         ? f.rooms.filter(r => r !== id)
-        : [...f.rooms, id],
-    }));
+        : [...f.rooms, id];
+      // Auto-set timezone from first selected room
+      let tz = f.timezone;
+      if (newRooms.length > 0 && !f.rooms.includes(id)) {
+        const roomName = ROOM_NAMES[id];
+        if (roomName && ROOM_TIMEZONE[roomName]) tz = ROOM_TIMEZONE[roomName];
+      }
+      return { ...f, rooms: newRooms, timezone: tz };
+    });
   }
 
   async function handleSave() {
     setSaving(true);
+    const schedPayload = {
+      schedule_type: form.schedule_type === "none" ? "times" : form.schedule_type,
+      schedule_times: form.schedule_type === "times" ? form.schedule_times : [],
+      timezone: form.timezone,
+      interval_minutes: form.schedule_type === "interval" ? form.interval_minutes : 0,
+      window_start: form.schedule_type === "interval" ? form.window_start : null,
+      window_end: form.schedule_type === "interval" ? form.window_end : null,
+    };
     try {
       if (editing) {
         if (audioFile) {
@@ -247,6 +323,12 @@ export default function AnnouncementsPage() {
           fd.append("label", form.label);
           fd.append("rooms", JSON.stringify(form.rooms));
           fd.append("enabled", form.enabled ? "1" : "0");
+          fd.append("schedule_times", JSON.stringify(schedPayload.schedule_times));
+          fd.append("timezone", schedPayload.timezone);
+          fd.append("schedule_type", schedPayload.schedule_type);
+          fd.append("interval_minutes", String(schedPayload.interval_minutes));
+          fd.append("window_start", schedPayload.window_start || "");
+          fd.append("window_end", schedPayload.window_end || "");
           await apiFetch(`/api/v1/admin/audio-ads/${editing.id}/replace`, { method: "POST", body: fd });
         } else {
           await apiFetch(`/api/v1/admin/audio-ads/${editing.id}`, {
@@ -256,6 +338,7 @@ export default function AnnouncementsPage() {
               label: form.label,
               rooms: form.rooms,
               enabled: form.enabled ? 1 : 0,
+              ...schedPayload,
             }),
           });
         }
@@ -264,6 +347,12 @@ export default function AnnouncementsPage() {
         if (audioFile) fd.append("audio", audioFile);
         fd.append("label", form.label);
         fd.append("rooms", JSON.stringify(form.rooms));
+        fd.append("schedule_times", JSON.stringify(schedPayload.schedule_times));
+        fd.append("timezone", schedPayload.timezone);
+        fd.append("schedule_type", schedPayload.schedule_type);
+        fd.append("interval_minutes", String(schedPayload.interval_minutes));
+        fd.append("window_start", schedPayload.window_start || "");
+        fd.append("window_end", schedPayload.window_end || "");
         await apiFetch("/api/v1/admin/audio-ads", { method: "POST", body: fd });
       }
       setFormOpen(false);
@@ -294,6 +383,7 @@ export default function AnnouncementsPage() {
       const json = await res.json();
       setPlayResults(r => ({ ...r, [id]: json.data || [] }));
       pollActive();
+      startPolling();
     } catch (e) {
       console.error("Play failed:", e);
     } finally {
@@ -394,6 +484,8 @@ export default function AnnouncementsPage() {
         <div className="space-y-3">
           {ads.map((ad) => {
             const adRooms = parseRooms(ad.rooms);
+            let adSchedule = [];
+            try { adSchedule = JSON.parse(ad.schedule_times || '[]'); } catch {}
             const adActive = isAdActive(ad);
             const playResult = playResults[ad.id];
             const isPlaying = playingId === ad.id;
@@ -429,6 +521,18 @@ export default function AnnouncementsPage() {
                           {adRooms.length === 0 && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">All Rooms</Badge>
                           )}
+                          {ad.schedule_type === 'interval' && ad.interval_minutes > 0 ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 font-mono">
+                              <ClockIcon className="size-2.5 mr-0.5" />
+                              Every {ad.interval_minutes}min
+                              {ad.window_start && ad.window_end && ` (${ad.window_start}–${ad.window_end})`}
+                            </Badge>
+                          ) : adSchedule.length > 0 ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 font-mono">
+                              <ClockIcon className="size-2.5 mr-0.5" />
+                              {adSchedule.join(", ")}
+                            </Badge>
+                          ) : null}
                           {adActive && (
                             <Badge className="text-[10px] px-1.5 py-0 shrink-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
                               Playing
@@ -690,7 +794,7 @@ export default function AnnouncementsPage() {
               <Label>Audio File{editing && " (upload to replace)"}</Label>
               <label className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40 cursor-pointer hover:bg-muted/50 transition-colors">
                 <FileAudioIcon className="size-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground truncate">
+                <span className="text-sm text-muted-foreground break-all">
                   {audioFile ? audioFile.name : editing?.original_filename || "Choose audio file..."}
                 </span>
                 {audioDuration != null ? (
@@ -740,6 +844,151 @@ export default function AnnouncementsPage() {
                 <p className="text-[11px] text-muted-foreground/60">No rooms selected — announcement will play in all rooms</p>
               )}
             </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <ClockIcon className="size-3.5" />
+                Schedule
+              </Label>
+              <div className="flex gap-1 rounded-lg bg-muted/30 border border-border/40 p-1">
+                {[
+                  { value: "none", label: "Manual" },
+                  { value: "times", label: "Specific Times" },
+                  { value: "interval", label: "Interval" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`flex-1 text-xs py-1.5 px-2 rounded-md transition-colors ${
+                      form.schedule_type === opt.value
+                        ? "bg-background text-foreground shadow-sm border border-border/40"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setForm(f => ({ ...f, schedule_type: opt.value }))}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {form.schedule_type === "times" && (
+              <div className="rounded-lg bg-muted/30 border border-border/40 p-3 space-y-2">
+                {form.schedule_times.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {form.schedule_times.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono"
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          className="hover:text-red-400 transition-colors"
+                          onClick={() => setForm(f => ({ ...f, schedule_times: f.schedule_times.filter(x => x !== t) }))}
+                        >
+                          <XIcon className="size-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    className="w-32 h-8 text-sm font-mono"
+                    id="schedule-time-input"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = e.target.value;
+                        if (val && !form.schedule_times.includes(val)) {
+                          setForm(f => ({ ...f, schedule_times: [...f.schedule_times, val].sort() }));
+                          e.target.value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      const input = document.getElementById('schedule-time-input');
+                      const val = input?.value;
+                      if (val && !form.schedule_times.includes(val)) {
+                        setForm(f => ({ ...f, schedule_times: [...f.schedule_times, val].sort() }));
+                        input.value = '';
+                      }
+                    }}
+                  >
+                    <PlusCircleIcon className="size-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {form.schedule_times.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground/60">Add times when this announcement should play</p>
+                )}
+              </div>
+            )}
+
+            {form.schedule_type === "interval" && (
+              <div className="rounded-lg bg-muted/30 border border-border/40 p-3 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Play every</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="5"
+                      max="480"
+                      className="w-20 h-8 text-sm font-mono"
+                      value={form.interval_minutes}
+                      onChange={(e) => setForm(f => ({ ...f, interval_minutes: parseInt(e.target.value) || 30 }))}
+                    />
+                    <span className="text-sm text-muted-foreground">minutes</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Active window</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      className="w-28 h-8 text-sm font-mono"
+                      value={form.window_start}
+                      onChange={(e) => setForm(f => ({ ...f, window_start: e.target.value }))}
+                    />
+                    <span className="text-xs text-muted-foreground">to</span>
+                    <Input
+                      type="time"
+                      className="w-28 h-8 text-sm font-mono"
+                      value={form.window_end}
+                      onChange={(e) => setForm(f => ({ ...f, window_end: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {form.schedule_type !== "none" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Timezone</Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    Local time: {getLocalTimeStr(form.timezone)}
+                  </span>
+                </div>
+                <select
+                  className="w-full h-9 px-3 rounded-md bg-muted/30 border border-border/40 text-sm"
+                  value={form.timezone}
+                  onChange={(e) => setForm(f => ({ ...f, timezone: e.target.value }))}
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-muted/30 border border-border/40">
               <Label className="text-sm">Enabled</Label>

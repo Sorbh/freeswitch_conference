@@ -686,9 +686,9 @@ function buildNetworkScene(container, { reducedMotion, onReply }) {
   let partIdx = 0;
   const pending = [];
 
-  function startSellCall(now, callerOverride) {
+  function startSellCall(now, callerOverride, partOverride, skipResponses) {
     const caller = callerOverride || pick(cityVecs);
-    const part = PARTS[partIdx % PARTS.length];
+    const part = partOverride || PARTS[partIdx % PARTS.length];
     partIdx++;
 
     lookTarget.set(caller.vec.x * 0.62, 9, caller.vec.z * 0.5 - 4);
@@ -697,7 +697,7 @@ function buildNetworkScene(container, { reducedMotion, onReply }) {
     flare[caller.idx] = 1;
     hotSel[caller.idx] = 0;
     ringPool.fire(caller.vec, now, RED, 1);
-    floatPool.spawn(makeBroadcastCard(caller.city.name, part), caller.vec, 7.4, now, 6.0);
+    floatPool.spawn(makeBroadcastCard(caller.city.name, part), caller.vec, 7.4, now, skipResponses ? 12.0 : 6.0);
 
     const neighbors = cityVecs
       .filter((n) => {
@@ -717,6 +717,8 @@ function buildNetworkScene(container, { reducedMotion, onReply }) {
         },
       });
     });
+
+    if (skipResponses) return;
 
     const responders = neighbors.slice(0, 2 + Math.floor(Math.random() * 2));
     responders.forEach((n, k) => {
@@ -770,6 +772,7 @@ function buildNetworkScene(container, { reducedMotion, onReply }) {
   let mouseY = 0;
   let raf = 0;
   let running = true;
+  let autoPaused = false;
 
   function onMouse(e) {
     mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -784,7 +787,7 @@ function buildNetworkScene(container, { reducedMotion, onReply }) {
     pointsMat.uniforms.uTime.value = t;
 
     if (!reducedMotion) {
-      if (t > nextCall) {
+      if (!autoPaused && t > nextCall) {
         startSellCall(t);
         nextCall = t + 7.5;
       }
@@ -846,25 +849,59 @@ function buildNetworkScene(container, { reducedMotion, onReply }) {
   );
   io.observe(container);
 
-  return () => {
-    cancelAnimationFrame(raf);
-    io.disconnect();
-    ro.disconnect();
-    window.removeEventListener("pointermove", onMouse);
-    container.removeEventListener("pointerdown", onClick);
-    geo.dispose();
-    pointsMat.dispose();
-    border.geometry.dispose();
-    border.material.dispose();
-    ringPool.dispose();
-    arcPool.dispose();
-    floatPool.dispose();
-    stateSprites.forEach((s) => {
-      s.material.map.dispose();
-      s.material.dispose();
-    });
-    renderer.dispose();
-    container.removeChild(renderer.domElement);
+  return {
+    dispose() {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      ro.disconnect();
+      window.removeEventListener("pointermove", onMouse);
+      container.removeEventListener("pointerdown", onClick);
+      geo.dispose();
+      pointsMat.dispose();
+      border.geometry.dispose();
+      border.material.dispose();
+      ringPool.dispose();
+      arcPool.dispose();
+      floatPool.dispose();
+      stateSprites.forEach((s) => {
+        s.material.map.dispose();
+        s.material.dispose();
+      });
+      renderer.dispose();
+      container.removeChild(renderer.domElement);
+    },
+    fireSellCall() {
+      const t = clock.getElapsedTime();
+      startSellCall(t);
+      nextCall = t + 12;
+    },
+    fireSellCallWithData(cityName, partData) {
+      const t = clock.getElapsedTime();
+      const match = cityVecs.find((c) => c.city.name === cityName);
+      startSellCall(t, match || null, partData || null, true);
+      nextCall = t + 20;
+    },
+    fireResponse(callerCityName, responderCityName, yardName, reply) {
+      const t = clock.getElapsedTime();
+      const caller = cityVecs.find((c) => c.city.name === callerCityName);
+      const responder = cityVecs.find((c) => c.city.name === responderCityName);
+      if (!caller || !responder) return;
+      flare[responder.idx] = 1;
+      hotSel[responder.idx] = 1;
+      ringPool.fire(responder.vec, t, GREEN, 0.45);
+      arcPool.fire(responder.vec.clone(), caller.vec.clone(), t, GREEN, 2.2);
+      floatPool.spawn(
+        makeReplyChip(yardName, reply, pick(PRICES)),
+        responder.vec, 4.6, t, 3.6
+      );
+      onReply?.(pick(PRICES));
+    },
+    pauseAuto() { autoPaused = true; },
+    resumeAuto() {
+      autoPaused = false;
+      nextCall = clock.getElapsedTime() + 4;
+    },
+    get _autoPaused() { return autoPaused; },
   };
 }
 
@@ -1323,6 +1360,58 @@ function Stat({ to, suffix = "", label }) {
   );
 }
 
+const HERO_CLIPS = [
+  {
+    file: "./broadcasts/clip1.mp3",
+    part: "2018 Honda Civic — Wreck Opinion",
+    yard: "Fast Auto Parts",
+    city: "Phoenix",
+    partData: ["2018", "Honda", "Civic", "Wreck opinion"],
+    responses: [
+      { at: 7.3, city: "Tucson", yard: "A&G Auto Wrecking", reply: "Got it" },
+      { at: 8.5, city: "Yuma", yard: "J&A Auto Parts", reply: "J&A got it" },
+      { at: 10.0, city: "Prescott", yard: "ODR Auto Wrecking", reply: "Got two" },
+      { at: 11.5, city: "Flagstaff", yard: "Fast Auto Parts", reply: "In stock" },
+    ],
+  },
+  {
+    file: "./broadcasts/clip2.mp3",
+    part: "2020 Camry — Trunk & Taillights",
+    yard: "Reeves Auto Wrecking",
+    city: "Tucson",
+    partData: ["2020", "Toyota", "Camry", "Trunk & taillights"],
+    responses: [
+      { at: 5.2, city: "Phoenix", yard: "Reeves", reply: "Checking" },
+      { at: 8.5, city: "Prescott", yard: "Phoenix Salvage", reply: "Got it" },
+      { at: 12.5, city: "Yuma", yard: "Chapin Auto", reply: "Thank you" },
+    ],
+  },
+  {
+    file: "./broadcasts/clip3.mp3",
+    part: "2021 Chevy Tahoe — Wreck Opinion",
+    yard: "Carrillo Auto Parts",
+    city: "Flagstaff",
+    partData: ["2021", "Chevrolet", "Tahoe", "Wreck opinion"],
+    responses: [
+      { at: 3.8, city: "Phoenix", yard: "J&A Auto Parts", reply: "J&A got it" },
+      { at: 5.5, city: "Tucson", yard: "Parts Plus", reply: "Ready to go" },
+      { at: 7.0, city: "Prescott", yard: "Jordan Auto", reply: "Got it" },
+    ],
+  },
+  {
+    file: "./broadcasts/clip4.mp3",
+    part: "2018 Honda Civic — Rack & Pinion",
+    yard: "Jordan Auto Wrecking",
+    city: "Prescott",
+    partData: ["2018", "Honda", "Civic", "Rack & pinion"],
+    responses: [
+      { at: 9.5, city: "Phoenix", yard: "Jordan Auto", reply: "Got one" },
+      { at: 11.5, city: "Tucson", yard: "A&G Auto", reply: "Got a 15" },
+      { at: 14.0, city: "Flagstaff", yard: "Fast Auto Parts", reply: "In stock" },
+    ],
+  },
+];
+
 export default function Landing2Page() {
   const heroRef = useRef(null);
   const demoRef = useRef(null);
@@ -1340,15 +1429,87 @@ export default function Landing2Page() {
   const [demoBusy, setDemoBusy] = useState(false);
   const [score, setScore] = useState({ deals: 0, revenue: 0 });
 
+  /* hero audio — real broadcasts synced with map animation */
+  const heroSceneApi = useRef(null);
+  const heroAudioRef = useRef(null);
+  const heroClipIdx = useRef(0);
+  const heroTimers = useRef([]);
+  const [heroAudioState, setHeroAudioState] = useState("idle");
+  const [heroClipInfo, setHeroClipInfo] = useState(null);
+
+  const clearHeroTimers = () => {
+    heroTimers.current.forEach(clearTimeout);
+    heroTimers.current = [];
+  };
+
+  const playHeroBroadcast = () => {
+    const audio = heroAudioRef.current;
+    const api = heroSceneApi.current;
+    if (!audio) return;
+
+    if (heroAudioState === "playing") {
+      audio.pause();
+      clearHeroTimers();
+      setHeroAudioState("idle");
+      setHeroClipInfo(null);
+      api?.resumeAuto();
+      return;
+    }
+
+    const idx = heroClipIdx.current % HERO_CLIPS.length;
+    const clip = HERO_CLIPS[idx];
+    heroClipIdx.current = idx + 1;
+
+    audio.src = clip.file;
+    setHeroAudioState("playing");
+    setHeroClipInfo(clip);
+    api?.pauseAuto();
+    clearHeroTimers();
+
+    const onCanPlay = () => {
+      audio.removeEventListener("canplaythrough", onCanPlay);
+      audio.play();
+      api?.fireSellCallWithData(clip.city, clip.partData);
+      if (clip.responses) {
+        clip.responses.forEach((r) => {
+          const timer = setTimeout(() => {
+            api?.fireResponse(clip.city, r.city, r.yard, r.reply);
+          }, r.at * 1000);
+          heroTimers.current.push(timer);
+        });
+      }
+    };
+    audio.addEventListener("canplaythrough", onCanPlay);
+  }
+
+  useEffect(() => {
+    const audio = heroAudioRef.current;
+    if (!audio) return;
+    const onEnd = () => {
+      const api = heroSceneApi.current;
+      clearHeroTimers();
+      setHeroAudioState("idle");
+      setHeroClipInfo(null);
+      api?.resumeAuto();
+    };
+    audio.addEventListener("ended", onEnd);
+    return () => audio.removeEventListener("ended", onEnd);
+  }, []);
+
   /* hero scene */
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!heroRef.current) return;
-    return buildNetworkScene(heroRef.current, {
+    const api = buildNetworkScene(heroRef.current, {
       reducedMotion,
       onReply: (price) =>
         setHeroFeed((f) => ({ deals: f.deals + 1, revenue: f.revenue + price })),
     });
+    heroSceneApi.current = api;
+    return () => {
+      heroSceneApi.current = null;
+      api.dispose();
+    };
   }, []);
 
   /* playable demo scene */
@@ -1492,13 +1653,13 @@ export default function Landing2Page() {
         <div className="l2-hero-copy">
           <p className="l2-eyebrow">The parts-locating voice network for auto recyclers</p>
           <h1>
-            The part you don&rsquo;t have is sitting in{" "}
-            <em>somebody&rsquo;s yard.</em>
+            Every &ldquo;we don&rsquo;t have it&rdquo; is a customer walking
+            out. <em>It doesn&rsquo;t have to be.</em>
           </h1>
           <p className="l2-sub">
-            Hotline HQ is the always-on hotline connecting 500+ salvage yards by
-            voice. Broadcast a part request once — a yard that has it answers in
-            seconds, and the sale you were about to lose stays yours.
+            The part you don&rsquo;t have is sitting in somebody&rsquo;s yard.
+            Hotline HQ is the always-on voice network connecting 500+ salvage
+            yards — broadcast once, get an answer in seconds, and keep the sale.
           </p>
           <div className="l2-hero-ctas">
             <a className="l2-btn l2-btn-hot" href="#join">
@@ -1508,6 +1669,38 @@ export default function Landing2Page() {
               Try a sell call
             </a>
           </div>
+
+          <audio ref={heroAudioRef} preload="none" />
+          <button
+            type="button"
+            className={`l2-listen-btn ${heroAudioState === "playing" ? "on" : ""}`}
+            onClick={playHeroBroadcast}
+          >
+            <span className="l2-listen-icon">
+              {heroAudioState === "playing" ? (
+                <span className="l2-listen-eq"><span /><span /><span /><span /><span /></span>
+              ) : (
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+              )}
+            </span>
+            <span className="l2-listen-text">
+              {heroAudioState === "playing" ? (
+                <>
+                  <strong>Now playing</strong>
+                  <span>{heroClipInfo?.part}</span>
+                </>
+              ) : (
+                <>
+                  <strong>Listen to a real sell call</strong>
+                  <span>Hear a live broadcast from the network</span>
+                </>
+              )}
+            </span>
+          </button>
         </div>
 
         <div className="l2-stats">
@@ -1603,6 +1796,54 @@ export default function Landing2Page() {
               {c.hot && <span className="l2-compare-badge">This is Hotline HQ</span>}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ───────────────── mid-page CTA ───────────────── */}
+      <section className="l2-mid-cta-band" id="get-started">
+        <div className="l2-mid-cta-inner l2-reveal">
+          <h2>Ready to stop losing sales?</h2>
+          <p>Get on the line — reach out right now and we&rsquo;ll get you set up.</p>
+          <div className="l2-contact-btns">
+            <a
+              className="l2-contact-btn wa-btn"
+              href="https://wa.me/14246260202?text=Hi%2C%20I%27m%20interested%20in%20Hotline%20HQ%20for%20my%20yard"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="l2-contact-icon wa">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.05 4.91A9.82 9.82 0 0012.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 004.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.23 8.23 0 01-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 01-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.16 0-.43.06-.66.31-.23.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.55.12.16 1.74 2.66 4.21 3.73.59.25 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28z" />
+                </svg>
+              </span>
+              <span className="l2-contact-text">
+                <strong>WhatsApp on this</strong>
+                <span>(424) 626-0202</span>
+              </span>
+              <span className="l2-contact-arrow">
+                <svg width="16" height="12" viewBox="0 0 18 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M1 7h15M11 1l5 6-5 6" /></svg>
+              </span>
+            </a>
+            <a
+              className="l2-contact-btn sms-btn"
+              href="sms:+18335645350?body=Hi%2C%20I%27m%20interested%20in%20Hotline%20HQ%20for%20my%20yard"
+            >
+              <span className="l2-contact-icon sms">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  <path d="M8 10h.01M12 10h.01M16 10h.01" />
+                </svg>
+              </span>
+              <span className="l2-contact-text">
+                <strong>Text it to</strong>
+                <span>(833) 564-5350</span>
+              </span>
+              <span className="l2-contact-arrow">
+                <svg width="16" height="12" viewBox="0 0 18 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M1 7h15M11 1l5 6-5 6" /></svg>
+              </span>
+            </a>
+          </div>
+          <p className="l2-contact-fine">A human answers. No bots, no drip emails.</p>
         </div>
       </section>
 
@@ -1752,30 +1993,6 @@ export default function Landing2Page() {
         </div>
       </section>
 
-      {/* ───────────────── own the hotline ───────────────── */}
-      <section className="l2-section l2-band" id="own">
-        <div className="l2-own l2-reveal">
-          <div>
-            <p className="l2-kicker">Run your own</p>
-            <h2>Want to own the hotline for your industry?</h2>
-            <p className="l2-lede">
-              The auto parts network you see here is one Hotline HQ deployment.
-              The same always-on voice hotline works for any trade where
-              businesses help each other find what a customer needs — truck
-              parts, heavy equipment, building materials, wholesale dealers.
-            </p>
-            <ul className="l2-own-list">
-              <li>You bring the industry community — we run the lines, rooms, recordings, and equipment</li>
-              <li>Your members pay a flat monthly fee; you own the network and the recurring revenue</li>
-              <li>Live in weeks, with the same 24/7 monitoring behind the 500-yard parts network</li>
-            </ul>
-            <a className="l2-btn l2-btn-hot" href="/own-a-hotline">
-              Learn how owning a hotline works
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* ───────────────── join ───────────────── */}
       <section className="l2-join" id="join">
         <div className="l2-join-bg" ref={waveRef} aria-hidden="true" />
@@ -1826,6 +2043,11 @@ export default function Landing2Page() {
 
       {/* ───────────────── footer ───────────────── */}
       <SiteFooter />
+
+      {/* sticky mobile CTA */}
+      <a className="l2-sticky-cta" href="#get-started">
+        Get a line
+      </a>
     </div>
   );
 }
@@ -1943,7 +2165,7 @@ const CSS = `
   font-style: normal; color: var(--red);
   background: linear-gradient(transparent 68%, var(--red-soft) 68%);
 }
-.l2-sub { max-width: 600px; margin: 24px auto 34px; color: var(--muted); font-size: 17.5px; line-height: 1.65; }
+.l2-sub { max-width: 600px; margin: 24px auto 34px; color: var(--ink); font-size: 18.5px; font-weight: 600; line-height: 1.65; }
 .l2-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .l2-btn {
   font-family: var(--body); font-weight: 600; font-size: 15.5px;
@@ -1982,6 +2204,62 @@ const CSS = `
   animation: l2pulse 1.6s infinite;
 }
 @keyframes l2pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* hero listen button */
+.l2-listen-btn {
+  display: inline-flex; align-items: center; gap: 14px;
+  margin-top: 28px;
+  padding: 12px 24px 12px 16px;
+  background: rgba(22,24,29,0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px; cursor: pointer;
+  pointer-events: auto;
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.l2-listen-btn:hover { background: rgba(22,24,29,0.95); border-color: rgba(217,45,32,0.5); transform: translateY(-2px); }
+.l2-listen-btn:active { transform: translateY(0); }
+.l2-listen-btn.on { border-color: var(--red); background: rgba(217,45,32,0.15); }
+.l2-listen-icon {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--red);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0;
+  box-shadow: 0 0 0 4px rgba(217,45,32,0.2);
+  position: relative;
+}
+.l2-listen-btn:not(.on) .l2-listen-icon::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid rgba(217,45,32,0.6);
+  animation: l2-pill-ring 2.4s cubic-bezier(.2,.6,.25,1) infinite;
+}
+.l2-listen-text {
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+}
+.l2-listen-text strong { font-family: var(--body); font-size: 15px; font-weight: 700; color: #fff; }
+.l2-listen-text span {
+  font-family: var(--mono); font-size: 11.5px; color: rgba(255,255,255,0.55);
+  letter-spacing: 0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+}
+
+/* EQ bars inside listen button */
+.l2-listen-eq {
+  display: flex; align-items: flex-end; gap: 2.5px; height: 20px;
+}
+.l2-listen-eq span {
+  width: 3px; border-radius: 1.5px; background: #fff;
+  animation: l2eq 0.8s ease-in-out infinite alternate;
+}
+.l2-listen-eq span:nth-child(1) { height: 6px; animation-delay: 0s; }
+.l2-listen-eq span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+.l2-listen-eq span:nth-child(3) { height: 20px; animation-delay: 0.3s; }
+.l2-listen-eq span:nth-child(4) { height: 10px; animation-delay: 0.45s; }
+.l2-listen-eq span:nth-child(5) { height: 16px; animation-delay: 0.6s; }
+@keyframes l2eq {
+  0% { height: 4px; }
+  100% { height: 20px; }
+}
 
 /* stats */
 .l2-stats {
@@ -2265,6 +2543,109 @@ const CSS = `
   0% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg); }
   100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)); }
 }
+
+/* mid-page CTA band */
+.l2-mid-cta-band {
+  background: var(--red);
+  padding: 80px 32px;
+  text-align: center;
+}
+.l2-mid-cta-inner {
+  max-width: 820px; margin: 0 auto;
+}
+.l2-mid-cta-band h2 {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(30px, 4vw, 48px); color: #fff;
+  line-height: 1.08; margin: 0 0 14px;
+}
+.l2-mid-cta-band > .l2-reveal > p { color: rgba(255,255,255,0.82); font-size: 17px; line-height: 1.6; margin: 0 0 36px; }
+.l2-contact-btns {
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+}
+.l2-contact-btn {
+  display: inline-grid; grid-template-columns: 52px 1fr 20px;
+  align-items: center; gap: 14px;
+  padding: 14px 22px 14px 12px;
+  background: #fff; border-radius: 999px;
+  color: #0d0f14; text-decoration: none;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.85) inset,
+    0 14px 28px -10px rgba(0,0,0,0.38),
+    0 4px 10px rgba(0,0,0,0.16);
+  transition: transform .18s ease, box-shadow .22s ease, color .15s ease;
+}
+.l2-contact-btn:hover {
+  transform: translateY(-3px); color: #0d0f14;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.85) inset,
+    0 22px 42px -10px rgba(0,0,0,0.48),
+    0 6px 14px rgba(0,0,0,0.2);
+}
+.l2-contact-btn:active { transform: translateY(-1px); }
+.l2-contact-icon {
+  position: relative; width: 52px; height: 52px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; color: #fff; flex-shrink: 0; z-index: 1;
+}
+.l2-contact-icon svg { position: relative; z-index: 1; }
+.l2-contact-icon::before, .l2-contact-icon::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid; opacity: 0; pointer-events: none;
+  animation: l2-pill-ring 2.4s cubic-bezier(.2,.6,.25,1) infinite; z-index: 0;
+}
+.l2-contact-icon::after { animation-delay: 1.2s; }
+.l2-contact-icon.wa {
+  background: linear-gradient(180deg, #2bd86a 0%, #1fa753 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 14px rgba(31,167,83,0.4);
+}
+.l2-contact-icon.wa::before, .l2-contact-icon.wa::after { border-color: rgba(31,167,83,0.65); }
+.l2-contact-icon.sms {
+  background: linear-gradient(180deg, #da1a36 0%, #b5142c 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 14px rgba(218,26,54,0.4);
+}
+.l2-contact-icon.sms::before, .l2-contact-icon.sms::after { border-color: rgba(218,26,54,0.65); }
+@keyframes l2-pill-ring {
+  0% { transform: scale(1); opacity: 0.65; }
+  70% { opacity: 0.12; }
+  100% { transform: scale(1.85); opacity: 0; }
+}
+.l2-contact-text {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.l2-contact-text strong {
+  font-family: var(--body); font-size: 19px; font-weight: 700;
+  letter-spacing: -0.012em; color: #0d0f14; line-height: 1.15;
+}
+.l2-contact-text span {
+  font-size: 16px; font-weight: 600; color: #6b7180;
+  font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap;
+}
+.l2-contact-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #80869a; transition: transform .2s ease, color .2s ease;
+}
+.l2-contact-btn:hover .l2-contact-arrow { transform: translateX(3px); }
+.l2-contact-btn.wa-btn:hover .l2-contact-arrow { color: #1fa753; }
+.l2-contact-btn.sms-btn:hover .l2-contact-arrow { color: #da1a36; }
+.l2-contact-fine {
+  margin: 28px 0 0; font-size: 13px; color: rgba(255,255,255,0.6);
+  font-family: var(--mono); letter-spacing: 0.04em;
+}
+@media (max-width: 480px) { .l2-contact-btn { width: 100%; } }
+
+/* sticky mobile CTA */
+.l2-sticky-cta {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 55;
+  background: var(--red); color: #fff;
+  font-family: var(--body); font-weight: 700; font-size: 16px; letter-spacing: 0.02em;
+  text-transform: uppercase; text-align: center;
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -4px 20px rgba(217,45,32,0.35);
+  transition: background .2s;
+}
+.l2-sticky-cta:hover { background: var(--red-deep); }
+@media (max-width: 860px) { .l2-sticky-cta { display: block; } }
 
 /* reveal */
 .l2-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }

@@ -202,43 +202,30 @@ function SpeakerTimeline({ events, roomCodes = {} }) {
 }
 
 const TIMEZONES = [
-  { value: "GMT-12:00", label: "GMT -12:00" },
-  { value: "GMT-11:00", label: "GMT -11:00" },
-  { value: "GMT-10:00", label: "GMT -10:00 (Hawaii)" },
-  { value: "GMT-09:00", label: "GMT -9:00 (Alaska)" },
-  { value: "GMT-08:00", label: "GMT -8:00 (Pacific)" },
-  { value: "GMT-07:00", label: "GMT -7:00 (Mountain / Arizona)" },
-  { value: "GMT-06:00", label: "GMT -6:00 (Central / Mexico)" },
-  { value: "GMT-05:00", label: "GMT -5:00 (Eastern)" },
-  { value: "GMT-04:00", label: "GMT -4:00 (Atlantic)" },
-  { value: "GMT-03:00", label: "GMT -3:00 (Brazil)" },
-  { value: "GMT-02:00", label: "GMT -2:00" },
-  { value: "GMT-01:00", label: "GMT -1:00" },
-  { value: "GMT+00:00", label: "GMT +0:00 (Ghana / UK)" },
-  { value: "GMT+01:00", label: "GMT +1:00 (Spain / France)" },
-  { value: "GMT+02:00", label: "GMT +2:00 (Egypt / South Africa)" },
-  { value: "GMT+03:00", label: "GMT +3:00 (Saudi Arabia)" },
-  { value: "GMT+03:30", label: "GMT +3:30 (Iran)" },
-  { value: "GMT+04:00", label: "GMT +4:00 (Dubai)" },
-  { value: "GMT+05:00", label: "GMT +5:00 (Pakistan)" },
-  { value: "GMT+05:30", label: "GMT +5:30 (India)" },
-  { value: "GMT+06:00", label: "GMT +6:00 (Bangladesh)" },
-  { value: "GMT+07:00", label: "GMT +7:00 (Thailand)" },
-  { value: "GMT+08:00", label: "GMT +8:00 (China / Singapore)" },
-  { value: "GMT+09:00", label: "GMT +9:00 (Japan / Korea)" },
-  { value: "GMT+10:00", label: "GMT +10:00 (Australia East)" },
-  { value: "GMT+11:00", label: "GMT +11:00" },
-  { value: "GMT+12:00", label: "GMT +12:00 (New Zealand)" },
+  { value: "America/Phoenix", label: "Arizona (MST)" },
+  { value: "America/Los_Angeles", label: "Pacific (PST/PDT)" },
+  { value: "America/Denver", label: "Mountain (MST/MDT)" },
+  { value: "America/Chicago", label: "Central (CST/CDT)" },
+  { value: "America/New_York", label: "Eastern (EST/EDT)" },
+  { value: "America/Mexico_City", label: "Mexico City (CST)" },
+  { value: "Europe/Madrid", label: "Spain (CET/CEST)" },
+  { value: "Africa/Accra", label: "Ghana (GMT)" },
+  { value: "Africa/Cairo", label: "Egypt (EET)" },
+  { value: "Asia/Kolkata", label: "India (IST)" },
+  { value: "Asia/Dubai", label: "Dubai (GST)" },
+  { value: "Pacific/Honolulu", label: "Hawaii (HST)" },
+  { value: "America/Anchorage", label: "Alaska (AKST/AKDT)" },
 ];
 
-function getLocalTime(gmtOffset) {
-  if (!gmtOffset) return "—";
-  const match = gmtOffset.match(/^GMT([+-])(\d{2}):(\d{2})$/);
-  if (!match) return "—";
-  const sign = match[1] === "+" ? 1 : -1;
-  const offsetMs = sign * (parseInt(match[2]) * 60 + parseInt(match[3])) * 60000;
-  const local = new Date(Date.now() + offsetMs + new Date().getTimezoneOffset() * 60000);
-  return local.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+function getLocalTime(tz) {
+  if (!tz) return "—";
+  try {
+    return new Date().toLocaleTimeString("en-US", {
+      timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true,
+    });
+  } catch {
+    return "—";
+  }
 }
 
 const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "", timezone: "America/Chicago", auto_transcribe: false };

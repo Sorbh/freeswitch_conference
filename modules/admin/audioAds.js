@@ -37,10 +37,11 @@ router.post("/audio-ads", adUpload.single('audio'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ status: false, error: "Audio file is required" });
 
-        const { label, rooms } = req.body;
+        const { label, rooms, schedule_times, timezone, schedule_type, interval_minutes, window_start, window_end } = req.body;
         if (!label) return res.status(400).json({ status: false, error: "Label is required" });
 
         const parsedRooms = rooms ? JSON.parse(rooms) : [];
+        const parsedSchedule = schedule_times ? JSON.parse(schedule_times) : [];
         const originalName = req.file.originalname;
         const wavPath = path.join(announcementsDir, `${Date.now()}_${originalName.replace(/[^a-zA-Z0-9._-]/g, '_')}.wav`);
 
@@ -60,7 +61,7 @@ router.post("/audio-ads", adUpload.single('audio'), async (req, res) => {
             durationMs = Math.round(parseFloat(probe.trim()) * 1000);
         } catch {}
 
-        const ad = global.db.createAudioAd({ label, audio_path: wavPath, original_filename: originalName, rooms: parsedRooms, duration_ms: durationMs });
+        const ad = global.db.createAudioAd({ label, audio_path: wavPath, original_filename: originalName, rooms: parsedRooms, duration_ms: durationMs, schedule_times: parsedSchedule, timezone: timezone || 'America/Phoenix', schedule_type: schedule_type || 'times', interval_minutes: parseInt(interval_minutes) || 0, window_start: window_start || null, window_end: window_end || null });
         res.status(201).json({ status: true, data: ad });
     } catch (err) {
         if (req.file?.path) try { fs.unlinkSync(req.file.path); } catch {}
@@ -86,7 +87,7 @@ router.post("/audio-ads/:id/replace", adUpload.single('audio'), async (req, res)
         if (!ad) return res.status(404).json({ status: false, error: "Ad not found" });
         if (!req.file) return res.status(400).json({ status: false, error: "Audio file is required" });
 
-        const { label, rooms, enabled } = req.body;
+        const { label, rooms, enabled, schedule_times, timezone, schedule_type, interval_minutes, window_start, window_end } = req.body;
         const originalName = req.file.originalname;
         const wavPath = path.join(announcementsDir, `${Date.now()}_${originalName.replace(/[^a-zA-Z0-9._-]/g, '_')}.wav`);
 
@@ -110,6 +111,12 @@ router.post("/audio-ads/:id/replace", adUpload.single('audio'), async (req, res)
         if (label) updates.label = label;
         if (rooms) updates.rooms = JSON.parse(rooms);
         if (enabled !== undefined) updates.enabled = parseInt(enabled);
+        if (schedule_times) updates.schedule_times = JSON.parse(schedule_times);
+        if (timezone) updates.timezone = timezone;
+        if (schedule_type) updates.schedule_type = schedule_type;
+        if (interval_minutes !== undefined) updates.interval_minutes = parseInt(interval_minutes) || 0;
+        if (window_start !== undefined) updates.window_start = window_start || null;
+        if (window_end !== undefined) updates.window_end = window_end || null;
 
         const result = global.db.updateAudioAd(id, updates);
         res.json({ status: true, data: result });
