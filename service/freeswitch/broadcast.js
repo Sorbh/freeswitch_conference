@@ -18,48 +18,7 @@ import { isInDirectCall } from './directCall.js';
 
 const BROADCAST_MIN_DURATION_MS = 3000;
 const BROADCAST_RESPONSE_WINDOW_MS = 5000;
-const SILENCE_THRESHOLD_DB = -40;
 
-function _hasVoiceActivity(filePath) {
-    try {
-        // ffmpeg writes detection info to stderr and exits 0
-        const result = execFileSync('ffmpeg', [
-            '-i', filePath, '-af', `silencedetect=noise=${SILENCE_THRESHOLD_DB}dB:d=0.5`,
-            '-f', 'null', '-'
-        ], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 10000 });
-        return true;
-    } catch (e) {
-        const stderr = (e.stderr || '').toString();
-        // If the entire file is one silence region starting near 0, no voice activity
-        const starts = [...stderr.matchAll(/silence_start:\s*([\d.]+)/g)];
-        const ends = [...stderr.matchAll(/silence_end:\s*([\d.]+)/g)];
-        if (starts.length === 1 && ends.length === 0 && parseFloat(starts[0][1]) < 0.5) return false;
-        if (!starts.length) return true;
-        return true;
-    }
-}
-
-function _trimTrailingSilence(filePath) {
-    try {
-        const tmpPath = filePath.replace(/\.wav$/, '_trimmed.wav');
-        execFileSync('ffmpeg', [
-            '-y', '-i', filePath,
-            '-af', `areverse,silenceremove=start_periods=1:start_silence=0.3:start_threshold=${SILENCE_THRESHOLD_DB}dB,areverse`,
-            tmpPath
-        ], { stdio: 'ignore', timeout: 15000 });
-
-        const origSize = fs.statSync(filePath).size;
-        const trimmedSize = fs.statSync(tmpPath).size;
-        if (trimmedSize > 44 && trimmedSize < origSize) {
-            fs.renameSync(tmpPath, filePath);
-            logSystem('BCAST', `Trimmed trailing silence: ${Math.round(origSize/1024)}KB → ${Math.round(trimmedSize/1024)}KB`);
-        } else {
-            try { fs.unlinkSync(tmpPath); } catch {}
-        }
-    } catch (e) {
-        logSystem('BCAST', `WAV trim failed: ${e.message}`);
-    }
-}
 
 function _getFileDurationMs(filePath) {
     try {
@@ -246,14 +205,7 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
             roomSessions.delete(conferenceName);
             getConnection().api(`conference ${conferenceName} norecord ${session.recordingPath}`, () => {});
 
-            if (!_hasVoiceActivity(session.recordingPath)) {
-                logSystem('BCAST', `UNANSWERED by ${firstSpeaker.displayName} in ${roomName} (${durationMs}ms) — NO VOICE, discarding`);
-                try { fs.unlinkSync(session.recordingPath); } catch {}
-                return;
-            }
-
             _trimToduration(session.recordingPath, durationMs);
-            _trimTrailingSilence(session.recordingPath);
             const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
             logSystem('BCAST', `UNANSWERED by ${firstSpeaker.displayName} in ${roomName} (${actualDurationMs}ms) — sending notification`);
 
@@ -277,12 +229,6 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
 
     const firstSpeaker = session.allParticipants[0];
     const responders = session.allParticipants.slice(1).map(p => p.displayName).join(', ');
-
-    if (!_hasVoiceActivity(session.recordingPath)) {
-        logSystem('BCAST', `SESSION END in ${roomName} (${durationMs}ms) — NO VOICE, discarding`);
-        try { fs.unlinkSync(session.recordingPath); } catch {}
-        return;
-    }
 
     const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
     logSystem('BCAST', `SESSION END in ${roomName} (speech ${durationMs}ms, file ${actualDurationMs}ms, ${session.allParticipants.length} participants)`);
