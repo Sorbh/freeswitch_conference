@@ -1466,9 +1466,7 @@ export default function Landing2Page() {
     api?.pauseAuto();
     clearHeroTimers();
 
-    const onCanPlay = () => {
-      audio.removeEventListener("canplaythrough", onCanPlay);
-      audio.play();
+    audio.play().then(() => {
       api?.fireSellCallWithData(clip.city, clip.partData);
       if (clip.responses) {
         clip.responses.forEach((r) => {
@@ -1478,8 +1476,7 @@ export default function Landing2Page() {
           heroTimers.current.push(timer);
         });
       }
-    };
-    audio.addEventListener("canplaythrough", onCanPlay);
+    }).catch(() => {});
   }
 
   useEffect(() => {
@@ -1608,9 +1605,10 @@ export default function Landing2Page() {
       <style>{SITE_CSS}</style>
       <style>{CSS}</style>
       <Seo
-        title="Hotline HQ — Used Auto Parts Hotline Network for Salvage Yards"
-        description="Join 500+ salvage yards on the always-on parts hotline. Broadcast a used auto part request once and a nearby yard answers in about 2 seconds. Flat monthly membership, desk phone included."
-        keywords="parts hotline, used auto parts network, salvage yard hotline, auto recyclers network, parts locating network, sell used auto parts, auto dismantler network, used parts trading network, junkyard parts network"
+        title="Hotline HQ — Find Any Used Auto Part in 2 Seconds | Salvage Yard Parts Locator"
+        description="Stop losing sales when you don't have the part. Broadcast once to 500+ salvage yards — get an answer in 2 seconds. The fastest way to locate and sell used auto parts."
+        keywords="find used auto parts fast, used auto parts locator, salvage yard parts finder, locate used car parts, sell used auto parts to yards, junkyard parts sourcing, used OEM parts supplier, auto parts interchange, salvage yard parts network, used car parts wholesale, auto recycler parts locator, find junkyard parts near me"
+        canonicalUrl="https://redlineusedautoparts.com/hotlinehq/"
         path="/"
         jsonLd={landingJsonLd()}
       />
@@ -1629,7 +1627,7 @@ export default function Landing2Page() {
           <a href="#how">How it works</a>
           <a href="#try">Try it</a>
           <a href="#rooms">Coverage</a>
-          <a href="/own-a-hotline">Own a hotline</a>
+          <a href="./own-a-hotline">Own a hotline</a>
           <a href="#get-started" className="l2-nav-cta">
             Get a line
           </a>
@@ -1770,13 +1768,11 @@ export default function Landing2Page() {
         <div className="l2-section-head l2-reveal">
           <p className="l2-kicker">The problem</p>
           <h2>
-            Every &ldquo;we don&rsquo;t have it&rdquo; is a customer walking
-            out.
+            How long does it take you to find a part? 30&nbsp;minutes?
+            An&nbsp;hour?
           </h2>
-          <p className="l2-lede l2-lede-wide">
-            You can't stock every part for every vehicle. But somebody within
-            three hundred miles is sitting on exactly what your customer needs —
-            the only question is how fast you can find them.
+          <p className="l2-lede l2-lede-wide l2-two-sec">
+            Our network average is <strong>2&nbsp;seconds.</strong>
           </p>
         </div>
         <div className="l2-compare">
@@ -2301,6 +2297,12 @@ const CSS = `
 .l2-section-head h2 { font-size: clamp(32px, 4.2vw, 54px); font-weight: 700; }
 .l2-lede { color: var(--muted); max-width: 600px; font-size: 17px; line-height: 1.65; margin-top: 18px; }
 .l2-lede-wide { max-width: 920px; }
+.l2-two-sec { font-size: 22px; }
+.l2-two-sec strong {
+  font-family: var(--display); font-size: clamp(36px, 4.5vw, 56px);
+  font-weight: 800; color: var(--red); display: block; margin-top: 6px;
+  line-height: 1.1;
+}
 .l2-section-head { margin-bottom: 56px; }
 .l2-center { text-align: center; }
 .l2-center .l2-lede { margin-left: auto; margin-right: auto; }

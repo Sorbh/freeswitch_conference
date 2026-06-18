@@ -39,7 +39,7 @@ export const CONTACT_EMAIL = "hello@hotlinehq.com";
 /*  SEO — sets title, meta, Open Graph, canonical, and JSON-LD         */
 /* ------------------------------------------------------------------ */
 
-export function Seo({ title, description, keywords, path = "/", jsonLd = null }) {
+export function Seo({ title, description, keywords, path = "/", canonicalUrl = null, jsonLd = null }) {
   useEffect(() => {
     document.title = title;
 
@@ -68,7 +68,7 @@ export function Seo({ title, description, keywords, path = "/", jsonLd = null })
       el.content = content;
     };
 
-    const url = window.location.origin + path;
+    const url = canonicalUrl || (window.location.origin + path);
 
     setNamed("description", description);
     if (keywords) setNamed("keywords", keywords);

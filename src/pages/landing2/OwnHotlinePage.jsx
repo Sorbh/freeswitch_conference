@@ -64,6 +64,7 @@ export function OwnHotlinePage() {
         title="Own a Hotline — Start an Always-On Voice Network for Your Industry | Hotline HQ"
         description="Launch and own a 24/7 voice hotline that connects businesses in your trade. You bring the community; Hotline HQ runs the lines, rooms, recordings, and equipment. You earn the monthly membership revenue."
         keywords="own a hotline, start a hotline business, business hotline network, voice network for business, industry hotline, start a membership network, dealer trading hotline, turnkey hotline network"
+        canonicalUrl="https://redlineusedautoparts.com/hotlinehq/own-a-hotline"
         path="/own-a-hotline"
         jsonLd={ownJsonLd()}
       />
