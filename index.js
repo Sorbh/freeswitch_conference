@@ -124,6 +124,11 @@ import { startScheduler } from './service/announcementScheduler.js';
 startScheduler();
 _startupLines.push('Announcement scheduler started');
 
+// Redline main API socket bridge
+import { initRdlSocket } from './service/rdlSocket.js';
+initRdlSocket();
+_startupLines.push('RDL socket bridge started');
+
 // On startup: reset all connection states (previous server session is gone)
 global.db.resetAllConnectionStates();
 

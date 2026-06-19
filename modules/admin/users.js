@@ -1,7 +1,7 @@
 import express from "express";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { handleHttpHookEvent, getActiveMacs } from "../../service/phoneEvents.js";
-import { logUser } from "../../service/logger.js";
+import { logUser, logSystem } from "../../service/logger.js";
 import { emitStateChange, endCall, allEndCall } from "./routesApi.js";
 
 const router = express.Router();
@@ -392,40 +392,46 @@ router.post("/users/:userName/hook", (req, res) => {
 router.post("/users/:userName/room", async (req, res) => {
     try {
         const userName = req.params.userName;
-        logUser(userName, 'API', `ROOM-CHANGE -> ${req.body.room}`);
         const { room } = req.body;
         if (room === undefined || room === null) {
             return res.status(400).json({ status: false, error: "Room is required" });
         }
-        const userInfo = global.db.getUserInfo(userName);
-        if (!userInfo || Object.keys(userInfo).length === 0) {
-            return res.status(404).json({ status: false, error: "User not found" });
-        }
-        const oldRoom = userInfo.currentRoom || userInfo.room;
-        userInfo.currentRoom = parseInt(room);
-        global.db.setUserInfo(userName, userInfo);
-        global.db.logEvent('room_change', userName, parseInt(room), `Moved from room ${oldRoom} to ${room}`);
-
-        // If user is in an active call, hangup — _onCallHangup auto-reconnects
-        // since currentRoom is already updated above
-        if (userInfo.connectionState === 'connected' && userInfo.fsChannelUUID) {
-            try {
-                await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName);
-                logUser(userName, 'API', `HANGUP for room change -> ${room}`);
-            } catch (e) {
-                console.error(`[ROOM-CHANGE] Hangup failed for ${userName}:`, e.message);
-            }
-        }
-
-        emitStateChange('users', { userName });
-        emitStateChange('rooms');
-        emitStateChange('dashboard');
-        emitStateChange('callerid', { room: oldRoom });
-        emitStateChange('callerid', { room: parseInt(room) });
+        const result = await changeUserRoom(userName, parseInt(room), 'admin-api');
+        if (!result) return res.status(404).json({ status: false, error: "User not found" });
         res.json({ status: true, message: `User ${userName} moved to room ${room}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
 });
+
+export async function changeUserRoom(userName, newRoom, source = 'api') {
+    const userInfo = global.db.getUserInfo(userName);
+    if (!userInfo || Object.keys(userInfo).length === 0) {
+        logSystem('ROOM-CHANGE', `${userName} not found (${source})`);
+        return false;
+    }
+
+    const oldRoom = userInfo.currentRoom || userInfo.room;
+    userInfo.currentRoom = newRoom;
+    global.db.setUserInfo(userName, userInfo);
+    global.db.logEvent('room_change', userName, newRoom, `Moved from room ${oldRoom} to ${newRoom} (${source})`);
+    logUser(userName, 'ROOM', `${oldRoom} -> ${newRoom} (${source})`);
+
+    if (userInfo.connectionState === 'connected' && userInfo.fsChannelUUID) {
+        try {
+            await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName);
+        } catch (e) {
+            logSystem('ROOM-CHANGE', `Hangup failed for ${userName}: ${e.message}`);
+        }
+    }
+
+    emitStateChange('users', { userName });
+    emitStateChange('rooms');
+    emitStateChange('dashboard');
+    emitStateChange('callerid', { room: oldRoom });
+    emitStateChange('callerid', { room: newRoom });
+
+    return true;
+}
 
 export default router;

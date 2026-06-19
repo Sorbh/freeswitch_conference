@@ -106,6 +106,7 @@ function _applyRegSync(allUsers, fsUsers) {
             changed = true;
         } else if (!isRegistered && user.online) {
             user.online = false;
+            user.mute = true;
             user.registrationState = 'unregistered';
             user.connectionState = 'ideal';
             user.error = null;
@@ -231,6 +232,7 @@ function _resetOnlineTimer(userName) {
 
         logUser(userName, 'ALIVE', 'TIMEOUT — marking offline');
         userInfo.online = false;
+        userInfo.mute = true;
         userInfo.connectionState = 'ideal';
         userInfo.error = null;
         userInfo.retryCount = 0;

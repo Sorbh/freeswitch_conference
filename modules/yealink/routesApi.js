@@ -1,14 +1,32 @@
 import express from "express";
 import { logUser, logSystem } from "../../service/logger.js";
-import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
-import { initiateCall } from "../../service/freeswitch/callGate.js";
+import { sendRoomChangeNotification } from "../../service/rdlSocket.js";
+import { changeUserRoom } from "../admin/users.js";
 
 export const yealinkRouter = express.Router();
 
-function _findUserByMac(mac) {
+function _getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) return forwarded.split(',')[0].trim().replace('::ffff:', '');
+    const realIp = req.headers['x-real-ip'];
+    if (realIp) return realIp.trim().replace('::ffff:', '');
+    return (req.ip || '').replace('::ffff:', '');
+}
+
+function _findUserByMac(mac, clientIp) {
     if (!mac) return null;
     const formatted = mac.match(/.{1,2}/g).join(':').toLowerCase();
-    return global.db.findUserInfo('mac', formatted);
+    const userInfo = global.db.findUserInfo('mac', formatted);
+    if (!userInfo || Object.keys(userInfo).length === 0) return null;
+
+    if (clientIp && userInfo.ip) {
+        if (clientIp !== userInfo.ip) {
+            logSystem('YEALINK', `IP mismatch for MAC ${formatted}: req=${clientIp} db=${userInfo.ip}`);
+            return null;
+        }
+    }
+
+    return userInfo;
 }
 
 function _extractMac(req) {
@@ -26,7 +44,8 @@ function _extractMac(req) {
 // GET /onhook?mac=... — phone on-hook, mute user in conference
 yealinkRouter.get("/onhook", (req, res) => {
     try {
-        const userInfo = _findUserByMac(_extractMac(req));
+        logSystem('YEALINK', `API /onhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
+        const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
         global.freeswitch.muteUser(userInfo.mac.toLowerCase());
         userInfo.mute = true;
@@ -42,7 +61,8 @@ yealinkRouter.get("/onhook", (req, res) => {
 // GET /offhook?mac=... — phone off-hook, unmute user in conference
 yealinkRouter.get("/offhook", (req, res) => {
     try {
-        const userInfo = _findUserByMac(_extractMac(req));
+        logSystem('YEALINK', `API /offhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
+        const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
         global.freeswitch.unmuteUser(userInfo.mac.toLowerCase());
         userInfo.mute = false;
@@ -58,42 +78,22 @@ yealinkRouter.get("/offhook", (req, res) => {
 // GET /updateroom?mac=...&room=... — softkey room switch, hang up and reconnect to new room
 yealinkRouter.get("/updateroom", async (req, res) => {
     try {
-        const userInfo = _findUserByMac(_extractMac(req));
+        logSystem('YEALINK', `API /updateroom mac=${_extractMac(req)} room=${req.query.room} ip=${_getClientIp(req)}`);
+        const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
 
-        const oldRoom = userInfo.currentRoom || userInfo.room;
         const newRoom = parseInt(req.query.room);
         if (!newRoom) return res.status(400).json({ status: false, error: "room is required" });
 
-        const oldRoomName = global.config.ROOM_NAME?.[oldRoom] || oldRoom;
-        const newRoomName = global.config.ROOM_NAME?.[newRoom] || newRoom;
-        const userName = userInfo.userName;
+        await changeUserRoom(userInfo.userName, newRoom, 'yealink-softkey');
 
-        const oldUuid = userInfo.fsChannelUUID;
-        if (oldUuid) {
-            getConnectionHandlers().delete(oldUuid);
-            global.freeswitch.hangupCall(oldUuid, userName).catch(() => {});
+        if (userInfo.userId) {
+            sendRoomChangeNotification(userInfo.userId, newRoom);
+        } else {
+            logSystem('YEALINK', `No userId for ${userInfo.userName}, skipping panel notification`);
         }
 
-        userInfo.currentRoom = newRoom;
-        userInfo.connectionState = 'ideal';
-        userInfo.fsChannelUUID = null;
-        userInfo.fsMemberId = null;
-        userInfo.error = null;
-        userInfo.retryCount = 0;
-        userInfo.errFallbackStage = 0;
-        userInfo.errFallbackAt = null;
-        userInfo.mute = true;
-        global.db.setUserInfo(userName, userInfo);
-        logUser(userName, 'YEALINK', `ROOM-CHANGE ${oldRoomName} -> ${newRoomName} (softkey)`);
-
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'rooms' });
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
-
-        await initiateCall(userName);
-
-        res.json({ status: true, message: `Room changed: ${oldRoomName} -> ${newRoomName}` });
+        res.json({ status: true, message: `Room changed to ${newRoom}` });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

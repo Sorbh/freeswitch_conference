@@ -6,7 +6,7 @@
 import { onCustomEvent } from './connection.js';
 import { muteByMemberId } from './callAction.js';
 import { showMessage, playTone } from './notifications.js';
-import { logUser } from '../logger.js';
+import { logUser, logSystem } from '../logger.js';
 import { isInDirectCall } from './directCall.js';
 import { findUserByMember, findUserByUuid } from './callEvents.js';
 
@@ -45,7 +45,7 @@ function _startAutoMute(userName, room, memberId) {
 
             playTone([userName], WARNING_TONE);
             showMessage([userName], 'Auto-mute in 30s', 8);
-            logUser(userName, 'AUTOMUTE', `WARNING in ${roomName} (${Math.round(timeoutMs / 1000)}s timeout)`);
+            logSystem('AUTOMUTE', `${userName} WARNING in ${roomName} (${Math.round(timeoutMs / 1000)}s timeout)`);
         }, warningMs)
         : null;
 
@@ -65,7 +65,7 @@ function _startAutoMute(userName, room, memberId) {
         userInfo.mute = true;
         global.db.setUserInfo(userName, userInfo);
         muteByMemberId(currentRoom, currentMemberId, userName);
-        logUser(userName, 'AUTOMUTE', `MUTED in ${roomName} after ${Math.round(timeoutMs / 1000)}s`);
+        logSystem('AUTOMUTE', `${userName} MUTED in ${roomName} after ${Math.round(timeoutMs / 1000)}s`);
         autoMuteTimers.delete(userName);
     }, timeoutMs);
 

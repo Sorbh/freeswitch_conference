@@ -70,7 +70,7 @@ export default class ApiRouter {
         this.apiRouter.use("/auth", authRouter);
         this.apiRouter.use("/public", publicRouter);
         this.apiRouter.use("/client", clientRouter);
-        this.apiRouter.use("/yealink", requireApiKey, yealinkRouter);
+        this.apiRouter.use("/yealink", yealinkRouter);
         this.apiRouter.use("/freeswitch", requireLocalhost, freeswitchRouter);
 
         // Admin: SSE event endpoints use cookie auth, everything else uses Bearer

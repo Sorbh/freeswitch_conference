@@ -142,6 +142,7 @@ async function _handleUnregister(event) {
     const savedUuid = userInfo.fsChannelUUID;
 
     userInfo.online = false;
+    userInfo.mute = true;
     userInfo.registrationState = 'unregistered';
     userInfo.connectionState = 'ideal';
     userInfo.error = null;
@@ -182,6 +183,7 @@ async function _handleExpire(event) {
     const savedUuid = userInfo.fsChannelUUID;
 
     userInfo.online = false;
+    userInfo.mute = true;
     userInfo.registrationState = 'expired';
     userInfo.connectionState = 'ideal';
     userInfo.error = null;
