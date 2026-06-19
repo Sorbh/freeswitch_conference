@@ -170,6 +170,9 @@
                 try {
                     console.log("[CallerID] SSE message received:", event.data.substring(0, 200));
                     var data = JSON.parse(event.data);
+                    if (data.ts) {
+                        console.log("[CallerID] [TIMING] server -> browser: +" + (Date.now() - data.ts) + "ms", data.type, data.callerIds || '');
+                    }
                     if (data.callerIdHtml) {
                         renderCallerIds(data.callerIdHtml);
                     }

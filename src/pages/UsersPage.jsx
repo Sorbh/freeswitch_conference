@@ -899,7 +899,7 @@ export default function UsersPage() {
                       <div className="flex items-center gap-1.5">
                         <CopyableCell text={user.account?.email || user.userName} />
                         <ClientTypeIcon clientType={user.clientType} />
-                        {user.syslogActive && <Tip label="Syslog Active"><LogsIcon className="size-3 text-emerald-500 shrink-0" /></Tip>}
+                        {user.syslogActive && user.mac && <a href={`/phone-logs?mac=${encodeURIComponent(user.mac)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Syslog Active"><LogsIcon className="size-3 text-emerald-500 shrink-0 hover:text-emerald-300 cursor-pointer" /></a>}
                       </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[120px]">
@@ -1427,7 +1427,7 @@ export default function UsersPage() {
                     <div className="px-6 py-5 space-y-2">
                       {selectedUser.mac && (
                         <a
-                          href={`/dev/phone-logs?mac=${encodeURIComponent(selectedUser.mac)}`}
+                          href={`/phone-logs?mac=${encodeURIComponent(selectedUser.mac)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground border border-border/40 bg-muted/30 hover:bg-muted/50 hover:text-foreground hover:border-border/60 transition-all cursor-pointer"

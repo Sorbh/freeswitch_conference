@@ -7,8 +7,8 @@ import { logSystem, logUser, logUserImmediate } from '../logger.js';
 import { canInitiateCall, initiateCall, resumeFallbacks, unlockCalls } from './callGate.js';
 import { syncAllUsers } from './conferenceSync.js';
 import { getConnection, getConnectionHandlers, getMemberIdMap, onAnswerEvent, onCustomEvent, onEslDisconnect, onEslReconnect, onHangupEvent } from './connection.js';
-import { showMessage } from './notifications.js';
 import { isInDirectCall } from './directCall.js';
+import { showMessage } from './notifications.js';
 
 // UUID → userName map — survives DB cleanup so hangup logs always show the user
 const uuidUserMap = new Map();
@@ -214,6 +214,18 @@ function _handleConferenceEvent(event) {
             _broadcastCallerIdToRoom(conferenceName);
             break;
         }
+        case 'unmute-member': {
+            const unmuteUser = findUserByMember(conferenceName, memberId);
+            if (unmuteUser) {
+                unmuteUser.mute = false;
+                global.db.setUserInfo(unmuteUser.userName, unmuteUser);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: unmuteUser.userName });
+                logUser(unmuteUser.userName, 'CONF', `UNMUTE (member ${memberId})`);
+            }
+            global.db.logEvent('unmute', unmuteUser?.userName || null, room, 'Member unmuted');
+            _broadcastCallerIdToRoom(conferenceName);
+            break;
+        }
         case 'start-talking': {
             const talkUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (talkUser && !talkUser.mute) {
@@ -229,18 +241,6 @@ function _handleConferenceEvent(event) {
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
 
             }
-            break;
-        }
-        case 'unmute-member': {
-            const unmuteUser = findUserByMember(conferenceName, memberId);
-            if (unmuteUser) {
-                unmuteUser.mute = false;
-                global.db.setUserInfo(unmuteUser.userName, unmuteUser);
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: unmuteUser.userName });
-                logUser(unmuteUser.userName, 'CONF', `UNMUTE (member ${memberId})`);
-            }
-            global.db.logEvent('unmute', unmuteUser?.userName || null, room, 'Member unmuted');
-            _broadcastCallerIdToRoom(conferenceName);
             break;
         }
     }
@@ -285,7 +285,6 @@ function _broadcastCallerIdToRoom(conferenceName) {
     const room = parseInt(conferenceName);
     if (!room) return;
     const roomName = global.config.ROOM_NAME[room] || conferenceName;
-
     const connectedUsers = global.db.filter(u =>
         u.connectionState === 'connected' && (u.currentRoom || u.room) === room && !u.payment
     );
@@ -314,12 +313,14 @@ function _broadcastCallerIdToRoom(conferenceName) {
     } else {
         logUser(roomName, 'CONF', `CALLERID (skip) (0 unmuted, ${connectedUsers.length} connected, prev=${prevCount})`);
     }
-
-    global.db.eventEmitter.emit('STATE_CHANGE', {
-        type: 'state_change',
-        scope: 'callerid',
-        room,
-        callerIdString: unmutedUsers.length > 0 ? callerIdString : '',
-        unmutedCount: unmutedUsers.length,
+    setImmediate(() => {
+        global.db.eventEmitter.emit('STATE_CHANGE', {
+            type: 'state_change',
+            scope: 'callerid',
+            room,
+            callerIdString: unmutedUsers.length > 0 ? callerIdString : '',
+            unmutedCount: unmutedUsers.length,
+            ts: Date.now(),
+        });
     });
 }

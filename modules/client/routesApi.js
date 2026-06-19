@@ -177,7 +177,7 @@ clientRouter.get("/events/room/:room", requireClientSSEAuth, (req, res) => {
 
     const onEvent = (eventData) => {
         if (eventData.scope === 'callerid' && eventData.room === room) {
-            res.write(`data: ${JSON.stringify({ type: 'callerid', ...buildRoomSnapshot(), online: buildOnlineCounts() })}\n\n`);
+            res.write(`data: ${JSON.stringify({ type: 'callerid', ...buildRoomSnapshot(), online: buildOnlineCounts(), ts: eventData.ts || Date.now() })}\n\n`);
         }
     };
 

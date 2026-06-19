@@ -214,8 +214,7 @@ export default function PhoneLogsPage() {
   }, [users]);
 
   const logs = useMemo(() => {
-    const all = rawEvents.filter((e) => e.type === "phone_log");
-    return all.length > MAX_LINES ? all.slice(-MAX_LINES) : all;
+    return rawEvents.filter((e) => e.type === "phone_log");
   }, [rawEvents]);
 
   const filtered = useMemo(() => {
@@ -237,6 +236,7 @@ export default function PhoneLogsPage() {
         (l.callId || "").toLowerCase().includes(q)
       );
     }
+    result = result.length > MAX_LINES ? result.slice(-MAX_LINES) : result;
     return result;
   }, [logs, sipOnly, macFilter, levelFilter, methodFilter, search]);
 

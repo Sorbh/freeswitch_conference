@@ -56,10 +56,10 @@ const allNavGroups = [
     items: [
       { title: "Live Events", url: "/events", icon: <ActivityIcon />, roles: ['admin', 'editor', 'analytics'] },
       { title: "System Health", url: "/system", icon: <ServerIcon />, roles: ['admin'] },
-      { title: "Server Logs", url: "/dev/server-logs", icon: <TerminalIcon />, roles: ['admin'] },
-      { title: "FS Logs", url: "/dev/fs-logs", icon: <ScrollTextIcon />, roles: ['admin'] },
-      { title: "Phone Log", url: "/dev/phone-logs", icon: <PhoneIcon />, roles: ['admin'] },
-      { title: "YMCS Control", url: "/dev/ymcs", icon: <CloudIcon />, roles: ['admin'] },
+      { title: "Server Logs", url: "/server-logs", icon: <TerminalIcon />, roles: ['admin'] },
+      { title: "FS Logs", url: "/fs-logs", icon: <ScrollTextIcon />, roles: ['admin'] },
+      { title: "Phone Log", url: "/phone-logs", icon: <PhoneIcon />, roles: ['admin'] },
+      { title: "YMCS Control", url: "/ymcs", icon: <CloudIcon />, roles: ['admin'] },
     ],
   },
 ]

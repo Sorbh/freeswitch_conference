@@ -28,6 +28,9 @@ export function useSSE(url, active = true) {
     es.onmessage = (e) => {
       try {
         const parsed = JSON.parse(e.data);
+        if (parsed.scope === 'callerid' && parsed.ts) {
+          console.log(`[TIMING] callerid SSE received: +${Date.now() - parsed.ts}ms from server emit`, parsed.callerIdString);
+        }
         bufferRef.current.push({ ...parsed, _id: ++_sseIdCounter });
       } catch {
         // ignore non-JSON

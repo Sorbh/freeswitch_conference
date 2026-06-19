@@ -181,6 +181,10 @@ import "./jssip.bundle.js";
                 callerIdSource.onmessage = function (event) {
                     try {
                         var data = JSON.parse(event.data);
+                        if (data.ts && window._muteToggleAt) {
+                            console.log('[TIMING] Ctrl+L -> callerID rendered: +' + (Date.now() - window._muteToggleAt) + 'ms (server emit -> browser: +' + (Date.now() - data.ts) + 'ms)');
+                            window._muteToggleAt = null;
+                        }
                         var grid = document.getElementById('caller_grid');
                         if (grid && data.callerIdHtml) {
                             grid.innerHTML = (data.callerIdHtml || []).join('');
@@ -423,7 +427,7 @@ import "./jssip.bundle.js";
                             });
                             session.answer({
                                 mediaConstraints: { audio: true, video: false },
-                                pcConfig: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
+                                pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
                             });
                         }
                     } catch (e) { }
@@ -488,6 +492,8 @@ import "./jssip.bundle.js";
                 try {
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
+                        window._muteToggleAt = Date.now();
+                        console.log('[TIMING] Ctrl+L pressed — ' + (isMuted ? 'unmuting' : 'muting'));
                         if (accountData) toggleMute();
                     }
                 } catch (err) { }
