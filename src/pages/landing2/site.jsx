@@ -34,12 +34,36 @@ export function HQLogo({ light = false, size = 32 }) {
 }
 
 export const CONTACT_EMAIL = "hello@hotlinehq.com";
+const SITE_BASE_PATH = "/hotlinehq";
+
+function getSiteBasePath() {
+  if (typeof window === "undefined") return "";
+  return window.location.pathname === SITE_BASE_PATH ||
+    window.location.pathname.startsWith(`${SITE_BASE_PATH}/`)
+    ? SITE_BASE_PATH
+    : "";
+}
+
+export function buildSiteUrl(path = "/") {
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const basePath = getSiteBasePath();
+  const normalizedPath = path === "/" ? "/" : path.replace(/\/+$/, "");
+  return `${origin}${basePath}${normalizedPath}`;
+}
 
 /* ------------------------------------------------------------------ */
 /*  SEO — sets title, meta, Open Graph, canonical, and JSON-LD         */
 /* ------------------------------------------------------------------ */
 
-export function Seo({ title, description, keywords, path = "/", canonicalUrl = null, jsonLd = null }) {
+export function Seo({
+  title,
+  description,
+  keywords,
+  path = "/",
+  canonicalUrl = null,
+  jsonLd = null,
+  robots = "index, follow",
+}) {
   useEffect(() => {
     document.title = title;
 
@@ -68,11 +92,11 @@ export function Seo({ title, description, keywords, path = "/", canonicalUrl = n
       el.content = content;
     };
 
-    const url = canonicalUrl || (window.location.origin + path);
+    const url = canonicalUrl || buildSiteUrl(path);
 
     setNamed("description", description);
     if (keywords) setNamed("keywords", keywords);
-    setNamed("robots", "index, follow");
+    setNamed("robots", robots);
     setProp("og:title", title);
     setProp("og:description", description);
     setProp("og:type", "website");
@@ -101,22 +125,22 @@ export function Seo({ title, description, keywords, path = "/", canonicalUrl = n
     } else if (script) {
       script.remove();
     }
-  }, [title, description, keywords, path, jsonLd]);
+  }, [title, description, keywords, path, jsonLd, robots, canonicalUrl]);
   return null;
 }
 
 /* JSON-LD for the main landing page. */
 export function landingJsonLd() {
-  const origin = window.location.origin;
+  const websiteUrl = buildSiteUrl("/");
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Organization",
-        "@id": `${origin}/#org`,
+        "@id": `${websiteUrl}#org`,
         name: "Hotline HQ",
-        url: origin,
-        logo: `${origin}/favicon.svg`,
+        url: websiteUrl,
+        logo: buildSiteUrl("/favicon.svg"),
         email: CONTACT_EMAIL,
         description:
           "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
@@ -124,14 +148,14 @@ export function landingJsonLd() {
       {
         "@type": "WebSite",
         name: "Hotline HQ",
-        url: origin,
-        publisher: { "@id": `${origin}/#org` },
+        url: websiteUrl,
+        publisher: { "@id": `${websiteUrl}#org` },
       },
       {
         "@type": "Service",
         name: "Hotline HQ voice hotline network",
         serviceType: "Always-on business voice hotline network",
-        provider: { "@id": `${origin}/#org` },
+        provider: { "@id": `${websiteUrl}#org` },
         areaServed: "US",
         description:
           "An always-on voice hotline that connects member businesses by region. Members broadcast requests live and get answers in seconds; the network owner earns flat monthly membership revenue.",
@@ -154,10 +178,10 @@ export function SiteNav() {
       </Link>
       <nav className="l2-nav-links">
         <Link to="/">Home</Link>
-        <a href="/#how">How it works</a>
-        <a href="/#join" className="l2-nav-cta">
+        <Link to="/#how">How it works</Link>
+        <Link to="/#join" className="l2-nav-cta">
           Get a line
-        </a>
+        </Link>
       </nav>
     </header>
   );
@@ -170,7 +194,7 @@ const PRODUCT_LINKS = [
   ["Coverage", "/#rooms"],
   ["The system", "/#system"],
   ["Get a line", "/#join"],
-  ["Own a hotline", "/own-a-hotline"],
+  ["Own an auto parts hotline", "/own-a-hotline"],
 ];
 
 const ROOM_LINKS = [
@@ -198,22 +222,22 @@ export function SiteFooter() {
         <div className="l2f-col">
           <p className="l2f-head">Product</p>
           {PRODUCT_LINKS.map(([label, href]) => (
-            <a key={label} href={href}>
+            <Link key={label} to={href}>
               {label}
-            </a>
+            </Link>
           ))}
         </div>
 
         <div className="l2f-col">
           <p className="l2f-head">Rooms</p>
           {ROOM_LINKS.map((r) => (
-            <a key={r} href="/#rooms">
+            <Link key={r} to="/#rooms">
               {r}
-            </a>
+            </Link>
           ))}
-          <a href="/#rooms" className="l2f-more">
+          <Link to="/#rooms" className="l2f-more">
             All 12 rooms →
-          </a>
+          </Link>
         </div>
 
         <div className="l2f-col">

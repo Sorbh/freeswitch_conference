@@ -35,6 +35,9 @@ const TermsPage = lazy(() =>
 const DisclaimerPage = lazy(() =>
   import("@/pages/landing2/LegalPages").then((m) => ({ default: m.DisclaimerPage }))
 );
+const NotFoundPage = lazy(() =>
+  import("@/pages/landing2/NotFoundPage").then((m) => ({ default: m.NotFoundPage }))
+);
 const PublicBroadcastPage = lazy(() => import("@/pages/PublicBroadcastPage"));
 
 const sitePages = [
@@ -44,19 +47,19 @@ const sitePages = [
   { path: "/terms-and-conditions", element: <TermsPage /> },
   { path: "/disclaimer", element: <DisclaimerPage /> },
 ];
-import DashboardPage from "@/pages/DashboardPage";
-import UsersPage from "@/pages/UsersPage";
-import RoomsPage from "@/pages/RoomsPage";
-import BroadcastsPage from "@/pages/BroadcastsPage";
-import DirectCallsPage from "@/pages/DirectCallsPage";
-import EventsPage from "@/pages/EventsPage";
-import SystemPage from "@/pages/SystemPage";
-import FsLogsPage from "@/pages/FsLogsPage";
-import PhoneLogsPage from "@/pages/PhoneLogsPage";
-import YmcsControlPage from "@/pages/YmcsControlPage";
-import NotificationsPage from "@/pages/NotificationsPage";
-import AnnouncementsPage from "@/pages/AnnouncementsPage";
-import ServerLogsPage from "@/pages/ServerLogsPage";
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const UsersPage = lazy(() => import("@/pages/UsersPage"));
+const RoomsPage = lazy(() => import("@/pages/RoomsPage"));
+const BroadcastsPage = lazy(() => import("@/pages/BroadcastsPage"));
+const DirectCallsPage = lazy(() => import("@/pages/DirectCallsPage"));
+const EventsPage = lazy(() => import("@/pages/EventsPage"));
+const SystemPage = lazy(() => import("@/pages/SystemPage"));
+const FsLogsPage = lazy(() => import("@/pages/FsLogsPage"));
+const PhoneLogsPage = lazy(() => import("@/pages/PhoneLogsPage"));
+const YmcsControlPage = lazy(() => import("@/pages/YmcsControlPage"));
+const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
+const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
+const ServerLogsPage = lazy(() => import("@/pages/ServerLogsPage"));
 import { Loader2Icon } from "lucide-react";
 
 const dashboardRoutes = [
@@ -147,6 +150,10 @@ function AppLayout() {
   );
 }
 
+function RouteFallback() {
+  return <div style={{ minHeight: "100vh", background: "#fbfaf8" }} />;
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
@@ -158,7 +165,7 @@ function App() {
               <Route
                 path="/"
                 element={
-                  <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
+                  <Suspense fallback={<RouteFallback />}>
                     <Landing2Page />
                   </Suspense>
                 }
@@ -167,7 +174,7 @@ function App() {
               <Route
                 path="/b/:token"
                 element={
-                  <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
+                  <Suspense fallback={<RouteFallback />}>
                     <PublicBroadcastPage />
                   </Suspense>
                 }
@@ -178,7 +185,7 @@ function App() {
                   key={p.path}
                   path={p.path}
                   element={
-                    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#fbfaf8" }} />}>
+                    <Suspense fallback={<RouteFallback />}>
                       {p.element}
                     </Suspense>
                   }
@@ -191,12 +198,23 @@ function App() {
               {/* Protected dashboard routes */}
               <Route element={<ProtectedRoute />}>
                 {dashboardRoutes.map((r) => (
-                  <Route key={r.path} path={r.path} element={r.element} />
+                  <Route
+                    key={r.path}
+                    path={r.path}
+                    element={<Suspense fallback={<RouteFallback />}>{r.element}</Suspense>}
+                  />
                 ))}
               </Route>
 
               {/* Redirect fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route
+                path="*"
+                element={
+                  <Suspense fallback={<RouteFallback />}>
+                    <NotFoundPage />
+                  </Suspense>
+                }
+              />
             </Routes>
             <Toaster />
         </AuthProvider>

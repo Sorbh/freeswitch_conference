@@ -326,18 +326,50 @@ export function whisperTranscribeBroadcast(broadcastId) {
     try {
         const result = whisperTranscribe(broadcast.recording_path);
         global.db.updateBroadcastLocalTranscription(broadcastId, result.text, result.hasPartsRequest);
-
-        if (result.hasPartsRequest && result.text.length > 10) {
-            extractPartDetails(broadcastId, result.text).catch(err =>
-                logSystem('PARTS', `Extract failed for #${broadcastId}: ${err.message}`)
-            );
-        }
-
         return result;
     } catch (err) {
         logSystem('STT', `Whisper local #${broadcastId} FAILED: ${err.message}`);
         return null;
     }
+}
+
+export async function processBroadcastTranscription(broadcastId, recordingPath) {
+    if (!recordingPath) return { hasPartsRequest: false };
+
+    const row = global.db.getBroadcastByRecordingPath(recordingPath);
+    if (!row) return { hasPartsRequest: false };
+    const id = row.id;
+
+    // 1. Deepgram (if enabled)
+    if (shouldAutoTranscribe(row.room)) {
+        try {
+            await transcribeBroadcast(id);
+        } catch (err) {
+            logSystem('BCAST', `Deepgram failed for #${id}: ${err.message}`);
+        }
+    }
+
+    // 2. Local whisper
+    let hasPartsRequest = false;
+    try {
+        const result = whisperTranscribeBroadcast(id);
+        if (result) hasPartsRequest = result.hasPartsRequest;
+    } catch (err) {
+        logSystem('BCAST', `Whisper failed for #${id}: ${err.message}`);
+    }
+
+    // 3. Extract parts (deepgram priority, fallback whisper)
+    const broadcast = global.db.getBroadcastById(id);
+    const text = broadcast?.transcription || broadcast?.local_transcription;
+    if (text && text.length > 10 && checkContainsYearOrNumber(text)) {
+        try {
+            await extractPartDetails(id, text);
+        } catch (err) {
+            logSystem('PARTS', `Extract failed for #${id}: ${err.message}`);
+        }
+    }
+
+    return { hasPartsRequest };
 }
 
 async function extractPartDetails(broadcastId, text) {
@@ -351,11 +383,11 @@ async function extractPartDetails(broadcastId, text) {
     const json = await res.json();
     const partDetails = json.data;
 
-    if (partDetails && isValidPartRequest(partDetails)) {
+    if (partDetails) {
         global.db.updateBroadcastPartDetails(broadcastId, partDetails);
-        logSystem('PARTS', `#${broadcastId}: ${partDetails.year} ${partDetails.make} ${partDetails.model} ${partDetails.part}`);
+        logSystem('PARTS', `#${broadcastId}: ${partDetails.year || '?'} ${partDetails.make || '?'} ${partDetails.model || '?'} ${partDetails.part || '?'}`);
     } else {
-        logSystem('PARTS', `#${broadcastId}: not a valid part request`);
+        logSystem('PARTS', `#${broadcastId}: no part details returned`);
     }
 }
 

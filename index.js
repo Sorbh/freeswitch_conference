@@ -54,11 +54,19 @@ import ApiRouter from "./routes/api.js";
 const { json, urlencoded } = express;
 
 const app = express();
+const distAssets = express.static(path.join(__dirname, "dist", "assets"), { index: false });
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use((req, res, next) => {
+    const match = req.path.match(/^\/(?:.+\/)?assets\/(.+)$/);
+    if (!match) return next();
+    const queryIndex = req.url.indexOf('?');
+    req.url = `/${match[1]}${queryIndex >= 0 ? req.url.slice(queryIndex) : ''}`;
+    return distAssets(req, res, next);
+});
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/recordings", express.static(path.join(__dirname, "recordings")));
 
@@ -209,4 +217,3 @@ function shutdown(signal) {
         }, 3000).unref();
     };
 }
-

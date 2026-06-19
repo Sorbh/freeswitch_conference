@@ -8,9 +8,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  Select, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSERefresh } from "@/hooks/useSSERefresh";
@@ -32,52 +29,97 @@ import {
 } from "lucide-react";
 
 // ── Helpers ──
+const DEFAULT_TIME_ZONE = "America/Chicago";
+
 function formatDuration(ms) {
   if (!ms) return "—";
   const s = Math.floor(ms / 1000);
   if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${s % 60}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${h}h ${m}m ${sec}s`;
 }
 
-function parseGmtOffset(gmtOffset) {
-  if (!gmtOffset) return null;
-  const m = gmtOffset.match(/^GMT([+-])(\d{2}):(\d{2})$/);
-  if (!m) return null;
-  const sign = m[1] === "+" ? 1 : -1;
-  return sign * (parseInt(m[2]) * 60 + parseInt(m[3]));
+function getBrowserTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIME_ZONE;
 }
 
-function toTzDate(ts, offsetMin) {
-  const d = new Date(ts * 1000);
-  if (offsetMin == null) return d;
-  return new Date(d.getTime() + (offsetMin + d.getTimezoneOffset()) * 60000);
+function isValidTimeZone(timeZone) {
+  if (!timeZone) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-function gmtLabel(offsetMin) {
-  if (offsetMin == null) return "";
-  const sign = offsetMin >= 0 ? "+" : "-";
-  const abs = Math.abs(offsetMin);
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  return m ? `GMT${sign}${h}:${String(m).padStart(2, "0")}` : `GMT${sign}${h}`;
+function normalizeTimeZone(timeZone, fallback = DEFAULT_TIME_ZONE) {
+  return isValidTimeZone(timeZone) ? timeZone : fallback;
 }
 
-function formatTime(ts, offsetMin) {
+function getDateInfo(ts, timeZone) {
+  const safeTimeZone = normalizeTimeZone(timeZone, getBrowserTimeZone());
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: safeTimeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(new Date(Number(ts) * 1000));
+  const values = Object.fromEntries(parts.filter(p => p.type !== "literal").map(p => [p.type, Number(p.value)]));
+  const key = `${values.year}-${String(values.month).padStart(2, "0")}-${String(values.day).padStart(2, "0")}`;
+  return { ...values, key, label: `${values.month}/${values.day}` };
+}
+
+function hourLabel(hour) {
+  return hour === 0 ? "12AM" : hour < 12 ? `${hour}AM` : hour === 12 ? "12PM" : `${hour - 12}PM`;
+}
+
+function recentDateBuckets(days, timeZone) {
+  const seen = new Map();
+  for (let i = days - 1; i >= 0; i--) {
+    const ts = Math.floor((Date.now() - i * 86400000) / 1000);
+    const info = getDateInfo(ts, timeZone);
+    seen.set(info.key, info.label);
+  }
+  return Array.from(seen, ([key, label]) => ({ key, label }));
+}
+
+function formatTime(ts, timeZone) {
   if (!ts) return "—";
-  const d = toTzDate(ts, offsetMin);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return new Date(Number(ts) * 1000).toLocaleTimeString("en-US", {
+    timeZone: normalizeTimeZone(timeZone, getBrowserTimeZone()),
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
-function formatDate(ts, offsetMin) {
+function formatFullDate(ts, timeZone) {
   if (!ts) return "—";
-  const d = toTzDate(ts, offsetMin);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(Number(ts) * 1000).toLocaleDateString("en-US", {
+    timeZone: normalizeTimeZone(timeZone, getBrowserTimeZone()),
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
-function formatFullDate(ts, offsetMin) {
-  if (!ts) return "—";
-  const d = toTzDate(ts, offsetMin);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function timeZoneAbbr(ts, timeZone) {
+  if (!ts || !timeZone) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: normalizeTimeZone(timeZone, getBrowserTimeZone()),
+    timeZoneName: "short",
+  }).formatToParts(new Date(Number(ts) * 1000));
+  return parts.find(p => p.type === "timeZoneName")?.value || "";
+}
+
+function timeZoneNameLabel(timeZone) {
+  return normalizeTimeZone(timeZone, getBrowserTimeZone()).replace(/_/g, " ");
 }
 
 // ── Animated Number ──
@@ -299,13 +341,20 @@ export default function BroadcastsPage() {
   ];
   const [activeRange, setActiveRange] = useState("today");
   const [selectedRoom, setSelectedRoom] = useState("");
+  const [timezoneMode, setTimezoneMode] = useState("local");
+  const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
   const roomTimezones = useMemo(() => {
     const map = {};
-    for (const r of roomsList || []) map[r.id] = parseGmtOffset(r.timezone);
+    for (const r of roomsList || []) map[r.id] = normalizeTimeZone(r.timezone, DEFAULT_TIME_ZONE);
     return map;
   }, [roomsList]);
-  const activeOffsetMin = selectedRoom ? (roomTimezones[selectedRoom] ?? null) : null;
+  const selectedRoomTimezone = selectedRoom ? (roomTimezones[selectedRoom] || DEFAULT_TIME_ZONE) : null;
   const days = ranges.find(r => r.key === activeRange)?.days || 1;
+  const timezoneModeLabel = timezoneMode === "local"
+    ? `My Time (${timeZoneNameLabel(browserTimeZone)})`
+    : selectedRoom
+      ? `Room Time (${timeZoneNameLabel(selectedRoomTimezone)})`
+      : "Each Room Local Time";
 
   const roomParam = selectedRoom ? `&room=${selectedRoom}` : "";
   const { data: statsRaw, loading, refetch } = useFetch(`/api/v1/admin/broadcasts?days=${days}${roomParam}`);
@@ -361,48 +410,52 @@ export default function BroadcastsPage() {
   const totalUnanswered = totalBroadcasts - totalAnswered;
   const responseRate = totalBroadcasts > 0 ? ((totalAnswered / totalBroadcasts) * 100).toFixed(1) : "0.0";
 
-  const { avgResponseTime, totalDuration } = useMemo(() => {
-    const answered = broadcasts.filter(b => b.answered && b.duration_ms);
-    if (answered.length === 0) return { avgResponseTime: "—", totalDuration: null };
-    const total = answered.reduce((s, b) => s + b.duration_ms, 0);
-    return { avgResponseTime: formatDuration(total / answered.length), totalDuration: formatDuration(total) };
-  }, [broadcasts]);
+  const avgDurationMs = stats.durationStats?.avg_duration_ms ?? null;
+  const totalDurationMs = stats.durationStats?.total_duration_ms ?? null;
+  const avgDuration = avgDurationMs != null ? formatDuration(avgDurationMs) : "—";
+  const totalDuration = totalDurationMs != null ? formatDuration(totalDurationMs) : null;
 
-  const getRowOffset = useCallback((row) => {
-    return selectedRoom ? activeOffsetMin : (roomTimezones[row.room] ?? null);
-  }, [selectedRoom, activeOffsetMin, roomTimezones]);
+  const getRowTimeZone = useCallback((row) => {
+    if (timezoneMode === "local") return browserTimeZone;
+    if (selectedRoom) return selectedRoomTimezone || browserTimeZone;
+    return roomTimezones[row.room] || browserTimeZone;
+  }, [timezoneMode, browserTimeZone, selectedRoom, selectedRoomTimezone, roomTimezones]);
+
+  const getChartBaseTimeZone = useCallback(() => {
+    if (timezoneMode === "local") return browserTimeZone;
+    return selectedRoomTimezone || browserTimeZone;
+  }, [timezoneMode, browserTimeZone, selectedRoomTimezone]);
 
   const chartData = useMemo(() => {
     if (!Array.isArray(rawHourly) || rawHourly.length === 0) return [];
     if (activeRange === "today") {
       const hourMap = {};
       for (const row of rawHourly) {
-        const d = toTzDate(row.created_at, getRowOffset(row));
-        const h = d.getHours();
+        const h = getDateInfo(row.created_at, getRowTimeZone(row)).hour;
         if (!hourMap[h]) hourMap[h] = { answered: 0, unanswered: 0 };
         if (row.answered) hourMap[h].answered++; else hourMap[h].unanswered++;
       }
       return Array.from({ length: 24 }, (_, h) => {
         const entry = hourMap[h];
-        const label = h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM`;
-        return { label, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
+        return { label: hourLabel(h), answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
       });
     }
     const dayMap = {};
     for (const row of rawHourly) {
-      const d = toTzDate(row.created_at, getRowOffset(row));
-      const key = `${d.getMonth() + 1}/${d.getDate()}`;
+      const info = getDateInfo(row.created_at, getRowTimeZone(row));
+      const key = info.key;
       if (!dayMap[key]) dayMap[key] = { answered: 0, unanswered: 0 };
+      dayMap[key].label = info.label;
       if (row.answered) dayMap[key].answered++; else dayMap[key].unanswered++;
     }
-    const now = new Date();
-    return Array.from({ length: days }, (_, i) => {
-      const d = new Date(now.getTime() - (days - 1 - i) * 86400000);
-      const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    const buckets = timezoneMode === "room" && !selectedRoom
+      ? Object.keys(dayMap).sort().slice(-days).map(key => ({ key, label: dayMap[key].label }))
+      : recentDateBuckets(days, getChartBaseTimeZone());
+    return buckets.map(({ key, label }) => {
       const entry = dayMap[key];
-      return { label: key, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
+      return { label, answered: entry?.answered || 0, unanswered: entry?.unanswered || 0 };
     });
-  }, [rawHourly, activeRange, days, getRowOffset]);
+  }, [rawHourly, activeRange, days, timezoneMode, selectedRoom, getRowTimeZone, getChartBaseTimeZone]);
 
   const LINE_COLORS = [
     "#06b6d4", "#f59e0b", "#22c55e", "#ef4444", "#8b5cf6",
@@ -417,30 +470,28 @@ export default function BroadcastsPage() {
     if (!Array.isArray(rawHourly) || rawHourly.length === 0) return { hourlyDistData: [], hourlyDistKeys: [] };
 
     const dayBuckets = {};
+    const dayLabels = {};
     for (const row of rawHourly) {
-      const d = toTzDate(row.created_at, getRowOffset(row));
-      const dateKey = `${d.getMonth() + 1}/${d.getDate()}`;
-      const h = d.getHours();
+      const info = getDateInfo(row.created_at, getRowTimeZone(row));
+      const dateKey = info.key;
+      const h = info.hour;
       if (!dayBuckets[dateKey]) dayBuckets[dateKey] = {};
+      dayLabels[dateKey] = info.label;
       dayBuckets[dateKey][h] = (dayBuckets[dateKey][h] || 0) + 1;
     }
 
-    const sortedDays = Object.keys(dayBuckets).sort((a, b) => {
-      const [am, ad] = a.split("/").map(Number);
-      const [bm, bd] = b.split("/").map(Number);
-      return am !== bm ? am - bm : ad - bd;
-    });
+    const sortedDays = Object.keys(dayBuckets).sort();
 
     const data = Array.from({ length: 24 }, (_, h) => {
-      const point = { hour: h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM` };
+      const point = { hour: hourLabel(h) };
       for (const day of sortedDays) {
-        point[day] = dayBuckets[day]?.[h] || 0;
+        point[dayLabels[day]] = dayBuckets[day]?.[h] || 0;
       }
       return point;
     });
 
-    return { hourlyDistData: data, hourlyDistKeys: sortedDays };
-  }, [rawHourly, days, getRowOffset]);
+    return { hourlyDistData: data, hourlyDistKeys: sortedDays.map(day => dayLabels[day]) };
+  }, [rawHourly, getRowTimeZone]);
 
   const hourlyDistConfig = useMemo(() => {
     const cfg = {};
@@ -614,16 +665,26 @@ export default function BroadcastsPage() {
               <span className="font-mono tabular-nums">{responseRate}%</span> response rate
             </p>
           </div>
-          <select
-            value={selectedRoom}
-            onChange={e => { setSelectedRoom(e.target.value); setPage(1); }}
-            className="h-9 px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
-          >
-            <option value="">All Rooms</option>
-            {Object.entries(ROOM_NAMES).map(([id, name]) => (
-              <option key={id} value={id}>{name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={timezoneMode}
+              onChange={e => setTimezoneMode(e.target.value)}
+              className="h-9 px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
+            >
+              <option value="local">My Time</option>
+              <option value="room">{selectedRoom ? "Room Time" : "Each Room Time"}</option>
+            </select>
+            <select
+              value={selectedRoom}
+              onChange={e => { setSelectedRoom(e.target.value); setPage(1); }}
+              className="h-9 px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
+            >
+              <option value="">All Rooms</option>
+              {Object.entries(ROOM_NAMES).map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="flex gap-1.5">
           {ranges.map(r => (
@@ -650,7 +711,7 @@ export default function BroadcastsPage() {
         <StatCard label="Answered" value={totalAnswered} icon={<PhoneCallIcon className="size-4" />} color="#22c55e" />
         <StatCard label="Unanswered" value={totalUnanswered} icon={<PhoneOffIcon className="size-4" />} color="#ef4444" />
         <StatCard label="Response Rate" value={`${responseRate}%`} icon={<PercentIcon className="size-4" />} color="#f59e0b" mono={false} />
-        <StatCard label="Avg Duration" value={avgResponseTime} sub={totalDuration ? `/ ${totalDuration}` : null} icon={<ClockIcon className="size-4" />} color="#8b5cf6" mono={false} />
+        <StatCard label="Avg Duration" value={avgDuration} sub={totalDuration ? `/ ${totalDuration}` : null} icon={<ClockIcon className="size-4" />} color="#8b5cf6" mono={false} />
       </div>
 
       {/* Chart */}
@@ -660,6 +721,7 @@ export default function BroadcastsPage() {
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <TrendingUpIcon className="size-3.5 text-cyan-400" />
               {activeRange === "today" ? "Hourly Activity" : activeRange === "week" ? "7 Days Activity" : "30 Days Activity"}
+              <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">{timezoneModeLabel}</span>
             </CardTitle>
             <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
               <span className="flex items-center gap-1.5">
@@ -696,7 +758,7 @@ export default function BroadcastsPage() {
               Hourly Distribution
               {hourlyDistKeys.length > 0 && (
                 <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">
-                  {hourlyDistKeys.length} {hourlyDistKeys.length === 1 ? "day" : "days"}
+                  {hourlyDistKeys.length} {hourlyDistKeys.length === 1 ? "day" : "days"} · {timezoneModeLabel}
                 </span>
               )}
             </CardTitle>
@@ -908,7 +970,7 @@ export default function BroadcastsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="pl-6 w-12"></TableHead>
-                  <TableHead>Time</TableHead>
+                  <TableHead>Time <span className="text-[10px] font-normal text-muted-foreground/50">({timezoneMode === "local" ? "My Time" : selectedRoom ? "Room Time" : "Room Local"})</span></TableHead>
                   <TableHead>Speaker</TableHead>
                   <TableHead>Room</TableHead>
                   <TableHead>Duration</TableHead>
@@ -926,6 +988,7 @@ export default function BroadcastsPage() {
                 {broadcasts.map((b) => {
                   const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
                   const playing = playingId === b.id;
+                  const rowTimeZone = getRowTimeZone(b);
                   return (
                     <TableRow key={b.id} className={`${playing ? "bg-emerald-500/[0.03]" : ""} cursor-pointer hover:bg-muted/30`} onClick={() => openDetail(b)}>
                       <TableCell className="pl-6" onClick={e => e.stopPropagation()}>
@@ -952,10 +1015,10 @@ export default function BroadcastsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm font-mono tabular-nums">
-                          {formatTime(b.created_at, selectedRoom ? activeOffsetMin : roomTimezones[b.room] ?? null)}
-                          {!selectedRoom && <span className="text-[9px] text-muted-foreground/40 ml-1">{gmtLabel(roomTimezones[b.room] ?? null)}</span>}
+                          {formatTime(b.created_at, rowTimeZone)}
+                          {timezoneMode === "room" && !selectedRoom && <span className="text-[9px] text-muted-foreground/40 ml-1">{timeZoneAbbr(b.created_at, rowTimeZone)}</span>}
                         </div>
-                        <div className="text-[10px] text-muted-foreground/50">{formatFullDate(b.created_at, selectedRoom ? activeOffsetMin : roomTimezones[b.room] ?? null)}</div>
+                        <div className="text-[10px] text-muted-foreground/50">{formatFullDate(b.created_at, rowTimeZone)}</div>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm font-medium">{b.display_name || b.user_name || "Unknown"}</span>

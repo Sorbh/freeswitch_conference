@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PageShell, CONTACT_EMAIL } from "./site";
 
 const UPDATED = "June 11, 2026";
@@ -117,7 +118,7 @@ export function AboutPage() {
       <p>
         Want a line in your yard, or have a question? Email us at{" "}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or request a
-        line from the <a href="/#join">home page</a> — a human calls
+        line from the <Link to="/#join">home page</Link> — a human calls
         you back within one business day.
       </p>
     </PageShell>
@@ -139,6 +140,7 @@ export function PrivacyPage() {
         description:
           "How Hotline HQ collects, uses, and protects member information — including call recordings, account data, and your choices.",
         path: "/privacy-policy",
+        robots: "noindex, follow",
       }}
     >
       <p className="l2-doc-lead">
@@ -252,6 +254,7 @@ export function TermsPage() {
         description:
           "Membership terms for the Hotline HQ voice network: billing, acceptable use, member-to-member deals, equipment, and recordings.",
         path: "/terms-and-conditions",
+        robots: "noindex, follow",
       }}
     >
       <p className="l2-doc-lead">
@@ -324,7 +327,7 @@ export function TermsPage() {
       <p>
         Broadcasts on the network are recorded and logged. Recordings are used
         for quality assurance and resolving disputes between members, as
-        described in our <a href="/privacy-policy">Privacy Policy</a>.
+        described in our <Link to="/privacy-policy">Privacy Policy</Link>.
       </p>
 
       <h2>7. Availability</h2>
@@ -376,6 +379,7 @@ export function DisclaimerPage() {
         description:
           "What the figures and demos on this site represent, and what Hotline HQ does and doesn't guarantee about member-to-member deals.",
         path: "/disclaimer",
+        robots: "noindex, follow",
       }}
     >
       <p className="l2-doc-lead">

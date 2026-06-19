@@ -715,7 +715,17 @@ function getBroadcastStats(days = 7, room) {
         GROUP BY room ORDER BY count DESC
     `).all(...params);
 
-    return { hourly, daily, topBroadcasters, byRoom };
+    const durationStats = sqlite.prepare(`
+        SELECT
+            ROUND(AVG(duration_ms)) as avg_duration_ms,
+            SUM(duration_ms) as total_duration_ms
+        FROM broadcast_log
+        WHERE created_at >= ?${roomFilter}
+            AND answered = 1
+            AND duration_ms IS NOT NULL
+    `).get(...params);
+
+    return { hourly, daily, topBroadcasters, byRoom, durationStats };
 }
 
 function getRecentBroadcasts(limit = 10, type) {

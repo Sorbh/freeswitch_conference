@@ -1,9 +1,10 @@
-import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL } from "./site";
+import { Link } from "react-router-dom";
+import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 
 /* ------------------------------------------------------------------ */
 /*  /own-a-hotline — operator-intent page.                             */
-/*  Target searches: own a hotline, start a hotline business,          */
-/*  voice hotline network for an industry, membership network.         */
+/*  Target searches: auto parts hotline, own a hotline,                */
+/*  used auto parts hotline, start a hotline business.                 */
 /* ------------------------------------------------------------------ */
 
 const MODEL = [
@@ -41,17 +42,47 @@ const INCLUDED = [
   "Member onboarding — a new line is live the day the phone arrives",
 ];
 
+const FAQS = [
+  {
+    q: "What is an auto parts hotline?",
+    a: "An auto parts hotline is a live voice network where salvage yards and auto recyclers stay connected to the same regional room. A member broadcasts a part request once, and yards that have the part answer immediately.",
+  },
+  {
+    q: "Can I own the auto parts hotline while Hotline HQ runs the technology?",
+    a: "Yes. You own the member relationships, local brand, and recurring revenue. Hotline HQ runs the phones, browser lines, recordings, monitoring, and day-to-day network operations behind the scenes.",
+  },
+  {
+    q: "Is this built for used auto parts yards first?",
+    a: "Yes. The model is already proven with a live used auto parts hotline spanning 500+ salvage yards across 12 regional rooms, and that operating playbook can be launched in additional markets or adapted to similar dealer networks.",
+  },
+];
+
 function ownJsonLd() {
-  const origin = window.location.origin;
+  const homepageUrl = buildSiteUrl("/");
   return {
     "@context": "https://schema.org",
-    "@type": "Service",
-    name: "Own a Hotline HQ network",
-    serviceType: "Turnkey voice hotline network for industries",
-    provider: { "@type": "Organization", name: "Hotline HQ", url: origin, email: CONTACT_EMAIL },
-    areaServed: "US",
-    description:
-      "Launch and own an always-on voice hotline network for your industry. Hotline HQ runs the lines, rooms, recordings, and equipment; the network owner earns flat monthly membership revenue.",
+    "@graph": [
+      {
+        "@type": "Service",
+        name: "Auto parts hotline network by Hotline HQ",
+        serviceType: "Turnkey used auto parts hotline network",
+        provider: { "@type": "Organization", name: "Hotline HQ", url: homepageUrl, email: CONTACT_EMAIL },
+        areaServed: "US",
+        description:
+          "Launch and own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, recordings, and equipment while the network owner earns monthly membership revenue.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: FAQS.map((item) => ({
+          "@type": "Question",
+          name: item.q,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.a,
+          },
+        })),
+      },
+    ],
   };
 }
 
@@ -61,9 +92,9 @@ export function OwnHotlinePage() {
       <style>{SITE_CSS}</style>
       <style>{OWN_CSS}</style>
       <Seo
-        title="Own a Hotline — Start an Always-On Voice Network for Your Industry | Hotline HQ"
-        description="Launch and own a 24/7 voice hotline that connects businesses in your trade. You bring the community; Hotline HQ runs the lines, rooms, recordings, and equipment. You earn the monthly membership revenue."
-        keywords="own a hotline, start a hotline business, business hotline network, voice network for business, industry hotline, start a membership network, dealer trading hotline, turnkey hotline network"
+        title="Auto Parts Hotline — Own a Used Auto Parts Hotline Network | Hotline HQ"
+        description="Own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, phones, recordings, and monitoring while you own the member revenue."
+        keywords="auto parts hotline, used auto parts hotline, own an auto parts hotline, salvage yard hotline, auto recycler hotline, used auto parts network, hotline for salvage yards, parts locating hotline, own a hotline, start a hotline business"
         canonicalUrl="https://redlineusedautoparts.com/hotlinehq/own-a-hotline"
         path="/own-a-hotline"
         jsonLd={ownJsonLd()}
@@ -73,36 +104,36 @@ export function OwnHotlinePage() {
       <main className="l2-ownpage">
         {/* hero */}
         <section className="l2-own-hero">
-          <p className="l2-doc-kicker">Own a hotline</p>
+          <p className="l2-doc-kicker">Auto parts hotline</p>
           <h1>
-            Own the always-on hotline
+            Own the used auto parts hotline
             <br />
-            for <em>your industry.</em>
+            for <em>your market.</em>
           </h1>
           <p className="l2-own-lede">
-            In every trade, businesses spend their day calling around to find
-            what a customer needs. A Hotline HQ network replaces the phone tree
-            with one always-on voice room per region — members broadcast a
-            request once, somebody who has it answers in seconds. You own the
-            network. We run it.
+            If you want to build an auto parts hotline for salvage yards and
+            auto recyclers, this is the operating model. Hotline HQ replaces
+            the phone tree with one always-on regional voice room where members
+            broadcast a part request once and somebody who has it answers in
+            seconds. You own the network and revenue. We run the system.
           </p>
           <div className="l2-own-ctas">
             <a
               className="l2-btn l2-btn-hot"
-              href={`mailto:${CONTACT_EMAIL}?subject=Launching a hotline for my industry`}
+              href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
             >
-              Talk to us about your hotline
+              Talk to us about your auto parts hotline
             </a>
-            <a className="l2-btn l2-btn-ghost" href="/">
-              See a live network →
-            </a>
+            <Link className="l2-btn l2-btn-ghost" to="/">
+              See the live auto parts hotline →
+            </Link>
           </div>
         </section>
 
         {/* proof bar */}
         <section className="l2-own-proof">
           <p>
-            Proven in production: our used auto parts network runs{" "}
+            Proven in production: our used auto parts hotline runs{" "}
             <strong>500+ salvage yards</strong> across{" "}
             <strong>12 regional rooms</strong> with a typical answer time of{" "}
             <strong>2 seconds</strong> — monitored 24/7.
@@ -110,6 +141,16 @@ export function OwnHotlinePage() {
         </section>
 
         {/* the model */}
+        <section className="l2-own-section">
+          <h2>Why an auto parts hotline still wins.</h2>
+          <p className="l2-own-sub">
+            Used auto parts yards need a live answer, not another stale
+            database. When a counterperson can say the request once and reach a
+            whole region instantly, more customer jobs stay alive and more
+            member yards close sales they would have missed.
+          </p>
+        </section>
+
         <section className="l2-own-section">
           <h2>The model is simple.</h2>
           <div className="l2-own-grid3">
@@ -125,10 +166,11 @@ export function OwnHotlinePage() {
 
         {/* trades */}
         <section className="l2-own-section">
-          <h2>Built for trades that talk.</h2>
+          <h2>Built first for used auto parts, adaptable to other trades.</h2>
           <p className="l2-own-sub">
-            If businesses in your industry already call each other asking "who
-            has one?", a hotline turns those calls into a network.
+            The playbook starts with the used auto parts hotline already live
+            today. If businesses in your industry already call each other
+            asking "who has one?", the same network model can be adapted.
           </p>
           <div className="l2-own-trades">
             {TRADES.map(([name, note], i) => (
@@ -153,16 +195,29 @@ export function OwnHotlinePage() {
           </ul>
         </section>
 
+        <section className="l2-own-section">
+          <h2>Auto parts hotline FAQ.</h2>
+          <div className="l2-own-faqs">
+            {FAQS.map((item) => (
+              <article className="l2-own-faq" key={item.q}>
+                <h3>{item.q}</h3>
+                <p>{item.a}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="l2-own-final">
-          <h2>Your industry. Your hotline. Your revenue.</h2>
+          <h2>Your market. Your auto parts hotline. Your revenue.</h2>
           <p>
-            Tell us about your trade and your region — we'll walk you through
-            what a launch looks like and what the live parts network earns.
+            Tell us about your region and member base. We'll walk you through
+            what an auto parts hotline launch looks like and what the live
+            network model earns.
           </p>
           <a
             className="l2-btn l2-btn-hot"
-            href={`mailto:${CONTACT_EMAIL}?subject=Launching a hotline for my industry`}
+            href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
           >
             Start the conversation
           </a>
@@ -241,6 +296,15 @@ const OWN_CSS = `
   padding-left: 28px; position: relative;
 }
 .l2-own-included li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+
+.l2-own-faqs { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
+@media (max-width: 820px) { .l2-own-faqs { grid-template-columns: 1fr; } }
+.l2-own-faq {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 24px 24px 22px;
+}
+.l2-own-faq h3 { font-family: var(--display); font-weight: 700; font-size: 19px; margin: 0 0 10px; }
+.l2-own-faq p { color: var(--muted); font-size: 15px; line-height: 1.65; margin: 0; }
 
 .l2-own-final {
   margin: 80px 0 40px; padding: 56px 40px; text-align: center;
