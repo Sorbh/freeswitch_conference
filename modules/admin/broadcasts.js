@@ -224,4 +224,48 @@ router.get("/broadcasts/:id/transcription", (req, res) => {
     }
 });
 
+// POST /broadcasts/:id/whisper — trigger local whisper re-transcription
+router.post("/broadcasts/:id/whisper", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+        if (!broadcast.recording_path) return res.status(400).json({ status: false, error: "No recording available" });
+
+        const { whisperTranscribeBroadcast } = await import('../../service/transcription.js');
+        const result = whisperTranscribeBroadcast(id);
+        res.json({ status: true, data: result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /broadcasts/:id/extract-parts — trigger part detail extraction from transcription
+router.post("/broadcasts/:id/extract-parts", async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+
+        const text = broadcast.transcription || broadcast.local_transcription;
+        if (!text) return res.status(400).json({ status: false, error: "No transcription available" });
+
+        const config = (await import('../../config/config.js')).default;
+        const url = config.CAPTURE_PART_API || 'http://50.28.84.57:4005/api/v1/ai/capture-partv1';
+        const apiRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: text }),
+        });
+        if (!apiRes.ok) throw new Error(`API returned ${apiRes.status}`);
+        const json = await apiRes.json();
+        const partDetails = json.data;
+
+        global.db.updateBroadcastPartDetails(id, partDetails);
+        res.json({ status: true, data: partDetails });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 export default router;

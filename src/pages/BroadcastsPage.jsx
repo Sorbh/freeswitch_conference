@@ -28,7 +28,7 @@ import {
   ChevronLeftIcon, ChevronRightIcon, XIcon,
   ChevronsLeftIcon, ChevronsRightIcon, ListIcon,
   Share2Icon, Unlink2Icon, FileTextIcon, Loader2Icon,
-  CopyIcon, CheckIcon, SparklesIcon, AlertCircleIcon,
+  CopyIcon, CheckIcon, SparklesIcon, AlertCircleIcon, RefreshCwIcon,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -540,6 +540,45 @@ export default function BroadcastsPage() {
       }
     } catch (e) { toast.error("Transcription failed"); }
     finally { setTranscribing(null); }
+  }, [refetchList, transcriptDrawer]);
+
+  const [refreshingWhisper, setRefreshingWhisper] = useState(null);
+  const [refreshingParts, setRefreshingParts] = useState(null);
+
+  const refreshWhisper = useCallback(async (b) => {
+    setRefreshingWhisper(b.id);
+    try {
+      const res = await apiFetch(`/api/v1/admin/broadcasts/${b.id}/whisper`, { method: "POST" });
+      const json = await res.json();
+      if (json.status) {
+        toast.success("Whisper transcription refreshed");
+        refetchList();
+        if (transcriptDrawer?.id === b.id) {
+          setTranscriptDrawer(prev => ({ ...prev, local_transcription: json.data?.text || prev.local_transcription, has_parts_request: json.data?.hasPartsRequest ? 1 : 0 }));
+        }
+      } else {
+        toast.error(json.error || "Whisper failed");
+      }
+    } catch (e) { toast.error("Whisper failed"); }
+    finally { setRefreshingWhisper(null); }
+  }, [refetchList, transcriptDrawer]);
+
+  const refreshParts = useCallback(async (b) => {
+    setRefreshingParts(b.id);
+    try {
+      const res = await apiFetch(`/api/v1/admin/broadcasts/${b.id}/extract-parts`, { method: "POST" });
+      const json = await res.json();
+      if (json.status) {
+        toast.success("Part details extracted");
+        refetchList();
+        if (transcriptDrawer?.id === b.id) {
+          setTranscriptDrawer(prev => ({ ...prev, part_details: JSON.stringify(json.data) }));
+        }
+      } else {
+        toast.error(json.error || "Part extraction failed");
+      }
+    } catch (e) { toast.error("Part extraction failed"); }
+    finally { setRefreshingParts(null); }
   }, [refetchList, transcriptDrawer]);
 
   const copyTranscript = useCallback(() => {
@@ -1178,18 +1217,26 @@ export default function BroadcastsPage() {
                       {(() => {
                         try {
                           const pd = typeof b.part_details === 'string' ? JSON.parse(b.part_details) : b.part_details;
-                          if (!pd) return null;
                           return (
                             <div className="py-2.5 border-t border-border/20">
-                              <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50 mb-2 block">Part Details</span>
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1.5">
-                                {pd.year && <div><span className="text-[10px] text-muted-foreground/50">Year</span><p className="text-sm text-foreground/80">{pd.year}</p></div>}
-                                {pd.make && <div><span className="text-[10px] text-muted-foreground/50">Make</span><p className="text-sm text-foreground/80">{pd.make}</p></div>}
-                                {pd.model && <div><span className="text-[10px] text-muted-foreground/50">Model</span><p className="text-sm text-foreground/80">{pd.model}</p></div>}
-                                {pd.trim && <div><span className="text-[10px] text-muted-foreground/50">Trim</span><p className="text-sm text-foreground/80">{pd.trim}</p></div>}
-                                {pd.part && <div className="col-span-2"><span className="text-[10px] text-muted-foreground/50">Part</span><p className="text-sm text-foreground/80">{pd.part}</p></div>}
-                                {pd.specification && <div className="col-span-2"><span className="text-[10px] text-muted-foreground/50">Specification</span><p className="text-sm text-foreground/80">{pd.specification}</p></div>}
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">Part Details</span>
+                                <button onClick={() => refreshParts(b)} disabled={refreshingParts === b.id} className="ml-auto p-1 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-foreground transition-colors" title="Re-extract part details">
+                                  {refreshingParts === b.id ? <Loader2Icon className="size-3 animate-spin" /> : <RefreshCwIcon className="size-3" />}
+                                </button>
                               </div>
+                              {pd ? (
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                  {pd.year && <div><span className="text-[10px] text-muted-foreground/50">Year</span><p className="text-sm text-foreground/80">{pd.year}</p></div>}
+                                  {pd.make && <div><span className="text-[10px] text-muted-foreground/50">Make</span><p className="text-sm text-foreground/80">{pd.make}</p></div>}
+                                  {pd.model && <div><span className="text-[10px] text-muted-foreground/50">Model</span><p className="text-sm text-foreground/80">{pd.model}</p></div>}
+                                  {pd.trim && <div><span className="text-[10px] text-muted-foreground/50">Trim</span><p className="text-sm text-foreground/80">{pd.trim}</p></div>}
+                                  {pd.part && <div className="col-span-2"><span className="text-[10px] text-muted-foreground/50">Part</span><p className="text-sm text-foreground/80">{pd.part}</p></div>}
+                                  {pd.specification && <div className="col-span-2"><span className="text-[10px] text-muted-foreground/50">Specification</span><p className="text-sm text-foreground/80">{pd.specification}</p></div>}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground/40">No part details extracted yet</p>
+                              )}
                             </div>
                           );
                         } catch { return null; }
@@ -1197,34 +1244,37 @@ export default function BroadcastsPage() {
                     </div>
 
                     {/* Local transcription (whisper) */}
-                    {b.local_transcription && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">Local Transcription</span>
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">whisper</Badge>
-                        </div>
-                        <p className="text-[13px] leading-[1.8] text-foreground/75 whitespace-pre-wrap">{b.local_transcription?.trim()}</p>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">Local Transcription</span>
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">whisper</Badge>
+                        <button onClick={() => refreshWhisper(b)} disabled={refreshingWhisper === b.id} className="ml-auto p-1 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-foreground transition-colors" title="Re-run whisper transcription">
+                          {refreshingWhisper === b.id ? <Loader2Icon className="size-3 animate-spin" /> : <RefreshCwIcon className="size-3" />}
+                        </button>
                       </div>
-                    )}
+                      {b.local_transcription ? (
+                        <p className="text-[13px] leading-[1.8] text-foreground/75 whitespace-pre-wrap">{b.local_transcription?.trim()}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground/40">No local transcription yet</p>
+                      )}
+                    </div>
 
                     {/* API transcription */}
-                    {b.transcription && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">API Transcription</span>
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">deepgram</Badge>
-                        </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50">API Transcription</span>
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-mono">deepgram</Badge>
+                        <button onClick={() => triggerTranscribe(b)} disabled={transcribing === b.id} className="ml-auto p-1 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-foreground transition-colors" title="Re-run deepgram transcription">
+                          {transcribing === b.id ? <Loader2Icon className="size-3 animate-spin" /> : <RefreshCwIcon className="size-3" />}
+                        </button>
+                      </div>
+                      {b.transcription ? (
                         <p className="text-[13px] leading-[1.8] text-foreground/75 whitespace-pre-wrap">{b.transcription}</p>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-xs text-muted-foreground/40">No API transcription yet</p>
+                      )}
+                    </div>
 
-                    {/* No transcriptions */}
-                    {!b.local_transcription && !b.transcription && (
-                      <div className="text-center py-6">
-                        <FileTextIcon className="size-6 text-muted-foreground/15 mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground/40">No transcriptions available</p>
-                      </div>
-                    )}
                   </div>
                 </div>
 
