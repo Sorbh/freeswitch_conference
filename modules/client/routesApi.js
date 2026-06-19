@@ -119,8 +119,82 @@ clientRouter.post("/unmute", requireClientAuth, (req, res) => {
     }
 });
 
+// --- Broadcast SSE helpers (module-level, shared across all connections) ---
+
+function buildRoomSnapshot(room) {
+    const connectedUsers = global.db.filter(u =>
+        u.connectionState === 'connected' && (u.currentRoom || u.room) === room && !u.payment
+    );
+    const unmutedUsers = connectedUsers.filter(u => !u.mute);
+    const callerIds = [];
+    const callerIdHtml = [];
+    const roomData = global.db.getRoom(room);
+    const template = roomData?.caller_id_template || '';
+
+    for (const u of unmutedUsers) {
+        const email = u.userName?.replace('sip:', '');
+        const account = email ? global.db.getAccountByEmail(email) : null;
+        const name = account
+            ? `${account.company_name || ''} / ${account.display_name || email}`
+            : (u.callerIdName || u.userName);
+        callerIds.push(name);
+
+        if (template && account) {
+            callerIdHtml.push(template
+                .replace(/\{\{name\}\}/g, name)
+                .replace(/\{\{city\}\}/g, account.city || '')
+                .replace(/\{\{phone\}\}/g, account.company_phone || '')
+                .replace(/\{\{userId\}\}/g, account.id || '')
+            );
+        } else {
+            callerIdHtml.push(name);
+        }
+    }
+    return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds, callerIdHtml };
+}
+
+function buildOnlineCounts() {
+    const online = {};
+    const rooms = global.db.getAllRooms();
+    for (const r of rooms) {
+        const count = global.db.filter(u =>
+            u.connectionState === 'connected' && u.room === r.id && !u.payment
+        ).length;
+        online[r.id] = count;
+    }
+    return online;
+}
+
+// Map<roomId, Set<res>> — tracks all active SSE connections per room
+const clientRoomSSE = new Map();
+
+// Single STATE_CHANGE listener — registered lazily on first SSE connect
+let _clientListenerRegistered = false;
+function _ensureClientListener() {
+    if (_clientListenerRegistered) return;
+    _clientListenerRegistered = true;
+    global.db.eventEmitter.on('STATE_CHANGE', (eventData) => {
+        if (eventData.scope !== 'callerid' || !eventData.room) return;
+        const room = eventData.room;
+        const clients = clientRoomSSE.get(room);
+        if (!clients || clients.size === 0) return;
+
+        const payload = `data: ${JSON.stringify({
+            type: 'callerid',
+            ...buildRoomSnapshot(room),
+            online: buildOnlineCounts(),
+            ts: eventData.ts || Date.now()
+        })}\n\n`;
+
+        for (const client of clients) {
+            client.write(payload);
+        }
+    });
+}
+
 // GET /events/room/:room — SSE callerID + online counts (auth via query param token)
 clientRouter.get("/events/room/:room", requireClientSSEAuth, (req, res) => {
+    _ensureClientListener();
     const room = parseInt(req.params.room);
     if (!room) return res.status(400).end();
     res.writeHead(200, {
@@ -129,58 +203,23 @@ clientRouter.get("/events/room/:room", requireClientSSEAuth, (req, res) => {
         'Connection': 'keep-alive'
     });
 
-    function buildRoomSnapshot() {
-        const connectedUsers = global.db.filter(u =>
-            u.connectionState === 'connected' && (u.currentRoom || u.room) === room && !u.payment
-        );
-        const unmutedUsers = connectedUsers.filter(u => !u.mute);
-        const callerIds = [];
-        const callerIdHtml = [];
-        const roomData = global.db.getRoom(room);
-        const template = roomData?.caller_id_template || '';
+    // Send initial snapshot
+    res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(room), online: buildOnlineCounts() })}\n\n`);
 
-        for (const u of unmutedUsers) {
-            const email = u.userName?.replace('sip:', '');
-            const account = email ? global.db.getAccountByEmail(email) : null;
-            const name = account
-                ? `${account.company_name || ''} / ${account.display_name || email}`
-                : (u.callerIdName || u.userName);
-            callerIds.push(name);
+    // Register this connection in the broadcast map
+    if (!clientRoomSSE.has(room)) {
+        clientRoomSSE.set(room, new Set());
+    }
+    clientRoomSSE.get(room).add(res);
 
-            if (template && account) {
-                callerIdHtml.push(template
-                    .replace(/\{\{name\}\}/g, name)
-                    .replace(/\{\{city\}\}/g, account.city || '')
-                    .replace(/\{\{phone\}\}/g, account.company_phone || '')
-                    .replace(/\{\{userId\}\}/g, account.id || '')
-                );
-            } else {
-                callerIdHtml.push(name);
+    // Clean up on disconnect
+    req.on('close', () => {
+        const clients = clientRoomSSE.get(room);
+        if (clients) {
+            clients.delete(res);
+            if (clients.size === 0) {
+                clientRoomSSE.delete(room);
             }
         }
-        return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds, callerIdHtml };
-    }
-
-    function buildOnlineCounts() {
-        const online = {};
-        const rooms = global.db.getAllRooms();
-        for (const r of rooms) {
-            const count = global.db.filter(u =>
-                u.connectionState === 'connected' && u.room === r.id && !u.payment
-            ).length;
-            online[r.id] = count;
-        }
-        return online;
-    }
-
-    res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(), online: buildOnlineCounts() })}\n\n`);
-
-    const onEvent = (eventData) => {
-        if (eventData.scope === 'callerid' && eventData.room === room) {
-            res.write(`data: ${JSON.stringify({ type: 'callerid', ...buildRoomSnapshot(), online: buildOnlineCounts(), ts: eventData.ts || Date.now() })}\n\n`);
-        }
-    };
-
-    global.db.eventEmitter.on('STATE_CHANGE', onEvent);
-    req.on('close', () => global.db.eventEmitter.off('STATE_CHANGE', onEvent));
+    });
 });

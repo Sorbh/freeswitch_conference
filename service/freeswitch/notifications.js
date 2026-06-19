@@ -39,6 +39,17 @@ function _resolveContact(userName, cb) {
         return cb(cached.uri);
     }
 
+    // Try DB contact first — avoids ESL round-trip
+    const userInfo = global.db.getUserInfo(userName);
+    if (userInfo.contact) {
+        const uri = _extractContactUri(userInfo.contact);
+        if (uri) {
+            _contactCache.set(userName, { uri, ts: Date.now() });
+            return cb(uri);
+        }
+    }
+
+    // Fallback: sofia_contact lookup via ESL
     const lookups = _resolveContactLookups(userName);
     const tryLookup = (idx) => {
         if (idx >= lookups.length) return cb(null);

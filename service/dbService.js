@@ -12,7 +12,6 @@ const DB_PATH = path.join(__dirname, '..', 'data', 'freeswitch_conference.db');
 const db = {};
 let sqlite;
 const eventEmitter = new EventEmitter();
-eventEmitter.setMaxListeners(50);
 
 function init() {
     sqlite = new Database(DB_PATH);

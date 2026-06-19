@@ -82,73 +82,100 @@ export default class ApiRouter {
 function _sseRouter() {
     const router = express.Router();
 
+    // --- Client sets (one entry per SSE connection) ---
+    const streamClients = new Set();        // res objects (admin /stream)
+    const roomClients = new Set();          // { res, room } objects (/room/:room)
+    const fsLogClients = new Set();         // res objects (/fs-log)
+    const phoneLogClients = new Set();      // res objects (/phone-log)
+    const debugLogClients = new Set();      // res objects (/debug-log)
+
+    // Helper: broadcast a pre-serialised SSE frame to every res in a Set
+    function broadcast(clients, frame) {
+        for (const client of clients) {
+            const res = client.res || client;
+            res.write(frame);
+        }
+    }
+
+    // --- One listener per event type, registered once ---
+
+    // /stream gets all four event types
+    for (const evt of ['EVENT_LOG', 'USER_UPDATE', 'STATE_CHANGE', 'BROADCAST']) {
+        global.db.eventEmitter.on(evt, (eventData) => {
+            if (streamClients.size === 0 && roomClients.size === 0) return;
+            const frame = `data: ${JSON.stringify(eventData)}\n\n`;
+            broadcast(streamClients, frame);
+
+            // Room clients also receive USER_UPDATE, STATE_CHANGE, BROADCAST (not EVENT_LOG)
+            if (evt !== 'EVENT_LOG' && roomClients.size > 0) {
+                for (const client of roomClients) {
+                    if (eventData.room === client.room || eventData.type === 'state_change') {
+                        client.res.write(frame);
+                    }
+                }
+            }
+        });
+    }
+
+    // Simple log channels — one event type each
+    global.db.eventEmitter.on('FS_LOG', (entry) => {
+        if (fsLogClients.size === 0) return;
+        broadcast(fsLogClients, `data: ${JSON.stringify(entry)}\n\n`);
+    });
+    global.db.eventEmitter.on('PHONE_LOG', (entry) => {
+        if (phoneLogClients.size === 0) return;
+        broadcast(phoneLogClients, `data: ${JSON.stringify(entry)}\n\n`);
+    });
+    global.db.eventEmitter.on('DEBUG_LOG', (entry) => {
+        if (debugLogClients.size === 0) return;
+        broadcast(debugLogClients, `data: ${JSON.stringify(entry)}\n\n`);
+    });
+
+    // --- SSE endpoint handlers ---
+
+    const SSE_HEADERS = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+    };
+
     // /api/v1/admin/events/stream → this sees /stream
     router.get("/stream", (req, res) => {
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
+        res.writeHead(200, SSE_HEADERS);
         res.write('data: {"type":"connected"}\n\n');
-        const onEvent = (eventData) => { res.write(`data: ${JSON.stringify(eventData)}\n\n`); };
-        global.db.eventEmitter.on('EVENT_LOG', onEvent);
-        global.db.eventEmitter.on('USER_UPDATE', onEvent);
-        global.db.eventEmitter.on('STATE_CHANGE', onEvent);
-        global.db.eventEmitter.on('BROADCAST', onEvent);
-        req.on('close', () => {
-            global.db.eventEmitter.off('EVENT_LOG', onEvent);
-            global.db.eventEmitter.off('USER_UPDATE', onEvent);
-            global.db.eventEmitter.off('STATE_CHANGE', onEvent);
-            global.db.eventEmitter.off('BROADCAST', onEvent);
-        });
+        streamClients.add(res);
+        req.on('close', () => { streamClients.delete(res); });
     });
 
     // /api/v1/admin/events/room/:room → this sees /room/:room
     router.get("/room/:room", (req, res) => {
         const room = parseInt(req.params.room);
         if (!room) return res.status(400).end();
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
-        const onEvent = (eventData) => {
-            if (eventData.room === room || eventData.type === 'state_change') {
-                res.write(`data: ${JSON.stringify(eventData)}\n\n`);
-            }
-        };
-        global.db.eventEmitter.on('USER_UPDATE', onEvent);
-        global.db.eventEmitter.on('STATE_CHANGE', onEvent);
-        global.db.eventEmitter.on('BROADCAST', onEvent);
-        req.on('close', () => {
-            global.db.eventEmitter.off('USER_UPDATE', onEvent);
-            global.db.eventEmitter.off('STATE_CHANGE', onEvent);
-            global.db.eventEmitter.off('BROADCAST', onEvent);
-        });
+        res.writeHead(200, SSE_HEADERS);
+        const client = { res, room };
+        roomClients.add(client);
+        req.on('close', () => { roomClients.delete(client); });
     });
 
     router.get("/fs-log", (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.writeHead(200, SSE_HEADERS);
         res.write('data: {"type":"connected"}\n\n');
-        const onLog = (entry) => { res.write(`data: ${JSON.stringify(entry)}\n\n`); };
-        global.db.eventEmitter.on('FS_LOG', onLog);
-        req.on('close', () => { global.db.eventEmitter.off('FS_LOG', onLog); });
+        fsLogClients.add(res);
+        req.on('close', () => { fsLogClients.delete(res); });
     });
 
     router.get("/phone-log", (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.writeHead(200, SSE_HEADERS);
         res.write('data: {"type":"connected"}\n\n');
-        const onLog = (entry) => { res.write(`data: ${JSON.stringify(entry)}\n\n`); };
-        global.db.eventEmitter.on('PHONE_LOG', onLog);
-        req.on('close', () => { global.db.eventEmitter.off('PHONE_LOG', onLog); });
+        phoneLogClients.add(res);
+        req.on('close', () => { phoneLogClients.delete(res); });
     });
 
     router.get("/debug-log", (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.writeHead(200, SSE_HEADERS);
         res.write('data: {"type":"connected"}\n\n');
-        const onLog = (entry) => { res.write(`data: ${JSON.stringify(entry)}\n\n`); };
-        global.db.eventEmitter.on('DEBUG_LOG', onLog);
-        req.on('close', () => { global.db.eventEmitter.off('DEBUG_LOG', onLog); });
+        debugLogClients.add(res);
+        req.on('close', () => { debugLogClients.delete(res); });
     });
 
     return router;
