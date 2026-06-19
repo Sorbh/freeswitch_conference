@@ -326,11 +326,47 @@ export function whisperTranscribeBroadcast(broadcastId) {
     try {
         const result = whisperTranscribe(broadcast.recording_path);
         global.db.updateBroadcastLocalTranscription(broadcastId, result.text, result.hasPartsRequest);
+
+        if (result.hasPartsRequest && result.text.length > 10) {
+            extractPartDetails(broadcastId, result.text).catch(err =>
+                logSystem('PARTS', `Extract failed for #${broadcastId}: ${err.message}`)
+            );
+        }
+
         return result;
     } catch (err) {
         logSystem('STT', `Whisper local #${broadcastId} FAILED: ${err.message}`);
         return null;
     }
+}
+
+async function extractPartDetails(broadcastId, text) {
+    const url = config.CAPTURE_PART_API || 'http://50.28.84.57:4005/api/v1/ai/capture-partv1';
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: text }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const partDetails = json.data;
+
+    if (partDetails && isValidPartRequest(partDetails)) {
+        global.db.updateBroadcastPartDetails(broadcastId, partDetails);
+        logSystem('PARTS', `#${broadcastId}: ${partDetails.year} ${partDetails.make} ${partDetails.model} ${partDetails.part}`);
+    } else {
+        logSystem('PARTS', `#${broadcastId}: not a valid part request`);
+    }
+}
+
+function isValidPartRequest(data) {
+    for (const field of ['year', 'make', 'model', 'part']) {
+        const value = data[field];
+        if (!value || typeof value !== 'string' || value.trim() === '' || ['null', 'not available'].includes(value.trim().toLowerCase())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 export { checkContainsYearOrNumber };

@@ -1175,6 +1175,25 @@ export default function BroadcastsPage() {
                         <span className="text-xs text-muted-foreground/60">Parts Request</span>
                         <span className="text-sm">{b.has_parts_request == null ? "—" : b.has_parts_request ? "✅ Yes" : "❌ No"}</span>
                       </div>
+                      {(() => {
+                        try {
+                          const pd = typeof b.part_details === 'string' ? JSON.parse(b.part_details) : b.part_details;
+                          if (!pd) return null;
+                          return (
+                            <div className="py-2.5 border-t border-border/20">
+                              <span className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/50 mb-2 block">Part Details</span>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-1.5">
+                                {pd.year && <div><span className="text-[10px] text-muted-foreground/50">Year</span><p className="text-sm text-foreground/80">{pd.year}</p></div>}
+                                {pd.make && <div><span className="text-[10px] text-muted-foreground/50">Make</span><p className="text-sm text-foreground/80">{pd.make}</p></div>}
+                                {pd.model && <div><span className="text-[10px] text-muted-foreground/50">Model</span><p className="text-sm text-foreground/80">{pd.model}</p></div>}
+                                {pd.trim && <div><span className="text-[10px] text-muted-foreground/50">Trim</span><p className="text-sm text-foreground/80">{pd.trim}</p></div>}
+                                {pd.part && <div className="col-span-2"><span className="text-[10px] text-muted-foreground/50">Part</span><p className="text-sm text-foreground/80">{pd.part}</p></div>}
+                                {pd.specification && <div className="col-span-2"><span className="text-[10px] text-muted-foreground/50">Specification</span><p className="text-sm text-foreground/80">{pd.specification}</p></div>}
+                              </div>
+                            </div>
+                          );
+                        } catch { return null; }
+                      })()}
                     </div>
 
                     {/* Local transcription (whisper) */}
