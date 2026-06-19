@@ -16,5 +16,4 @@ Disallow: /api/
 Disallow: /classic
 Disallow: /landing_2
 
-# TODO: replace hotlinehq.com with the real production domain
-Sitemap: https://hotlinehq.com/sitemap.xml
+Sitemap: https://redlineusedautoparts.com/hotlinehq/sitemap.xml

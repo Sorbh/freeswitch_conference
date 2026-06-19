@@ -143,7 +143,11 @@ async function _handleUnregister(event) {
 
     userInfo.online = false;
     userInfo.registrationState = 'unregistered';
-    userInfo.connectionState = wasConnected ? 'hangup' : userInfo.connectionState;
+    userInfo.connectionState = 'ideal';
+    userInfo.error = null;
+    userInfo.retryCount = 0;
+    userInfo.errFallbackStage = 0;
+    userInfo.errFallbackAt = null;
     userInfo.fsChannelUUID = null;
     userInfo.fsMemberId = null;
     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
@@ -179,7 +183,11 @@ async function _handleExpire(event) {
 
     userInfo.online = false;
     userInfo.registrationState = 'expired';
-    userInfo.connectionState = wasConnected ? 'hangup' : userInfo.connectionState;
+    userInfo.connectionState = 'ideal';
+    userInfo.error = null;
+    userInfo.retryCount = 0;
+    userInfo.errFallbackStage = 0;
+    userInfo.errFallbackAt = null;
     userInfo.fsChannelUUID = null;
     userInfo.fsMemberId = null;
     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);

@@ -107,6 +107,11 @@ function _applyRegSync(allUsers, fsUsers) {
         } else if (!isRegistered && user.online) {
             user.online = false;
             user.registrationState = 'unregistered';
+            user.connectionState = 'ideal';
+            user.error = null;
+            user.retryCount = 0;
+            user.errFallbackStage = 0;
+            user.errFallbackAt = null;
             invalidateContactCache(user.userName);
             global.db.logOnlineStatus(user.userName, 'offline');
             logUser(user.userName, 'POLL', 'offline (unregistered)');
@@ -226,6 +231,11 @@ function _resetOnlineTimer(userName) {
 
         logUser(userName, 'ALIVE', 'TIMEOUT — marking offline');
         userInfo.online = false;
+        userInfo.connectionState = 'ideal';
+        userInfo.error = null;
+        userInfo.retryCount = 0;
+        userInfo.errFallbackStage = 0;
+        userInfo.errFallbackAt = null;
         global.db.setUserInfo(userName, userInfo);
         global.db.logEvent('offline', userName, null, 'Keep-alive timeout');
         global.db.logOnlineStatus(userName, 'offline');
