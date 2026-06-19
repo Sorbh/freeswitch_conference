@@ -31,16 +31,47 @@ const TEMPLATE_VARS = {
     duration: 'Duration in seconds',
     status: 'Answered / UNANSWERED',
     respondedBy: 'Who responded',
-    participants: 'Participant count',
+    participants: 'Participant names',
     time: 'Timestamp',
     transcription: 'Audio transcription text',
+    parts: 'Part details (use {{parts.year}}, {{parts.make}}, {{parts.model}}, {{parts.trim}}, {{parts.part}}, {{parts.specification}} for individual fields)',
 };
+
+function _resolvePath(data, pathStr) {
+    try {
+        const indexMatch = pathStr.match(/^(.+)\[(\d+)\]$/);
+        const keys = (indexMatch ? indexMatch[1] : pathStr).split('.');
+        let value = data;
+        for (const key of keys) {
+            if (value == null) return '';
+            value = value[key];
+        }
+        if (indexMatch) {
+            const idx = parseInt(indexMatch[2]);
+            if (Array.isArray(value)) return value[idx] ?? '';
+            if (typeof value === 'string') {
+                const parts = value.split(',').map(s => s.trim());
+                return parts[idx] ?? value;
+            }
+        }
+        if (value == null) return '';
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            return ['year', 'make', 'model', 'trim', 'part', 'specification']
+                .map(k => value[k]).filter(v => v && v !== 'null' && v !== 'not available').join(' | ');
+        }
+        if (Array.isArray(value)) return value.join(', ');
+        return String(value);
+    } catch {
+        return '';
+    }
+}
 
 function _buildCaption(template, vars) {
     let result = template || DEFAULT_TEMPLATE;
-    for (const [key, value] of Object.entries(vars)) {
-        result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
-    }
+    result = result.replace(/\{\{([^}]+)\}\}/g, (match, path) => {
+        const resolved = _resolvePath(vars, path.trim());
+        return resolved || '';
+    });
     return result.replace(/\n{3,}/g, '\n\n').trim();
 }
 
@@ -98,6 +129,18 @@ export async function notifyBroadcast(broadcastData) {
         }
     }
 
+    // Load part details from DB if available
+    let partDetail = null;
+    if (recordingPath) {
+        const row = global.db.getBroadcastByRecordingPath(recordingPath);
+        if (row) {
+            const full = global.db.getBroadcastById(row.id);
+            if (full?.part_details) {
+                try { partDetail = typeof full.part_details === 'string' ? JSON.parse(full.part_details) : full.part_details; } catch {}
+            }
+        }
+    }
+
     const vars = {
         name: account?.display_name || displayName || speaker,
         email: account?.email || speaker,
@@ -111,9 +154,10 @@ export async function notifyBroadcast(broadcastData) {
         duration: String(Math.round((durationMs || 0) / 1000)),
         status: answered ? 'Answered' : 'UNANSWERED',
         respondedBy: respondedBy || '',
-        participants: String(participants?.length || 1),
+        participants: Array.isArray(participants) ? participants.map(p => p.displayName || p).join(', ') : String(participants || ''),
         time: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }),
         transcription,
+        parts: partDetail || {},
     };
 
     const oggPath = _ensureOgg(recordingPath);
@@ -255,8 +299,9 @@ export async function testNotificationChannel(channel) {
         duration: '12',
         status: 'UNANSWERED',
         respondedBy: '',
-        participants: '1',
+        participants: 'Allen, Bob, Charlie',
         time: new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: true }),
+        parts: { year: '2019', make: 'Toyota', model: 'Camry', trim: 'SE', part: 'Transmission', specification: 'Automatic' },
     };
 
     const caption = `✅ TEST — HotlineHQ\n\n${_buildCaption(channel.message_template, testVars)}`;

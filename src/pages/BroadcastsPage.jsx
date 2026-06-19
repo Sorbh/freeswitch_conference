@@ -99,7 +99,7 @@ function useAnimatedNumber(target, dur = 500) {
 }
 
 // ── Stat Card ──
-function StatCard({ label, value, icon, color, mono = true }) {
+function StatCard({ label, value, sub, icon, color, mono = true }) {
   const animated = useAnimatedNumber(typeof value === "number" ? value : 0);
   return (
     <Card className="border-border/40 relative overflow-hidden group">
@@ -114,6 +114,7 @@ function StatCard({ label, value, icon, color, mono = true }) {
           <div className="min-w-0">
             <p className={`text-2xl font-bold leading-none tracking-tight ${mono ? "font-mono tabular-nums" : ""}`}>
               {typeof value === "number" ? animated.toLocaleString() : value}
+              {sub && <span className="text-xs font-normal text-muted-foreground ml-1.5">{sub}</span>}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1 truncate">{label}</p>
           </div>
@@ -360,11 +361,11 @@ export default function BroadcastsPage() {
   const totalUnanswered = totalBroadcasts - totalAnswered;
   const responseRate = totalBroadcasts > 0 ? ((totalAnswered / totalBroadcasts) * 100).toFixed(1) : "0.0";
 
-  const avgResponseTime = useMemo(() => {
+  const { avgResponseTime, totalDuration } = useMemo(() => {
     const answered = broadcasts.filter(b => b.answered && b.duration_ms);
-    if (answered.length === 0) return "—";
-    const avg = answered.reduce((s, b) => s + b.duration_ms, 0) / answered.length;
-    return formatDuration(avg);
+    if (answered.length === 0) return { avgResponseTime: "—", totalDuration: null };
+    const total = answered.reduce((s, b) => s + b.duration_ms, 0);
+    return { avgResponseTime: formatDuration(total / answered.length), totalDuration: formatDuration(total) };
   }, [broadcasts]);
 
   const getRowOffset = useCallback((row) => {
@@ -532,18 +533,21 @@ export default function BroadcastsPage() {
       if (json.status) {
         toast.success("Transcription complete");
         refetchList();
-        if (transcriptDrawer?.id === b.id) {
-          setTranscriptDrawer({ ...b, transcription: json.data.transcription, transcription_status: 'completed' });
-        }
+        _updateDrawer(b.id, { transcription: json.data.transcription, transcription_status: 'completed' });
       } else {
         toast.error(json.error || "Transcription failed");
       }
     } catch (e) { toast.error("Transcription failed"); }
     finally { setTranscribing(null); }
-  }, [refetchList, transcriptDrawer]);
+  }, [refetchList]);
 
   const [refreshingWhisper, setRefreshingWhisper] = useState(null);
   const [refreshingParts, setRefreshingParts] = useState(null);
+
+  const _updateDrawer = (id, updates) => {
+    setDetailDrawer(prev => prev?.id === id ? { ...prev, ...updates } : prev);
+    setTranscriptDrawer(prev => prev?.id === id ? { ...prev, ...updates } : prev);
+  };
 
   const refreshWhisper = useCallback(async (b) => {
     setRefreshingWhisper(b.id);
@@ -553,15 +557,13 @@ export default function BroadcastsPage() {
       if (json.status) {
         toast.success("Whisper transcription refreshed");
         refetchList();
-        if (transcriptDrawer?.id === b.id) {
-          setTranscriptDrawer(prev => ({ ...prev, local_transcription: json.data?.text || prev.local_transcription, has_parts_request: json.data?.hasPartsRequest ? 1 : 0 }));
-        }
+        _updateDrawer(b.id, { local_transcription: json.data?.text, has_parts_request: json.data?.hasPartsRequest ? 1 : 0 });
       } else {
         toast.error(json.error || "Whisper failed");
       }
     } catch (e) { toast.error("Whisper failed"); }
     finally { setRefreshingWhisper(null); }
-  }, [refetchList, transcriptDrawer]);
+  }, [refetchList]);
 
   const refreshParts = useCallback(async (b) => {
     setRefreshingParts(b.id);
@@ -571,15 +573,13 @@ export default function BroadcastsPage() {
       if (json.status) {
         toast.success("Part details extracted");
         refetchList();
-        if (transcriptDrawer?.id === b.id) {
-          setTranscriptDrawer(prev => ({ ...prev, part_details: JSON.stringify(json.data) }));
-        }
+        _updateDrawer(b.id, { part_details: JSON.stringify(json.data) });
       } else {
         toast.error(json.error || "Part extraction failed");
       }
     } catch (e) { toast.error("Part extraction failed"); }
     finally { setRefreshingParts(null); }
-  }, [refetchList, transcriptDrawer]);
+  }, [refetchList]);
 
   const copyTranscript = useCallback(() => {
     if (transcriptDrawer?.transcription) {
@@ -650,7 +650,7 @@ export default function BroadcastsPage() {
         <StatCard label="Answered" value={totalAnswered} icon={<PhoneCallIcon className="size-4" />} color="#22c55e" />
         <StatCard label="Unanswered" value={totalUnanswered} icon={<PhoneOffIcon className="size-4" />} color="#ef4444" />
         <StatCard label="Response Rate" value={`${responseRate}%`} icon={<PercentIcon className="size-4" />} color="#f59e0b" mono={false} />
-        <StatCard label="Avg Duration" value={avgResponseTime} icon={<ClockIcon className="size-4" />} color="#8b5cf6" mono={false} />
+        <StatCard label="Avg Duration" value={avgResponseTime} sub={totalDuration ? `/ ${totalDuration}` : null} icon={<ClockIcon className="size-4" />} color="#8b5cf6" mono={false} />
       </div>
 
       {/* Chart */}
