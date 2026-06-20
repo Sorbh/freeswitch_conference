@@ -111,6 +111,37 @@ export function showMessage(targets, message, timeout = 4) {
     global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'message', message, targets });
 }
 
+function _escapeXml(value) {
+    return String(value || '').replace(/[<>&'"]/g, (char) => ({
+        '<': '&lt;',
+        '>': '&gt;',
+        '&': '&amp;',
+        "'": '&apos;',
+        '"': '&quot;',
+    }[char]));
+}
+
+export function showMessageWithSoftKeys(targets, message, softKeys = [], timeout = 4) {
+    if (!Array.isArray(targets)) targets = [targets];
+
+    const softKeyXml = softKeys.map((softKey, index) => `
+<SoftKeyItem>
+<Name>${_escapeXml(softKey.name)}</Name>
+<URL>${_escapeXml(softKey.url)}</URL>
+<Position>${softKey.position || index + 1}</Position>
+</SoftKeyItem>`).join('');
+    const xmlBody = `<YealinkIPPhoneTextScreen Timeout="${timeout}" LockIn="yes" Beep="yes"><Title>Redline</Title><Text>${_escapeXml(message)}</Text>${softKeyXml}</YealinkIPPhoneTextScreen>`;
+
+    let sent = 0;
+    for (const target of targets) {
+        if (!target) continue;
+        _sendNotify(target, 'Yealink-xml', 'application/xml', xmlBody);
+        sent++;
+    }
+
+    global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'message', message, targets });
+}
+
 export function sendCommands(targets, commands) {
     if (!Array.isArray(targets)) targets = [targets];
 
@@ -168,9 +199,15 @@ export function stopTone(targets) {
         const userName = target.startsWith('sip:') ? target : `sip:${target}`;
         const users = global.db.filter(u => u.userName === userName);
         const user = users[0];
-        if (!user || !user.fsMemberId || user.connectionState !== 'connected') continue;
+        if (!user || !user.fsMemberId) continue;
         const room = user.currentRoom || user.room;
         conn.api(`conference ${room} stop ${user.fsMemberId}`, () => {});
+        setTimeout(() => {
+            const retryUser = global.db.filter(u => u.userName === userName)[0] || user;
+            const retryMemberId = retryUser?.fsMemberId || user.fsMemberId;
+            const retryRoom = retryUser?.currentRoom || retryUser?.room || room;
+            if (retryMemberId && retryRoom) conn.api(`conference ${retryRoom} stop ${retryMemberId}`, () => {});
+        }, 300);
     }
 }
 

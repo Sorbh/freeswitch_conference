@@ -3,12 +3,12 @@
 // At timeout−30s: whisper warning tone + Yealink screen notification.
 // At timeout: force-mute via FS conference API. Timer clears on mute/leave.
 // Skips users in direct (1-to-1) calls. Settings: automute_enabled, automute_timeout_ms.
-import { onCustomEvent } from './connection.js';
+import { logSystem } from '../logger.js';
 import { muteByMemberId } from './callAction.js';
-import { showMessage, playTone } from './notifications.js';
-import { logUser, logSystem } from '../logger.js';
-import { isInDirectCall } from './directCall.js';
 import { findUserByMember, findUserByUuid } from './callEvents.js';
+import { onCustomEvent } from './connection.js';
+import { isInDirectCall } from './directCall.js';
+import { playTone, showMessage } from './notifications.js';
 
 const WARNING_BEFORE_MS = 30_000;
 const WARNING_TONE = 'tone_stream://%(300,200,880);%(300,200,1100);loops=2';
@@ -26,9 +26,16 @@ function _resolveUserName(memberId, conferenceName, event) {
     return user?.userName || null;
 }
 
+function _isDirectCallUser(userName, userInfo = null) {
+    if (userName && isInDirectCall(userName)) return true;
+    const info = userInfo || (userName ? global.db.getUserInfo(userName) : null);
+    return !!(info?.fsChannelUUID && isInDirectCall(info.fsChannelUUID));
+}
+
 function _startAutoMute(userName, room, memberId) {
     const { enabled, timeoutMs } = _getSettings();
     if (!enabled || timeoutMs <= 0) return;
+    if (_isDirectCallUser(userName)) return;
 
     _clearAutoMute(userName);
 
@@ -39,6 +46,10 @@ function _startAutoMute(userName, room, memberId) {
         ? setTimeout(() => {
             const userInfo = global.db.getUserInfo(userName);
             if (!userInfo || userInfo.mute || userInfo.connectionState !== 'connected') return;
+            if (_isDirectCallUser(userName, userInfo)) {
+                _clearAutoMute(userName);
+                return;
+            }
             const currentRoom = userInfo.currentRoom || userInfo.room;
             const currentMemberId = userInfo.fsMemberId;
             if (!currentMemberId) return;
@@ -55,6 +66,10 @@ function _startAutoMute(userName, room, memberId) {
             _clearAutoMute(userName);
             return;
         }
+        if (_isDirectCallUser(userName, userInfo)) {
+            _clearAutoMute(userName);
+            return;
+        }
         const currentRoom = userInfo.currentRoom || userInfo.room;
         const currentMemberId = userInfo.fsMemberId;
         if (!currentMemberId) {
@@ -64,6 +79,7 @@ function _startAutoMute(userName, room, memberId) {
 
         userInfo.mute = true;
         global.db.setUserInfo(userName, userInfo);
+        logSystem('AUTOMUTE', `MUTE_TRACE autoMute timeout ${userName} room=${currentRoom} member=${currentMemberId} after=${Math.round(timeoutMs / 1000)}s`);
         muteByMemberId(currentRoom, currentMemberId, userName);
         logSystem('AUTOMUTE', `${userName} MUTED in ${roomName} after ${Math.round(timeoutMs / 1000)}s`);
         autoMuteTimers.delete(userName);
@@ -90,11 +106,15 @@ onCustomEvent((event) => {
     const room = parseInt(conferenceName) || null;
 
     const uuid = event.getHeader('Unique-ID');
-    if (uuid && isInDirectCall(uuid)) return;
+    if (uuid && isInDirectCall(uuid)) {
+        const userName = _resolveUserName(memberId, conferenceName, event);
+        if (userName) _clearAutoMute(userName);
+        return;
+    }
 
     if (action === 'unmute-member') {
         const userName = _resolveUserName(memberId, conferenceName, event);
-        if (userName) _startAutoMute(userName, room, memberId);
+        if (userName && !_isDirectCallUser(userName)) _startAutoMute(userName, room, memberId);
     } else if (action === 'mute-member' || action === 'del-member') {
         const userName = _resolveUserName(memberId, conferenceName, event);
         if (userName) _clearAutoMute(userName);

@@ -1,8 +1,68 @@
-// Reactive ESL event handlers. Listens to FreeSWITCH events and updates user state.
-// CHANNEL_ANSWER: tracks new calls, rejects in-flight originates for kicked/inactive users.
-// CHANNEL_HANGUP: cleans up call state, triggers auto-reconnect if user still online.
-// conference::maintenance: tracks member join/leave/mute/unmute.
-// ESL disconnect: resets all connected users. ESL reconnect: syncs with actual conference state.
+// FreeSWITCH ESL event router.
+//
+// This file owns reactive state updates from FreeSWITCH. It should reflect what
+// FreeSWITCH reports; user actions such as hook on/off are handled in phoneEvents.js.
+//
+// Event inputs
+// ┌─────────────────────────────┬────────────────────────────────────────────────┐
+// │ ESL event                   │ Meaning                                        │
+// ├─────────────────────────────┼────────────────────────────────────────────────┤
+// │ CHANNEL_ANSWER              │ A SIP channel answered. Track UUID -> user.   │
+// │ CHANNEL_HANGUP_COMPLETE     │ A SIP channel ended. Clean DB state/reconnect.│
+// │ conference::maintenance     │ Conference member join/leave/mute/talking.    │
+// │ ESL disconnect/reconnect    │ FreeSWITCH connection state changed.          │
+// └─────────────────────────────┴────────────────────────────────────────────────┘
+//
+// CHANNEL_ANSWER decision order
+// ┌────┬────────────────────────────────────────────┬─────────────────────────────┐
+// │ #  │ Condition                                  │ Action                      │
+// ├────┼────────────────────────────────────────────┼─────────────────────────────┤
+// │ 1  │ UUID belongs to a known user               │ map UUID -> userName        │
+// │ 2  │ canInitiateCall rejects active user        │ kill UUID, do not track     │
+// │ 3  │ no existing connection handler for UUID    │ mark connected/login        │
+// │ 4  │ tracked channel later hangs up             │ run _onCallHangup(user)     │
+// └────┴────────────────────────────────────────────┴─────────────────────────────┘
+//
+// CHANNEL_HANGUP_COMPLETE decision order
+// ┌────┬────────────────────────────────────────────┬─────────────────────────────┐
+// │ #  │ Condition                                  │ Action                      │
+// ├────┼────────────────────────────────────────────┼─────────────────────────────┤
+// │ 1  │ UUID has a connectionHandler               │ call handler, delete map    │
+// │ 2  │ UUID still exists in DB                    │ mark hangup, clear UUID/id  │
+// │ 3  │ user is online and not in direct_call      │ initiateCall(userName)      │
+// │ 4  │ UUID already cleaned by direct-call logic  │ only log as cleaned up      │
+// └────┴────────────────────────────────────────────┴─────────────────────────────┘
+//
+// conference::maintenance actions
+// ┌────────────────┬──────────────────────────────────────────────────────────────┐
+// │ Action         │ DB effect                                                    │
+// ├────────────────┼──────────────────────────────────────────────────────────────┤
+// │ add-member     │ map room/member -> UUID, touch lastSeen, keep connected.    │
+// │ del-member     │ set mute=true, clear fsMemberId. If user is in direct_call, │
+// │                │ keep connectionState=direct_call; otherwise set hangup.     │
+// │ mute-member    │ set mute=true, clear talking state, broadcast caller ID.    │
+// │ unmute-member  │ set mute=false, broadcast caller ID.                       │
+// │ start-talking  │ mark talking only when user exists and is not muted.        │
+// │ stop-talking   │ clear talking state.                                        │
+// └────────────────┴──────────────────────────────────────────────────────────────┘
+//
+// State graph
+// ┌────────────┐ CHANNEL_ANSWER ┌────────────┐ del-member normal ┌────────────┐
+// │ connecting │ ─────────────▶ │ connected  │ ────────────────▶ │ hangup     │
+// └────────────┘                └─────┬──────┘                   └────────────┘
+//                                     │ del-member during direct call
+//                                     ▼
+//                              ┌────────────┐
+//                              │ direct_call│
+//                              └─────┬──────┘
+//                                    │ direct-call hangup/recover
+//                                    ▼
+//                              ┌────────────┐
+//                              │ hangup     │
+//                              └────────────┘
+//
+// ESL disconnect resets connected/connecting/direct_call users to hangup because
+// the channel/member state is unknown until reconnect sync finishes.
 import { logSystem, logUser, logUserImmediate } from '../logger.js';
 import { canInitiateCall, initiateCall, resumeFallbacks, unlockCalls } from './callGate.js';
 import { syncAllUsers } from './conferenceSync.js';
@@ -25,7 +85,7 @@ onCustomEvent((event) => {
 onEslDisconnect(() => {
     logSystem('ESL', 'Disconnected — marking all connected users as hangup');
     const connectedUsers = global.db.filter(u =>
-        u.connectionState === 'connected' || u.connectionState === 'connecting'
+        u.connectionState === 'connected' || u.connectionState === 'connecting' || u.connectionState === 'direct_call'
     );
     for (const user of connectedUsers) {
         user.connectionState = 'hangup';
@@ -181,6 +241,7 @@ function _handleConferenceEvent(event) {
             const uuid = event.getHeader('Unique-ID');
             const delUser = uuid ? global.db.filter(u => u.fsChannelUUID === uuid)[0] : null;
             if (delUser) {
+                logUser(delUser.userName, 'MUTE_TRACE', `conference del-member set mute=true room=${roomName} member=${memberId}`);
                 delUser.mute = true;
                 global.db.setUserInfo(delUser.userName, delUser);
             }
@@ -190,10 +251,11 @@ function _handleConferenceEvent(event) {
                     global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: delUser.userName, talking: false });
                 }
                 delUser.fsMemberId = null;
-                delUser.connectionState = 'hangup';
+                const directCallLeave = isInDirectCall(delUser.userName) || isInDirectCall(uuid);
+                delUser.connectionState = directCallLeave ? 'direct_call' : 'hangup';
                 delUser.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
                 global.db.setUserInfo(delUser.userName, delUser);
-                logUser(delUser.userName, 'CONF', 'LEAVE -> hangup');
+                logUser(delUser.userName, 'CONF', directCallLeave ? 'LEAVE -> direct_call' : 'LEAVE -> hangup');
             }
             getMemberIdMap().delete(`${conferenceName}:${memberId}`);
             global.db.logEvent('conference_leave', callerIdName, room, 'Left conference');
@@ -202,6 +264,7 @@ function _handleConferenceEvent(event) {
         case 'mute-member': {
             const muteUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (muteUser) {
+                logUser(muteUser.userName, 'MUTE_TRACE', `conference mute-member set mute=true room=${roomName} member=${memberId}`);
                 muteUser.mute = true;
                 global.db.setUserInfo(muteUser.userName, muteUser);
                 if (_talkingUsers.delete(muteUser.userName)) {
@@ -217,6 +280,7 @@ function _handleConferenceEvent(event) {
         case 'unmute-member': {
             const unmuteUser = findUserByMember(conferenceName, memberId);
             if (unmuteUser) {
+                logUser(unmuteUser.userName, 'MUTE_TRACE', `conference unmute-member set mute=false room=${roomName} member=${memberId}`);
                 unmuteUser.mute = false;
                 global.db.setUserInfo(unmuteUser.userName, unmuteUser);
                 global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: unmuteUser.userName });

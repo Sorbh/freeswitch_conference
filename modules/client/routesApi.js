@@ -1,12 +1,21 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../service/auth/middleware.js";
+import { declineByUserName } from "../../service/freeswitch/directCall.js";
+import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
-import { logUser } from "../../service/logger.js";
 
 const CLIENT_TOKEN_EXPIRY = '7d';
 
 export const clientRouter = express.Router();
+
+function _getClientIp(req) {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) return forwarded.split(',')[0].trim().replace('::ffff:', '');
+    const realIp = req.headers['x-real-ip'];
+    if (realIp) return realIp.trim().replace('::ffff:', '');
+    return (req.ip || '').replace('::ffff:', '');
+}
 
 function requireClientAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -79,11 +88,12 @@ clientRouter.post("/login", (req, res) => {
     }
 });
 
-function _checkUserInCall(userName) {
+function _checkUserSanity(userName) {
     const userInfo = global.db.getUserInfo(userName);
     if (!userInfo || Object.keys(userInfo).length === 0) return { ok: false, code: 404, error: "User not found" };
-    if (userInfo.connectionState !== 'connected') return { ok: false, code: 409, error: "User is not in a call" };
-    if (!userInfo.fsMemberId) return { ok: false, code: 409, error: "User is not in a conference" };
+    if (userInfo.connectionState !== 'connected' && userInfo.connectionState !== 'direct_call') {
+        return { ok: false, code: 409, error: "User is not in a call" };
+    }
     return { ok: true };
 }
 
@@ -91,12 +101,11 @@ function _checkUserInCall(userName) {
 clientRouter.post("/mute", requireClientAuth, (req, res) => {
     try {
         const userName = `sip:${req.client.email}`;
-        logUser(userName, 'CLIENT', 'MUTE');
-        const check = _checkUserInCall(userName);
+        logSystem('CLIENT', `API /mute user=${userName} ip=${_getClientIp(req)}`);
+        const check = _checkUserSanity(userName);
         if (!check.ok) return res.status(check.code).json({ status: false, error: check.error });
         const result = handleHttpHookEvent(userName, 'on_hook');
         if (!result) return res.status(400).json({ status: false, error: "Failed to mute" });
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', detail: { userName } });
         res.json({ status: true, muted: true });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -107,13 +116,25 @@ clientRouter.post("/mute", requireClientAuth, (req, res) => {
 clientRouter.post("/unmute", requireClientAuth, (req, res) => {
     try {
         const userName = `sip:${req.client.email}`;
-        logUser(userName, 'CLIENT', 'UNMUTE');
-        const check = _checkUserInCall(userName);
+        logSystem('CLIENT', `API /unmute user=${userName} ip=${_getClientIp(req)}`);
+        const check = _checkUserSanity(userName);
         if (!check.ok) return res.status(check.code).json({ status: false, error: check.error });
         const result = handleHttpHookEvent(userName, 'off_hook');
         if (!result) return res.status(400).json({ status: false, error: "Failed to unmute" });
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', detail: { userName } });
         res.json({ status: true, muted: false });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /direct-call/decline — decline pending private direct call
+clientRouter.post("/direct-call/decline", requireClientAuth, (req, res) => {
+    try {
+        const userName = `sip:${req.client.email}`;
+        logSystem('CLIENT', `API /direct-call/decline user=${userName} ip=${_getClientIp(req)}`);
+        const declined = declineByUserName(userName, 'web_decline');
+        if (!declined) return res.status(409).json({ status: false, error: "No pending direct call" });
+        res.json({ status: true, message: "Direct call declined" });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -234,6 +255,10 @@ function _ensureClientListener() {
             online: buildOnlineCounts(),
             ts: eventData.ts || Date.now()
         });
+    });
+    global.db.eventEmitter.on('CLIENT_USER_EVENT', (eventData) => {
+        if (!eventData.userName || !eventData.event) return;
+        sendClientEventToUser(eventData.userName, eventData.event);
     });
 }
 

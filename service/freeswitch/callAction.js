@@ -26,6 +26,7 @@ export function hangupCall(uuid, userName) {
 export function muteUser(mac) {
     const userInfo = global.db.findUserInfo('mac', mac);
     if (Object.keys(userInfo).length === 0 || !userInfo.fsMemberId) return;
+    logUser(userInfo.userName, 'MUTE_TRACE', `muteUser mac=${mac} room=${userInfo.currentRoom || userInfo.room} member=${userInfo.fsMemberId}`);
     userInfo.mute = true;
     global.db.setUserInfo(userInfo.userName, userInfo);
     muteByMemberId(userInfo.room, userInfo.fsMemberId, userInfo.userName);
@@ -34,6 +35,7 @@ export function muteUser(mac) {
 export function unmuteUser(mac) {
     const userInfo = global.db.findUserInfo('mac', mac);
     if (Object.keys(userInfo).length === 0 || !userInfo.fsMemberId) return;
+    logUser(userInfo.userName, 'MUTE_TRACE', `unmuteUser mac=${mac} room=${userInfo.currentRoom || userInfo.room} member=${userInfo.fsMemberId}`);
     userInfo.mute = false;
     global.db.setUserInfo(userInfo.userName, userInfo);
     unmuteByMemberId(userInfo.room, userInfo.fsMemberId, userInfo.userName);
@@ -41,6 +43,7 @@ export function unmuteUser(mac) {
 
 export function muteByMemberId(room, memberId, userName) {
     const roomName = global.config.ROOM_NAME[room] || room;
+    logUser(userName || 'unknown', 'MUTE_TRACE', `muteByMemberId request room=${roomName} member=${memberId}`);
     getConnection().api(`conference ${room} mute ${memberId}`, (response) => {
         logUser(userName || 'unknown', 'ACTION', `MUTE -> ${roomName} (member ${memberId})`);
     });
@@ -48,6 +51,7 @@ export function muteByMemberId(room, memberId, userName) {
 
 export function unmuteByMemberId(room, memberId, userName) {
     const roomName = global.config.ROOM_NAME[room] || room;
+    logUser(userName || 'unknown', 'MUTE_TRACE', `unmuteByMemberId request room=${roomName} member=${memberId}`);
     getConnection().api(`conference ${room} unmute ${memberId}`, (response) => {
         logUser(userName || 'unknown', 'ACTION', `UNMUTE -> ${roomName} (member ${memberId})`);
     });

@@ -363,9 +363,14 @@ export default function UsersPage() {
           if (sortCol === "email") return (u.account?.email || u.userName || "").toLowerCase();
           if (sortCol === "company") return (u.account?.company_name || "").toLowerCase();
           if (sortCol === "room") return (ROOM_NAMES[u.currentRoom || u.room] || "").toLowerCase();
+          if (sortCol === "extension") return u.account?.extension ? Number(u.account.extension) : null;
+          if (sortCol === "lastSeen") return Number(u.last_seen || u.updatedAt || 0) || null;
           return "";
         };
         const va = getVal(a), vb = getVal(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
         const cmp = va < vb ? -1 : va > vb ? 1 : 0;
         if (cmp !== 0) return sortDir === "asc" ? cmp : -cmp;
       }
@@ -814,9 +819,13 @@ export default function UsersPage() {
                 <TableHead className="hidden md:table-cell cursor-pointer select-none" onClick={() => toggleSort("room")}>
                   <span className="inline-flex items-center gap-1">Room <SortIcon col="room" /></span>
                 </TableHead>
-                <TableHead className="hidden lg:table-cell w-[60px]">Ext</TableHead>
+                <TableHead className="hidden lg:table-cell w-[60px] cursor-pointer select-none" onClick={() => toggleSort("extension")}>
+                  <span className="inline-flex items-center gap-1">Ext <SortIcon col="extension" /></span>
+                </TableHead>
                 <TableHead className="hidden md:table-cell">Account</TableHead>
-                <TableHead>Last Seen</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("lastSeen")}>
+                  <span className="inline-flex items-center gap-1">Last Seen <SortIcon col="lastSeen" /></span>
+                </TableHead>
                 <TableHead className="text-right w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
