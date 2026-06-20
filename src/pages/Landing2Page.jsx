@@ -1591,11 +1591,30 @@ export default function Landing2Page() {
     }
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
+    const fd = new FormData(e.target);
+    const businessName = (fd.get("businessName") || "").trim();
+    const phone = (fd.get("phone") || "").trim();
+    const region = (fd.get("region") || "").trim();
+
     setSent(true);
     confettiBurst();
     toast.success("Request received — we'll call your yard within one business day.");
+
+    try {
+      const payload = JSON.stringify({
+        email: `${businessName} — ${region}`,
+        feature: "get-listed",
+        name: region,
+        businessName,
+        phone,
+      });
+      navigator.sendBeacon(
+        "https://script.google.com/macros/s/AKfycbwX_nAG62h6qlqF1bD9QjxDGPuOmp9ruGAPwhNq6ZRLj0NYVxKEwzdnN3io8nLsEmoS/exec",
+        new Blob([payload], { type: "text/plain" })
+      );
+    } catch (_) {}
   }
 
   const part = PARTS[demoPart];
@@ -2014,15 +2033,15 @@ export default function Landing2Page() {
               <>
                 <label>
                   Yard name
-                  <input required placeholder="e.g. Eastside Auto & Truck Parts" />
+                  <input name="businessName" required placeholder="e.g. Eastside Auto & Truck Parts" />
                 </label>
                 <label>
                   Phone
-                  <input required type="tel" placeholder="(555) 555-0134" />
+                  <input name="phone" required type="tel" placeholder="(555) 555-0134" />
                 </label>
                 <label>
                   State / region
-                  <input required placeholder="e.g. Texas" />
+                  <input name="region" required placeholder="e.g. Texas" />
                 </label>
                 <button className="l2-btn l2-btn-hot" type="submit">
                   Call me about a line

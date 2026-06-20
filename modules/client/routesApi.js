@@ -165,8 +165,60 @@ function buildOnlineCounts() {
     return online;
 }
 
-// Map<roomId, Set<res>> — tracks all active SSE connections per room
+function _normalizeClientUserName(userName) {
+    if (!userName) return null;
+    return userName.startsWith('sip:') ? userName : `sip:${userName}`;
+}
+
+function _writeClientEvent(client, event) {
+    client.res.write(`data: ${JSON.stringify(event)}\n\n`);
+}
+
+function _addToMapSet(map, key, client) {
+    if (!key) return;
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(client);
+}
+
+function _removeFromMapSet(map, key, client) {
+    const clients = map.get(key);
+    if (!clients) return;
+    clients.delete(client);
+    if (clients.size === 0) map.delete(key);
+}
+
+// Map<roomId, Set<client>> — tracks all active SSE connections per room
 const clientRoomSSE = new Map();
+// Map<userName, Set<client>> — tracks all active SSE connections per SIP user
+const clientUserSSE = new Map();
+
+export function sendClientEventToRoom(room, event) {
+    const roomId = parseInt(room);
+    if (!roomId) return 0;
+
+    const clients = clientRoomSSE.get(roomId);
+    if (!clients || clients.size === 0) return 0;
+
+    const payload = { ...event, ts: event?.ts || Date.now() };
+    for (const client of clients) {
+        _writeClientEvent(client, payload);
+    }
+    return clients.size;
+}
+
+export function sendClientEventToUser(userName, event) {
+    const normalizedUserName = _normalizeClientUserName(userName);
+    if (!normalizedUserName) return 0;
+
+    const clients = clientUserSSE.get(normalizedUserName);
+    if (!clients || clients.size === 0) return 0;
+
+    const payload = { ...event, ts: event?.ts || Date.now() };
+    for (const client of clients) {
+        _writeClientEvent(client, payload);
+    }
+    return clients.size;
+}
 
 // Single STATE_CHANGE listener — registered lazily on first SSE connect
 let _clientListenerRegistered = false;
@@ -176,19 +228,12 @@ function _ensureClientListener() {
     global.db.eventEmitter.on('STATE_CHANGE', (eventData) => {
         if (eventData.scope !== 'callerid' || !eventData.room) return;
         const room = eventData.room;
-        const clients = clientRoomSSE.get(room);
-        if (!clients || clients.size === 0) return;
-
-        const payload = `data: ${JSON.stringify({
+        sendClientEventToRoom(room, {
             type: 'callerid',
             ...buildRoomSnapshot(room),
             online: buildOnlineCounts(),
             ts: eventData.ts || Date.now()
-        })}\n\n`;
-
-        for (const client of clients) {
-            client.write(payload);
-        }
+        });
     });
 }
 
@@ -206,20 +251,22 @@ clientRouter.get("/events/room/:room", requireClientSSEAuth, (req, res) => {
     // Send initial snapshot
     res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(room), online: buildOnlineCounts() })}\n\n`);
 
-    // Register this connection in the broadcast map
-    if (!clientRoomSSE.has(room)) {
-        clientRoomSSE.set(room, new Set());
-    }
-    clientRoomSSE.get(room).add(res);
+    const userName = _normalizeClientUserName(req.client.email);
+    const client = {
+        res,
+        room,
+        email: req.client.email,
+        userName,
+        accountId: req.client.sub,
+    };
+
+    // Register this connection in room and user maps
+    _addToMapSet(clientRoomSSE, room, client);
+    _addToMapSet(clientUserSSE, userName, client);
 
     // Clean up on disconnect
     req.on('close', () => {
-        const clients = clientRoomSSE.get(room);
-        if (clients) {
-            clients.delete(res);
-            if (clients.size === 0) {
-                clientRoomSSE.delete(room);
-            }
-        }
+        _removeFromMapSet(clientRoomSSE, room, client);
+        _removeFromMapSet(clientUserSSE, userName, client);
     });
 });

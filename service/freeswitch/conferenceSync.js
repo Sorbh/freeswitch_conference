@@ -12,6 +12,7 @@ function _parseConferenceList(body) {
         members.push({
             memberId: parts[0] || null,
             uuid: parts[2] || null,
+            callerIdNumber: parts[4] || null,
             raw: line,
         });
     }
@@ -86,7 +87,7 @@ export function syncAllUsers({ markHangup = false, onUserConnected, logPrefix = 
             let matched = false;
             for (const member of members) {
                 if (matchedUuids.has(member.uuid)) continue;
-                if (member.raw.includes(sipLocal)) {
+                if (member.callerIdNumber === sipLocal) {
                     matchedUuids.add(member.uuid);
                     user.fsChannelUUID = member.uuid;
                     user.fsMemberId = member.memberId;
@@ -143,7 +144,7 @@ export function isUserInConference(userName) {
             const members = _parseConferenceList(body);
 
             for (const member of members) {
-                if (member.raw.includes(sipLocal)) {
+                if (member.callerIdNumber === sipLocal) {
                     resolve({ memberId: member.memberId, uuid: member.uuid });
                     return;
                 }

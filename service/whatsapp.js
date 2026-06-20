@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pino from 'pino';
 import { logSystem } from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -104,7 +105,7 @@ export async function connectChannel(channelId) {
         printQRInTerminal: false,
         defaultQueryTimeoutMs: undefined,
         browser: ['Mac OS', 'Chrome', '14.4.1'],
-        logger: { level: 'silent', info() {}, debug() {}, warn() {}, error() {}, trace() {}, child() { return this; }, fatal() {} },
+        logger: pino({ level: 'warn' }),
     });
 
     session.sock = sock;
