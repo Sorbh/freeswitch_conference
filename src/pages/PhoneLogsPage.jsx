@@ -190,7 +190,10 @@ export default function PhoneLogsPage() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [users, setUsers] = useState([]);
-  const { events: rawEvents, clear: rawClear } = useSSE("/api/v1/admin/events/phone-log", active);
+  const sseUrl = macFilter !== "all"
+    ? `/api/v1/admin/events/phone-log?mac=${encodeURIComponent(macFilter)}`
+    : "/api/v1/admin/events/phone-log";
+  const { events: rawEvents, clear: rawClear } = useSSE(sseUrl, active);
   const scrollRef = useRef(null);
 
   useEffect(() => {

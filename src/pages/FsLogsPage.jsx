@@ -103,10 +103,19 @@ export default function FsLogsPage() {
   const [methodFilter, setMethodFilter] = useState("all");
   const [codeFilter, setCodeFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [expanded, setExpanded] = useState(null);
-  const { events: rawEvents, clear: rawClear } = useSSE("/api/v1/admin/events/fs-log", active);
+  const sseUrl = debouncedSearch
+    ? `/api/v1/admin/events/fs-log?search=${encodeURIComponent(debouncedSearch)}`
+    : "/api/v1/admin/events/fs-log";
+  const { events: rawEvents, clear: rawClear } = useSSE(sseUrl, active);
   const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const packets = useMemo(() => {
     const all = rawEvents.filter((e) => e.subtype === "sip_packet");

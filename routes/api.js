@@ -85,8 +85,8 @@ function _sseRouter() {
     // --- Client sets (one entry per SSE connection) ---
     const streamClients = new Set();        // res objects (admin /stream)
     const roomClients = new Set();          // { res, room } objects (/room/:room)
-    const fsLogClients = new Set();         // res objects (/fs-log)
-    const phoneLogClients = new Set();      // res objects (/phone-log)
+    const fsLogClients = new Set();         // { res, search? } objects (/fs-log)
+    const phoneLogClients = new Set();      // { res, mac? } objects (/phone-log)
     const debugLogClients = new Set();      // res objects (/debug-log)
 
     // Helper: broadcast a pre-serialised SSE frame to every res in a Set
@@ -120,11 +120,23 @@ function _sseRouter() {
     // Simple log channels — one event type each
     global.db.eventEmitter.on('FS_LOG', (entry) => {
         if (fsLogClients.size === 0) return;
-        broadcast(fsLogClients, `data: ${JSON.stringify(entry)}\n\n`);
+        const frame = `data: ${JSON.stringify(entry)}\n\n`;
+        for (const client of fsLogClients) {
+            if (client.search) {
+                const q = client.search;
+                const hay = `${entry.from || ''}\0${entry.to || ''}\0${entry.callId || ''}\0${entry.method || ''}\0${entry.transport || ''}\0${entry.message || ''}`.toLowerCase();
+                if (!hay.includes(q)) continue;
+            }
+            client.res.write(frame);
+        }
     });
     global.db.eventEmitter.on('PHONE_LOG', (entry) => {
         if (phoneLogClients.size === 0) return;
-        broadcast(phoneLogClients, `data: ${JSON.stringify(entry)}\n\n`);
+        const frame = `data: ${JSON.stringify(entry)}\n\n`;
+        for (const client of phoneLogClients) {
+            if (client.mac && entry.mac !== client.mac) continue;
+            client.res.write(frame);
+        }
     });
     global.db.eventEmitter.on('DEBUG_LOG', (entry) => {
         if (debugLogClients.size === 0) return;
@@ -160,15 +172,19 @@ function _sseRouter() {
     router.get("/fs-log", (req, res) => {
         res.writeHead(200, SSE_HEADERS);
         res.write('data: {"type":"connected"}\n\n');
-        fsLogClients.add(res);
-        req.on('close', () => { fsLogClients.delete(res); });
+        const search = req.query.search?.toLowerCase() || '';
+        const client = { res, search };
+        fsLogClients.add(client);
+        req.on('close', () => { fsLogClients.delete(client); });
     });
 
     router.get("/phone-log", (req, res) => {
         res.writeHead(200, SSE_HEADERS);
         res.write('data: {"type":"connected"}\n\n');
-        phoneLogClients.add(res);
-        req.on('close', () => { phoneLogClients.delete(res); });
+        const mac = req.query.mac?.toLowerCase() || '';
+        const client = { res, mac };
+        phoneLogClients.add(client);
+        req.on('close', () => { phoneLogClients.delete(client); });
     });
 
     router.get("/debug-log", (req, res) => {
