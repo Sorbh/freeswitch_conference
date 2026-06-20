@@ -1,9 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JsSIP from "jssip";
 
-const SIP_HOST = "50.28.84.57";
 const SIP_DOMAIN = "50.28.84.57";
-const WS_PORT = 5072;
+const WS_URL = "wss://hotline.redlineusedautoparts.com/fs_wss/";
 const SIP_PASSWORD = "12345678";
 const LISTEN_USER = "admin-listen";
 
@@ -66,7 +65,7 @@ export function useConferenceListen() {
       audioCtxRef.current = ctx;
       console.log("[LISTEN] Silent stream created, tracks:", silentStream.getTracks().length);
 
-      const socket = new JsSIP.WebSocketInterface(`wss://${SIP_HOST}:${WS_PORT}`);
+      const socket = new JsSIP.WebSocketInterface(WS_URL);
 
       const ua = new JsSIP.UA({
         sockets: [socket],
@@ -165,7 +164,7 @@ export function useConferenceListen() {
       });
 
       ua.on("connecting", () => {
-        console.log("[LISTEN] WebSocket connecting to", `wss://${SIP_HOST}:${WS_PORT}`);
+        console.log("[LISTEN] WebSocket connecting to", WS_URL);
       });
 
       ua.start();
