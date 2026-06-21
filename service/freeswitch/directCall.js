@@ -43,7 +43,6 @@ const activeSessions = new Map();
 const dtmfBuffers = new Map();
 // Pending accepts: callee userName -> { callId, timer, ... }
 const pendingAccepts = new Map();
-const returnMutedUntil = new Map();
 const recentHookEvents = new Map();
 
 function _clientEvent(userName, event) {
@@ -78,9 +77,6 @@ function _yealinkDeclineUrl() {
 }
 
 function _markReturnMuted(userName, reason) {
-    const until = Date.now() + 10000;
-    returnMutedUntil.set(userName, until);
-
     const userInfo = global.db.getUserInfo(userName);
     if (!userInfo || Object.keys(userInfo).length === 0) return;
 
@@ -96,16 +92,6 @@ function _markReturnMuted(userName, reason) {
     }
 
     logSystem('DIRECT', `RETURN MUTED ${userName} (${reason})`);
-}
-
-export function shouldKeepDirectCallMuted(userName) {
-    const until = returnMutedUntil.get(userName);
-    if (!until) return false;
-    if (Date.now() > until) {
-        returnMutedUntil.delete(userName);
-        return false;
-    }
-    return true;
 }
 
 export function noteDirectCallHookEvent(userName, event) {
@@ -344,7 +330,7 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
     const caller = _getConferenceInfo(callerUuid);
     if (!caller) {
         logSystem('DIRECT', `Caller UUID ${callerUuid} not found in DB`);
-        return;
+        return { status: false, code: 409, error: 'Caller is not in conference' };
     }
 
     const callee = _findUserByExtension(calleeExtension);
@@ -358,12 +344,12 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
             extension: calleeExtension,
             message: `Extension *${calleeExtension} is not available`,
         });
-        return;
+        return { status: false, code: 404, error: `Extension *${calleeExtension} is not available` };
     }
 
     if (callee.userName === caller.userName) {
         logSystem('DIRECT', `${caller.displayName} tried to call themselves (*${calleeExtension})`);
-        return;
+        return { status: false, code: 409, error: 'Cannot call your own extension' };
     }
 
     // Check if either party is already in a direct call (by userName)
@@ -374,7 +360,7 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
         _clientEvent(caller.userName, _directCallPayload('direct_call_busy', null, 'caller', callee, {
             message: `${callee.displayName} is busy`,
         }));
-        return;
+        return { status: false, code: 409, error: `${callee.displayName} is busy` };
     }
 
     // Check if callee is already unmuted (busy talking)
@@ -386,7 +372,7 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
         _clientEvent(caller.userName, _directCallPayload('direct_call_busy', null, 'caller', callee, {
             message: `${callee.displayName} is busy`,
         }));
-        return;
+        return { status: false, code: 409, error: `${callee.displayName} is busy` };
     }
 
     logSystem('DIRECT', `┌─ CALL ── *${calleeExtension} ──────────────────────────────`);
@@ -452,6 +438,30 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
 
     logSystem('DIRECT', `│  waiting for ${callee.displayName} to accept (${ACCEPT_TIMEOUT_MS / 1000}s timeout)`);
     logSystem('DIRECT', `└───────────────────────────────────────────────────────`);
+    return {
+        status: true,
+        callId,
+        message: `Calling *${calleeExtension}`,
+        peer: {
+            displayName: callee.displayName,
+            extension: callee.extension,
+            company: callee.account?.company_name || '',
+            room: callee.room,
+            roomName: callee.roomName,
+        },
+    };
+}
+
+export async function initiateDirectCallByUserName(callerUserName, calleeExtension) {
+    const userName = callerUserName?.startsWith('sip:') ? callerUserName : `sip:${callerUserName}`;
+    const userInfo = global.db.getUserInfo(userName);
+    if (!userInfo || Object.keys(userInfo).length === 0) {
+        return { status: false, code: 404, error: 'Caller not found' };
+    }
+    if (userInfo.connectionState !== 'connected' || !userInfo.fsChannelUUID || !userInfo.fsMemberId) {
+        return { status: false, code: 409, error: 'Caller is not in conference' };
+    }
+    return initiateDirectCall(userInfo.fsChannelUUID, calleeExtension);
 }
 
 async function _acceptCall(calleeUserName) {

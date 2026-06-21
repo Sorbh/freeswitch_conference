@@ -1,7 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../service/auth/middleware.js";
-import { declineByUserName } from "../../service/freeswitch/directCall.js";
+import { declineByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
 import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 
@@ -88,6 +88,66 @@ clientRouter.post("/login", (req, res) => {
     }
 });
 
+// GET /extensions — authenticated directory of callable extensions
+clientRouter.get("/extensions", requireClientAuth, (req, res) => {
+    try {
+        const rooms = {};
+        for (const room of global.db.getAllRooms()) {
+            rooms[room.id] = room.name;
+        }
+
+        const data = global.db.getAllAccounts()
+            .filter(account => account.active && account.extension)
+            .map(account => ({
+                id: account.id,
+                email: account.email,
+                companyName: account.company_name || '',
+                displayName: account.display_name || account.email,
+                extension: account.extension,
+                room: account.room,
+                roomName: rooms[account.room] || String(account.room || ''),
+            }))
+            .sort((a, b) => {
+                const left = `${a.companyName} ${a.displayName}`.toLowerCase();
+                const right = `${b.companyName} ${b.displayName}`.toLowerCase();
+                if (left < right) return -1;
+                if (left > right) return 1;
+                return Number(a.extension) - Number(b.extension);
+            });
+
+        res.json({ status: true, data });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /conference-status — whether authenticated user is currently in conference
+clientRouter.get("/conference-status", requireClientAuth, (req, res) => {
+    try {
+        const userName = `sip:${req.client.email}`;
+        const userInfo = global.db.getUserInfo(userName);
+        const inConference = !!(
+            userInfo &&
+            Object.keys(userInfo).length > 0 &&
+            userInfo.connectionState === 'connected' &&
+            userInfo.fsChannelUUID &&
+            userInfo.fsMemberId
+        );
+
+        res.json({
+            status: true,
+            data: {
+                userName,
+                inConference,
+                connectionState: userInfo?.connectionState || 'unknown',
+                room: userInfo?.currentRoom || userInfo?.room || null,
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 function _checkUserSanity(userName) {
     const userInfo = global.db.getUserInfo(userName);
     if (!userInfo || Object.keys(userInfo).length === 0) return { ok: false, code: 404, error: "User not found" };
@@ -135,6 +195,28 @@ clientRouter.post("/direct-call/decline", requireClientAuth, (req, res) => {
         const declined = declineByUserName(userName, 'web_decline');
         if (!declined) return res.status(409).json({ status: false, error: "No pending direct call" });
         res.json({ status: true, message: "Direct call declined" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /direct-call/start — start private direct call by extension
+clientRouter.post("/direct-call/start", requireClientAuth, async (req, res) => {
+    try {
+        const userName = `sip:${req.client.email}`;
+        const extension = parseInt(req.body?.extension, 10);
+        logSystem('CLIENT', `API /direct-call/start user=${userName} ext=${extension || ''} ip=${_getClientIp(req)}`);
+
+        if (!extension) {
+            return res.status(400).json({ status: false, error: "extension is required" });
+        }
+
+        const result = await initiateDirectCallByUserName(userName, extension);
+        if (!result?.status) {
+            return res.status(result?.code || 400).json({ status: false, error: result?.error || "Failed to start direct call" });
+        }
+
+        res.json(result);
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

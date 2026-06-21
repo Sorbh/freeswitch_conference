@@ -2,7 +2,8 @@ import express from "express";
 import { logUser, logSystem } from "../../service/logger.js";
 import { sendRoomChangeNotification } from "../../service/rdlSocket.js";
 import { changeUserRoom } from "../admin/users.js";
-import { acceptByUserName, declineByUserName, hangupDirectCallByUserName, hasPendingCall, isInDirectCall, isPendingCaller, noteDirectCallHookEvent, shouldKeepDirectCallMuted } from "../../service/freeswitch/directCall.js";
+import { declineByUserName } from "../../service/freeswitch/directCall.js";
+import { handleDirectCallHookEvent } from "../../service/phoneEvents.js";
 
 export const yealinkRouter = express.Router();
 
@@ -49,11 +50,10 @@ yealinkRouter.get("/onhook", (req, res) => {
         logSystem('YEALINK', `API /onhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
         const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
-        noteDirectCallHookEvent(userInfo.userName, 'on_hook');
-        if (isInDirectCall(userInfo.userName)) {
-            hangupDirectCallByUserName(userInfo.userName, 'yealink_on_hook');
-            logUser(userInfo.userName, 'YEALINK', 'ONHOOK (end direct call)');
-            return res.json({ status: true, message: "Direct call ending" });
+        const directCallHook = handleDirectCallHookEvent(userInfo.userName, 'on_hook', 'yealink');
+        if (directCallHook.handled) {
+            logUser(userInfo.userName, 'YEALINK', `ONHOOK (${directCallHook.message})`);
+            return res.status(directCallHook.ok ? 200 : 400).json({ status: directCallHook.ok, message: directCallHook.message });
         }
         global.freeswitch.muteUser(userInfo.mac.toLowerCase());
         userInfo.mute = true;
@@ -72,26 +72,10 @@ yealinkRouter.get("/offhook", (req, res) => {
         logSystem('YEALINK', `API /offhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
         const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
-        noteDirectCallHookEvent(userInfo.userName, 'off_hook');
-        if (hasPendingCall(userInfo.userName)) {
-            acceptByUserName(userInfo.userName);
-            logUser(userInfo.userName, 'YEALINK', 'OFFHOOK (accept direct call)');
-            return res.json({ status: true, message: "Direct call accepted" });
-        }
-        if (isPendingCaller(userInfo.userName)) {
-            logUser(userInfo.userName, 'YEALINK', 'OFFHOOK ignored — waiting for direct call answer');
-            return res.json({ status: true, message: "Waiting for direct call answer" });
-        }
-        if (shouldKeepDirectCallMuted(userInfo.userName)) {
-            const activeRoom = userInfo.currentRoom || userInfo.room;
-            if (userInfo.fsMemberId && global.freeswitch?.muteByMemberId) {
-                global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userInfo.userName);
-            }
-            userInfo.mute = true;
-            global.db.setUserInfo(userInfo.userName, userInfo);
-            global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
-            logUser(userInfo.userName, 'YEALINK', 'OFFHOOK ignored — direct call returned muted');
-            return res.json({ status: true, message: "Returned to room muted" });
+        const directCallHook = handleDirectCallHookEvent(userInfo.userName, 'off_hook', 'yealink');
+        if (directCallHook.handled) {
+            logUser(userInfo.userName, 'YEALINK', `OFFHOOK (${directCallHook.message})`);
+            return res.status(directCallHook.ok ? 200 : 400).json({ status: directCallHook.ok, message: directCallHook.message });
         }
         global.freeswitch.unmuteUser(userInfo.mac.toLowerCase());
         userInfo.mute = false;

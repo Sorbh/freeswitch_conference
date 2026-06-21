@@ -28,12 +28,12 @@
 // │ 2  │ user cannot be found                       │ reject / ignore             │
 // │ 3  │ any valid hook event                       │ record recent hook for      │
 // │    │                                            │ direct-call end attribution │
-// │ 4  │ on_hook && user is in direct_call          │ kill private bridge; direct │
+// │ 4  │ on_hook && pending direct call             │ cancel/decline pending call │
+// │ 5  │ on_hook && user is in direct_call          │ kill private bridge; direct │
 // │    │                                            │ call code reconnects muted  │
-// │ 5  │ off_hook && user is pending callee         │ accept pending direct call  │
-// │ 6  │ off_hook && user is pending caller         │ ignore; caller must wait    │
-// │ 7  │ user has no fsMemberId                     │ not in conference; skip     │
-// │ 8  │ off_hook && return-muted window is active  │ force mute, keep muted      │
+// │ 6  │ off_hook && user is pending callee         │ accept pending direct call  │
+// │ 7  │ off_hook && user is pending caller         │ ignore; caller must wait    │
+// │ 8  │ user has no fsMemberId                     │ not in conference; skip     │
 // │ 9  │ normal on_hook in conference               │ mute by conference member   │
 // │ 10 │ normal off_hook in conference              │ unmute by conference member │
 // └────┴────────────────────────────────────────────┴─────────────────────────────┘
@@ -53,16 +53,16 @@
 // Direct-call graph
 // ┌─────────────────────┐  callee off_hook   ┌─────────────────────┐
 // │ pending direct call │ ─────────────────▶ │ direct_call         │
-// │ caller waits        │                    │ private bridge      │
-// └─────────────────────┘                    └──────────┬──────────┘
-//                                                        │ either side on_hook
-//                                                        ▼
-//                                             ┌─────────────────────┐
-//                                             │ reconnect to room   │
-//                                             │ always muted        │
-//                                             └─────────────────────┘
+// │ caller hears ring   │                    │ private bridge      │
+// └──────────┬──────────┘                    └──────────┬──────────┘
+//            │ caller/callee on_hook                    │ either side on_hook
+//            ▼                                           ▼
+// ┌─────────────────────┐                    ┌─────────────────────┐
+// │ cancel pending call │                    │ reconnect to room   │
+// │ stop tones/notify   │                    │ always muted        │
+// └─────────────────────┘                    └─────────────────────┘
 import SyslogServer from 'syslog-server';
-import { acceptByUserName, handleDTMF, hangupDirectCallByUserName, hasPendingCall, isInDirectCall, isPendingCaller, noteDirectCallHookEvent, shouldKeepDirectCallMuted } from './freeswitch/directCall.js';
+import { acceptByUserName, declineByUserName, handleDTMF, hangupDirectCallByUserName, hasPendingCall, isInDirectCall, isPendingCaller, noteDirectCallHookEvent } from './freeswitch/directCall.js';
 import { logSystem, logUser } from './logger.js';
 
 let syslogServer = null;
@@ -263,6 +263,56 @@ function _linkMacToUser(mac, fromHeader) {
     logUser(userName, 'PHONE', `MAC ${mac} linked via syslog`);
 }
 
+export function handleDirectCallHookEvent(userName, event, source = 'hook') {
+    noteDirectCallHookEvent(userName, event);
+
+    const label = String(source || 'hook').toUpperCase();
+    const reasonPrefix = String(source || 'hook').toLowerCase();
+
+    if (event === 'on_hook' && (hasPendingCall(userName) || isPendingCaller(userName))) {
+        const role = hasPendingCall(userName) ? 'callee' : 'caller';
+        logUser(userName, 'PHONE', `${label} ON HOOK → cancelling pending direct call (${role})`);
+        const ok = declineByUserName(userName, `${reasonPrefix}_on_hook_pending_call`);
+        const userInfo = global.db.getUserInfo(userName);
+        if (userInfo && Object.keys(userInfo).length > 0) {
+            if (userInfo.fsMemberId) {
+                _applyMuteState(userName, userInfo, 'on_hook');
+            } else {
+                userInfo.mute = true;
+                global.db.setUserInfo(userName, userInfo);
+                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
+            }
+        }
+        return {
+            handled: true,
+            ok,
+            message: ok ? 'Pending direct call cancelled' : 'No pending direct call',
+        };
+    }
+
+    if (event === 'on_hook' && isInDirectCall(userName)) {
+        logUser(userName, 'PHONE', `${label} ON HOOK → ending direct call`);
+        const ok = hangupDirectCallByUserName(userName, `${reasonPrefix}_on_hook`);
+        return {
+            handled: true,
+            ok,
+            message: ok ? 'Direct call ending' : 'Failed to end direct call',
+        };
+    }
+
+    if (event === 'off_hook' && hasPendingCall(userName)) {
+        logUser(userName, 'PHONE', `${label} OFF HOOK → accepting direct call`);
+        acceptByUserName(userName);
+        return { handled: true, ok: true, message: 'Direct call accepted' };
+    }
+
+    if (event === 'off_hook' && isPendingCaller(userName)) {
+        logUser(userName, 'PHONE', `${label} OFF HOOK ignored — waiting for direct call answer`);
+        return { handled: true, ok: true, message: 'Waiting for direct call answer' };
+    }
+
+    return { handled: false, ok: true };
+}
 
 export function handleHttpHookEvent(userName, event) {
     if (event !== 'off_hook' && event !== 'on_hook') {
@@ -276,41 +326,12 @@ export function handleHttpHookEvent(userName, event) {
         return false;
     }
 
-    noteDirectCallHookEvent(userName, event);
-
-    if (event === 'on_hook' && isInDirectCall(userName)) {
-        logUser(userName, 'PHONE', 'HTTP ON HOOK → ending direct call');
-        return hangupDirectCallByUserName(userName, 'http_on_hook');
-    }
-
-    // Off-hook: check for pending direct call before normal unmute
-    if (event === 'off_hook' && hasPendingCall(userName)) {
-        logUser(userName, 'PHONE', 'HTTP OFF HOOK → accepting direct call');
-        acceptByUserName(userName);
-        return true;
-    }
-
-    if (event === 'off_hook' && isPendingCaller(userName)) {
-        logUser(userName, 'PHONE', 'HTTP OFF HOOK ignored — waiting for direct call answer');
-        return true;
-    }
+    const directCallHook = handleDirectCallHookEvent(userName, event, 'http');
+    if (directCallHook.handled) return directCallHook.ok;
 
     if (!userInfo.fsMemberId) {
         logUser(userName, 'PHONE', 'HTTP not in conference');
         return false;
-    }
-
-    if (event === 'off_hook' && shouldKeepDirectCallMuted(userName)) {
-        const activeRoom = userInfo.currentRoom || userInfo.room;
-        if (userInfo.fsMemberId && global.freeswitch?.muteByMemberId) {
-            logUser(userName, 'MUTE_TRACE', `return-muted HTTP off_hook guard room=${activeRoom} member=${userInfo.fsMemberId}`);
-            global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userName);
-        }
-        userInfo.mute = true;
-        global.db.setUserInfo(userName, userInfo);
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
-        logUser(userName, 'PHONE', 'HTTP OFF HOOK ignored — direct call returned muted');
-        return true;
     }
 
     const _name = userInfo.callerIdName || userName;
@@ -326,41 +347,11 @@ function _handleHookEvent(macAddress, event) {
         return;
     }
 
-    noteDirectCallHookEvent(userInfo.userName, event);
-
-    if (event === 'on_hook' && isInDirectCall(userInfo.userName)) {
-        logUser(userInfo.userName, 'PHONE', 'ON HOOK → ending direct call');
-        hangupDirectCallByUserName(userInfo.userName, 'syslog_on_hook');
-        return;
-    }
-
-    // Off-hook: check for pending direct call before normal unmute
-    if (event === 'off_hook' && hasPendingCall(userInfo.userName)) {
-        logUser(userInfo.userName, 'PHONE', 'OFF HOOK → accepting direct call');
-        acceptByUserName(userInfo.userName);
-        return;
-    }
-
-    if (event === 'off_hook' && isPendingCaller(userInfo.userName)) {
-        logUser(userInfo.userName, 'PHONE', 'OFF HOOK ignored — waiting for direct call answer');
-        return;
-    }
+    const directCallHook = handleDirectCallHookEvent(userInfo.userName, event, 'syslog');
+    if (directCallHook.handled) return;
 
     if (!userInfo.fsMemberId) {
         logUser(userInfo.userName, 'PHONE', `not in conference, skipping ${event}`);
-        return;
-    }
-
-    if (event === 'off_hook' && shouldKeepDirectCallMuted(userInfo.userName)) {
-        const activeRoom = userInfo.currentRoom || userInfo.room;
-        if (userInfo.fsMemberId && global.freeswitch?.muteByMemberId) {
-            logUser(userInfo.userName, 'MUTE_TRACE', `return-muted syslog off_hook guard room=${activeRoom} member=${userInfo.fsMemberId}`);
-            global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userInfo.userName);
-        }
-        userInfo.mute = true;
-        global.db.setUserInfo(userInfo.userName, userInfo);
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
-        logUser(userInfo.userName, 'PHONE', 'OFF HOOK ignored — direct call returned muted');
         return;
     }
 

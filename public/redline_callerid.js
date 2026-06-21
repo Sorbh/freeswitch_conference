@@ -54,6 +54,7 @@
 //   window.callerIdSSE.reconnect()   // force reconnect
 //   window.callerIdSSE.disconnect()  // stop and clear
 //   window.callerIdSSE.getRoom()     // get current room
+//   window.RedlineExtensionDirectory.open() // open extension search
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -78,6 +79,7 @@
     var reconnectAttempts = 0;
     var MAX_RECONNECT_DELAY = 30000;
     var directCallHideTimer = null;
+    var conferenceStatusTimer = null;
 
     function getGrid() {
         try { return document.getElementById("caller_grid"); } catch (e) { return null; }
@@ -104,6 +106,259 @@
         return String(value || '').replace(/[&<>"']/g, function (char) {
             return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
         });
+    }
+
+    function ensureExtensionDirectoryWidget() {
+        if (window.RedlineExtensionDirectory) return window.RedlineExtensionDirectory;
+
+        var state = {
+            apiBase: '',
+            getToken: function () { return ''; },
+            callExtension: null,
+            items: [],
+            loaded: false,
+            loading: false,
+            query: '',
+            message: '',
+            open: false,
+            visible: false,
+        };
+
+        function root() {
+            var el = document.getElementById('redline_extension_directory');
+            if (el) return el;
+            el = document.createElement('div');
+            el.id = 'redline_extension_directory';
+            document.body.appendChild(el);
+            return el;
+        }
+
+        function label(item) {
+            return (item.companyName || 'Unknown') + ' / ' + (item.displayName || item.email || 'User');
+        }
+
+        function filteredItems() {
+            var q = (state.query || '').toLowerCase().trim();
+            if (!q) return state.items;
+            return state.items.filter(function (item) {
+                return [
+                    item.companyName,
+                    item.displayName,
+                    item.email,
+                    item.extension,
+                    item.roomName,
+                ].join(' ').toLowerCase().indexOf(q) !== -1;
+            });
+        }
+
+        function setMessage(message) {
+            state.message = message || '';
+            renderList();
+        }
+
+        function load(force) {
+            if (state.loading || (state.loaded && !force)) return;
+            var token = state.getToken && state.getToken();
+            if (!token) {
+                state.message = 'Login required before loading extensions.';
+                render();
+                return;
+            }
+            state.loading = true;
+            state.message = 'Loading extensions...';
+            render();
+
+            fetch(state.apiBase + '/api/v1/client/extensions', {
+                headers: { 'Authorization': 'Bearer ' + token },
+            })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (json) {
+                    state.items = json.data || [];
+                    state.loaded = true;
+                    state.message = state.items.length ? '' : 'No extensions found.';
+                    state.loading = false;
+                    render();
+                })
+                .catch(function (err) {
+                    state.loading = false;
+                    state.message = 'Failed to load extensions: ' + err.message;
+                    render();
+                });
+        }
+
+        function handleCall(item) {
+            var dialCode = '*' + item.extension;
+            if (typeof state.callExtension === 'function') {
+                var result = state.callExtension(item, dialCode) || {};
+                setMessage(result.message || ('Calling ' + dialCode));
+                return;
+            }
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(dialCode).catch(function () { });
+                }
+            } catch (e) { }
+            setMessage('Dial ' + dialCode + ' from your phone.');
+        }
+
+        function renderList() {
+            var list = document.getElementById('redline_extension_list');
+            if (!list) return;
+            var items = filteredItems();
+            var html = '';
+            if (state.message) {
+                html += '<div style="font-size:12px;color:#64748b;padding:10px 2px;">' + escapeHtml(state.message) + '</div>';
+            }
+            if (!items.length && !state.message) {
+                html += '<div style="font-size:12px;color:#64748b;padding:10px 2px;">No matching extensions.</div>';
+            }
+            html += items.map(function (item, index) {
+                return '<div data-ext-index="' + index + '" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb;">' +
+                    '<div style="min-width:0;">' +
+                    '<div style="font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(label(item)) + '</div>' +
+                    '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + escapeHtml(item.roomName || '') + ' • Ext *' + escapeHtml(item.extension) + '</div>' +
+                    '</div>' +
+                    '<button data-ext-call="' + index + '" style="border:0;border-radius:999px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer;flex:0 0 auto;box-shadow:0 8px 18px rgba(225,29,46,.2);letter-spacing:.02em;">Call</button>' +
+                    '</div>';
+            }).join('');
+            list.innerHTML = html;
+            var buttons = list.querySelectorAll('[data-ext-call]');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].onclick = function () {
+                    var item = items[parseInt(this.getAttribute('data-ext-call'), 10)];
+                    if (item) handleCall(item);
+                };
+            }
+        }
+
+        function render() {
+            var el = root();
+            if (!state.visible) {
+                state.open = false;
+                el.innerHTML = '';
+                return;
+            }
+            var sipIcon = '<span style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><svg viewBox="0 0 32 32" width="31" height="31" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;"><path d="M10.2 5.8 7.8 8.2c-.9.9-1.2 2.3-.8 3.5 2.3 7.1 7.9 12.7 15 15 .6.2 1.2.2 1.8.1.7-.1 1.3-.4 1.7-.9l2.5-2.4c.8-.8.8-2.2 0-3l-3.2-3.2c-.7-.7-1.9-.8-2.7-.2l-2.5 1.8c-2.8-1.4-5.1-3.7-6.5-6.5l1.8-2.5c.6-.8.5-2-.2-2.7l-3.2-3.2c-.9-.8-2.3-.8-3.1 0Z"></path><path d="M20.5 5.2c3 .9 5.4 3.3 6.3 6.3"></path><path d="M20.8 10.2c1.2.4 2.1 1.3 2.5 2.5"></path></svg><span style="position:absolute;right:-7px;top:-7px;background:#fff;color:#e11d2e;border-radius:999px;font-size:8px;font-weight:700;line-height:1;padding:3px 4px;letter-spacing:.03em;">SIP</span></span>';
+            var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:92px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(225,29,46,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;box-shadow:0 18px 38px rgba(185,28,28,.42);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(185,28,28,.48)}</style>';
+            el.innerHTML =
+                rippleCss +
+                '<div id="redline_ext_fab_wrap"><button id="redline_ext_fab" title="Search SIP extensions">' + sipIcon + '</button></div>' +
+                (state.open ? '<div id="redline_ext_backdrop" style="position:fixed;inset:0;z-index:2147483645;background:rgba(17,24,39,.26);backdrop-filter:blur(2px);"></div>' +
+                    '<div style="position:fixed;right:20px;bottom:164px;z-index:2147483647;width:min(430px,calc(100vw - 40px));max-height:min(620px,calc(100vh - 200px));display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,#fff7f8 100%);border:1px solid #fecaca;border-top:5px solid #e11d2e;border-radius:22px;box-shadow:0 26px 76px rgba(185,28,28,.28);font-family:Inter,Arial,sans-serif;overflow:hidden;">' +
+                    '<div style="display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid #fee2e2;background:linear-gradient(90deg,#fff,#fff1f2);">' +
+                    '<div><div style="font-size:16px;font-weight:650;color:#111827;letter-spacing:-.01em;"><span style="color:#e11d2e;font-weight:750;">SIP</span> Extension Directory</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">Search user and start a private extension call</div></div>' +
+                    '<button id="redline_ext_close" style="border:0;background:#fee2e2;color:#b91c1c;border-radius:10px;width:32px;height:32px;font-size:18px;font-weight:700;cursor:pointer;">×</button>' +
+                    '</div>' +
+                    '<div style="padding:13px 16px 0;"><input id="redline_ext_search" value="' + escapeHtml(state.query) + '" placeholder="Search company, name, ext..." style="width:100%;box-sizing:border-box;border:1px solid #fecaca;border-radius:14px;padding:12px 13px;font-size:13px;outline:none;background:#fff;color:#111827;box-shadow:0 5px 18px rgba(225,29,46,.08);"></div>' +
+                    '<div id="redline_extension_list" style="padding:4px 16px 14px;overflow:auto;"></div>' +
+                    '</div>' : '');
+
+            document.getElementById('redline_ext_fab').onclick = function () {
+                state.open = !state.open;
+                render();
+                if (state.open) load(false);
+            };
+            var close = document.getElementById('redline_ext_close');
+            if (close) close.onclick = function () { state.open = false; render(); };
+            var backdrop = document.getElementById('redline_ext_backdrop');
+            if (backdrop) backdrop.onclick = function () { state.open = false; render(); };
+            var search = document.getElementById('redline_ext_search');
+            if (search) {
+                search.oninput = function () {
+                    state.query = this.value;
+                    renderList();
+                };
+                setTimeout(function () { try { search.focus(); } catch (e) { } }, 0);
+            }
+            renderList();
+        }
+
+        window.RedlineExtensionDirectory = {
+            configure: function (opts) {
+                opts = opts || {};
+                if (opts.apiBase) state.apiBase = opts.apiBase.replace(/\/$/, '');
+                if (opts.getToken) state.getToken = opts.getToken;
+                if (opts.callExtension !== undefined) state.callExtension = opts.callExtension;
+                if (opts.visible !== undefined) state.visible = !!opts.visible;
+                render();
+            },
+            open: function () {
+                if (!state.visible) return;
+                state.open = true;
+                render();
+                load(false);
+            },
+            setMessage: setMessage,
+            setVisible: function (visible) {
+                state.visible = !!visible;
+                render();
+            },
+            refresh: function () {
+                state.loaded = false;
+                load(true);
+            },
+        };
+        return window.RedlineExtensionDirectory;
+    }
+
+    ensureExtensionDirectoryWidget().configure({
+        apiBase: sseBase,
+        getToken: function () { return clientToken; },
+        visible: false,
+        callExtension: function (item, dialCode) {
+            if (!clientToken) return { ok: false, message: 'Login required before calling ' + dialCode + '.' };
+            fetch(sseBase + '/api/v1/client/direct-call/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+                body: JSON.stringify({ extension: item.extension }),
+            })
+                .then(function (res) {
+                    return res.json().then(function (json) {
+                        if (!res.ok || !json.status) throw new Error(json.error || ('HTTP ' + res.status));
+                        return json;
+                    });
+                })
+                .then(function () {
+                    if (window.RedlineExtensionDirectory?.setMessage) window.RedlineExtensionDirectory.setMessage('Calling ' + dialCode + '...');
+                    renderDirectCallStatus('Calling extension', (item.companyName || '') + ' / ' + (item.displayName || '') + ' • ' + dialCode, false, 3000, 'info');
+                })
+                .catch(function (err) {
+                    if (window.RedlineExtensionDirectory?.setMessage) window.RedlineExtensionDirectory.setMessage(err.message);
+                    renderDirectCallStatus('Unable to call extension', err.message, false, 3000, 'warn');
+                });
+            return { ok: true, message: 'Calling ' + dialCode + '...' };
+        },
+    });
+
+    function updateExtensionDirectoryVisibility() {
+        if (!clientToken) {
+            if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
+            return;
+        }
+
+        fetch(sseBase + '/api/v1/client/conference-status', {
+            headers: { 'Authorization': 'Bearer ' + clientToken },
+        })
+            .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (json) {
+                var inConference = !!(json && json.data && json.data.inConference);
+                if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(inConference);
+            })
+            .catch(function () {
+                if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
+            });
+    }
+
+    function startConferenceStatusPolling() {
+        updateExtensionDirectoryVisibility();
+        if (conferenceStatusTimer) clearInterval(conferenceStatusTimer);
+        conferenceStatusTimer = setInterval(updateExtensionDirectoryVisibility, 5000);
     }
 
     function getDirectCallBanner() {
@@ -229,6 +484,7 @@
                 room = json.data.current_room || json.data.room;
             }
             console.log("[CallerID] Login successful, token acquired, room:", room);
+            startConferenceStatusPolling();
             if (cb) cb();
         })
         .catch(function (e) {
@@ -240,6 +496,7 @@
 
     function connect() {
         if (!clientToken) { doLogin(connect); return; }
+        startConferenceStatusPolling();
 
         try {
             if (eventSource) { eventSource.close(); eventSource = null; }
