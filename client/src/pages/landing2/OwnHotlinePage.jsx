@@ -312,4 +312,25 @@ const OWN_CSS = `
 }
 .l2-own-final h2 { color: #fff; }
 .l2-own-final p { color: #b9bcc4; font-size: 16.5px; line-height: 1.65; max-width: 560px; margin: 0 auto 28px; }
+
+@media (max-width: 640px) {
+  .l2-ownpage { padding: 120px 16px 40px; }
+  .l2-ownpage h1 { font-size: clamp(28px, 7vw, 40px); }
+  .l2-ownpage h2 { font-size: clamp(22px, 5vw, 28px); }
+  .l2-own-lede { font-size: 15px; }
+  .l2-own-ctas { flex-direction: column; }
+  .l2-own-ctas .l2-btn { text-align: center; }
+  .l2-own-proof { padding: 18px 16px; margin: 36px 0; }
+  .l2-own-sec { margin: 48px 0; }
+  .l2-own-sub { font-size: 14.5px; }
+  .l2-own-grid3 { gap: 12px; }
+  .l2-own-card { padding: 20px 16px; }
+  .l2-own-card h3 { font-size: 17px; }
+  .l2-own-card p { font-size: 14px; }
+  .l2-own-faq { padding: 18px 16px; }
+  .l2-own-faq h3 { font-size: 16px; }
+  .l2-own-faq p { font-size: 14px; }
+  .l2-own-final { padding: 36px 20px; margin: 48px 0 32px; border-radius: 14px; }
+  .l2-own-final p { font-size: 14.5px; }
+}
 `;

@@ -1647,8 +1647,9 @@ export default function Landing2Page() {
           <a href="#try">Try it</a>
           <a href="#rooms">Coverage</a>
           <a href="./own-a-hotline">Own a hotline</a>
-          <a href="#get-started" className="l2-nav-cta">
-            Get a line
+          <a href="/client/login" className="l2-nav-login">Login</a>
+          <a href="/client/signup" className="l2-nav-cta">
+            Sign Up Free
           </a>
         </nav>
       </header>
@@ -1678,11 +1679,11 @@ export default function Landing2Page() {
             yards — broadcast once, get an answer in seconds, and keep the sale.
           </p>
           <div className="l2-hero-ctas">
-            <a className="l2-btn l2-btn-hot" href="#join">
-              Put a line in your yard
+            <a className="l2-btn l2-btn-hot" href="/client/signup">
+              Sign Up Free
             </a>
-            <a className="l2-btn l2-btn-ghost" href="#try">
-              Try a sell call
+            <a className="l2-btn l2-btn-ghost" href="/client/login">
+              Login
             </a>
           </div>
 
@@ -1744,7 +1745,7 @@ export default function Landing2Page() {
       </div>
 
       {/* ───────────────── video demo ───────────────── */}
-      <section className="l2-section" id="demo">
+      <section className="l2-section l2-video-section" id="demo">
         <div className="l2-section-head l2-center l2-reveal">
           <p className="l2-kicker">See it run</p>
           <h2>Watch a part get located.</h2>
@@ -1771,11 +1772,7 @@ export default function Landing2Page() {
               }}
               aria-label="Play video"
             >
-              <span className="l2-play-btn">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
-                  <path d="M8 5.5v13l11-6.5z" />
-                </svg>
-              </span>
+              <span className="l2-play-btn" aria-hidden="true" />
               <span className="l2-play-label">Watch the hotline in action · 1 min</span>
             </button>
           )}
@@ -1817,7 +1814,12 @@ export default function Landing2Page() {
       <section className="l2-mid-cta-band" id="get-started">
         <div className="l2-mid-cta-inner l2-reveal">
           <h2>Ready to stop losing sales?</h2>
-          <p>Get on the line — reach out right now and we&rsquo;ll get you set up.</p>
+          <p>Join 500+ yards already on the network. Set up takes 30 seconds.</p>
+          <div style={{display:'flex',gap:'14px',justifyContent:'center',marginBottom:'28px',flexWrap:'wrap'}}>
+            <a className="l2-btn l2-btn-hot" href="/client/signup" style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
+            <a className="l2-btn l2-btn-ghost" href="/client/login" style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
+          </div>
+          <p className="l2-contact-fine" style={{marginBottom:'20px'}}>Or reach out directly — a human answers, no bots.</p>
           <div className="l2-contact-btns">
             <a
               className="l2-contact-btn wa-btn"
@@ -1984,6 +1986,9 @@ export default function Landing2Page() {
             </div>
           ))}
         </div>
+        <div className="l2-reveal" style={{textAlign:'center',marginTop:'40px'}}>
+          <a className="l2-btn l2-btn-hot" href="/client/signup">Sign Up Free — pick your room</a>
+        </div>
       </section>
 
       {/* ───────────────── system ───────────────── */}
@@ -2023,35 +2028,18 @@ export default function Landing2Page() {
               <li>Call recordings and answer-rate reporting included</li>
             </ul>
           </div>
-          <form className="l2-form l2-reveal" onSubmit={submit} ref={formRef}>
-            <p className="l2-form-title">Request a line</p>
-            {sent ? (
-              <p className="l2-form-done">
-                Received — we&rsquo;ll call your yard within one business day.
-              </p>
-            ) : (
-              <>
-                <label>
-                  Yard name
-                  <input name="businessName" required placeholder="e.g. Eastside Auto & Truck Parts" />
-                </label>
-                <label>
-                  Phone
-                  <input name="phone" required type="tel" placeholder="(555) 555-0134" />
-                </label>
-                <label>
-                  State / region
-                  <input name="region" required placeholder="e.g. Texas" />
-                </label>
-                <button className="l2-btn l2-btn-hot" type="submit">
-                  Call me about a line
-                </button>
-                <p className="l2-form-fine">
-                  A human calls you. No demo videos, no drip emails.
-                </p>
-              </>
-            )}
-          </form>
+          <div className="l2-form l2-reveal" style={{textAlign:'center'}}>
+            <p className="l2-form-title">Get started in 30 seconds</p>
+            <a className="l2-btn l2-btn-hot" href="/client/signup" style={{width:'100%',display:'block',textAlign:'center',marginBottom:'14px'}}>
+              Sign Up Free
+            </a>
+            <p style={{color:'rgba(255,255,255,0.6)',fontSize:'14px',marginBottom:'14px'}}>
+              Already have an account? <a href="/client/login" style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>Login</a>
+            </p>
+            <p className="l2-form-fine">
+              No credit card required. Set up your yard in minutes.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -2059,8 +2047,8 @@ export default function Landing2Page() {
       <SiteFooter />
 
       {/* sticky mobile CTA */}
-      <a className="l2-sticky-cta" href="#get-started">
-        Get a line
+      <a className="l2-sticky-cta" href="/client/signup">
+        Sign Up Free
       </a>
     </div>
   );
@@ -2142,6 +2130,13 @@ const CSS = `
 .l2-nav-links { display: flex; gap: 26px; align-items: center; font-size: 14.5px; font-weight: 500; }
 .l2-nav-links a { color: var(--muted); transition: color .2s; }
 .l2-nav-links a:hover { color: var(--ink); }
+.l2-nav-login {
+  color: var(--ink) !important;
+  font-weight: 600;
+  padding: 9px 16px; border-radius: 9px;
+  transition: background .2s;
+}
+.l2-nav-login:hover { background: rgba(0,0,0,0.04); }
 .l2-nav-cta {
   color: #fff !important;
   background: var(--red);
@@ -2149,7 +2144,7 @@ const CSS = `
   transition: background .2s;
 }
 .l2-nav-cta:hover { background: var(--red-deep); }
-@media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta) { display: none; } }
+@media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta):not(.l2-nav-login) { display: none; } }
 
 /* hero */
 .l2-hero {
@@ -2327,11 +2322,23 @@ const CSS = `
 .l2-center .l2-lede { margin-left: auto; margin-right: auto; }
 
 /* video */
+.l2-video-section { padding-top: 128px; }
+.l2-video-section .l2-section-head { margin-bottom: 68px; }
+.l2-video-section .l2-kicker { font-size: 13px; }
+.l2-video-section .l2-section-head h2 {
+  font-size: clamp(44px, 5.4vw, 76px);
+  line-height: 0.98;
+}
+.l2-video-section .l2-lede {
+  max-width: 820px;
+  font-size: clamp(21px, 2.1vw, 28px);
+  line-height: 1.55;
+}
 .l2-video-frame {
-  position: relative; max-width: 980px; margin: 0 auto;
-  border-radius: 20px; overflow: hidden;
+  position: relative; max-width: 1120px; margin: 0 auto;
+  border-radius: 22px; overflow: hidden;
   border: 1px solid var(--line);
-  box-shadow: 0 2px 4px rgba(22,24,29,0.05), 0 28px 64px -24px rgba(22,24,29,0.28);
+  box-shadow: 0 2px 4px rgba(22,24,29,0.05), 0 36px 80px -24px rgba(22,24,29,0.34);
   background: #0e0f12;
 }
 .l2-video-frame video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
@@ -2343,18 +2350,27 @@ const CSS = `
 }
 .l2-video-overlay:hover { background: linear-gradient(rgba(14,15,18,0.06), rgba(14,15,18,0.42)); }
 .l2-play-btn {
-  width: 84px; height: 84px; border-radius: 50%;
-  background: var(--red); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  padding-left: 6px;
-  box-shadow: 0 12px 40px -8px rgba(217,45,32,0.65), 0 0 0 10px rgba(255,255,255,0.14);
+  position: relative;
+  width: 112px; height: 112px; border-radius: 50%;
+  background: var(--red);
+  display: block;
+  box-shadow: 0 16px 46px -8px rgba(217,45,32,0.7), 0 0 0 14px rgba(255,255,255,0.14);
   transition: transform .2s;
+}
+.l2-play-btn::before {
+  content: "";
+  position: absolute;
+  left: 44px; top: 34px;
+  width: 0; height: 0;
+  border-top: 22px solid transparent;
+  border-bottom: 22px solid transparent;
+  border-left: 30px solid #fff;
 }
 .l2-video-overlay:hover .l2-play-btn { transform: scale(1.07); }
 .l2-play-label {
-  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+  font-family: var(--mono); font-size: 15px; letter-spacing: 0.1em;
   text-transform: uppercase; color: #fff;
-  background: rgba(14,15,18,0.55); padding: 8px 16px; border-radius: 999px;
+  background: rgba(14,15,18,0.62); padding: 10px 20px; border-radius: 999px;
 }
 
 /* compare cards */
@@ -2666,6 +2682,72 @@ const CSS = `
 }
 .l2-sticky-cta:hover { background: var(--red-deep); }
 @media (max-width: 860px) { .l2-sticky-cta { display: block; } }
+
+/* ── mobile responsive ── */
+@media (max-width: 640px) {
+  .l2-nav { padding: 10px 16px; }
+  .l2-nav-links { gap: 8px; }
+  .l2-nav-login { padding: 8px 10px; font-size: 13px; }
+  .l2-nav-cta { padding: 8px 14px; font-size: 13px; }
+  .l2-hero { padding: 120px 16px 0; min-height: auto; }
+  .l2-hero-bg { display: none; }
+  .l2-hero-scrim { display: none; }
+  .l2-hero-copy { padding: 0; }
+  .l2-hero-copy h1 { font-size: clamp(26px, 7vw, 38px); }
+  .l2-eyebrow { font-size: 10px; letter-spacing: 0.1em; }
+  .l2-sub { font-size: 14.5px; margin: 14px auto 22px; }
+  .l2-hero-ctas { flex-direction: column; align-items: stretch; gap: 10px; }
+  .l2-hero-ctas .l2-btn { text-align: center; padding: 14px 20px; }
+  .l2-stage-chip { display: none !important; }
+  .l2-listen-btn { font-size: 12px; padding: 9px 16px; }
+  .l2-stats { flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 20px 16px; justify-content: center; }
+  .l2-stats div { min-width: 100px; }
+  .l2-stats strong { font-size: 26px; }
+  .l2-stats span { font-size: 9px; }
+  .l2-section { padding: 48px 16px; }
+  .l2-section-head { margin-bottom: 28px; }
+  .l2-section-head h2 { font-size: clamp(22px, 6vw, 30px); }
+  .l2-lede { font-size: 14.5px; }
+  .l2-rooms { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .l2-room { padding: 14px; }
+  .l2-room-name { font-size: 15px; }
+  .l2-steps { gap: 12px; }
+  .l2-step { padding: 18px 14px; }
+  .l2-step h3 { font-size: 15px; }
+  .l2-step p { font-size: 13.5px; }
+  .l2-demo { gap: 14px; }
+  .l2-feature { padding: 18px 14px; }
+  .l2-feature h3 { font-size: 15px; }
+  .l2-feature p { font-size: 13.5px; }
+  .l2-mid-cta-band { padding: 40px 16px; }
+  .l2-mid-cta-inner h2 { font-size: clamp(22px, 6vw, 32px); }
+  .l2-mid-cta-inner p { font-size: 14px; }
+  .l2-video-overlay { gap: 0; justify-content: center; align-items: center; }
+  .l2-play-btn { width: 64px; height: 64px; box-shadow: 0 8px 24px -6px rgba(217,45,32,0.5), 0 0 0 7px rgba(255,255,255,0.14); }
+  .l2-play-btn::before {
+    left: 26px; top: 20px;
+    border-top-width: 12px;
+    border-bottom-width: 12px;
+    border-left-width: 17px;
+  }
+  .l2-play-label { position: absolute; bottom: 18px; left: 0; right: 0; font-size: 11px; letter-spacing: 0.08em; }
+  .l2-contact-btn { flex-direction: row; padding: 12px 14px; }
+  .l2-join-inner { padding: 40px 16px; }
+  .l2-join-inner h2 { font-size: clamp(22px, 6vw, 32px); }
+  .l2-join-list { font-size: 13.5px; padding-left: 18px; }
+  .l2-join-list li { margin-bottom: 6px; }
+  .l2-form { padding: 20px 16px; }
+  .l2-own { padding: 28px 16px; }
+  .l2-tick { overflow: hidden; }
+  .l2-compare-cards { gap: 12px; }
+  .l2-compare-card { padding: 18px 14px; }
+}
+@media (max-width: 400px) {
+  .l2-nav-login { padding: 6px 8px; font-size: 12px; }
+  .l2-nav-cta { padding: 6px 10px; font-size: 12px; }
+  .l2-rooms { grid-template-columns: 1fr; }
+  .l2-hero-copy h1 { font-size: 24px; }
+}
 
 /* reveal */
 .l2-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }

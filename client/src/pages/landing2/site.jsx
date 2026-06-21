@@ -179,8 +179,9 @@ export function SiteNav() {
       <nav className="l2-nav-links">
         <Link to="/">Home</Link>
         <Link to="/#how">How it works</Link>
-        <Link to="/#join" className="l2-nav-cta">
-          Get a line
+        <Link to="/client/login" className="l2-nav-login">Login</Link>
+        <Link to="/client/signup" className="l2-nav-cta">
+          Sign Up Free
         </Link>
       </nav>
     </header>
@@ -247,6 +248,7 @@ export function SiteFooter() {
           <Link to="/terms-and-conditions">Terms &amp; conditions</Link>
           <Link to="/disclaimer">Disclaimer</Link>
           <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
+          <a href="/admin/login">Admin</a>
         </div>
       </div>
 
@@ -339,12 +341,17 @@ export const SITE_CSS = `
 .l2-nav-links { display: flex; gap: 26px; align-items: center; font-size: 14.5px; font-weight: 500; }
 .l2-nav-links a { color: var(--muted); transition: color .2s; }
 .l2-nav-links a:hover { color: var(--ink); }
+.l2-nav-login {
+  color: var(--ink) !important; font-weight: 600;
+  padding: 9px 16px; border-radius: 9px; transition: background .2s;
+}
+.l2-nav-login:hover { background: rgba(0,0,0,0.04); }
 .l2-nav-cta {
   color: #fff !important; background: var(--red);
   padding: 9px 18px; border-radius: 9px; transition: background .2s;
 }
 .l2-nav-cta:hover { background: var(--red-deep); }
-@media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta) { display: none; } }
+@media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta):not(.l2-nav-login) { display: none; } }
 
 /* footer */
 .l2f { background: #111316; color: #b9bcc4; }
@@ -379,6 +386,17 @@ export const SITE_CSS = `
 .l2f-bottom-links { display: inline-flex; gap: 18px; }
 .l2f-bottom-links a { color: #8d919b; }
 .l2f-bottom-links a:hover { color: #ffffff; }
+
+@media (max-width: 640px) {
+  .l2-nav { padding: 10px 16px; }
+  .l2-nav-links { gap: 8px; }
+  .l2-nav-login { padding: 8px 10px; font-size: 13px; }
+  .l2-nav-cta { padding: 8px 14px; font-size: 13px; }
+  .l2f-inner { padding: 48px 16px 32px; gap: 32px; }
+  .l2f-note { padding: 0 16px 20px; }
+  .l2f-bottom { padding: 16px; }
+  .l2-doc { padding: 120px 16px 60px; }
+}
 
 /* document pages (about / legal) */
 .l2-doc { max-width: 840px; margin: 0 auto; padding: 150px 32px 90px; }

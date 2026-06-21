@@ -1744,7 +1744,7 @@ export default function Landing2Page() {
       </div>
 
       {/* ───────────────── video demo ───────────────── */}
-      <section className="l2-section" id="demo">
+      <section className="l2-section l2-video-section" id="demo">
         <div className="l2-section-head l2-center l2-reveal">
           <p className="l2-kicker">See it run</p>
           <h2>Watch a part get located.</h2>
@@ -1771,11 +1771,7 @@ export default function Landing2Page() {
               }}
               aria-label="Play video"
             >
-              <span className="l2-play-btn">
-                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor">
-                  <path d="M8 5.5v13l11-6.5z" />
-                </svg>
-              </span>
+              <span className="l2-play-btn" aria-hidden="true" />
               <span className="l2-play-label">Watch the hotline in action · 1 min</span>
             </button>
           )}
@@ -2327,11 +2323,23 @@ const CSS = `
 .l2-center .l2-lede { margin-left: auto; margin-right: auto; }
 
 /* video */
+.l2-video-section { padding-top: 128px; }
+.l2-video-section .l2-section-head { margin-bottom: 68px; }
+.l2-video-section .l2-kicker { font-size: 13px; }
+.l2-video-section .l2-section-head h2 {
+  font-size: clamp(44px, 5.4vw, 76px);
+  line-height: 0.98;
+}
+.l2-video-section .l2-lede {
+  max-width: 820px;
+  font-size: clamp(21px, 2.1vw, 28px);
+  line-height: 1.55;
+}
 .l2-video-frame {
-  position: relative; max-width: 980px; margin: 0 auto;
-  border-radius: 20px; overflow: hidden;
+  position: relative; max-width: 1120px; margin: 0 auto;
+  border-radius: 22px; overflow: hidden;
   border: 1px solid var(--line);
-  box-shadow: 0 2px 4px rgba(22,24,29,0.05), 0 28px 64px -24px rgba(22,24,29,0.28);
+  box-shadow: 0 2px 4px rgba(22,24,29,0.05), 0 36px 80px -24px rgba(22,24,29,0.34);
   background: #0e0f12;
 }
 .l2-video-frame video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
@@ -2343,18 +2351,27 @@ const CSS = `
 }
 .l2-video-overlay:hover { background: linear-gradient(rgba(14,15,18,0.06), rgba(14,15,18,0.42)); }
 .l2-play-btn {
-  width: 84px; height: 84px; border-radius: 50%;
-  background: var(--red); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  padding-left: 6px;
-  box-shadow: 0 12px 40px -8px rgba(217,45,32,0.65), 0 0 0 10px rgba(255,255,255,0.14);
+  position: relative;
+  width: 112px; height: 112px; border-radius: 50%;
+  background: var(--red);
+  display: block;
+  box-shadow: 0 16px 46px -8px rgba(217,45,32,0.7), 0 0 0 14px rgba(255,255,255,0.14);
   transition: transform .2s;
+}
+.l2-play-btn::before {
+  content: "";
+  position: absolute;
+  left: 44px; top: 34px;
+  width: 0; height: 0;
+  border-top: 22px solid transparent;
+  border-bottom: 22px solid transparent;
+  border-left: 30px solid #fff;
 }
 .l2-video-overlay:hover .l2-play-btn { transform: scale(1.07); }
 .l2-play-label {
-  font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em;
+  font-family: var(--mono); font-size: 15px; letter-spacing: 0.1em;
   text-transform: uppercase; color: #fff;
-  background: rgba(14,15,18,0.55); padding: 8px 16px; border-radius: 999px;
+  background: rgba(14,15,18,0.62); padding: 10px 20px; border-radius: 999px;
 }
 
 /* compare cards */

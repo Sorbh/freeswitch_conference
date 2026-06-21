@@ -13,8 +13,8 @@ import RequestRoomPage from './pages/RequestRoomPage';
 
 const Landing2Page = lazy(() => import('./pages/Landing2Page'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
-const OwnHotlinePage = lazy(() => import('./pages/landing2/OwnHotlinePage'));
-const NotFoundPage = lazy(() => import('./pages/landing2/NotFoundPage'));
+const OwnHotlinePage = lazy(() => import('./pages/landing2/OwnHotlinePage').then(m => ({ default: m.OwnHotlinePage })));
+const NotFoundPage = lazy(() => import('./pages/landing2/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const AboutPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.TermsPage })));
@@ -64,7 +64,7 @@ export default function App() {
           <Route path="request-room" element={<RequestRoomPage />} />
         </Route>
 
-        <Route path="*" element={<Lazy><NotFoundPage /></Lazy>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );
