@@ -38,12 +38,14 @@
 //   }));
 //
 // OPTIONAL CONFIG (set before loading this script):
-//   window.CALLERID_CONFIG = {
+//   window.HOTLINE_CONFIG = {
 //     sseBase: '',              // API server base URL (empty = same origin)
+//     apiBase: '',              // alias for sseBase
 //     room: '123456701',        // override room (default: reads localStorage)
 //     email: '',                // email for client login (default: reads localStorage user_data)
 //     password: '12345678',     // SIP password (default: 12345678)
 //     token: '',                // pre-fetched client JWT (skips login if set)
+//     extensionWidget: true,    // set false to disable floating extension directory
 //   };
 //
 // OPTIONAL CALLBACKS (set before or after loading):
@@ -59,10 +61,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 (function () {
-    var config = window.CALLERID_CONFIG || { sseBase: 'https://hotline.redlineusedautoparts.com/fs' };
-    var sseBase = config.sseBase || window.CALLERID_SSE_BASE || '';
+    var config = window.HOTLINE_CONFIG || { sseBase: 'https://hotline.redlineusedautoparts.com/fs' };
+    var sseBase = config.sseBase || config.apiBase || window.CALLERID_SSE_BASE || '';
     var room = config.room || window.CALLERID_ROOM || localStorage.getItem("room");
     var clientToken = config.token || null;
+    var accountData = config.accountData || null;
 
     console.log("[CallerID] Initializing...");
     console.log("[CallerID] Config:", JSON.stringify(config));
@@ -70,7 +73,7 @@
     console.log("[CallerID] Room:", room);
 
     if (!room) {
-        console.error("[CallerID] No room configured. Set localStorage 'room' or window.CALLERID_CONFIG.room");
+        console.error("[CallerID] No room configured. Set localStorage 'room' or HOTLINE_CONFIG.room");
         return;
     }
 
@@ -114,6 +117,7 @@
         var state = {
             apiBase: '',
             getToken: function () { return ''; },
+            getOwnExtension: function () { return ''; },
             callExtension: null,
             items: [],
             loaded: false,
@@ -122,6 +126,9 @@
             message: '',
             open: false,
             visible: false,
+            requestOpen: false,
+            requestExtension: '',
+            requestLoading: false,
             bottom: parseInt(localStorage.getItem('redline_extension_widget_bottom') || '92', 10),
         };
 
@@ -138,10 +145,32 @@
             return (item.companyName || 'Unknown') + ' / ' + (item.displayName || item.email || 'User');
         }
 
+        function publicAsset(path) {
+            try { return new URL(path, state.apiBase || window.location.origin).href; }
+            catch (e) { return path; }
+        }
+
+        function directoryTitle() {
+            var extension = state.getOwnExtension && state.getOwnExtension();
+            extension = extension ? String(extension).replace(/^\*/, '') : '';
+            return 'Extension Directory' + (extension ? ' - *' + escapeHtml(extension) : '');
+        }
+
+        function ownExtension() {
+            var extension = state.getOwnExtension && state.getOwnExtension();
+            return extension ? String(extension).replace(/^\*/, '') : '';
+        }
+
+        function hasOwnExtension() {
+            return !!ownExtension();
+        }
+
         function filteredItems() {
             var q = (state.query || '').toLowerCase().trim();
-            if (!q) return state.items;
+            var ownExt = ownExtension();
             return state.items.filter(function (item) {
+                if (ownExt && String(item.extension || '').replace(/^\*/, '') === ownExt) return false;
+                if (!q) return true;
                 return [
                     item.companyName,
                     item.displayName,
@@ -191,6 +220,7 @@
             render();
 
             fetch(state.apiBase + '/api/v1/client/extensions', {
+                cache: 'no-store',
                 headers: { 'Authorization': 'Bearer ' + token },
             })
                 .then(function (res) {
@@ -226,6 +256,68 @@
             setMessage('Dial ' + dialCode + ' from your phone.');
         }
 
+        function submitExtensionRequest() {
+            if (state.requestLoading) return;
+            var token = state.getToken && state.getToken();
+            var extension = parseInt(state.requestExtension, 10);
+            if (!token) return setMessage('Login required before requesting an extension.');
+            if (!extension || extension < 100 || extension > 999) return setMessage('Enter an extension from 100 to 999.');
+
+            state.requestLoading = true;
+            setMessage('Sending extension request...');
+            fetch(state.apiBase + '/api/v1/client/extension-request', {
+                method: 'POST',
+                cache: 'no-store',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ extension: extension }),
+            })
+                .then(function (res) {
+                    return res.json().catch(function () { return {}; }).then(function (json) {
+                        if (!res.ok || json.status === false) throw new Error(json.error || ('HTTP ' + res.status));
+                        return json;
+                    });
+                })
+                .then(function (json) {
+                    state.requestOpen = false;
+                    state.requestExtension = '';
+                    setMessage(json.message || 'Extension request sent.');
+                })
+                .catch(function (err) {
+                    setMessage('Failed to send request: ' + err.message);
+                })
+                .finally(function () {
+                    state.requestLoading = false;
+                    render();
+                });
+        }
+
+        function renderRequestForm() {
+            if (!state.requestOpen) return '';
+            return '<div style="padding:12px 16px 0;">' +
+                '<div style="background:#fff;border:1px solid #fecaca;border-radius:18px;padding:13px;box-shadow:0 12px 30px rgba(225,29,46,.10);">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;">' +
+                '<div><div style="font-size:13px;font-weight:750;color:#111827;">Request your preferred extension</div><div style="font-size:11px;color:#64748b;margin-top:2px;">Choose any 3-digit extension from 100 to 999.</div></div>' +
+                '<button id="redline_ext_request_send" style="border:0;border-radius:999px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:12px;font-weight:800;padding:10px 15px;cursor:pointer;box-shadow:0 10px 22px rgba(225,29,46,.24);flex:0 0 auto;">' + (state.requestLoading ? 'Sending...' : 'Send') + '</button>' +
+                '</div>' +
+                '<label style="display:flex;align-items:center;gap:8px;background:#fff7f8;border:1px solid #fecaca;border-radius:14px;padding:10px 12px;">' +
+                '<span style="font-size:18px;font-weight:850;color:#b91c1c;line-height:1;">*</span>' +
+                '<input id="redline_ext_request_input" value="' + escapeHtml(state.requestExtension) + '" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="101" style="min-width:0;flex:1;border:0;outline:none;font-size:18px;font-weight:750;color:#111827;background:transparent;letter-spacing:.04em;">' +
+                '<span style="font-size:11px;color:#94a3b8;">100-999</span>' +
+                '</label>' +
+                '</div>';
+        }
+
+        function renderDirectoryBody() {
+            var hasExtension = hasOwnExtension();
+            return '<div style="position:relative;min-height:230px;">' +
+                '<div style="' + (hasExtension ? '' : 'filter:blur(.6px);opacity:.34;pointer-events:none;') + '">' +
+                '<div style="padding:13px 16px 0;"><input id="redline_ext_search" value="' + escapeHtml(state.query) + '" placeholder="Search company, name, ext..." style="width:100%;box-sizing:border-box;border:1px solid #fecaca;border-radius:14px;padding:12px 13px;font-size:13px;outline:none;background:#fff;color:#111827;box-shadow:0 5px 18px rgba(225,29,46,.08);"></div>' +
+                '<div id="redline_extension_list" style="padding:4px 16px 14px;overflow:auto;"></div>' +
+                '</div>' +
+                (hasExtension ? '' : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.44);backdrop-filter:blur(.6px);"><div style="text-align:center;padding:0 24px;"><button id="redline_ext_request_overlay" style="border:0;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;border-radius:999px;padding:15px 26px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 18px 36px rgba(225,29,46,.34);">Request Extension</button><div class="redline-ext-hook-text">Limited Extension Slot left, Hurry up to book your slot.</div></div></div>') +
+                '</div>';
+        }
+
         function renderList() {
             var list = document.getElementById('redline_extension_list');
             if (!list) return;
@@ -238,7 +330,7 @@
                 html += '<div style="font-size:12px;color:#64748b;padding:10px 2px;">No matching extensions.</div>';
             }
             html += items.map(function (item, index) {
-                var isConnected = item.connected === true;
+                var isConnected = item.connected === true || item.connectionState === 'connected';
                 var statusLabel = isConnected ? 'Available' : 'Not connected';
                 var statusColor = isConnected ? '#16a34a' : '#94a3b8';
                 var buttonStyle = isConnected
@@ -247,7 +339,7 @@
                 return '<div data-ext-index="' + index + '" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb;">' +
                     '<div style="min-width:0;">' +
                     '<div style="font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(label(item)) + '</div>' +
-                    '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + escapeHtml(item.roomName || '') + ' • Ext *' + escapeHtml(item.extension) + ' • <span style="color:' + statusColor + ';">' + statusLabel + '</span></div>' +
+                    '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + escapeHtml(item.roomName || '') + ' • <span style="font-weight:700;color:#334155;">Ext *' + escapeHtml(item.extension) + '</span> • <span style="color:' + statusColor + ';">' + statusLabel + '</span></div>' +
                     '</div>' +
                     '<button data-ext-call="' + index + '"' + (isConnected ? '' : ' disabled') + ' style="' + buttonStyle + '">' + (isConnected ? 'Call' : 'Offline') + '</button>' +
                     '</div>';
@@ -270,19 +362,19 @@
                 el.innerHTML = '';
                 return;
             }
-            var sipIcon = '<span style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><svg viewBox="0 0 32 32" width="31" height="31" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;"><path d="M10.2 5.8 7.8 8.2c-.9.9-1.2 2.3-.8 3.5 2.3 7.1 7.9 12.7 15 15 .6.2 1.2.2 1.8.1.7-.1 1.3-.4 1.7-.9l2.5-2.4c.8-.8.8-2.2 0-3l-3.2-3.2c-.7-.7-1.9-.8-2.7-.2l-2.5 1.8c-2.8-1.4-5.1-3.7-6.5-6.5l1.8-2.5c.6-.8.5-2-.2-2.7l-3.2-3.2c-.9-.8-2.3-.8-3.1 0Z"></path><path d="M20.5 5.2c3 .9 5.4 3.3 6.3 6.3"></path><path d="M20.8 10.2c1.2.4 2.1 1.3 2.5 2.5"></path></svg><span style="position:absolute;right:-7px;top:-7px;background:#fff;color:#e11d2e;border-radius:999px;font-size:8px;font-weight:700;line-height:1;padding:3px 4px;letter-spacing:.03em;">SIP</span></span>';
-            var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:' + getFabBottom() + 'px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center;touch-action:none}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(225,29,46,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;box-shadow:0 18px 38px rgba(185,28,28,.42);display:flex;align-items:center;justify-content:center;cursor:grab;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:active{cursor:grabbing}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(185,28,28,.48)}</style>';
+            var sipIcon = '<img src="' + publicAsset('/favicon.svg') + '" alt="Extension Directory" style="display:block;width:36px;height:36px;object-fit:contain;">';
+            var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:' + getFabBottom() + 'px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center;touch-action:none}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(217,45,32,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}.redline-ext-hook-text{display:inline-block;margin-top:14px;color:#991b1b;font-size:14px;font-weight:800;line-height:1.25;letter-spacing:-.01em}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#d92d20,#b42318);color:#fff;box-shadow:0 18px 38px rgba(217,45,32,.42);display:flex;align-items:center;justify-content:center;cursor:grab;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:active{cursor:grabbing}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(217,45,32,.5)}</style>';
             el.innerHTML =
                 rippleCss +
                 '<div id="redline_ext_fab_wrap"><button id="redline_ext_fab" title="Search SIP extensions">' + sipIcon + '</button></div>' +
                 (state.open ? '<div id="redline_ext_backdrop" style="position:fixed;inset:0;z-index:2147483645;background:rgba(17,24,39,.26);backdrop-filter:blur(2px);"></div>' +
                     '<div style="' + getModalStyle() + '">' +
                     '<div style="display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid #fee2e2;background:linear-gradient(90deg,#fff,#fff1f2);">' +
-                    '<div><div style="font-size:16px;font-weight:650;color:#111827;letter-spacing:-.01em;"><span style="color:#e11d2e;font-weight:750;">SIP</span> Extension Directory</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">Search user and start a private extension call</div></div>' +
+                    '<div><div style="font-size:16px;font-weight:650;color:#111827;letter-spacing:-.01em;">' + directoryTitle() + '</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">Limited Extension Slot left, Hurry up to book your slot.</div></div>' +
                     '<button id="redline_ext_close" style="border:0;background:#fee2e2;color:#b91c1c;border-radius:10px;width:32px;height:32px;font-size:18px;font-weight:700;cursor:pointer;">×</button>' +
                     '</div>' +
-                    '<div style="padding:13px 16px 0;"><input id="redline_ext_search" value="' + escapeHtml(state.query) + '" placeholder="Search company, name, ext..." style="width:100%;box-sizing:border-box;border:1px solid #fecaca;border-radius:14px;padding:12px 13px;font-size:13px;outline:none;background:#fff;color:#111827;box-shadow:0 5px 18px rgba(225,29,46,.08);"></div>' +
-                    '<div id="redline_extension_list" style="padding:4px 16px 14px;overflow:auto;"></div>' +
+                    renderRequestForm() +
+                    renderDirectoryBody() +
                     '</div>' : '');
 
             var fabWrap = document.getElementById('redline_ext_fab_wrap');
@@ -315,7 +407,7 @@
                     }
                     state.open = !state.open;
                     render();
-                    if (state.open) load(false);
+                    if (state.open) load(true);
                 };
             }
             if (fabButton) fabButton.onclick = function () {
@@ -323,6 +415,12 @@
             };
             var close = document.getElementById('redline_ext_close');
             if (close) close.onclick = function () { state.open = false; render(); };
+            var requestOverlay = document.getElementById('redline_ext_request_overlay');
+            if (requestOverlay) requestOverlay.onclick = function () { state.requestOpen = true; render(); };
+            var requestInput = document.getElementById('redline_ext_request_input');
+            if (requestInput) requestInput.oninput = function () { state.requestExtension = this.value.replace(/\D/g, '').slice(0, 3); this.value = state.requestExtension; };
+            var requestSend = document.getElementById('redline_ext_request_send');
+            if (requestSend) requestSend.onclick = submitExtensionRequest;
             var backdrop = document.getElementById('redline_ext_backdrop');
             if (backdrop) backdrop.onclick = function () { state.open = false; render(); };
             var search = document.getElementById('redline_ext_search');
@@ -341,6 +439,7 @@
                 opts = opts || {};
                 if (opts.apiBase) state.apiBase = opts.apiBase.replace(/\/$/, '');
                 if (opts.getToken) state.getToken = opts.getToken;
+                if (opts.getOwnExtension) state.getOwnExtension = opts.getOwnExtension;
                 if (opts.callExtension !== undefined) state.callExtension = opts.callExtension;
                 if (opts.visible !== undefined) state.visible = !!opts.visible;
                 render();
@@ -349,7 +448,7 @@
                 if (!state.visible) return;
                 state.open = true;
                 render();
-                load(false);
+                load(true);
             },
             setMessage: setMessage,
             setVisible: function (visible) {
@@ -364,9 +463,12 @@
         return window.RedlineExtensionDirectory;
     }
 
-    ensureExtensionDirectoryWidget().configure({
+    if (config.extensionWidget === false) {
+        console.log('[CallerID] Extension directory widget disabled via config');
+    } else ensureExtensionDirectoryWidget().configure({
         apiBase: sseBase,
         getToken: function () { return clientToken; },
+        getOwnExtension: function () { return accountData && accountData.extension; },
         visible: false,
         callExtension: function (item, dialCode) {
             if (!clientToken) return { ok: false, message: 'Login required before calling ' + dialCode + '.' };
@@ -528,7 +630,7 @@
         }
 
         if (!email) {
-            console.error("[CallerID] No email for login. Set CALLERID_CONFIG.email or localStorage user_data");
+            console.error("[CallerID] No email for login. Set HOTLINE_CONFIG.email or localStorage user_data");
             return;
         }
 
@@ -540,6 +642,7 @@
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function (json) {
             clientToken = json.token;
+            accountData = json.data || null;
             if (json.data && (json.data.current_room || json.data.room)) {
                 room = json.data.current_room || json.data.room;
             }

@@ -203,6 +203,13 @@ function init() {
         ['debug', "ALTER TABLE accounts ADD COLUMN debug INTEGER DEFAULT 0"],
         ['extension', "ALTER TABLE accounts ADD COLUMN extension INTEGER"],
         ['ymcs_config_id', "ALTER TABLE accounts ADD COLUMN ymcs_config_id TEXT"],
+        ['password_hash', "ALTER TABLE accounts ADD COLUMN password_hash TEXT"],
+        ['email_verified', "ALTER TABLE accounts ADD COLUMN email_verified INTEGER DEFAULT 0"],
+        ['verification_token', "ALTER TABLE accounts ADD COLUMN verification_token TEXT"],
+        ['verification_token_expires', "ALTER TABLE accounts ADD COLUMN verification_token_expires INTEGER"],
+        ['reset_token', "ALTER TABLE accounts ADD COLUMN reset_token TEXT"],
+        ['reset_token_expires', "ALTER TABLE accounts ADD COLUMN reset_token_expires INTEGER"],
+        ['signup_source', "ALTER TABLE accounts ADD COLUMN signup_source TEXT DEFAULT 'admin'"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);
@@ -851,7 +858,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension', 'password_hash', 'email_verified', 'verification_token', 'verification_token_expires', 'reset_token', 'reset_token_expires', 'signup_source'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -865,6 +872,14 @@ function updateAccount(id, fields) {
     values.push(id);
     sqlite.prepare(`UPDATE accounts SET ${sets.join(', ')} WHERE id = ?`).run(...values);
     return sqlite.prepare('SELECT * FROM accounts WHERE id = ?').get(id);
+}
+
+function getAccountByVerificationToken(token) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE verification_token = ?').get(token) || null;
+}
+
+function getAccountByResetToken(token) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE reset_token = ?').get(token) || null;
 }
 
 function deleteAccount(id) {
@@ -1178,6 +1193,8 @@ db.getAccountByExtension = getAccountByExtension;
 db.getAllAccounts = getAllAccounts;
 db.updateAccount = updateAccount;
 db.deleteAccount = deleteAccount;
+db.getAccountByVerificationToken = getAccountByVerificationToken;
+db.getAccountByResetToken = getAccountByResetToken;
 db.touchLastSeen = touchLastSeen;
 db.getTimelineBroadcasts = getTimelineBroadcasts;
 db.getHourlyBroadcasts = getHourlyBroadcasts;

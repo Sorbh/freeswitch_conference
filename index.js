@@ -61,6 +61,7 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use((req, res, next) => {
+    if (req.path.startsWith('/client/')) return next();
     const match = req.path.match(/^\/(?:.+\/)?assets\/(.+)$/);
     if (!match) return next();
     const queryIndex = req.url.indexOf('?');
@@ -69,6 +70,15 @@ app.use((req, res, next) => {
 });
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/recordings", express.static(path.join(__dirname, "recordings")));
+
+// Client app — serve built React app at /client/
+const clientDistDir = path.join(__dirname, "dist-client");
+if (fs.existsSync(clientDistDir)) {
+    app.use("/client", express.static(clientDistDir));
+    app.get("/client/*", (req, res) => {
+        res.sendFile(path.join(clientDistDir, "index.html"));
+    });
+}
 
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
