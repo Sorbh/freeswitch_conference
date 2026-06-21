@@ -32,9 +32,10 @@
     <param name="rtp-timeout-sec" value="0"/>
     <param name="rtp-hold-timeout-sec" value="0"/>
 
-    <!-- Session timers (matches current 120s in Drachtio) -->
+    <!-- Session timers: originated calls set sofia_session_refresher=remote for phone-side refresh. -->
     <param name="enable-timer" value="true"/>
-    <param name="session-timeout" value="600"/>
+    <param name="session-timeout" value="90"/>
+    <param name="minimum-session-expires" value="90"/>
 
     <!-- SIP TLS for Yealink phones -->
     <param name="tls-binding" value="0.0.0.0:5071"/>

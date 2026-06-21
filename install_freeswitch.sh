@@ -110,6 +110,80 @@ run_cmd() {
     fi
 }
 
+patch_sofia_sip_session_timer() {
+    local target="$BUILD_DIR/sofia-sip/libsofia-sip-ua/nua/nua_session.c"
+
+    python3 - "$target" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text()
+old = """    if (t->local.refresher == nua_local_refresher)
+      refresher = nua_local_refresher;
+    else if (!initial)
+      refresher = t->refresher;
+"""
+new = """    if (t->local.refresher == nua_local_refresher ||
+\tt->local.refresher == nua_remote_refresher)
+      refresher = t->local.refresher;
+    else if (!initial)
+      refresher = t->refresher;
+"""
+
+if new in text:
+    sys.exit(0)
+if old not in text:
+    raise SystemExit(f"Unable to patch {path}: session refresher block not found")
+
+path.write_text(text.replace(old, new, 1))
+PY
+}
+
+patch_freeswitch_session_refresher() {
+    local src="$BUILD_DIR/freeswitch-src"
+
+    python3 - "$src" <<'PY'
+import sys
+from pathlib import Path
+
+src = Path(sys.argv[1])
+
+header = src / "src/mod/endpoints/mod_sofia/mod_sofia.h"
+text = header.read_text()
+if '#define SOFIA_SESSION_REFRESHER "sofia_session_refresher"' not in text:
+    old = '#define SOFIA_SESSION_TIMEOUT "sofia_session_timeout"\n'
+    new = old + '#define SOFIA_SESSION_REFRESHER "sofia_session_refresher"\n'
+    if old not in text:
+        raise SystemExit(f"Unable to patch {header}: SOFIA_SESSION_TIMEOUT define not found")
+    header.write_text(text.replace(old, new, 1))
+
+old_line = "\t\ttech_pvt->session_refresher = switch_channel_direction(channel) == SWITCH_CALL_DIRECTION_OUTBOUND ? nua_local_refresher : nua_remote_refresher;\n"
+override = old_line + """\t\tif ((val = switch_channel_get_variable(channel, SOFIA_SESSION_REFRESHER))) {
+\t\t\tif (!strcasecmp(val, "remote") || !strcasecmp(val, "uas")) {
+\t\t\t\ttech_pvt->session_refresher = nua_remote_refresher;
+\t\t\t} else if (!strcasecmp(val, "local") || !strcasecmp(val, "uac")) {
+\t\t\t\ttech_pvt->session_refresher = nua_local_refresher;
+\t\t\t} else if (!strcasecmp(val, "none") || !strcasecmp(val, "no")) {
+\t\t\t\ttech_pvt->session_refresher = nua_no_refresher;
+\t\t\t}
+\t\t}
+"""
+
+for relative in (
+    "src/mod/endpoints/mod_sofia/mod_sofia.c",
+    "src/mod/endpoints/mod_sofia/sofia_glue.c",
+):
+    path = src / relative
+    text = path.read_text()
+    if "SOFIA_SESSION_REFRESHER" in text:
+        continue
+    if old_line not in text:
+        raise SystemExit(f"Unable to patch {path}: session_refresher assignment not found")
+    path.write_text(text.replace(old_line, override, 1))
+PY
+}
+
 TOTAL_STEPS=16
 CURRENT_STEP=0
 progress() {
@@ -160,6 +234,7 @@ if [ ! -d "sofia-sip" ]; then
     run_cmd "git clone https://github.com/freeswitch/sofia-sip.git"
 fi
 cd sofia-sip
+patch_sofia_sip_session_timer
 run_cmd "sh bootstrap.sh"
 run_cmd "./configure --prefix=$SUPPORT_LIB_DIR"
 run_cmd "make -j$(nproc)"
@@ -204,6 +279,7 @@ if [ ! -d "freeswitch-src" ]; then
 fi
 cd freeswitch-src
 run_cmd "git checkout v$FREESWITCH_VERSION"
+patch_freeswitch_session_refresher
 
 # Step 10: Configure build modules (modules.conf controls what gets compiled)
 progress "Configuring build modules..."

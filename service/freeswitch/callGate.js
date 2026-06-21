@@ -201,7 +201,13 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
     const shortCode = room?.short_code || roomName;
     const ext = account?.extension ? `-${account.extension}` : '';
     const callerId = `REDLINE-${shortCode}${ext}`;
-    const originateCmd = `originate {origination_caller_id_name='${callerId}',origination_caller_id_number='${callerId}',sip_h_Supported='timer',sip_h_Session-Expires='120;refresher=uac'}${contact} &conference(${activeRoom}@${confProfile}++flags{mute})`;
+    const originateVars = [
+        `origination_caller_id_name='${callerId}'`,
+        `origination_caller_id_number='${callerId}'`,
+        'sofia_session_timeout=90',
+        'sofia_session_refresher=remote',
+    ];
+    const originateCmd = `originate {${originateVars.join(',')}}${contact} &conference(${activeRoom}@${confProfile}++flags{mute})`;
 
     const originateAt = Date.now();
     logUser(userName, 'CALL', `INVITE -> ${roomName}`);

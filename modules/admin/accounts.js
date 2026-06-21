@@ -276,10 +276,25 @@ router.get("/accounts/:id/ymcs/device-config", async (req, res) => {
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
         if (!account.ymcs_device_id) return res.status(400).json({ status: false, error: "No YMCS Device ID" });
 
+        const { ymcs } = await import("../../service/yealink/yealinkApi.js");
+        let configId = account.ymcs_config_id;
+
+        if (!configId) {
+            const user = global.db.getUserInfo(`sip:${account.email}`);
+            if (user?.mac) {
+                const mac = user.mac.replace(/[:\-]/g, '');
+                const result = await ymcs.post('/v2/dm/listDeviceConfigs', { filter: { mac }, limit: 1 });
+                const configs = result?.data || [];
+                if (configs.length > 0) {
+                    configId = configs[0].id;
+                    global.db.updateAccount(id, { ymcs_config_id: configId });
+                }
+            }
+        }
+
         let content = "";
-        if (account.ymcs_config_id) {
-            const { ymcs } = await import("../../service/yealink/yealinkApi.js");
-            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${account.ymcs_config_id}`);
+        if (configId) {
+            const detail = await ymcs.get(`/v2/dm/deviceConfigs/${configId}`);
             content = detail?.content || "";
         }
         res.json({ status: true, content });
