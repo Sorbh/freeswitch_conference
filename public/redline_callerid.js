@@ -122,6 +122,7 @@
             message: '',
             open: false,
             visible: false,
+            bottom: parseInt(localStorage.getItem('redline_extension_widget_bottom') || '92', 10),
         };
 
         function root() {
@@ -154,6 +155,27 @@
         function setMessage(message) {
             state.message = message || '';
             renderList();
+        }
+
+        function clampBottom(value) {
+            var max = Math.max(92, (window.innerHeight || 700) - 110);
+            return Math.max(18, Math.min(max, value));
+        }
+
+        function getFabBottom() {
+            state.bottom = clampBottom(parseInt(state.bottom || 92, 10));
+            return state.bottom;
+        }
+
+        function getModalStyle() {
+            var buttonBottom = getFabBottom();
+            var viewportHeight = window.innerHeight || 700;
+            var spaceAbove = viewportHeight - (buttonBottom + 86);
+            var spaceBelow = buttonBottom - 18;
+            var openBelow = spaceAbove < 180 && spaceBelow > spaceAbove;
+            var verticalStyle = openBelow ? 'top:18px;' : 'bottom:' + (buttonBottom + 72) + 'px;';
+            var maxHeight = Math.max(260, Math.min(620, (openBelow ? spaceBelow : spaceAbove) - 18));
+            return 'position:fixed;right:20px;' + verticalStyle + 'z-index:2147483647;width:min(430px,calc(100vw - 40px));max-height:' + maxHeight + 'px;display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,#fff7f8 100%);border:1px solid #fecaca;border-top:5px solid #e11d2e;border-radius:22px;box-shadow:0 26px 76px rgba(185,28,28,.28);font-family:Inter,Arial,sans-serif;overflow:hidden;';
         }
 
         function load(force) {
@@ -216,12 +238,18 @@
                 html += '<div style="font-size:12px;color:#64748b;padding:10px 2px;">No matching extensions.</div>';
             }
             html += items.map(function (item, index) {
+                var isConnected = item.connected === true;
+                var statusLabel = isConnected ? 'Available' : 'Not connected';
+                var statusColor = isConnected ? '#16a34a' : '#94a3b8';
+                var buttonStyle = isConnected
+                    ? 'border:0;border-radius:999px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer;flex:0 0 auto;box-shadow:0 8px 18px rgba(225,29,46,.2);letter-spacing:.02em;'
+                    : 'border:0;border-radius:999px;background:#e5e7eb;color:#94a3b8;font-size:11px;font-weight:700;padding:8px 12px;cursor:not-allowed;flex:0 0 auto;letter-spacing:.02em;';
                 return '<div data-ext-index="' + index + '" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e5e7eb;">' +
                     '<div style="min-width:0;">' +
                     '<div style="font-size:13px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(label(item)) + '</div>' +
-                    '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + escapeHtml(item.roomName || '') + ' • Ext *' + escapeHtml(item.extension) + '</div>' +
+                    '<div style="font-size:12px;color:#64748b;margin-top:2px;">' + escapeHtml(item.roomName || '') + ' • Ext *' + escapeHtml(item.extension) + ' • <span style="color:' + statusColor + ';">' + statusLabel + '</span></div>' +
                     '</div>' +
-                    '<button data-ext-call="' + index + '" style="border:0;border-radius:999px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer;flex:0 0 auto;box-shadow:0 8px 18px rgba(225,29,46,.2);letter-spacing:.02em;">Call</button>' +
+                    '<button data-ext-call="' + index + '"' + (isConnected ? '' : ' disabled') + ' style="' + buttonStyle + '">' + (isConnected ? 'Call' : 'Offline') + '</button>' +
                     '</div>';
             }).join('');
             list.innerHTML = html;
@@ -229,6 +257,7 @@
             for (var i = 0; i < buttons.length; i++) {
                 buttons[i].onclick = function () {
                     var item = items[parseInt(this.getAttribute('data-ext-call'), 10)];
+                    if (!item || item.connected !== true) return;
                     if (item) handleCall(item);
                 };
             }
@@ -242,12 +271,12 @@
                 return;
             }
             var sipIcon = '<span style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;"><svg viewBox="0 0 32 32" width="31" height="31" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;"><path d="M10.2 5.8 7.8 8.2c-.9.9-1.2 2.3-.8 3.5 2.3 7.1 7.9 12.7 15 15 .6.2 1.2.2 1.8.1.7-.1 1.3-.4 1.7-.9l2.5-2.4c.8-.8.8-2.2 0-3l-3.2-3.2c-.7-.7-1.9-.8-2.7-.2l-2.5 1.8c-2.8-1.4-5.1-3.7-6.5-6.5l1.8-2.5c.6-.8.5-2-.2-2.7l-3.2-3.2c-.9-.8-2.3-.8-3.1 0Z"></path><path d="M20.5 5.2c3 .9 5.4 3.3 6.3 6.3"></path><path d="M20.8 10.2c1.2.4 2.1 1.3 2.5 2.5"></path></svg><span style="position:absolute;right:-7px;top:-7px;background:#fff;color:#e11d2e;border-radius:999px;font-size:8px;font-weight:700;line-height:1;padding:3px 4px;letter-spacing:.03em;">SIP</span></span>';
-            var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:92px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(225,29,46,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;box-shadow:0 18px 38px rgba(185,28,28,.42);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(185,28,28,.48)}</style>';
+            var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:' + getFabBottom() + 'px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center;touch-action:none}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(225,29,46,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;box-shadow:0 18px 38px rgba(185,28,28,.42);display:flex;align-items:center;justify-content:center;cursor:grab;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:active{cursor:grabbing}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(185,28,28,.48)}</style>';
             el.innerHTML =
                 rippleCss +
                 '<div id="redline_ext_fab_wrap"><button id="redline_ext_fab" title="Search SIP extensions">' + sipIcon + '</button></div>' +
                 (state.open ? '<div id="redline_ext_backdrop" style="position:fixed;inset:0;z-index:2147483645;background:rgba(17,24,39,.26);backdrop-filter:blur(2px);"></div>' +
-                    '<div style="position:fixed;right:20px;bottom:164px;z-index:2147483647;width:min(430px,calc(100vw - 40px));max-height:min(620px,calc(100vh - 200px));display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,#fff7f8 100%);border:1px solid #fecaca;border-top:5px solid #e11d2e;border-radius:22px;box-shadow:0 26px 76px rgba(185,28,28,.28);font-family:Inter,Arial,sans-serif;overflow:hidden;">' +
+                    '<div style="' + getModalStyle() + '">' +
                     '<div style="display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid #fee2e2;background:linear-gradient(90deg,#fff,#fff1f2);">' +
                     '<div><div style="font-size:16px;font-weight:650;color:#111827;letter-spacing:-.01em;"><span style="color:#e11d2e;font-weight:750;">SIP</span> Extension Directory</div><div style="font-size:12px;color:#6b7280;margin-top:2px;">Search user and start a private extension call</div></div>' +
                     '<button id="redline_ext_close" style="border:0;background:#fee2e2;color:#b91c1c;border-radius:10px;width:32px;height:32px;font-size:18px;font-weight:700;cursor:pointer;">×</button>' +
@@ -256,10 +285,41 @@
                     '<div id="redline_extension_list" style="padding:4px 16px 14px;overflow:auto;"></div>' +
                     '</div>' : '');
 
-            document.getElementById('redline_ext_fab').onclick = function () {
-                state.open = !state.open;
-                render();
-                if (state.open) load(false);
+            var fabWrap = document.getElementById('redline_ext_fab_wrap');
+            var fabButton = document.getElementById('redline_ext_fab');
+            var drag = { active: false, moved: false, startY: 0, startBottom: 0 };
+            if (fabWrap) {
+                fabWrap.onpointerdown = function (event) {
+                    drag.active = true;
+                    drag.moved = false;
+                    drag.startY = event.clientY;
+                    drag.startBottom = getFabBottom();
+                    try { fabWrap.setPointerCapture(event.pointerId); } catch (e) { }
+                };
+                fabWrap.onpointermove = function (event) {
+                    if (!drag.active) return;
+                    var delta = drag.startY - event.clientY;
+                    if (Math.abs(delta) > 4) drag.moved = true;
+                    if (!drag.moved) return;
+                    state.bottom = clampBottom(drag.startBottom + delta);
+                    fabWrap.style.bottom = state.bottom + 'px';
+                };
+                fabWrap.onpointerup = function (event) {
+                    if (!drag.active) return;
+                    drag.active = false;
+                    try { fabWrap.releasePointerCapture(event.pointerId); } catch (e) { }
+                    if (drag.moved) {
+                        try { localStorage.setItem('redline_extension_widget_bottom', String(state.bottom)); } catch (e) { }
+                        render();
+                        return;
+                    }
+                    state.open = !state.open;
+                    render();
+                    if (state.open) load(false);
+                };
+            }
+            if (fabButton) fabButton.onclick = function () {
+                return false;
             };
             var close = document.getElementById('redline_ext_close');
             if (close) close.onclick = function () { state.open = false; render(); };

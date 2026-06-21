@@ -98,15 +98,26 @@ clientRouter.get("/extensions", requireClientAuth, (req, res) => {
 
         const data = global.db.getAllAccounts()
             .filter(account => account.active && account.extension)
-            .map(account => ({
-                id: account.id,
-                email: account.email,
-                companyName: account.company_name || '',
-                displayName: account.display_name || account.email,
-                extension: account.extension,
-                room: account.room,
-                roomName: rooms[account.room] || String(account.room || ''),
-            }))
+            .map(account => {
+                const userInfo = global.db.getUserInfo(`sip:${account.email}`);
+                const connected = Boolean(
+                    userInfo &&
+                    userInfo.connectionState === 'connected' &&
+                    userInfo.fsChannelUUID &&
+                    userInfo.fsMemberId
+                );
+                return {
+                    id: account.id,
+                    email: account.email,
+                    companyName: account.company_name || '',
+                    displayName: account.display_name || account.email,
+                    extension: account.extension,
+                    room: account.room,
+                    roomName: rooms[account.room] || String(account.room || ''),
+                    connectionState: userInfo?.connectionState || 'offline',
+                    connected,
+                };
+            })
             .sort((a, b) => {
                 const left = `${a.companyName} ${a.displayName}`.toLowerCase();
                 const right = `${b.companyName} ${b.displayName}`.toLowerCase();
