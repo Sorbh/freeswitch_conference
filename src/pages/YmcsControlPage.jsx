@@ -51,12 +51,12 @@ function SyncLog({ entries }) {
     <div className="mt-3 rounded-lg border border-border/50 bg-muted/20 font-mono text-xs">
       <div ref={containerRef} className="p-3 space-y-0.5 max-h-[120px] overflow-y-auto">
         {entries.map((entry, i) => (
-          <div key={i} className={`flex items-start gap-2 py-0.5 ${entry.type === "error" ? "text-red-400" : entry.type === "success" ? "text-emerald-400" : entry.type === "skip" ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
+          <div key={i} className={`flex items-start gap-2 py-0.5 min-w-0 ${entry.type === "error" ? "text-red-400" : entry.type === "success" ? "text-emerald-400" : entry.type === "skip" ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
             {entry.type === "success" && <CheckCircleIcon className="size-3 mt-0.5 shrink-0" />}
             {entry.type === "error" && <XCircleIcon className="size-3 mt-0.5 shrink-0" />}
             {entry.type === "skip" && <MinusCircleIcon className="size-3 mt-0.5 shrink-0" />}
             {entry.type === "info" && <CloudIcon className="size-3 mt-0.5 shrink-0" />}
-            <span>{entry.message}</span>
+            <span className="min-w-0 break-words">{entry.message}</span>
           </div>
         ))}
       </div>
@@ -443,16 +443,16 @@ export default function YmcsControlPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">YMCS Control</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Yealink Management Cloud Service operations
-            <span className="text-red-500 font-medium ml-2">· YMCS commands only work when the phone is in idle state</span>
+            <span className="block sm:inline text-red-500 font-medium sm:ml-2">· YMCS commands only work when the phone is in idle state</span>
           </p>
         </div>
         {stats && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="text-[11px] font-mono gap-1.5">
               <span className={`size-1.5 rounded-full ${stats.missingAccountId === 0 ? "bg-emerald-500" : "bg-amber-500"}`} />
               {stats.total - stats.missingAccountId}/{stats.total} accounts
@@ -470,8 +470,8 @@ export default function YmcsControlPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {/* Sync Account IDs */}
         <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <HashIcon className="size-4 text-primary" />
@@ -496,7 +496,7 @@ export default function YmcsControlPage() {
                 size="sm"
                 onClick={() => setConfirmAction({ title: "Sync All Account IDs", description: "This will call the YMCS API for every account to fetch their YMCS Account ID. This may take a few minutes.", action: syncAllAccountIds })}
                 disabled={anySyncing}
-                className="shrink-0"
+                className="shrink-0 self-end sm:self-auto"
               >
                 {syncingAccounts
                   ? <Loader2Icon className="size-3.5 animate-spin" />
@@ -513,8 +513,8 @@ export default function YmcsControlPage() {
 
         {/* Sync Device IDs */}
         <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <CloudIcon className="size-4 text-primary" />
@@ -539,7 +539,7 @@ export default function YmcsControlPage() {
                 size="sm"
                 onClick={() => setConfirmAction({ title: "Sync All Device IDs", description: "This will list all devices from YMCS, get each device's account details, and save the device ID to matching accounts in our DB. This may take a few minutes.", action: syncAllDeviceIds })}
                 disabled={anySyncing}
-                className="shrink-0"
+                className="shrink-0 self-end sm:self-auto"
               >
                 {syncingDevices
                   ? <Loader2Icon className="size-3.5 animate-spin" />
@@ -556,8 +556,8 @@ export default function YmcsControlPage() {
 
         {/* Sync Room Sites */}
         <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <MapPinIcon className="size-4 text-primary" />
@@ -582,7 +582,7 @@ export default function YmcsControlPage() {
                 size="sm"
                 onClick={() => setConfirmAction({ title: "Sync Room Sites", description: "This will fetch all YMCS sites and match them to local rooms by name, short code, or room ID. Matched rooms will store the YMCS site ID.", action: syncRoomSites })}
                 disabled={anySyncing}
-                className="shrink-0"
+                className="shrink-0 self-end sm:self-auto"
               >
                 {syncingSites
                   ? <Loader2Icon className="size-3.5 animate-spin" />
@@ -599,8 +599,8 @@ export default function YmcsControlPage() {
 
         {/* Sync Config IDs */}
         <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <FileCodeIcon className="size-4 text-primary" />
@@ -625,7 +625,7 @@ export default function YmcsControlPage() {
                 size="sm"
                 onClick={() => setConfirmAction({ title: "Sync Config IDs", description: "This will look up each account's MAC address in YMCS device configs and store the matching config ID. Only targets accounts with a device ID but no config ID.", action: syncConfigIds })}
                 disabled={anySyncing}
-                className="shrink-0"
+                className="shrink-0 self-end sm:self-auto"
               >
                 {syncingConfigs
                   ? <Loader2Icon className="size-3.5 animate-spin" />
@@ -646,8 +646,8 @@ export default function YmcsControlPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {/* Rebind All Devices */}
         <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <LinkIcon className="size-4 text-primary" />
@@ -669,9 +669,9 @@ export default function YmcsControlPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0 w-full sm:w-auto">
                 <Select value={rebindRoom} onValueChange={setRebindRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
-                  <SelectTrigger className="h-8 text-xs !w-36">
+                  <SelectTrigger className="h-8 text-xs !w-full sm:!w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -683,6 +683,7 @@ export default function YmcsControlPage() {
                 </Select>
                 <Button
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => { const roomName = rebindRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === rebindRoom)?.name || rebindRoom; setConfirmAction({ title: `Rebind ${roomName === "ALL" ? "All" : `"${roomName}"`} Devices`, description: `This will forcefully unbind and rebind the YMCS account on ${roomName === "ALL" ? "all" : `"${roomName}"`} devices that have both Account ID and Device ID. This affects live SIP phones.`, action: syncAllDeviceAccounts, destructive: true }); }}
                   disabled={anySyncing}
                 >
@@ -702,8 +703,8 @@ export default function YmcsControlPage() {
 
         {/* Update SIP Server */}
         <Card>
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between gap-3 mb-3">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
               <div className="flex items-start gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                   <ServerIcon className="size-4 text-primary" />
@@ -715,9 +716,9 @@ export default function YmcsControlPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0 w-full sm:w-auto">
                 <Select value={sipRoom} onValueChange={setSipRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
-                  <SelectTrigger className="h-8 text-xs !w-36">
+                  <SelectTrigger className="h-8 text-xs !w-full sm:!w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -729,6 +730,7 @@ export default function YmcsControlPage() {
                 </Select>
                 <Button
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => { const roomName = sipRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === sipRoom)?.name || sipRoom; setConfirmAction({ title: "Update SIP Server & Port", description: `This will update the SIP server to ${sipHost}:${sipPort} on ${roomName === "ALL" ? "all" : `"${roomName}"`} YMCS accounts. Phones will re-register to the new server.`, action: updateAllSipServer, destructive: true }); }}
                   disabled={anySyncing || !sipHost || !sipPort}
                 >
@@ -739,12 +741,12 @@ export default function YmcsControlPage() {
                 </Button>
               </div>
             </div>
-            <div className="flex items-end gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-2">
               <div className="flex-1">
                 <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Host</Label>
                 <Input value={sipHost} onChange={(e) => setSipHost(e.target.value)} placeholder="50.28.84.57" disabled={anySyncing} className="h-8 text-xs" />
               </div>
-              <div className="w-20">
+              <div className="w-full sm:w-20">
                 <Label className="text-[11px] text-muted-foreground/60 mb-1 block">Port</Label>
                 <Input value={sipPort} onChange={(e) => setSipPort(e.target.value)} placeholder="5070" disabled={anySyncing} className="h-8 text-xs" />
               </div>
@@ -760,9 +762,9 @@ export default function YmcsControlPage() {
       {/* ── Section 3: Danger Zone ── */}
       <SectionLabel>Danger Zone</SectionLabel>
       <Card className="border-destructive/20">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
               <div className="size-9 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center justify-center shrink-0">
                 <ShieldAlertIcon className="size-4 text-destructive" />
               </div>
@@ -773,9 +775,9 @@ export default function YmcsControlPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 shrink-0 w-full sm:w-auto">
               <Select value={rebootRoom} onValueChange={setRebootRoom} disabled={anySyncing} items={{ all: "All Rooms", ...Object.fromEntries(rooms.map(r => [String(r.id), r.name])) }}>
-                <SelectTrigger className="h-8 text-xs !w-36">
+                <SelectTrigger className="h-8 text-xs !w-full sm:!w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -788,6 +790,7 @@ export default function YmcsControlPage() {
               <Button
                 size="sm"
                 variant="destructive"
+                className="w-full sm:w-auto"
                 onClick={() => { const roomName = rebootRoom === "all" ? "ALL" : rooms.find(r => String(r.id) === rebootRoom)?.name || rebootRoom; setConfirmAction({ title: `Reboot ${roomName === "ALL" ? "All" : `"${roomName}"`} Devices`, description: `This will send a reboot command to ${roomName === "ALL" ? "ALL" : `"${roomName}"`} YMCS devices. Phones will restart and temporarily go offline.`, action: rebootAllDevices, destructive: true }); }}
                 disabled={anySyncing}
               >
@@ -807,7 +810,7 @@ export default function YmcsControlPage() {
 
       {/* Confirm Dialog */}
       <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className={`size-10 rounded-lg flex items-center justify-center ${confirmAction?.destructive ? "bg-destructive/10 border border-destructive/20" : "bg-orange-500/10 border border-orange-500/20"}`}>
@@ -835,12 +838,12 @@ export default function YmcsControlPage() {
 
       {/* Missing List Dialog */}
       <Dialog open={!!missingDialog} onOpenChange={(open) => { if (!open) setMissingDialog(null); }}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{missingDialog?.title}</DialogTitle>
             <DialogDescription>{missingDialog?.list?.length || 0} accounts</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto rounded-lg border border-border/50 bg-muted/20">
+          <div className="flex-1 overflow-auto rounded-lg border border-border/50 bg-muted/20">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-muted/90 backdrop-blur-sm">
                 <tr className="text-muted-foreground/70 text-left">
@@ -859,8 +862,8 @@ export default function YmcsControlPage() {
                 {(missingDialog?.list || []).map((a, i) => (
                   <tr key={i} className="text-muted-foreground hover:bg-muted/30">
                     <td className="px-3 py-1.5 font-mono text-muted-foreground/40">{i + 1}</td>
-                    <td className="px-3 py-1.5 font-mono">{a.email}</td>
-                    <td className="px-3 py-1.5">{a.name || "—"}</td>
+                    <td className="px-3 py-1.5 font-mono break-all">{a.email}</td>
+                    <td className="px-3 py-1.5 min-w-[120px]">{a.name || "—"}</td>
                     {missingDialog?.columns?.includes("hasAccountId") && (
                       <td className="px-3 py-1.5">{a.hasAccountId ? <span className="text-emerald-400">Yes</span> : <span className="text-red-400">No</span>}</td>
                     )}

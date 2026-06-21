@@ -240,11 +240,11 @@ export default function FsLogsPage() {
   }, [rawClear]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] font-mono animate-in fade-in duration-300">
+    <div className="flex flex-col h-[calc(100vh-100px)] max-w-full overflow-hidden font-mono animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-baseline justify-between px-1 pb-2 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 px-1 pb-3 shrink-0">
         <h2 className="text-base font-bold tracking-tight font-sans">FS Logs</h2>
-        <div className="text-[11px] text-muted-foreground tabular-nums">
+        <div className="text-[11px] text-muted-foreground tabular-nums leading-relaxed">
           Total: <span className="text-foreground font-bold">{stats.total}</span>
           <span className="mx-1.5 text-border">|</span>
           Showing: <span className="text-foreground font-bold">{stats.showing}</span>
@@ -256,8 +256,8 @@ export default function FsLogsPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
-        <div className="flex rounded overflow-hidden border border-border text-[11px] shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-1 pb-3 shrink-0">
+        <div className="grid grid-cols-3 sm:flex rounded overflow-hidden border border-border text-[11px] shrink-0 w-full sm:w-auto">
           {[["all", "ALL"], ["in", "↓ IN"], ["out", "↑ OUT"]].map(([val, label]) => (
             <button key={val} onClick={() => setDirFilter(val)}
               className={`px-3 py-1 font-bold transition-colors ${dirFilter === val ? "bg-foreground text-background" : "bg-muted/30 text-muted-foreground hover:bg-muted/60"}`}
@@ -265,19 +265,19 @@ export default function FsLogsPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 w-full sm:w-auto">
           <span>Method:</span>
           <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}
-            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring">
+            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none min-w-0">
             <option value="all">ALL</option>
             {methods.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 w-full sm:w-auto">
           <span>Status:</span>
           <select value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)}
-            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring">
+            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none min-w-0">
             <option value="all">ALL</option>
             <option value="1x">1xx Provisional</option>
             <option value="2x">2xx Success</option>
@@ -289,7 +289,7 @@ export default function FsLogsPage() {
           </select>
         </div>
 
-        <div className="relative flex-1 min-w-[120px]">
+        <div className="relative flex-1 min-w-0 w-full">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input placeholder="Search / highlight" value={search} onChange={(e) => setSearch(e.target.value)}
             className="h-[26px] w-full pl-7 text-[11px] font-mono bg-muted/30 border-border" />
@@ -302,24 +302,24 @@ export default function FsLogsPage() {
           Auto-scroll
         </label>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 shrink-0 w-full sm:w-auto">
           <button onClick={() => setActive(!active)}
-            className={`flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold transition-colors ${active ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-green-500/90 text-white hover:bg-green-500"}`}>
+            className={`flex items-center justify-center gap-1 px-3 py-1.5 sm:py-1 rounded text-[11px] font-bold transition-colors ${active ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-green-500/90 text-white hover:bg-green-500"}`}>
             {active ? <><PauseIcon className="size-3" />Pause</> : <><PlayIcon className="size-3" />Resume</>}
           </button>
           <button onClick={handleClear}
-            className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
+            className="flex items-center justify-center gap-1 px-3 py-1.5 sm:py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
             <Trash2Icon className="size-3" />Clear
           </button>
           <button onClick={exportCsv}
-            className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
+            className="flex items-center justify-center gap-1 px-3 py-1.5 sm:py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
             <DownloadIcon className="size-3" />CSV
           </button>
         </div>
       </div>
 
       {/* Column header */}
-      <div className="flex items-center text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold py-1 border-b border-border shrink-0 select-none" style={{ paddingLeft: "7px" }}>
+      <div className="hidden sm:flex items-center text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold py-1 border-b border-border shrink-0 select-none" style={{ paddingLeft: "7px" }}>
         <span className="w-[110px] shrink-0">Time</span>
         <span className="w-[56px] shrink-0">Dir</span>
         <span className="w-[220px] shrink-0">From</span>
@@ -365,31 +365,31 @@ function PacketRow({ pkt, isExpanded, onToggle, search }) {
 
   return (
     <div style={{ borderLeft: `3px solid ${color}`, backgroundColor: `${color}15`, overflow: "hidden", height: "100%" }}>
-      <div className="flex items-center text-[11.5px] leading-none cursor-pointer select-none pl-1 hover:bg-white/[0.04]" style={{ height: ROW_HEIGHT }} onClick={onToggle}>
-        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0">{localTime(pkt.timestamp)}</span>
-        <span className="w-[56px] shrink-0 flex items-center gap-1">
+      <div className="flex items-center min-w-0 text-[11.5px] leading-none cursor-pointer select-none pl-1 hover:bg-white/[0.04]" style={{ height: ROW_HEIGHT }} onClick={onToggle}>
+        <span className="text-muted-foreground tabular-nums w-[78px] sm:w-[110px] shrink-0">{localTime(pkt.timestamp)}</span>
+        <span className="w-[44px] sm:w-[56px] shrink-0 flex items-center gap-1">
           {isRecv
             ? <><ArrowDownIcon className="size-3 text-green-400" /><span className="text-[10px] font-black text-green-400">IN</span></>
             : <><ArrowUpIcon className="size-3 text-blue-400" /><span className="text-[10px] font-black text-blue-400">OUT</span></>
           }
         </span>
-        <span className="w-[220px] shrink-0 truncate text-foreground/90 pr-2">{fromEmail || "—"}</span>
-        <span className="w-[160px] shrink-0 truncate text-muted-foreground pr-2">{ip}</span>
-        <span className="w-[90px] shrink-0 pr-2">
+        <span className="hidden sm:block w-[220px] shrink-0 truncate text-foreground/90 pr-2">{fromEmail || "—"}</span>
+        <span className="hidden lg:block w-[160px] shrink-0 truncate text-muted-foreground pr-2">{ip}</span>
+        <span className="w-[72px] sm:w-[90px] shrink-0 pr-2">
           {parsed.methodName && <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>{parsed.label}</span>}
         </span>
-        <span className="w-[80px] shrink-0 pr-2">
+        <span className="w-[52px] sm:w-[80px] shrink-0 pr-2">
           {parsed.code && <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none" style={{ backgroundColor: parsed.badge.bg, color: parsed.badge.fg }}>{parsed.label}</span>}
         </span>
         <span className="flex-1 min-w-0 truncate text-muted-foreground/70 pr-2">
           {parsed.statusText && <span className="mr-2">{parsed.statusText}</span>}
           {pkt.callId && <span className="opacity-50" style={{ color }}>{pkt.callId.slice(0, 12)}</span>}
         </span>
-        <span className="w-[60px] shrink-0 text-right pr-3 tabular-nums text-muted-foreground/50">{pkt.bytes}B</span>
+        <span className="hidden md:block w-[60px] shrink-0 text-right pr-3 tabular-nums text-muted-foreground/50">{pkt.bytes}B</span>
       </div>
       {isExpanded && (
-        <div className="py-3 px-5 border-t border-border/15 bg-black/10" style={{ height: EXPANDED_HEIGHT - ROW_HEIGHT, overflow: "auto" }}>
-          <div className="flex items-center gap-4 text-[10px] text-muted-foreground mb-2 pb-2 border-b border-border/15">
+        <div className="py-3 px-3 sm:px-5 border-t border-border/15 bg-black/10" style={{ height: EXPANDED_HEIGHT - ROW_HEIGHT, overflow: "auto" }}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground mb-2 pb-2 border-b border-border/15">
             <span>Call-ID: <span className="text-foreground font-bold" style={{ color }}>{pkt.callId}</span></span>
             <span>Transport: <span className="text-foreground">{pkt.transport}</span></span>
             <span>Size: <span className="text-foreground">{pkt.bytes} bytes</span></span>

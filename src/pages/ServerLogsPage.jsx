@@ -153,11 +153,11 @@ export default function ServerLogsPage() {
   }, [filtered]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] font-mono animate-in fade-in duration-300">
+    <div className="flex flex-col h-[calc(100vh-100px)] max-w-full overflow-hidden font-mono animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-baseline justify-between px-1 pb-2 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 px-1 pb-3 shrink-0">
         <h2 className="text-base font-bold tracking-tight font-sans">Server Logs</h2>
-        <div className="text-[11px] text-muted-foreground tabular-nums">
+        <div className="text-[11px] text-muted-foreground tabular-nums leading-relaxed">
           Total: <span className="text-foreground font-bold">{stats.total}</span>
           <span className="mx-1.5 text-border">|</span>
           Showing: <span className="text-foreground font-bold">{stats.showing}</span>
@@ -167,17 +167,17 @@ export default function ServerLogsPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-2 px-1 pb-2 shrink-0">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 px-1 pb-3 shrink-0">
+        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0 w-full sm:w-auto">
           <span>Account:</span>
           <select value={emailFilter} onChange={(e) => setEmailFilter(e.target.value)}
-            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring max-w-[240px]">
+            className="bg-muted/30 border border-border rounded px-2 py-1 text-[11px] text-foreground font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring flex-1 sm:flex-none min-w-0 sm:max-w-[240px]">
             <option value="all">ALL</option>
             {emails.map(em => <option key={em} value={em}>{em}</option>)}
           </select>
         </div>
 
-        <div className="relative flex-1 min-w-[120px]">
+        <div className="relative flex-1 min-w-0 w-full">
           <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
           <Input placeholder="Search / highlight" value={search} onChange={(e) => setSearch(e.target.value)}
             className="h-[26px] w-full pl-7 text-[11px] font-mono bg-muted/30 border-border" />
@@ -190,24 +190,24 @@ export default function ServerLogsPage() {
           Auto-scroll
         </label>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 shrink-0 w-full sm:w-auto">
           <button onClick={() => setActive(!active)}
-            className={`flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold transition-colors ${active ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-green-500/90 text-white hover:bg-green-500"}`}>
+            className={`flex items-center justify-center gap-1 px-3 py-1.5 sm:py-1 rounded text-[11px] font-bold transition-colors ${active ? "bg-red-500/90 text-white hover:bg-red-500" : "bg-green-500/90 text-white hover:bg-green-500"}`}>
             {active ? <><PauseIcon className="size-3" />Pause</> : <><PlayIcon className="size-3" />Resume</>}
           </button>
           <button onClick={handleClear}
-            className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
+            className="flex items-center justify-center gap-1 px-3 py-1.5 sm:py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
             <Trash2Icon className="size-3" />Clear
           </button>
           <button onClick={exportCsv}
-            className="flex items-center gap-1 px-3 py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
+            className="flex items-center justify-center gap-1 px-3 py-1.5 sm:py-1 rounded text-[11px] font-bold bg-muted/40 text-foreground hover:bg-muted/70 transition-colors border border-border">
             <DownloadIcon className="size-3" />CSV
           </button>
         </div>
       </div>
 
       {/* Column header */}
-      <div className="flex items-center text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold py-1 border-b border-border shrink-0 select-none" style={{ paddingLeft: "7px" }}>
+      <div className="hidden sm:flex items-center text-[10px] text-muted-foreground/60 uppercase tracking-wider font-bold py-1 border-b border-border shrink-0 select-none" style={{ paddingLeft: "7px" }}>
         <span className="w-[110px] shrink-0">Time</span>
         <span className="w-[240px] shrink-0">Account</span>
         <span className="w-[70px] shrink-0">Tag</span>
@@ -250,10 +250,10 @@ function LogRow({ entry, search, expanded, onToggle }) {
     <div className="text-[11.5px] leading-none select-none pl-1 hover:bg-white/[0.04] cursor-pointer"
       onClick={onToggle}
       style={{ minHeight: ROW_HEIGHT, borderLeft: `3px solid ${emailColor}`, backgroundColor: `${emailColor}08` }}>
-      <div className="flex items-center" style={{ height: ROW_HEIGHT }}>
-        <span className="text-muted-foreground tabular-nums w-[110px] shrink-0">{formatTs(entry.timestamp)}</span>
-        <span className="w-[240px] shrink-0 truncate pr-2" style={{ color: emailColor }}>{entry.userName}</span>
-        <span className="w-[70px] shrink-0 pr-2">
+      <div className="flex items-center min-w-0" style={{ height: ROW_HEIGHT }}>
+        <span className="text-muted-foreground tabular-nums w-[78px] sm:w-[110px] shrink-0">{formatTs(entry.timestamp)}</span>
+        <span className="hidden sm:block w-[240px] shrink-0 truncate pr-2" style={{ color: emailColor }}>{entry.userName}</span>
+        <span className="w-[54px] sm:w-[70px] shrink-0 pr-2">
           {tag && (
             <span className="inline-flex items-center px-1.5 py-[2px] rounded text-[10px] font-black leading-none"
               style={{ backgroundColor: tagStyle.bg, color: tagStyle.fg }}>
@@ -261,12 +261,12 @@ function LogRow({ entry, search, expanded, onToggle }) {
             </span>
           )}
         </span>
-        <span className={`flex-1 min-w-0 pr-2 text-foreground/80 ${expanded ? "" : "truncate"}`}>
+        <span className={`flex-1 min-w-0 pr-1 sm:pr-2 text-foreground/80 ${expanded ? "" : "truncate"}`}>
           {search ? highlightText(message, search) : message}
         </span>
       </div>
       {expanded && (
-        <div className="py-1.5 px-2 ml-[110px] mr-4 mb-1.5 text-[11px] text-foreground/70 bg-white/[0.03] rounded border border-border/40 whitespace-pre-wrap break-all">
+        <div className="py-1.5 px-2 ml-0 sm:ml-[110px] mr-1 sm:mr-4 mb-1.5 text-[11px] text-foreground/70 bg-white/[0.03] rounded border border-border/40 whitespace-pre-wrap break-all">
           {message}
         </div>
       )}

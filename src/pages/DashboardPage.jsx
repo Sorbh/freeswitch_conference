@@ -697,16 +697,20 @@ function TopBroadcasters() {
                   <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
                     {i + 1}
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold truncate">{name}</span>
-                      <span className="text-xs font-mono tabular-nums text-foreground/60 shrink-0">{b.count} broadcasts</span>
-                      {rate > 0 && (
-                        <span className={`text-xs font-mono tabular-nums shrink-0 ${rate >= 70 ? "text-emerald-500" : rate >= 40 ? "text-amber-500" : "text-red-500"}`}>{rate}% answered</span>
-                      )}
-                      <span className="text-xs font-mono tabular-nums text-foreground/40 ml-auto shrink-0">{fmtDur(b.avg_duration_ms)} avg</span>
+                  <div className="flex-1 min-w-0 pl-2">
+                    <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:gap-2">
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <span className="block truncate text-sm font-semibold leading-tight">{name}</span>
+                        <span className="block truncate text-[10px] text-foreground/60 leading-tight">{b.room_name || "—"}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-xs tabular-nums sm:justify-end">
+                        <span className="text-foreground/60 shrink-0">{b.count} broadcasts</span>
+                        {rate > 0 && (
+                          <span className={`shrink-0 ${rate >= 70 ? "text-emerald-500" : rate >= 40 ? "text-amber-500" : "text-red-500"}`}>{rate}% answered</span>
+                        )}
+                        <span className="text-foreground/40 shrink-0">{fmtDur(b.avg_duration_ms)} avg</span>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-foreground/60">{b.room_name || "—"}</span>
                   </div>
                 </div>
               </div>

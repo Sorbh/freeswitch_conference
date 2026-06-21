@@ -368,18 +368,18 @@ export default function RoomsPage() {
 
   return (
     <TooltipProvider>
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Rooms</h2>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold tracking-tight leading-tight">Rooms</h2>
           <p className="text-sm text-muted-foreground mt-1">
             <span className="font-mono tabular-nums">{rooms.length}</span> rooms,{" "}
             <span className="font-mono tabular-nums">{totalOnline}</span> online,{" "}
             <span className="font-mono tabular-nums">{totalInCall}</span> in call
           </p>
         </div>
-        <Button onClick={openCreateRoom}>
+        <Button onClick={openCreateRoom} className="h-10 w-full justify-center sm:w-auto">
           <PlusIcon className="size-4 mr-2" />
           Add Room
         </Button>
@@ -432,8 +432,112 @@ export default function RoomsPage() {
         </div>
       )}
 
-      {/* Rooms Table */}
-      <Card>
+      {/* Rooms */}
+      <div className="space-y-3 md:hidden">
+        {rooms.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              No rooms configured
+            </CardContent>
+          </Card>
+        ) : rooms.map(room => {
+          const total = room.total ?? 0;
+          const online = room.online ?? 0;
+          const inCall = room.inCall ?? 0;
+          const unmuted = room.unmuted ?? 0;
+          const isEmpty = online === 0 && inCall === 0;
+          const cap = room.accountCount || total || 1;
+          const onlinePct = Math.round((online / cap) * 100);
+          return (
+            <Card key={room.room} className={isEmpty ? "opacity-65" : ""}>
+              <CardContent className="p-4">
+                <button type="button" className="w-full text-left" onClick={() => openRoom(room)}>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 shrink-0">
+                      {unmuted > 0 ? (
+                        <span className="relative flex size-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                          <span className="relative inline-flex rounded-full size-3 bg-emerald-500" />
+                        </span>
+                      ) : online > 0 ? (
+                        <span className="inline-flex rounded-full size-3 bg-sky-500" />
+                      ) : (
+                        <span className="inline-flex rounded-full size-3 bg-zinc-500/30" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-lg font-semibold leading-tight">{room.roomName}</p>
+                          <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-mono">{room.shortCode || `Room ${room.room}`}</span>
+                            <span>•</span>
+                            <span>{getLocalTime(room.timezone)}</span>
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-border/60 px-2 py-1 text-xs font-mono tabular-nums text-muted-foreground">
+                          {onlinePct}% live
+                        </span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                        <div className="rounded-lg bg-muted/25 px-2 py-2">
+                          <p className="font-mono text-base font-semibold tabular-nums">{room.accountCount || total}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Accounts</p>
+                        </div>
+                        <div className="rounded-lg bg-emerald-500/10 px-2 py-2">
+                          <p className="font-mono text-base font-semibold tabular-nums text-emerald-400">{online}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Online</p>
+                        </div>
+                        <div className="rounded-lg bg-sky-500/10 px-2 py-2">
+                          <p className="font-mono text-base font-semibold tabular-nums text-sky-400">{inCall}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">In Call</p>
+                        </div>
+                        <div className="rounded-lg bg-amber-500/10 px-2 py-2">
+                          <p className="font-mono text-base font-semibold tabular-nums text-amber-400">{unmuted}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground">Open Mic</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                <div className="mt-4 flex items-center justify-end gap-1 border-t border-border/50 pt-3" onClick={e => e.stopPropagation()}>
+                  <Tip label={listenRoom === room.room ? "Stop Listening" : "Listen to Room"}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className={`size-9 ${listenRoom === room.room && listenState === "connected" ? "text-emerald-500" : ""}`}
+                      onClick={() => listenRoom === room.room ? stopListen() : startListen(room.room)}
+                    >
+                      {listenRoom === room.room && (listenState === "registering" || listenState === "ringing")
+                        ? <Loader2Icon className="size-4 animate-spin" />
+                        : listenRoom === room.room && listenState === "connected"
+                          ? <SquareIcon className="size-3.5 fill-current" />
+                          : <HeadphonesIcon className="size-4" />}
+                    </Button>
+                  </Tip>
+                  <Tip label="Edit Room">
+                    <Button size="icon" variant="ghost" className="size-9" onClick={() => openEditRoom(room)}>
+                      <PencilIcon className="size-4" />
+                    </Button>
+                  </Tip>
+                  <Tip label="Honk">
+                    <Button size="icon" variant="ghost" className="size-9" onClick={() => honk(room.room)}>
+                      <Volume2Icon className="size-4" />
+                    </Button>
+                  </Tip>
+                  <Tip label="Delete Room">
+                    <Button size="icon" variant="ghost" className="size-9 text-destructive" onClick={() => { setDeleteTarget(room); setDeleteDialogOpen(true); }}>
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </Tip>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -557,7 +661,7 @@ export default function RoomsPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className={`flex gap-1 justify-end transition-opacity ${listenRoom === room.room ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} onClick={e => e.stopPropagation()}>
+                        <div className={`flex gap-1 justify-end transition-opacity ${listenRoom === room.room ? "opacity-100" : "opacity-100 lg:opacity-0 lg:group-hover:opacity-100"}`} onClick={e => e.stopPropagation()}>
                           <Tip label={listenRoom === room.room ? "Stop Listening" : "Listen to Room"}>
                             <Button
                               size="icon"

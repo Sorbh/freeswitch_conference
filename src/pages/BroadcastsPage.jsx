@@ -656,20 +656,20 @@ export default function BroadcastsPage() {
     <div className="space-y-5 animate-in fade-in duration-300">
       {/* Header */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Broadcasts</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-bold tracking-tight leading-tight">Broadcasts</h2>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
               <span className="font-mono tabular-nums">{totalBroadcasts}</span> total{" • "}
               <span className="font-mono tabular-nums">{totalAnswered}</span> answered{" • "}
               <span className="font-mono tabular-nums">{responseRate}%</span> response rate
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:items-center">
             <select
               value={timezoneMode}
               onChange={e => setTimezoneMode(e.target.value)}
-              className="h-9 px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
+              className="h-10 w-full px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
             >
               <option value="local">My Time</option>
               <option value="room">{selectedRoom ? "Room Time" : "Each Room Time"}</option>
@@ -677,7 +677,7 @@ export default function BroadcastsPage() {
             <select
               value={selectedRoom}
               onChange={e => { setSelectedRoom(e.target.value); setPage(1); }}
-              className="h-9 px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
+              className="h-10 w-full px-3 pr-8 rounded-lg text-sm font-medium border border-border/40 bg-muted/20 text-foreground focus:outline-none focus:ring-1 focus:ring-ring appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%23888%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.5%206l3.5%203.5L11.5%206%22%20stroke%3D%22%23888%22%20stroke-width%3D%221.5%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[length:16px] bg-[right_8px_center] bg-no-repeat"
             >
               <option value="">All Rooms</option>
               {Object.entries(ROOM_NAMES).map(([id, name]) => (
@@ -686,7 +686,7 @@ export default function BroadcastsPage() {
             </select>
           </div>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {ranges.map(r => (
             <button
               key={r.key}
@@ -717,13 +717,13 @@ export default function BroadcastsPage() {
       {/* Chart */}
       <Card className="border-border/40">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold">
               <TrendingUpIcon className="size-3.5 text-cyan-400" />
               {activeRange === "today" ? "Hourly Activity" : activeRange === "week" ? "7 Days Activity" : "30 Days Activity"}
-              <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">{timezoneModeLabel}</span>
+              <span className="text-[10px] font-mono text-muted-foreground/40 font-normal sm:ml-1">{timezoneModeLabel}</span>
             </CardTitle>
-            <div className="flex items-center gap-4 text-[11px] font-mono tabular-nums">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-mono tabular-nums">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 bg-emerald-800 rounded-sm" />
                 <span className="text-muted-foreground/60">Answered</span>
@@ -752,18 +752,18 @@ export default function BroadcastsPage() {
       {/* Hourly Distribution Line Chart */}
       <Card className="border-border/40">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-sm font-semibold">
               <TrendingUpIcon className="size-3.5 text-violet-400" />
               Hourly Distribution
               {hourlyDistKeys.length > 0 && (
-                <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">
+                <span className="text-[10px] font-mono text-muted-foreground/40 font-normal sm:ml-1">
                   {hourlyDistKeys.length} {hourlyDistKeys.length === 1 ? "day" : "days"} · {timezoneModeLabel}
                 </span>
               )}
             </CardTitle>
             {hourlyDistKeys.length > 1 && activeRange !== "month" && (
-              <div className="flex items-center gap-2 flex-wrap justify-end max-w-[60%]">
+              <div className="flex items-center gap-2 flex-wrap sm:justify-end sm:max-w-[60%]">
                 {hourlyDistKeys.map((day, i) => (
                   <span key={day} className="flex items-center gap-1 text-[10px] font-mono">
                     <span className="w-2.5 h-0.5 rounded-full" style={{ backgroundColor: LINE_COLORS[i % LINE_COLORS.length] }} />
@@ -812,6 +812,38 @@ export default function BroadcastsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 px-0">
+            <div className="space-y-2 px-4 pb-4 sm:hidden">
+              {topBroadcasters.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No data</p>
+              ) : (
+                topBroadcasters.slice(0, 10).map((b, i) => {
+                  const medals = ["text-amber-400", "text-zinc-400", "text-orange-400"];
+                  const rate = b.count > 0 ? Math.round(((b.answered || 0) / b.count) * 100) : 0;
+                  return (
+                    <div key={b.user_name || i} className="rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
+                      <div className="flex items-start gap-3">
+                        <span className={`flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-bold tabular-nums ${medals[i] || "bg-muted text-muted-foreground"}`}>
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{b.display_name || b.user_name}</p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">{b.room_name || "—"}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-xs tabular-nums">
+                            <span className="text-muted-foreground">{b.count} broadcasts</span>
+                            {rate > 0 ? (
+                              <span className={rate >= 70 ? "text-emerald-400" : rate >= 40 ? "text-amber-400" : "text-red-400"}>{rate}% answered</span>
+                            ) : null}
+                            <span className="text-muted-foreground/70">{b.avg_duration_ms ? formatDuration(b.avg_duration_ms) : "—"} avg</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -850,6 +882,7 @@ export default function BroadcastsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -895,15 +928,15 @@ export default function BroadcastsPage() {
       {/* ═══ Broadcast List ═══ */}
       <Card className="border-border/40">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <ListIcon className="size-3.5 text-emerald-400" />
               Broadcast Log
               <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">{totalItems.toLocaleString()} total</span>
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               {/* Status pills */}
-              <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted/20 border border-border/30">
+              <div className="grid grid-cols-3 gap-0.5 p-0.5 rounded-lg bg-muted/20 border border-border/30 sm:flex">
                 {[
                   { key: "", label: "All", active: "bg-background text-foreground shadow-sm" },
                   { key: "answered", label: "Answered", active: "bg-emerald-500/15 text-emerald-400 shadow-sm" },
@@ -924,12 +957,12 @@ export default function BroadcastsPage() {
               </div>
 
               {/* Date range */}
-              <div className="flex items-center gap-1.5">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 sm:flex">
                 <Input
                   type="date"
                   value={filterDateFrom}
                   onChange={e => { setFilterDateFrom(e.target.value); setPage(1); }}
-                  className="h-7 w-[130px] text-[11px] bg-muted/20 border-border/30"
+                  className="h-9 w-full text-[11px] bg-muted/20 border-border/30 sm:h-7 sm:w-[130px]"
                   placeholder="From"
                 />
                 <span className="text-muted-foreground/30 text-xs">–</span>
@@ -937,7 +970,7 @@ export default function BroadcastsPage() {
                   type="date"
                   value={filterDateTo}
                   onChange={e => { setFilterDateTo(e.target.value); setPage(1); }}
-                  className="h-7 w-[130px] text-[11px] bg-muted/20 border-border/30"
+                  className="h-9 w-full text-[11px] bg-muted/20 border-border/30 sm:h-7 sm:w-[130px]"
                   placeholder="To"
                 />
               </div>
@@ -966,6 +999,161 @@ export default function BroadcastsPage() {
           ) : broadcasts.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12">No broadcasts found</p>
           ) : (
+            <>
+            <div className="space-y-2 px-3 pb-3 md:hidden">
+              {broadcasts.map((b) => {
+                const url = b.recording_path ? `/recordings/${b.recording_path.split("/").pop()}` : null;
+                const playing = playingId === b.id;
+                const rowTimeZone = getRowTimeZone(b);
+                const speaker = b.display_name || b.user_name || "Unknown";
+                const roomName = b.room_name || ROOM_NAMES[b.room] || "—";
+                return (
+                  <div
+                    key={b.id}
+                    className={`rounded-xl border bg-card/70 p-3 transition-colors ${playing ? "border-emerald-500/25 bg-emerald-500/[0.04]" : "border-border/60"}`}
+                    onClick={() => openDetail(b)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 pt-0.5" onClick={e => e.stopPropagation()}>
+                        {url ? (
+                          <button
+                            onClick={() => toggle(b.id, url)}
+                            className={`flex size-9 items-center justify-center rounded-full border transition-all cursor-pointer ${
+                              playing
+                                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                                : "bg-muted/40 border-border/50 text-muted-foreground"
+                            }`}
+                            aria-label={playing ? "Pause recording" : "Play recording"}
+                          >
+                            {playing ? (
+                              <div className="flex items-end gap-[2px] h-3">
+                                {[0, 1, 2].map(i => (
+                                  <div key={i} className="w-[2px] bg-emerald-400 rounded-full" style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }} />
+                                ))}
+                              </div>
+                            ) : (
+                              <PlayIcon className="size-3.5 ml-0.5" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="flex size-9 items-center justify-center rounded-full border border-border/50 bg-muted/20 text-muted-foreground/40">
+                            <RadioIcon className="size-4" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-base font-semibold leading-tight">{speaker}</p>
+                            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                              <span className="font-mono tabular-nums">
+                                {formatTime(b.created_at, rowTimeZone)}
+                                {timezoneMode === "room" && !selectedRoom && <span className="ml-1 text-[9px] text-muted-foreground/40">{timeZoneAbbr(b.created_at, rowTimeZone)}</span>}
+                              </span>
+                              <span>{formatFullDate(b.created_at, rowTimeZone)}</span>
+                            </p>
+                          </div>
+                          {b.answered ? (
+                            <Badge className="shrink-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] px-1.5 py-0">Answered</Badge>
+                          ) : (
+                            <Badge className="shrink-0 bg-red-500/10 text-red-500 border-red-500/20 text-[10px] px-1.5 py-0">Unanswered</Badge>
+                          )}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1">
+                            <RadioIcon className="size-3" />
+                            {roomName}
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 font-mono tabular-nums">
+                            <ClockIcon className="size-3" />
+                            {formatDuration(b.duration_ms)}
+                          </span>
+                          {b.answered && (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 font-mono tabular-nums">
+                              <PhoneCallIcon className="size-3" />
+                              {b.response_time_ms === 0 ? "instant" : b.response_time_ms != null ? formatDuration(b.response_time_ms) : "—"}
+                            </span>
+                          )}
+                        </div>
+
+                        {b.responded_by && (
+                          <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                            Responded by {b.responded_by}
+                          </p>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                          {b.transcription_status === 'completed' && b.transcription ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => openTranscript(b)}
+                                  className="flex size-8 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                  aria-label="View transcript"
+                                >
+                                  <FileTextIcon className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>View transcript</TooltipContent>
+                            </Tooltip>
+                          ) : b.transcription_status === 'processing' || transcribing === b.id ? (
+                            <div className="flex size-8 items-center justify-center">
+                              <Loader2Icon className="size-4 animate-spin text-muted-foreground/50" />
+                            </div>
+                          ) : b.recording_path ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => triggerTranscribe(b)}
+                                  disabled={transcribing === b.id}
+                                  className="flex size-8 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground"
+                                  aria-label="Transcribe"
+                                >
+                                  <SparklesIcon className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Transcribe</TooltipContent>
+                            </Tooltip>
+                          ) : null}
+
+                          {b.share_token ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => revokeBroadcast(b.id)}
+                                  className="flex size-8 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                  aria-label="Revoke share link"
+                                >
+                                  <Unlink2Icon className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Revoke share link</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => shareBroadcast(b.id)}
+                                  className="flex size-8 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground"
+                                  aria-label="Generate share link"
+                                >
+                                  <Share2Icon className="size-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Generate share link</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1139,12 +1327,14 @@ export default function BroadcastsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
 
           {/* Pagination */}
           {totalPages > 0 && broadcasts.length > 0 && (
-            <div className="flex items-center justify-between px-6 py-3 border-t border-border/30">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 px-4 py-3 border-t border-border/30 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs text-muted-foreground">
                   Showing <span className="font-mono tabular-nums">{((page - 1) * pageSize) + 1}</span>–<span className="font-mono tabular-nums">{Math.min(page * pageSize, totalItems)}</span> of <span className="font-mono tabular-nums">{totalItems.toLocaleString()}</span>
                 </span>
@@ -1158,7 +1348,7 @@ export default function BroadcastsPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center justify-end gap-1">
                 <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => setPage(1)}>
                   <ChevronsLeftIcon className="size-3.5" />
                 </Button>

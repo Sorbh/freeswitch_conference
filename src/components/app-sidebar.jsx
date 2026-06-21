@@ -13,6 +13,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import {
   LayoutDashboardIcon,
@@ -68,6 +69,7 @@ export function AppSidebar({ ...props }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
+  const { isMobile, setOpenMobile } = useSidebar()
 
   const role = user?.role || 'analytics'
 
@@ -80,7 +82,10 @@ export function AppSidebar({ ...props }) {
           ...item,
           isActive: location.pathname === item.url ||
             (item.url !== "/" && location.pathname.startsWith(item.url)),
-          onClick: () => navigate(item.url),
+          onClick: () => {
+            navigate(item.url)
+            if (isMobile) setOpenMobile(false)
+          },
         })),
     }))
     .filter((group) => group.items.length > 0)

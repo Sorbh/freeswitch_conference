@@ -172,9 +172,9 @@ export default function DirectCallsPage() {
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Extension Calls</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="min-w-0">
+        <h2 className="text-2xl font-bold tracking-tight leading-tight">Extension Calls</h2>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
           <span className="font-mono tabular-nums">{stats.total}</span> total{" • "}
           <span className="font-mono tabular-nums">{stats.answered}</span> answered{" • "}
           <span className="font-mono tabular-nums">{stats.missed}</span> missed
@@ -192,13 +192,13 @@ export default function DirectCallsPage() {
       {/* Call Log */}
       <Card className="border-border/40">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <ListIcon className="size-3.5 text-violet-400" />
               Call Log
               <span className="text-[10px] font-mono text-muted-foreground/40 font-normal ml-1">{filtered.length} calls</span>
             </CardTitle>
-            <div className="flex gap-0.5 p-0.5 rounded-lg bg-muted/20 border border-border/30">
+            <div className="grid grid-cols-3 gap-0.5 p-0.5 rounded-lg bg-muted/20 border border-border/30 sm:flex">
               {[
                 { key: "", label: "All", active: "bg-background text-foreground shadow-sm" },
                 { key: "answered", label: "Answered", active: "bg-emerald-500/15 text-emerald-400 shadow-sm" },
@@ -224,6 +224,86 @@ export default function DirectCallsPage() {
           {filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-12">No calls found</p>
           ) : (
+            <>
+            <div className="space-y-2 px-3 pb-3 md:hidden">
+              {filtered.map((c) => {
+                const url = c.recording_path ? `/recordings/direct/${c.recording_path.split("/").pop()}` : null;
+                const playing = playingId === c.id;
+                const st = STATUS_MAP[c.status] || STATUS_MAP.cancelled;
+                return (
+                  <div
+                    key={c.id}
+                    className={`rounded-xl border bg-card/70 p-3 transition-colors ${playing ? "border-violet-500/25 bg-violet-500/[0.04]" : "border-border/60"}`}
+                    onClick={() => { setSelectedCall(c); setSheetOpen(true); }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                        {url ? (
+                          <button
+                            onClick={() => toggle(c.id, url)}
+                            className={`flex size-9 items-center justify-center rounded-full border transition-all cursor-pointer ${
+                              playing
+                                ? "bg-violet-500/15 border-violet-500/30 text-violet-400"
+                                : "bg-muted/40 border-border/50 text-muted-foreground"
+                            }`}
+                            aria-label={playing ? "Pause recording" : "Play recording"}
+                          >
+                            {playing ? (
+                              <div className="flex items-end gap-[2px] h-3">
+                                {[0, 1, 2].map(i => (
+                                  <div key={i} className="w-[2px] bg-violet-400 rounded-full" style={{ animation: `eqBar ${0.3 + i * 0.1}s ease-in-out infinite alternate`, animationDelay: `${i * 80}ms` }} />
+                                ))}
+                              </div>
+                            ) : (
+                              <PlayIcon className="size-3.5 ml-0.5" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="flex size-9 items-center justify-center rounded-full border border-border/50 bg-muted/20 text-muted-foreground/40">
+                            <PhoneCallIcon className="size-4" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-base font-semibold leading-tight">{c.caller_display_name || c.caller_email}</p>
+                            <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {c.caller_extension && <code className="font-mono text-violet-400/70 bg-violet-500/10 px-1.5 py-px rounded">*{c.caller_extension}</code>}
+                              {c.caller_company && <span className="truncate">{c.caller_company}</span>}
+                            </div>
+                          </div>
+                          <Badge className={`${st.cls} shrink-0 text-[10px] px-1.5 py-0`}>{st.label}</Badge>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 rounded-lg border border-border/50 bg-muted/15 px-2.5 py-2">
+                          <ArrowRightIcon className="size-3.5 text-muted-foreground/40 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{c.callee_display_name || c.callee_email}</p>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {c.callee_extension && <code className="font-mono text-cyan-400/70 bg-cyan-500/10 px-1.5 py-px rounded">*{c.callee_extension}</code>}
+                              {c.callee_company && <span className="truncate">{c.callee_company}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 font-mono tabular-nums">
+                            <ClockIcon className="size-3" />
+                            {formatTime(c.created_at)}
+                          </span>
+                          <span className="rounded-md border border-border/60 px-2 py-1">{c.caller_room_name || "—"}</span>
+                          <span className="rounded-md border border-border/60 px-2 py-1 font-mono tabular-nums">{c.duration_ms > 0 ? formatDuration(c.duration_ms) : "—"}</span>
+                        </div>
+                        {(END_REASON_LABELS[c.end_reason] || c.end_reason) && (
+                          <p className="mt-2 text-xs text-muted-foreground/60">{END_REASON_LABELS[c.end_reason] || c.end_reason}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -309,6 +389,8 @@ export default function DirectCallsPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -750,14 +750,27 @@ function _ensureClientListener() {
     if (_clientListenerRegistered) return;
     _clientListenerRegistered = true;
     global.db.eventEmitter.on('STATE_CHANGE', (eventData) => {
-        if (eventData.scope !== 'callerid' || !eventData.room) return;
-        const room = eventData.room;
-        sendClientEventToRoom(room, {
-            type: 'callerid',
-            ...buildRoomSnapshot(room),
-            online: buildOnlineCounts(),
-            ts: eventData.ts || Date.now()
-        });
+        if (eventData.scope === 'callerid' && eventData.room) {
+            const room = eventData.room;
+            sendClientEventToRoom(room, {
+                type: 'callerid',
+                ...buildRoomSnapshot(room),
+                online: buildOnlineCounts(),
+                ts: eventData.ts || Date.now()
+            });
+        } else if (eventData.scope === 'users' && eventData.userName) {
+            const email = eventData.userName?.replace('sip:', '');
+            const account = email ? global.db.getAccountByEmail(email) : null;
+            const room = account?.room;
+            if (room) {
+                sendClientEventToRoom(room, {
+                    type: 'online_update',
+                    ...buildRoomSnapshot(room),
+                    online: buildOnlineCounts(),
+                    ts: Date.now()
+                });
+            }
+        }
     });
     global.db.eventEmitter.on('CLIENT_USER_EVENT', (eventData) => {
         if (!eventData.userName || !eventData.event) return;

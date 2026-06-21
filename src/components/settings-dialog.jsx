@@ -143,22 +143,24 @@ export function SettingsDialog({ open, onOpenChange, initialTab }) {
             className={cn(
               "fixed z-50 outline-none duration-150",
               "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-              "w-[min(92vw,820px)]",
+              "w-[calc(100vw-1rem)] sm:w-[min(92vw,820px)]",
               "rounded-2xl bg-popover text-popover-foreground shadow-2xl",
               "border border-border/60",
               "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97]",
               "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-[0.97]",
             )}
           >
-            {/* Close — hidden, use backdrop click or Escape to close */}
+            <DialogPrimitive.Close className="absolute right-3 top-3 z-20 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors">
+              <XIcon className="size-4" />
+            </DialogPrimitive.Close>
 
-            <div className="flex h-[min(80vh,580px)] overflow-hidden rounded-2xl">
+            <div className="flex h-[min(92dvh,640px)] flex-col overflow-hidden rounded-2xl md:h-[min(80vh,580px)] md:flex-row">
               {/* ─── Sidebar ─── */}
-              <div className="w-[200px] shrink-0 border-r border-border/50 bg-muted/20 flex flex-col">
-                <div className="px-5 pt-5 pb-3">
+              <div className="shrink-0 border-b border-border/50 bg-muted/20 md:w-[200px] md:border-b-0 md:border-r flex flex-col">
+                <div className="px-4 pt-4 pb-2 md:px-5 md:pt-5 md:pb-3">
                   <h2 className="text-[13px] font-semibold tracking-tight">Settings</h2>
                 </div>
-                <nav className="flex-1 px-2.5 pb-4 space-y-px">
+                <nav className="flex gap-1 overflow-x-auto px-2.5 pb-3 md:flex-1 md:flex-col md:overflow-visible md:pb-4 md:space-y-px">
                   {NAV.map(item => {
                     const Icon = item.icon;
                     const active = tab === item.key;
@@ -167,7 +169,7 @@ export function SettingsDialog({ open, onOpenChange, initialTab }) {
                         key={item.key}
                         onClick={() => setTab(item.key)}
                         className={cn(
-                          "flex items-center gap-2.5 w-full rounded-lg px-2.5 py-[7px] text-[13px] transition-all duration-100",
+                          "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[12px] transition-all duration-100 md:w-full md:gap-2.5 md:px-2.5 md:py-[7px] md:text-[13px]",
                           active
                             ? "bg-accent text-accent-foreground font-medium"
                             : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
@@ -183,7 +185,7 @@ export function SettingsDialog({ open, onOpenChange, initialTab }) {
 
               {/* ─── Content ─── */}
               <div className="flex-1 overflow-y-auto min-w-0">
-                <div className="p-7">
+                <div className="p-4 md:p-7">
                   {tab === "general" && <GeneralPane user={user} />}
                   {tab === "audio" && <AudioPane />}
                   {tab === "users" && <UsersPane admins={admins} loading={loadingAdmins} uid={user?.id} onCreate={openCreateAdmin} onEdit={openEditAdmin} onDelete={setDeleteAdminId} />}
@@ -210,8 +212,8 @@ export function SettingsDialog({ open, onOpenChange, initialTab }) {
 
 function Heading({ children, sub, right }) {
   return (
-    <div className="flex items-start justify-between mb-6">
-      <div>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5 sm:mb-6">
+      <div className="min-w-0">
         <h3 className="text-[15px] font-semibold tracking-tight">{children}</h3>
         {sub && <p className="text-[13px] text-muted-foreground/70 mt-1">{sub}</p>}
       </div>
@@ -222,12 +224,12 @@ function Heading({ children, sub, right }) {
 
 function Row({ label, hint, children, noBorder }) {
   return (
-    <div className={cn("flex items-center justify-between gap-4 py-3", !noBorder && "border-b border-border/40")}>
+    <div className={cn("flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4", !noBorder && "border-b border-border/40")}>
       <div className="min-w-0">
         <p className="text-[13px]">{label}</p>
         {hint && <p className="text-[12px] text-muted-foreground/60 mt-px">{hint}</p>}
       </div>
-      <div className="shrink-0 text-right">{children}</div>
+      <div className="min-w-0 sm:shrink-0 sm:text-right">{children}</div>
     </div>
   );
 }
@@ -280,10 +282,10 @@ function GeneralPane({ user }) {
             <div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">{initials}</div>
           </Row>
           <Row label="Full name">
-            <span className="text-[13px] text-muted-foreground">{user?.name}</span>
+            <span className="block max-w-full break-words text-[13px] text-muted-foreground">{user?.name}</span>
           </Row>
           <Row label="Email">
-            <span className="text-[13px] text-muted-foreground">{user?.email}</span>
+            <span className="block max-w-full break-all text-[13px] text-muted-foreground">{user?.email}</span>
           </Row>
           <Row label="Role" noBorder>
             <Badge variant="outline" className={cn("text-[11px]", ROLE_COLORS[user?.role])}>{ROLE_LABELS[user?.role]}</Badge>
@@ -307,8 +309,8 @@ function GeneralPane({ user }) {
               color: '#f59e0b',
             }} />
           )}
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
               <div className={cn(
                 "flex size-9 items-center justify-center rounded-lg transition-all duration-300",
                 automuteEnabled
@@ -317,8 +319,8 @@ function GeneralPane({ user }) {
               )}>
                 <TimerIcon className="size-[18px]" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[13px] font-medium">Auto-Mute</span>
                   {automuteEnabled && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-px">
@@ -352,20 +354,20 @@ function GeneralPane({ user }) {
         </div>
 
         {automuteEnabled && (
-          <div className="rounded-xl border border-border/40 bg-card/50 px-4">
-            <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+        <div className="rounded-xl border border-border/40 bg-card/50 px-4">
+            <div className="flex flex-col gap-2 py-3 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <p className="text-[13px]">Timeout</p>
                 <p className="text-[11px] text-muted-foreground/50 mt-px">Max unmuted duration before auto-mute</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:justify-end">
                 <Input
                   type="number"
                   min={1}
                   max={30}
                   value={automuteMinutes}
                   onChange={e => { setAutomuteMinutes(Math.max(1, Math.min(30, parseInt(e.target.value) || 1))); setSaved(false); }}
-                  className="w-[70px] h-7 text-[12px] text-center"
+                  className="w-[90px] sm:w-[70px] h-8 sm:h-7 text-[12px] text-center"
                 />
                 <span className="text-[12px] text-muted-foreground/50">min</span>
               </div>
@@ -380,7 +382,7 @@ function GeneralPane({ user }) {
       </section>
 
       {/* ─── Save ─── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[11px] text-muted-foreground/30">
           {automuteEnabled ? `Auto-mute after ${automuteMinutes} min` : ''}
         </p>
@@ -389,7 +391,7 @@ function GeneralPane({ user }) {
           onClick={handleSave}
           disabled={saving || loading}
           className={cn(
-            "h-8 text-xs px-5 transition-all duration-200",
+            "h-9 sm:h-8 w-full sm:w-auto text-xs px-5 transition-all duration-200",
             saved && "bg-emerald-600 hover:bg-emerald-600 text-white"
           )}
         >
@@ -523,8 +525,8 @@ function AudioPane() {
             color: '#10b981',
           }} />
         )}
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
             <div className={cn(
               "flex size-9 items-center justify-center rounded-lg transition-all duration-300",
               settings.enabled
@@ -533,8 +535,8 @@ function AudioPane() {
             )}>
               <MicIcon className="size-[18px]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[13px] font-medium">Transcription Engine</span>
                 {settings.enabled && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/90 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-px">
@@ -568,7 +570,7 @@ function AudioPane() {
       {/* ─── Provider Selection ─── */}
       <section className="mb-6">
         <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-widest mb-3">Provider</p>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {[
             { id: 'deepgram', name: 'Deepgram', desc: 'Nova 3 & Whisper models', accent: 'emerald' },
             { id: 'openrouter', name: 'OpenRouter', desc: 'Multi-provider STT gateway', accent: 'sky' },
@@ -596,7 +598,7 @@ function AudioPane() {
                   )}>
                     {p.id === 'deepgram' ? 'DG' : 'OR'}
                   </div>
-                  <div>
+                  <div className="min-w-0 pr-5">
                     <p className={cn("text-[12px] font-medium", selected ? "text-foreground" : "text-muted-foreground")}>{p.name}</p>
                     <p className="text-[10px] text-muted-foreground/40 mt-px">{p.desc}</p>
                   </div>
@@ -623,7 +625,7 @@ function AudioPane() {
           </p>
           <div className="rounded-xl border border-border/40 bg-card/50 px-4">
             {/* API Key */}
-            <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+            <div className="flex flex-col gap-2 py-3 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[13px]">API Key</p>
@@ -641,13 +643,13 @@ function AudioPane() {
                   {settings.provider === 'deepgram' ? 'console.deepgram.com' : 'openrouter.ai/settings/keys'}
                 </p>
               </div>
-              <div className="relative shrink-0">
+              <div className="relative w-full sm:w-auto sm:shrink-0">
                 <Input
                   type={showKey ? "text" : "password"}
                   value={settings[activeApiKeyField]}
                   onChange={e => update(activeApiKeyField, e.target.value)}
                   placeholder="Paste key here"
-                  className="w-[200px] h-7 text-[11px] font-mono pr-8"
+                  className="w-full sm:w-[200px] h-8 sm:h-7 text-[11px] font-mono pr-8"
                 />
                 <button
                   type="button"
@@ -661,7 +663,7 @@ function AudioPane() {
             </div>
 
             {/* Model */}
-            <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+            <div className="flex flex-col gap-2 py-3 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <p className="text-[13px]">Model</p>
                 <p className="text-[11px] text-muted-foreground/50 mt-px">
@@ -679,7 +681,7 @@ function AudioPane() {
                   }
                 }}
               >
-                <SelectTrigger className="w-[200px] h-7 text-[11px]">
+                <SelectTrigger className="w-full sm:w-[200px] h-8 sm:h-7 text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -691,7 +693,7 @@ function AudioPane() {
 
             {/* Custom model input */}
             {(isCustom || activeModelValue === '') && (
-              <div className="flex items-center justify-between gap-4 py-3 border-b border-border/40">
+              <div className="flex flex-col gap-2 py-3 border-b border-border/40 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div className="min-w-0">
                   <p className="text-[13px]">Custom ID</p>
                   <p className="text-[11px] text-muted-foreground/50 mt-px">Exact provider model identifier</p>
@@ -703,19 +705,19 @@ function AudioPane() {
                     update(activeModelKey, e.target.value);
                   }}
                   placeholder="e.g. nova-3-medical"
-                  className="w-[200px] h-7 text-[11px] font-mono"
+                  className="w-full sm:w-[200px] h-8 sm:h-7 text-[11px] font-mono"
                 />
               </div>
             )}
 
             {/* Language */}
-            <div className="flex items-center justify-between gap-4 py-3">
+            <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <p className="text-[13px]">Language</p>
                 <p className="text-[11px] text-muted-foreground/50 mt-px">Audio content language</p>
               </div>
               <Select value={settings.language} onValueChange={v => update('language', v)}>
-                <SelectTrigger className="w-[200px] h-7 text-[11px]">
+                <SelectTrigger className="w-full sm:w-[200px] h-8 sm:h-7 text-[11px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -728,7 +730,7 @@ function AudioPane() {
       )}
 
       {/* ─── Save ─── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[11px] text-muted-foreground/30">
           {settings.enabled && hasKey
             ? `${settings.provider === 'deepgram' ? 'Deepgram' : 'OpenRouter'} ready`
@@ -739,7 +741,7 @@ function AudioPane() {
           onClick={handleSave}
           disabled={saving}
           className={cn(
-            "h-8 text-xs px-5 transition-all duration-200",
+            "h-9 sm:h-8 w-full sm:w-auto text-xs px-5 transition-all duration-200",
             saved && "bg-emerald-600 hover:bg-emerald-600 text-white"
           )}
         >
@@ -774,7 +776,7 @@ function UsersPane({ admins, loading, uid, onCreate, onEdit, onDelete }) {
   return (
     <>
       <Heading sub="Manage who can access the console" right={
-        <Button size="sm" className="h-8 text-xs" onClick={onCreate}><PlusIcon className="size-3.5 mr-1" />Add User</Button>
+        <Button size="sm" className="h-9 w-full text-xs sm:h-8 sm:w-auto" onClick={onCreate}><PlusIcon className="size-3.5 mr-1" />Add User</Button>
       }>Admin Users</Heading>
       {loading ? (
         <div className="space-y-2">{[0, 1].map(i => <Skeleton key={i} className="h-[60px] rounded-xl" />)}</div>
@@ -786,19 +788,19 @@ function UsersPane({ admins, loading, uid, onCreate, onEdit, onDelete }) {
       ) : (
         <div className="rounded-xl border border-border/40 bg-card/50 divide-y divide-border/40">
           {admins.map(a => (
-            <div key={a.id} className="group flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors duration-100">
+            <div key={a.id} className="group flex items-center gap-3 px-3 py-3 sm:px-4 hover:bg-muted/30 transition-colors duration-100">
               <div className="size-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                 <UserIcon className="size-3.5 text-muted-foreground/70" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-[13px] font-medium truncate">{a.name}</span>
                   <Badge variant="outline" className={cn("text-[10px] px-1.5 leading-4", ROLE_COLORS[a.role])}>{ROLE_LABELS[a.role]}</Badge>
                   {a.id === uid && <span className="text-[10px] text-muted-foreground/40 ml-0.5">you</span>}
                 </div>
                 <p className="text-[12px] text-muted-foreground/50 truncate">{a.email}</p>
               </div>
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+              <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-100">
                 <button onClick={() => onEdit(a)} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"><PencilIcon className="size-3.5" /></button>
                 {a.id !== uid && <button onClick={() => onDelete(a.id)} className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"><Trash2Icon className="size-3.5" /></button>}
               </div>
@@ -814,7 +816,7 @@ function KeysPane({ keys, loading, onCreate, onDelete }) {
   return (
     <>
       <Heading sub="Keys for Yealink phones and external integrations" right={
-        <Button size="sm" className="h-8 text-xs" onClick={onCreate}><PlusIcon className="size-3.5 mr-1" />Generate Key</Button>
+        <Button size="sm" className="h-9 w-full text-xs sm:h-8 sm:w-auto" onClick={onCreate}><PlusIcon className="size-3.5 mr-1" />Generate Key</Button>
       }>API Keys</Heading>
       {loading ? (
         <Skeleton className="h-[60px] rounded-xl" />
@@ -827,18 +829,18 @@ function KeysPane({ keys, loading, onCreate, onDelete }) {
       ) : (
         <div className="rounded-xl border border-border/40 bg-card/50 divide-y divide-border/40">
           {keys.map(k => (
-            <div key={k.id} className="group flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors duration-100">
+            <div key={k.id} className="group flex items-center gap-3 px-3 py-3 sm:px-4 hover:bg-muted/30 transition-colors duration-100">
               <div className="size-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                 <KeyIcon className="size-3.5 text-amber-400/80" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[13px] font-medium">{k.label}</span>
-                <div className="flex items-center gap-2 mt-px">
+                <span className="block text-[13px] font-medium truncate">{k.label}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-px">
                   <code className="text-[11px] text-muted-foreground/50 font-mono">{k.key_prefix}••••••••</code>
                   <span className="text-[11px] text-muted-foreground/30">{new Date(k.created_at * 1000).toLocaleDateString()}</span>
                 </div>
               </div>
-              <button onClick={() => onDelete(k.id)} className="rounded-md p-1.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all duration-100">
+              <button onClick={() => onDelete(k.id)} className="rounded-md p-1.5 text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all duration-100">
                 <Trash2Icon className="size-3.5" />
               </button>
             </div>
@@ -846,7 +848,7 @@ function KeysPane({ keys, loading, onCreate, onDelete }) {
         </div>
       )}
       <div className="mt-4 rounded-xl bg-muted/20 border border-border/30 px-4 py-3">
-        <p className="text-[12px] text-muted-foreground/50 leading-relaxed">
+        <p className="text-[12px] text-muted-foreground/50 leading-relaxed break-words">
           Pass as <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">X-API-Key</code> header
           or <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">?api_key=</code> query param
           on <code className="text-[11px] bg-muted/80 px-1 py-px rounded font-mono text-muted-foreground/70">/api/v1/yealink/*</code> endpoints.
@@ -900,7 +902,7 @@ function StatusDot() {
 function AdminFormDialog({ open, onOpenChange, editing, form, setForm, error, saving, showPw, setShowPw, onSave }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit Admin User" : "Create Admin User"}</DialogTitle>
           <DialogDescription>{editing ? "Leave password blank to keep current." : "Add a new admin console user."}</DialogDescription>
@@ -935,9 +937,9 @@ function AdminFormDialog({ open, onOpenChange, editing, form, setForm, error, sa
               </SelectContent>
             </Select>
           </div>
-          <div className="flex justify-end gap-2 pt-3">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button size="sm" onClick={onSave} disabled={saving || !form.name || !form.email || (!editing && !form.password)}>
+          <div className="flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button size="sm" className="w-full sm:w-auto" onClick={onSave} disabled={saving || !form.name || !form.email || (!editing && !form.password)}>
               {saving && <Loader2Icon className="size-3.5 animate-spin mr-1" />}
               {editing ? "Save Changes" : "Create User"}
             </Button>
@@ -951,11 +953,11 @@ function AdminFormDialog({ open, onOpenChange, editing, form, setForm, error, sa
 function ConfirmDialog({ open, onOpenChange, title, desc, action, loading, onConfirm }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px]">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[380px]">
         <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{desc}</DialogDescription></DialogHeader>
-        <div className="flex justify-end gap-2 pt-3">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button variant="destructive" size="sm" onClick={onConfirm} disabled={loading}>
+        <div className="flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="destructive" size="sm" className="w-full sm:w-auto" onClick={onConfirm} disabled={loading}>
             {loading && <Loader2Icon className="size-3.5 animate-spin mr-1" />}{action}
           </Button>
         </div>
@@ -967,20 +969,20 @@ function ConfirmDialog({ open, onOpenChange, title, desc, action, loading, onCon
 function KeyFormDialog({ open, onOpenChange, label, setLabel, saving, newKey, copied, onGenerate, onCopy, onDone }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[460px]">
         <DialogHeader><DialogTitle>Generate API Key</DialogTitle><DialogDescription>For Yealink phones or external integrations.</DialogDescription></DialogHeader>
         {newKey ? (
           <div className="space-y-4 pt-2">
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
               <p className="text-[12px] text-amber-400 font-medium mb-2.5">Copy now — this key won't be shown again</p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <code className="flex-1 text-[13px] font-mono bg-black/20 rounded-lg px-3 py-2 text-foreground break-all select-all leading-relaxed">{newKey}</code>
-                <Button variant="outline" size="icon" className="shrink-0 size-9" onClick={onCopy}>
+                <Button variant="outline" size="icon" className="h-9 w-full shrink-0 sm:size-9" onClick={onCopy}>
                   {copied ? <CheckIcon className="size-4 text-emerald-400" /> : <CopyIcon className="size-4" />}
                 </Button>
               </div>
             </div>
-            <div className="flex justify-end"><Button size="sm" onClick={onDone}>Done</Button></div>
+            <div className="flex justify-end"><Button size="sm" className="w-full sm:w-auto" onClick={onDone}>Done</Button></div>
           </div>
         ) : (
           <div className="space-y-4 pt-2">
@@ -988,9 +990,9 @@ function KeyFormDialog({ open, onOpenChange, label, setLabel, saving, newKey, co
               <Label className="text-xs">Label</Label>
               <Input placeholder="e.g., yealink-phones, monitoring-script" value={label} onChange={e => setLabel(e.target.value)} />
             </div>
-            <div className="flex justify-end gap-2 pt-3">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button size="sm" onClick={onGenerate} disabled={saving || !label.trim()}>
+            <div className="flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button size="sm" className="w-full sm:w-auto" onClick={onGenerate} disabled={saving || !label.trim()}>
                 {saving ? <Loader2Icon className="size-3.5 animate-spin mr-1" /> : <KeyIcon className="size-3.5 mr-1" />}Generate
               </Button>
             </div>

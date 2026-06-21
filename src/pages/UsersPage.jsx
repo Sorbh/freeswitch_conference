@@ -592,11 +592,11 @@ export default function UsersPage() {
 
   return (
     <TooltipProvider>
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Connected Yards</h2>
-          <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold tracking-tight leading-tight">Connected Yards</h2>
+          <p className="text-sm text-muted-foreground mt-2 flex items-center gap-x-2 gap-y-1 flex-wrap leading-relaxed">
             <span><span className="font-mono font-bold tabular-nums">{users.length}</span> Total</span>
             <span className="text-muted-foreground/40">•</span>
             <span className="text-green-600 dark:text-green-400"><span className="font-mono font-bold tabular-nums">{onlineCount}</span> Online</span>
@@ -609,13 +609,14 @@ export default function UsersPage() {
             {anyFilterActive && <><span className="text-muted-foreground/40">•</span><span className="text-primary font-bold">{filtered.length} shown</span></>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={openCreate}>
-            <PlusIcon className="size-4 mr-2" />
-            Add Yard
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <Button onClick={openCreate} className="h-10 justify-center whitespace-nowrap">
+            <PlusIcon className="size-4 sm:mr-2" />
+            <span className="ml-2 sm:ml-0">Add Yard</span>
           </Button>
           <Button
             variant="outline"
+            className="h-10 justify-center whitespace-nowrap"
             onClick={async () => {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
               if (!confirm(`Restore ${scope === "all" ? "all" : `"${scope}"`} kicked out users? This will allow them to rejoin.`)) return;
@@ -627,11 +628,12 @@ export default function UsersPage() {
               }
             }}
           >
-            <CheckIcon className="size-4 mr-2" />
-            {roomFilter !== "all" ? `Kickin ${ROOM_NAMES[roomFilter]}` : "Kickin All"}
+            <CheckIcon className="size-4 sm:mr-2" />
+            <span className="ml-2 truncate sm:ml-0">{roomFilter !== "all" ? `Kickin ${ROOM_NAMES[roomFilter]}` : "Kickin All"}</span>
           </Button>
           <Button
             variant="outline"
+            className="h-10 justify-center whitespace-nowrap"
             onClick={async () => {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
               if (!confirm(`Reconnect ${scope === "all" ? "all online users" : `all "${scope}" online users`}? This will hangup and redial.`)) return;
@@ -643,11 +645,12 @@ export default function UsersPage() {
               }
             }}
           >
-            <RefreshCwIcon className="size-4 mr-2" />
-            {roomFilter !== "all" ? `Reconnect ${ROOM_NAMES[roomFilter]}` : "Reconnect All"}
+            <RefreshCwIcon className="size-4 sm:mr-2" />
+            <span className="ml-2 truncate sm:ml-0">{roomFilter !== "all" ? `Reconnect ${ROOM_NAMES[roomFilter]}` : "Reconnect All"}</span>
           </Button>
           <Button
             variant="destructive"
+            className="h-10 justify-center whitespace-nowrap"
             onClick={async () => {
               const scope = roomFilter !== "all" ? ROOM_NAMES[roomFilter] || roomFilter : "all";
               if (!confirm(`Kickout ${scope === "all" ? "all active calls across the hotline network" : `all "${scope}" users`}?`)) return;
@@ -659,14 +662,14 @@ export default function UsersPage() {
               }
             }}
           >
-            <BanIcon className="size-4 mr-2" />
-            {roomFilter !== "all" ? `Kickout ${ROOM_NAMES[roomFilter]}` : "Kickout All"}
+            <BanIcon className="size-4 sm:mr-2" />
+            <span className="ml-2 truncate sm:ml-0">{roomFilter !== "all" ? `Kickout ${ROOM_NAMES[roomFilter]}` : "Kickout All"}</span>
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative max-w-sm flex-1 min-w-[200px]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative w-full sm:max-w-sm sm:flex-1 sm:min-w-[240px]">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             placeholder="Search name, email, company, or MAC..."
@@ -681,7 +684,7 @@ export default function UsersPage() {
           )}
         </div>
         <Select value={roomFilter} onValueChange={setRoomFilter} items={{ all: "All Rooms", ...ROOM_NAMES }}>
-          <SelectTrigger className="!w-[160px]">
+          <SelectTrigger className="!w-full sm:!w-[160px]">
             <SelectValue placeholder="All Rooms" />
           </SelectTrigger>
           <SelectContent>
@@ -707,7 +710,7 @@ export default function UsersPage() {
             <button
               key={key}
               onClick={() => toggleFilter(key)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+              className={`inline-flex min-h-8 items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
                 filters[key]
                   ? active
                   : "bg-muted/30 text-muted-foreground/60 border-border/40 hover:bg-muted/50"
@@ -718,7 +721,7 @@ export default function UsersPage() {
             </button>
           ))}
         </div>
-        <div className="flex items-center border rounded-md overflow-hidden ml-auto shrink-0">
+        <div className="flex items-center border rounded-md overflow-hidden self-end sm:ml-auto sm:shrink-0">
           <button
             onClick={() => { setViewMode("list"); localStorage.setItem("bjs-view-mode", "list"); }}
             className={`p-1.5 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
@@ -794,7 +797,117 @@ export default function UsersPage() {
           })}
         </div>
       ) : (
-      <Card>
+      <>
+      <div className="space-y-2 md:hidden">
+        {filtered.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              No yards found
+            </CardContent>
+          </Card>
+        ) : filtered.map((user) => {
+          const name = user.account?.display_name || user.callerIdName || user.userName;
+          const email = user.account?.email || user.userName;
+          const company = user.account?.company_name;
+          const currentRoom = user.currentRoom || user.room;
+          const defaultRoom = user.account?.room;
+          const room = ROOM_CODES[currentRoom] || ROOM_NAMES[currentRoom] || currentRoom || "-";
+          const isCrossRoom = currentRoom && defaultRoom && String(currentRoom) !== String(defaultRoom);
+          const statusPill =
+            user.connectionState === "connected"
+              ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+              : user.online
+              ? "border border-amber-500/20 bg-amber-500/10 text-amber-400"
+              : "border border-zinc-500/20 bg-zinc-500/10 text-zinc-400";
+          const statusDot =
+            user.connectionState === "connected"
+              ? "bg-emerald-400"
+              : user.online
+              ? "bg-amber-400"
+              : "bg-zinc-500";
+          return (
+            <button
+              key={user.userName}
+              type="button"
+              className={`w-full rounded-xl border bg-card/70 p-3 text-left shadow-sm transition-colors active:bg-muted/40 ${
+                user.connectionState === "error"
+                  ? "border-red-500/35 bg-red-950/25"
+                  : "border-border/60"
+              } ${user.account && !user.account.active ? "opacity-60" : ""}`}
+              onClick={() => {
+                setSelectedUserName(user.userName);
+                setSheetOpen(true);
+                setConfigEditContent("");
+                setConfigLoaded(false);
+                const a = user.account;
+                if (a) { setSipEditHost(a.sip_server_host || "50.28.84.57"); setSipEditPort(String(a.sip_server_port || 5070)); }
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex w-6 shrink-0 flex-col items-center gap-2 text-muted-foreground">
+                  {user.online ? (
+                    <WifiIcon className="size-3.5 text-emerald-500" />
+                  ) : (
+                    <WifiOffIcon className="size-3.5 text-zinc-500" />
+                  )}
+                  {user.registrationState === "registered" ? (
+                    <ShieldCheckIcon className="size-3.5 text-emerald-500" />
+                  ) : user.registrationState === "expired" ? (
+                    <ShieldXIcon className="size-3.5 text-amber-500" />
+                  ) : (
+                    <ShieldXIcon className="size-3.5 text-zinc-500" />
+                  )}
+                  {user.connectionState === "connected" ? (
+                    <PhoneCallIcon className="size-3.5 text-emerald-500" />
+                  ) : user.connectionState === "connecting" ? (
+                    <PhoneIncomingIcon className="size-3.5 text-amber-500" />
+                  ) : user.connectionState === "error" ? (
+                    <PhoneOffIcon className="size-3.5 text-orange-500" />
+                  ) : (
+                    <PhoneIcon className="size-3.5 text-zinc-500" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-semibold leading-tight">{name}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">{company || email}</p>
+                    </div>
+                    <span className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusPill}`}>
+                      <span className={`size-1.5 rounded-full ${statusDot}`} />
+                      {getStatusLabel(user)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 ${isCrossRoom ? "border-red-500/30 text-red-400" : "border-border/60"}`}>
+                      <AudioLinesIcon className="size-3" />
+                      {isCrossRoom && defaultRoom ? `${ROOM_CODES[defaultRoom] || defaultRoom} -> ` : ""}{room}
+                    </span>
+                    {user.account?.extension ? (
+                      <span className="rounded-md border border-border/60 px-2 py-1 font-mono">*{user.account.extension}</span>
+                    ) : null}
+                    <span className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1">
+                      <ClockIcon className="size-3" />
+                      {timeAgo(user.last_seen || user.updatedAt)}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {user.mute ? (
+                      <Badge variant="secondary" className="gap-1 text-[10px]"><MicOffIcon className="size-3" />Muted</Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1 text-[10px]"><MicIcon className="size-3" />Unmuted</Badge>
+                    )}
+                    {user.talking ? <Badge className="gap-1 text-[10px] bg-cyan-500/15 text-cyan-400 border-cyan-500/20"><Volume2Icon className="size-3" />Talking</Badge> : null}
+                    {user.account?.kickout ? <Badge variant="destructive" className="gap-1 text-[10px]"><BanIcon className="size-3" />Kicked</Badge> : null}
+                    {user.clientType === "web" ? <Badge variant="outline" className="gap-1 text-[10px]"><GlobeIcon className="size-3" />Web</Badge> : null}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <Card className="hidden md:block">
         <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
@@ -1021,6 +1134,7 @@ export default function UsersPage() {
           </Table>
         </CardContent>
       </Card>
+      </>
       )}
 
       {/* Detail Sheet */}

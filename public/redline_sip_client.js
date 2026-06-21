@@ -180,6 +180,7 @@ import "./jssip.bundle.js";
                 apiBase: '',
                 getToken: function () { return ''; },
                 getOwnExtension: function () { return ''; },
+                getUserEmail: function () { return ''; },
                 callExtension: null,
                 items: [],
                 loaded: false,
@@ -191,6 +192,7 @@ import "./jssip.bundle.js";
                 requestOpen: false,
                 requestExtension: '',
                 requestLoading: false,
+                requestSubmitted: false,
                 bottom: parseInt(localStorage.getItem('redline_extension_widget_bottom') || '92', 10),
             };
 
@@ -225,6 +227,47 @@ import "./jssip.bundle.js";
 
             function hasOwnExtension() {
                 return !!ownExtension();
+            }
+
+            function requestStorageKey() {
+                var email = state.getUserEmail && state.getUserEmail();
+                email = String(email || '').toLowerCase().trim();
+                return 'redline_extension_request_' + (email || 'anonymous');
+            }
+
+            function getExtensionRequestRecord() {
+                if (state.requestSubmitted) return { submitted: true };
+                try {
+                    var raw = localStorage.getItem(requestStorageKey());
+                    if (!raw) return null;
+                    var record = JSON.parse(raw);
+                    return record && record.submitted ? record : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            function hasExtensionRequestSubmitted() {
+                return !!getExtensionRequestRecord();
+            }
+
+            function saveExtensionRequest(extension) {
+                state.requestSubmitted = true;
+                try {
+                    localStorage.setItem(requestStorageKey(), JSON.stringify({
+                        submitted: true,
+                        extension: extension,
+                        requestedAt: new Date().toISOString(),
+                    }));
+                } catch (e) { }
+            }
+
+            function clearExtensionRequestIfAssigned() {
+                if (!hasOwnExtension()) return;
+                state.requestSubmitted = false;
+                state.requestOpen = false;
+                state.requestExtension = '';
+                try { localStorage.removeItem(requestStorageKey()); } catch (e) { }
             }
 
             function filteredItems() {
@@ -340,9 +383,10 @@ import "./jssip.bundle.js";
                         });
                     })
                     .then(function (json) {
+                        saveExtensionRequest(extension);
                         state.requestOpen = false;
                         state.requestExtension = '';
-                        setMessage(json.message || 'Extension request sent.');
+                        setMessage(json.message || 'Request received. We will review your preferred extension shortly.');
                     })
                     .catch(function (err) {
                         setMessage('Failed to send request: ' + err.message);
@@ -355,15 +399,22 @@ import "./jssip.bundle.js";
 
             function renderRequestForm() {
                 if (!state.requestOpen) return '';
+                if (hasExtensionRequestSubmitted()) {
+                    return '<div style="padding:16px;">' +
+                        '<div style="background:#fff7f8;border:1px solid #fecaca;border-radius:18px;padding:18px;text-align:center;box-shadow:0 12px 30px rgba(225,29,46,.10);">' +
+                        '<div style="font-size:18px;font-weight:800;color:#b91c1c;">Request received</div>' +
+                        '<div style="font-size:13px;color:#475569;margin-top:6px;">We will review your preferred extension and update your account shortly.</div>' +
+                        '</div></div>';
+                }
                 return '<div style="padding:12px 16px 0;">' +
                     '<div style="background:#fff;border:1px solid #fecaca;border-radius:18px;padding:13px;box-shadow:0 12px 30px rgba(225,29,46,.10);">' +
                     '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px;">' +
-                    '<div><div style="font-size:13px;font-weight:750;color:#111827;">Request your preferred extension</div><div style="font-size:11px;color:#64748b;margin-top:2px;">Choose any 3-digit extension from 100 to 999.</div></div>' +
+                    '<div><div style="font-size:13px;font-weight:750;color:#111827;">Request your preferred extension</div><div style="font-size:11px;color:#64748b;margin-top:2px;">Type your extension</div></div>' +
                     '<button id="redline_ext_request_send" style="border:0;border-radius:999px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:12px;font-weight:800;padding:10px 15px;cursor:pointer;box-shadow:0 10px 22px rgba(225,29,46,.24);flex:0 0 auto;">' + (state.requestLoading ? 'Sending...' : 'Send') + '</button>' +
                     '</div>' +
                     '<label style="display:flex;align-items:center;gap:8px;background:#fff7f8;border:1px solid #fecaca;border-radius:14px;padding:10px 12px;">' +
                     '<span style="font-size:18px;font-weight:850;color:#b91c1c;line-height:1;">*</span>' +
-                    '<input id="redline_ext_request_input" value="' + escapeHtml(state.requestExtension) + '" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="101" style="min-width:0;flex:1;border:0;outline:none;font-size:18px;font-weight:750;color:#111827;background:transparent;letter-spacing:.04em;">' +
+                    '<input id="redline_ext_request_input" value="' + escapeHtml(state.requestExtension) + '" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="Type your extension" style="min-width:0;flex:1;border:0;outline:none;font-size:18px;font-weight:750;color:#111827;background:transparent;letter-spacing:.04em;">' +
                     '<span style="font-size:11px;color:#94a3b8;">100-999</span>' +
                     '</label>' +
                     '</div>';
@@ -371,12 +422,16 @@ import "./jssip.bundle.js";
 
             function renderDirectoryBody() {
                 var hasExtension = hasOwnExtension();
+                var requestSubmitted = hasExtensionRequestSubmitted();
+                var requestOverlayHtml = requestSubmitted
+                    ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.58);backdrop-filter:blur(.8px);"><div style="text-align:center;padding:0 26px;"><div style="font-size:22px;font-weight:850;color:#b91c1c;">Request received</div><div style="margin-top:8px;color:#475569;font-size:14px;font-weight:650;line-height:1.35;">We will review your preferred extension and update your account shortly.</div></div></div>'
+                    : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.44);backdrop-filter:blur(.6px);"><div style="text-align:center;padding:0 24px;"><button id="redline_ext_request_overlay" style="border:0;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;border-radius:999px;padding:15px 26px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 18px 36px rgba(225,29,46,.34);">Request Extension</button><div class="redline-ext-hook-text">Limited Extension Slot left, Hurry up to book your slot.</div></div></div>';
                 return '<div style="position:relative;min-height:230px;">' +
                     '<div style="' + (hasExtension ? '' : 'filter:blur(.6px);opacity:.34;pointer-events:none;') + '">' +
                     '<div style="padding:13px 16px 0;"><input id="redline_ext_search" value="' + escapeHtml(state.query) + '" placeholder="Search company, name, ext..." style="width:100%;box-sizing:border-box;border:1px solid #fecaca;border-radius:14px;padding:12px 13px;font-size:13px;outline:none;background:#fff;color:#111827;box-shadow:0 5px 18px rgba(225,29,46,.08);"></div>' +
                     '<div id="redline_extension_list" style="padding:4px 16px 14px;overflow:auto;"></div>' +
                     '</div>' +
-                    (hasExtension ? '' : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.44);backdrop-filter:blur(.6px);"><div style="text-align:center;padding:0 24px;"><button id="redline_ext_request_overlay" style="border:0;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;border-radius:999px;padding:15px 26px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 18px 36px rgba(225,29,46,.34);">Request Extension</button><div class="redline-ext-hook-text">Limited Extension Slot left, Hurry up to book your slot.</div></div></div>') +
+                    (hasExtension ? '' : requestOverlayHtml) +
                     '</div>';
             }
 
@@ -424,6 +479,7 @@ import "./jssip.bundle.js";
                     el.innerHTML = '';
                     return;
                 }
+                clearExtensionRequestIfAssigned();
                 var sipIcon = '<img src="' + publicAsset('/favicon.svg') + '" alt="Extension Directory" style="display:block;width:36px;height:36px;object-fit:contain;">';
                 var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:' + getFabBottom() + 'px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center;touch-action:none}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(217,45,32,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}.redline-ext-hook-text{display:inline-block;margin-top:14px;color:#991b1b;font-size:14px;font-weight:800;line-height:1.25;letter-spacing:-.01em}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#d92d20,#b42318);color:#fff;box-shadow:0 18px 38px rgba(217,45,32,.42);display:flex;align-items:center;justify-content:center;cursor:grab;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:active{cursor:grabbing}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(217,45,32,.5)}</style>';
                 el.innerHTML =
@@ -481,6 +537,7 @@ import "./jssip.bundle.js";
                 if (requestOverlay) requestOverlay.onclick = function () { state.requestOpen = true; render(); };
                 var requestInput = document.getElementById('redline_ext_request_input');
                 if (requestInput) requestInput.oninput = function () { state.requestExtension = this.value.replace(/\D/g, '').slice(0, 3); this.value = state.requestExtension; };
+                if (requestInput && state.requestOpen) setTimeout(function () { try { requestInput.focus(); } catch (e) { } }, 0);
                 var requestSend = document.getElementById('redline_ext_request_send');
                 if (requestSend) requestSend.onclick = submitExtensionRequest;
                 var backdrop = document.getElementById('redline_ext_backdrop');
@@ -491,7 +548,7 @@ import "./jssip.bundle.js";
                         state.query = this.value;
                         renderList();
                     };
-                    setTimeout(function () { try { search.focus(); } catch (e) { } }, 0);
+                    if (!state.requestOpen && hasOwnExtension()) setTimeout(function () { try { search.focus(); } catch (e) { } }, 0);
                 }
                 renderList();
             }
@@ -502,8 +559,10 @@ import "./jssip.bundle.js";
                     if (opts.apiBase) state.apiBase = opts.apiBase.replace(/\/$/, '');
                     if (opts.getToken) state.getToken = opts.getToken;
                     if (opts.getOwnExtension) state.getOwnExtension = opts.getOwnExtension;
+                    if (opts.getUserEmail) state.getUserEmail = opts.getUserEmail;
                     if (opts.callExtension !== undefined) state.callExtension = opts.callExtension;
                     if (opts.visible !== undefined) state.visible = !!opts.visible;
+                    clearExtensionRequestIfAssigned();
                     render();
                 },
                 open: function () {
@@ -531,6 +590,7 @@ import "./jssip.bundle.js";
             apiBase: apiBase,
             getToken: function () { return clientToken; },
             getOwnExtension: function () { return accountData && accountData.extension; },
+            getUserEmail: function () { return accountData && accountData.email; },
             visible: false,
             callExtension: function (item, dialCode) {
                 if (!clientToken) return { ok: false, message: 'Login required before calling ' + dialCode + '.' };

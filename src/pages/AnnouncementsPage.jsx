@@ -437,15 +437,15 @@ export default function AnnouncementsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Network Announcements</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold tracking-tight leading-tight">Network Announcements</h2>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
             Play audio announcements in conference rooms
           </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={openCreate} className="h-10 w-full justify-center sm:w-auto">
           <PlusIcon className="size-4 mr-2" />
           Upload
         </Button>
@@ -494,8 +494,8 @@ export default function AnnouncementsPage() {
             return (
               <Card key={ad.id} className={`border-border/40 ${!ad.enabled ? "opacity-60" : ""}`}>
                 <CardContent className="py-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="relative size-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-500/10 border border-purple-500/20">
                         <MegaphoneIcon className="size-4 text-purple-400" />
                         {adActive && (
@@ -505,7 +505,7 @@ export default function AnnouncementsPage() {
                           </span>
                         )}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium truncate">{ad.label || "Unnamed"}</p>
                           {ad.duration_ms ? (
@@ -544,8 +544,8 @@ export default function AnnouncementsPage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                          <span className="font-mono truncate max-w-[200px]">{ad.original_filename || "—"}</span>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span className="font-mono truncate max-w-full sm:max-w-[240px]">{ad.original_filename || "—"}</span>
                           {(ad.total_plays != null) && (
                             <>
                               <span className="text-muted-foreground/40">•</span>
@@ -586,10 +586,10 @@ export default function AnnouncementsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                       <Button
                         size="sm"
-                        className="h-8 bg-emerald-600 hover:bg-emerald-500 text-white border-0"
+                        className="h-9 sm:h-8 bg-emerald-600 hover:bg-emerald-500 text-white border-0"
                         disabled={isPlaying || !ad.enabled}
                         onClick={() => handlePlay(ad.id)}
                       >
@@ -602,7 +602,7 @@ export default function AnnouncementsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                          className="h-9 sm:h-8 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-400"
                           disabled={isStopping}
                           onClick={() => handleStop(ad.id)}
                         >
@@ -668,6 +668,43 @@ export default function AnnouncementsPage() {
               <p className="text-sm text-muted-foreground text-center py-10">No play history yet</p>
             ) : (
               <>
+                <div className="space-y-2 px-3 pb-3 md:hidden">
+                  {log.map((entry) => {
+                    const ad = ads.find(a => a.id === entry.ad_id);
+                    const completed = !!entry.completed;
+                    return (
+                      <div key={entry.id} className="rounded-xl border border-border/60 bg-card/70 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">{ad?.label || entry.ad_label || `Ad #${entry.ad_id}`}</p>
+                            <p className="mt-1 text-xs font-mono tabular-nums text-muted-foreground">{formatTimestamp(entry.started_at || entry.created_at)}</p>
+                          </div>
+                          {completed ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-400">
+                              <CheckIcon className="size-3" />
+                              Completed
+                            </span>
+                          ) : (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-1 text-[10px] text-red-400">
+                              <XIcon className="size-3" />
+                              Interrupted
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span className="rounded-md border border-border/60 px-2 py-1">{ROOM_NAMES[entry.room] || entry.room_name || `Room ${entry.room}`}</span>
+                          <span className="rounded-md border border-border/60 px-2 py-1 font-mono tabular-nums">{formatDuration(entry.duration_played_ms)}</span>
+                          <span className="rounded-md border border-border/60 px-2 py-1 font-mono tabular-nums">{entry.listener_count ?? "—"} listeners</span>
+                        </div>
+                        {entry.interrupted_by && (
+                          <p className="mt-2 text-xs text-muted-foreground/70">Interrupted by {entry.interrupted_by}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -734,9 +771,10 @@ export default function AnnouncementsPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
 
                 {logTotalPages > 1 && (
-                  <div className="flex items-center justify-between px-6 py-3 border-t border-border/30">
+                  <div className="flex flex-col gap-3 px-4 py-3 border-t border-border/30 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <span className="text-xs text-muted-foreground">
                       Showing{" "}
                       <span className="font-mono tabular-nums">{((logPage - 1) * logPageSize) + 1}</span>
@@ -745,7 +783,7 @@ export default function AnnouncementsPage() {
                       {" "}of{" "}
                       <span className="font-mono tabular-nums">{logTotal.toLocaleString()}</span>
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" className="size-7" disabled={logPage <= 1} onClick={() => setLogPage(1)}>
                         <ChevronsLeftIcon className="size-3.5" />
                       </Button>

@@ -336,15 +336,15 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Notifications</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+    <div className="space-y-5 sm:space-y-6 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold tracking-tight leading-tight">Notifications</h2>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
             Send broadcast recordings to Telegram and WhatsApp
           </p>
         </div>
-        <Button onClick={openCreate}>
+        <Button onClick={openCreate} className="h-10 w-full justify-center sm:w-auto">
           <PlusIcon className="size-4 mr-2" />
           Add Channel
         </Button>
@@ -371,8 +371,8 @@ export default function NotificationsPage() {
             return (
               <Card key={ch.id} className={!ch.enabled || waNotReady ? "opacity-60" : ""}>
                 <CardContent className="py-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className={`size-10 rounded-lg flex items-center justify-center shrink-0 ${
                         isWhatsApp
                           ? "bg-emerald-500/10 border border-emerald-500/20"
@@ -383,8 +383,8 @@ export default function NotificationsPage() {
                           : <SendIcon className="size-4 text-blue-400" />
                         }
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="font-medium truncate">{ch.label || "Unnamed Channel"}</p>
                           <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 shrink-0 ${
                             isWhatsApp ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : ""
@@ -410,9 +410,8 @@ export default function NotificationsPage() {
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">All Rooms</Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                          <span className="font-mono truncate max-w-[200px]">{groupName || ch.chat_id || (isWhatsApp ? "No group selected" : "")}</span>
-                          <span className="text-muted-foreground/40">•</span>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span className="font-mono truncate max-w-full sm:max-w-[240px]">{groupName || ch.chat_id || (isWhatsApp ? "No group selected" : "")}</span>
                           <span className="flex items-center gap-1">
                             {ch.send_answered ? <CheckIcon className="size-3 text-emerald-400" /> : <XIcon className="size-3 text-zinc-500" />}
                             Answered
@@ -433,16 +432,16 @@ export default function NotificationsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                       {/* WhatsApp connect/disconnect */}
                       {isWhatsApp && waSt?.state === "disconnected" && (
-                        <Button size="sm" variant="outline" className="h-8" onClick={() => handleWaConnect(ch.id)} disabled={connectingId === ch.id}>
+                        <Button size="sm" variant="outline" className="h-9 sm:h-8" onClick={() => handleWaConnect(ch.id)} disabled={connectingId === ch.id}>
                           {connectingId === ch.id ? <Loader2Icon className="size-3 animate-spin mr-1.5" /> : <QrCodeIcon className="size-3 mr-1.5" />}
                           Connect
                         </Button>
                       )}
                       {isWhatsApp && waSt?.state === "ready" && (
-                        <Button size="sm" variant="outline" className="h-8 text-destructive" onClick={() => handleWaDisconnect(ch.id)} disabled={connectingId === ch.id}>
+                        <Button size="sm" variant="outline" className="h-9 sm:h-8 text-destructive" onClick={() => handleWaDisconnect(ch.id)} disabled={connectingId === ch.id}>
                           <WifiOffIcon className="size-3 mr-1.5" />
                           Disconnect
                         </Button>
