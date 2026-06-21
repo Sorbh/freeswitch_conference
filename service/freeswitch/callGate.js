@@ -204,7 +204,7 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
     const originateVars = [
         `origination_caller_id_name='${callerId}'`,
         `origination_caller_id_number='${callerId}'`,
-        'sofia_session_timeout=90',
+        'sofia_session_timeout=120',
         'sofia_session_refresher=remote',
     ];
     const originateCmd = `originate {${originateVars.join(',')}}${contact} &conference(${activeRoom}@${confProfile}++flags{mute})`;
