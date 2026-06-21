@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
             If an account exists with <strong>{email}</strong>, we've sent a password reset link.
           </p>
-          <Link to="/login" className="hq-btn inline-block px-6 py-3">Back to Login</Link>
+          <Link to="/client/login" className="hq-btn inline-block px-6 py-3">Back to Login</Link>
         </div>
       </div>
     );
@@ -50,11 +50,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
       <div className="w-full max-w-md animate-fadeIn">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--red)', boxShadow: '0 8px 24px -8px rgba(217,45,32,0.5)' }}>
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
+          <img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} />
           <h1 className="text-2xl font-bold">Forgot Password</h1>
           <p className="text-sm mt-2 text-center" style={{ color: 'var(--muted)' }}>Enter your email and we'll send a reset link</p>
         </div>
@@ -73,7 +69,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <Link to="/login" className="text-sm font-medium" style={{ color: 'var(--red)' }}>Back to login</Link>
+          <Link to="/client/login" className="text-sm font-medium" style={{ color: 'var(--red)' }}>Back to login</Link>
         </div>
       </div>
     </div>

@@ -55,7 +55,7 @@ export default function SignupPage() {
           </div>
           <h2 className="text-xl font-bold mb-2">Check Your Email</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>{success}</p>
-          <Link to="/login" className="hq-btn inline-block px-6 py-3">
+          <Link to="/client/login" className="hq-btn inline-block px-6 py-3">
             Go to Login
           </Link>
         </div>
@@ -68,13 +68,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md animate-fadeIn">
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'var(--red)', boxShadow: '0 8px 24px -8px rgba(217,45,32,0.5)' }}>
-            <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.2 5.8 7.8 8.2c-.9.9-1.2 2.3-.8 3.5 2.3 7.1 7.9 12.7 15 15 .6.2 1.2.2 1.8.1.7-.1 1.3-.4 1.7-.9l2.5-2.4c.8-.8.8-2.2 0-3l-3.2-3.2c-.7-.7-1.9-.8-2.7-.2l-2.5 1.8c-2.8-1.4-5.1-3.7-6.5-6.5l1.8-2.5c.6-.8.5-2-.2-2.7l-3.2-3.2c-.9-.8-2.3-.8-3.1 0Z" />
-              <path d="M20.5 5.2c3 .9 5.4 3.3 6.3 6.3" />
-              <path d="M20.8 10.2c1.2.4 2.1 1.3 2.5 2.5" />
-            </svg>
-          </div>
+          <img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} />
           <h1 className="text-2xl font-bold">Create Account</h1>
           <p className="hq-label mt-1">Join Hotline HQ</p>
         </div>
@@ -140,7 +134,7 @@ export default function SignupPage() {
 
         <div className="mt-6 text-center">
           <span className="text-sm" style={{ color: 'var(--muted)' }}>Already have an account? </span>
-          <Link to="/login" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>
+          <Link to="/client/login" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>
             Sign in
           </Link>
         </div>

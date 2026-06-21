@@ -3,14 +3,14 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const BOTTOM_NAV_ITEMS = [
-  { to: '/dashboard', label: 'Conference', icon: PhoneIcon, end: true },
-  { to: '/dashboard/extensions', label: 'Extensions', icon: GridIcon },
-  { to: '/dashboard/settings', label: 'Account', icon: UserIcon },
+  { to: '/client/dashboard', label: 'Conference', icon: PhoneIcon, end: true },
+  { to: '/client/dashboard/extensions', label: 'Extensions', icon: GridIcon },
+  { to: '/client/dashboard/settings', label: 'Account', icon: UserIcon },
 ];
 
 const SIDEBAR_NAV_ITEMS = [
   ...BOTTOM_NAV_ITEMS,
-  { to: '/dashboard/request-room', label: 'Request Room', icon: PlusIcon },
+  { to: '/client/dashboard/request-room', label: 'Request Room', icon: PlusIcon },
 ];
 
 const CONN_COLORS = {
@@ -49,11 +49,11 @@ export default function DashboardLayout() {
 
   function handleLogout() {
     logout();
-    navigate('/login');
+    navigate('/client/login');
   }
 
   const roomName = account?.room ? `Room ${account.room}` : '';
-  const isConferencePage = location.pathname === '/dashboard' || location.pathname === '/dashboard/';
+  const isConferencePage = location.pathname === '/client/dashboard' || location.pathname === '/client/dashboard/';
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
 

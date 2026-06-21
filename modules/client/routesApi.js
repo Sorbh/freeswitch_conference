@@ -297,7 +297,7 @@ clientRouter.post("/reset-password", async (req, res) => {
     }
 });
 
-// POST /login — authenticate web client, return JWT + account info
+// POST /client/login — authenticate web client, return JWT + account info
 clientRouter.post("/login", async (req, res) => {
     try {
         const ip = _getClientIp(req);

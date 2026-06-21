@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import ViteExpress from "vite-express";
 ViteExpress.config({
     mode: "production",
-    inlineViteConfig: { base: "/" },
+    inlineViteConfig: { base: "/admin/" },
     ignorePaths: /\.(js|css|woff2?|ttf|eot|svg|png|jpe?g|gif|ico|webp|map|json)$/,
 });
 
@@ -60,27 +60,32 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use((req, res, next) => {
-    if (req.path.startsWith('/client/')) return next();
-    const match = req.path.match(/^\/(?:.+\/)?assets\/(.+)$/);
-    if (!match) return next();
-    const queryIndex = req.url.indexOf('?');
-    req.url = `/${match[1]}${queryIndex >= 0 ? req.url.slice(queryIndex) : ''}`;
-    return distAssets(req, res, next);
-});
+// Admin app assets (dist/assets/) at /admin/
+const adminDistDir = path.join(__dirname, "dist");
+const adminAssets = express.static(path.join(adminDistDir, "assets"), { index: false });
+app.use("/admin/assets", adminAssets);
+app.use("/admin", express.static(adminDistDir));
+
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/recordings", express.static(path.join(__dirname, "recordings")));
 
-// Client app — serve built React app at /client/
+app.use("/api/v1/", new ApiRouter().apiRouter);
+
+// Admin SPA fallback — any /admin/* that didn't match static files
+app.get("/admin/*", (req, res) => {
+    res.sendFile(path.join(adminDistDir, "index.html"));
+});
+
+// Client app — serve at / (must be AFTER /api and /admin)
 const clientDistDir = path.join(__dirname, "dist-client");
 if (fs.existsSync(clientDistDir)) {
-    app.use("/client", express.static(clientDistDir));
-    app.get("/client/*", (req, res) => {
+    app.use(express.static(clientDistDir));
+    // SPA fallback for client app — skip API, admin, and static file paths
+    app.get("*", (req, res, next) => {
+        if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/recordings/')) return next();
         res.sendFile(path.join(clientDistDir, "index.html"));
     });
 }
-
-app.use("/api/v1/", new ApiRouter().apiRouter);
 
 const PORT = process.env.PORT || 4007;
 

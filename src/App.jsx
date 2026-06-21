@@ -17,36 +17,8 @@ import {
 } from "@/components/ui/breadcrumb";
 
 import { lazy, Suspense } from "react";
-import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
-const Landing2Page = lazy(() => import("@/pages/Landing2Page"));
-const OwnHotlinePage = lazy(() =>
-  import("@/pages/landing2/OwnHotlinePage").then((m) => ({ default: m.OwnHotlinePage }))
-);
-const AboutPage = lazy(() =>
-  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.AboutPage }))
-);
-const PrivacyPage = lazy(() =>
-  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.PrivacyPage }))
-);
-const TermsPage = lazy(() =>
-  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.TermsPage }))
-);
-const DisclaimerPage = lazy(() =>
-  import("@/pages/landing2/LegalPages").then((m) => ({ default: m.DisclaimerPage }))
-);
-const NotFoundPage = lazy(() =>
-  import("@/pages/landing2/NotFoundPage").then((m) => ({ default: m.NotFoundPage }))
-);
-const PublicBroadcastPage = lazy(() => import("@/pages/PublicBroadcastPage"));
 
-const sitePages = [
-  { path: "/own-a-hotline", element: <OwnHotlinePage /> },
-  { path: "/about", element: <AboutPage /> },
-  { path: "/privacy-policy", element: <PrivacyPage /> },
-  { path: "/terms-and-conditions", element: <TermsPage /> },
-  { path: "/disclaimer", element: <DisclaimerPage /> },
-];
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 const UsersPage = lazy(() => import("@/pages/UsersPage"));
 const RoomsPage = lazy(() => import("@/pages/RoomsPage"));
@@ -157,41 +129,10 @@ function RouteFallback() {
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="bjs-ui-theme">
-      <BrowserRouter basename={window.location.pathname.startsWith('/hotlinehq') ? '/hotlinehq' : ''}>
+      <BrowserRouter basename="/admin">
         <ScrollToTop />
         <AuthProvider>
             <Routes>
-              {/* Public routes */}
-              <Route
-                path="/"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <Landing2Page />
-                  </Suspense>
-                }
-              />
-              <Route path="/classic" element={<LandingPage />} />
-              <Route
-                path="/b/:token"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <PublicBroadcastPage />
-                  </Suspense>
-                }
-              />
-              <Route path="/landing_2" element={<Navigate to="/" replace />} />
-              {sitePages.map((p) => (
-                <Route
-                  key={p.path}
-                  path={p.path}
-                  element={
-                    <Suspense fallback={<RouteFallback />}>
-                      {p.element}
-                    </Suspense>
-                  }
-                />
-              ))}
-
               {/* Login */}
               <Route path="/login" element={<LoginPage />} />
 
@@ -206,15 +147,8 @@ function App() {
                 ))}
               </Route>
 
-              {/* Redirect fallback */}
-              <Route
-                path="*"
-                element={
-                  <Suspense fallback={<RouteFallback />}>
-                    <NotFoundPage />
-                  </Suspense>
-                }
-              />
+              {/* Redirect unknown routes to login */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
             <Toaster />
         </AuthProvider>

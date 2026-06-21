@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
         <div className="w-full max-w-md text-center animate-fadeIn">
           <h2 className="text-xl font-bold mb-3">Invalid Link</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>This password reset link is invalid or has expired.</p>
-          <Link to="/forgot-password" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>Request a new link</Link>
+          <Link to="/client/forgot-password" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>Request a new link</Link>
         </div>
       </div>
     );
@@ -54,7 +54,7 @@ export default function ResetPasswordPage() {
           </div>
           <h2 className="text-xl font-bold mb-2">Password Reset</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>Your password has been reset. You can now log in.</p>
-          <Link to="/login" className="hq-btn inline-block px-6 py-3">Go to Login</Link>
+          <Link to="/client/login" className="hq-btn inline-block px-6 py-3">Go to Login</Link>
         </div>
       </div>
     );
