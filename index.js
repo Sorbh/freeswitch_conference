@@ -79,11 +79,30 @@ app.get("/admin/*", (req, res) => {
 // Client app — serve at / (must be AFTER /api and /admin)
 const clientDistDir = path.join(__dirname, "dist-client");
 if (fs.existsSync(clientDistDir)) {
-    app.use(express.static(clientDistDir));
+    const clientAssets = express.static(path.join(clientDistDir, "assets"), { index: false });
+    const clientIndexPath = path.join(clientDistDir, "index.html");
+    const sendClientIndex = (req, res) => {
+        let html = fs.readFileSync(clientIndexPath, "utf8");
+        html = html
+            .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
+            .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
+            .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
+        res.type("html").send(html);
+    };
+
+    app.use("/hotlinehq/assets", clientAssets);
+    app.get("/hotlinehq/favicon.svg", (req, res) => {
+        res.sendFile(path.join(__dirname, "public", "favicon.svg"));
+    });
+    app.get("/hotlinehq", sendClientIndex);
+    app.get("/hotlinehq/*", sendClientIndex);
+
+    app.use("/assets", clientAssets);
+    app.use(express.static(clientDistDir, { index: false }));
     // SPA fallback for client app — skip API, admin, and static file paths
     app.get("*", (req, res, next) => {
         if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/recordings/')) return next();
-        res.sendFile(path.join(clientDistDir, "index.html"));
+        sendClientIndex(req, res);
     });
 }
 
