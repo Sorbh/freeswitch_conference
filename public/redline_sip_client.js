@@ -1130,18 +1130,18 @@ import "./jssip.bundle.js";
             isMuted: function () { return isMuted; },
         };
 
-        // ── Auto-login from localStorage (production Vue app) ──
+        // ── Auto-login from localStorage or HOTLINE_CONFIG ──
         try {
             var lsAutoData = getLocalStorageUserData();
-            console.log('[SIP] localStorage data:', lsAutoData);
-            if (lsAutoData && lsAutoData.email) {
-                console.log('[SIP] Auto-login from localStorage:', lsAutoData.email);
-                doLogin(lsAutoData.email);
+            var autoEmail = (lsAutoData && lsAutoData.email) || config.email || '';
+            console.log('[SIP] auto-login email:', autoEmail, lsAutoData ? '(localStorage)' : '(config)');
+            if (autoEmail) {
+                doLogin(autoEmail);
             } else {
-                console.warn('[SIP] No email found in localStorage, skipping auto-login');
+                console.warn('[SIP] No email found in localStorage or config, skipping auto-login');
             }
         } catch (e) {
-            console.warn('[SIP] localStorage auto-login failed:', e.message);
+            console.warn('[SIP] auto-login failed:', e.message);
         }
 
     } // end init()

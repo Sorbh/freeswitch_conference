@@ -87,6 +87,7 @@ import {
   XIcon,
   LogsIcon,
   RadioIcon,
+  UserPlusIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -290,7 +291,7 @@ export default function UsersPage() {
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false, noSyslog: false, noSSE: false });
+  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false, noSyslog: false, noSSE: false, signup: false });
   const [roomFilter, setRoomFilter] = useState("all");
   const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   const [form, setForm] = useState(EMPTY_FORM);
@@ -356,6 +357,7 @@ export default function UsersPage() {
         const currentRoom = u.currentRoom ?? u.room;
         if (defaultRoom == null || String(currentRoom) === String(defaultRoom)) return false;
       }
+      if (filters.signup && u.account?.signup_source !== 'client') return false;
 
       return true;
     }).sort((a, b) => {
@@ -709,6 +711,7 @@ export default function UsersPage() {
             { key: "crossRoom", label: "Cross Room", active: "bg-violet-500/15 text-violet-400 border-violet-500/30", dot: "bg-violet-400" },
             { key: "noSyslog", label: "No Syslog", active: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400" },
             { key: "noSSE", label: "No SSE", active: "bg-pink-500/15 text-pink-400 border-pink-500/30", dot: "bg-pink-400" },
+            { key: "signup", label: "Self Signup", active: "bg-violet-500/15 text-violet-400 border-violet-500/30", dot: "bg-violet-400" },
           ].map(({ key, label, active, dot }) => (
             <button
               key={key}
@@ -907,6 +910,7 @@ export default function UsersPage() {
                     {user.clientType === "web" ? <Badge variant="outline" className="gap-1 text-[10px]"><GlobeIcon className="size-3" />Web</Badge> : null}
                     {user.sseConnected ? <Badge variant="outline" className="gap-1 text-[10px] text-blue-400 border-blue-400/20"><RadioIcon className="size-3" />SSE</Badge> : null}
                     {user.syslogActive ? <Badge variant="outline" className="gap-1 text-[10px] text-emerald-400 border-emerald-400/20"><LogsIcon className="size-3" />Syslog</Badge> : null}
+                    {user.account?.signup_source === 'client' ? <Badge variant="outline" className="gap-1 text-[10px] text-violet-400 border-violet-400/20"><UserPlusIcon className="size-3" />Signup</Badge> : null}
                   </div>
                 </div>
               </div>
@@ -1022,6 +1026,11 @@ export default function UsersPage() {
                         {user.account?.kickout ? (
                           <Badge variant="destructive" className="text-[9px] px-1 py-0 shrink-0 gap-0.5"><BanIcon className="size-2.5" />Kicked</Badge>
                         ) : null}
+                        {user.account?.signup_source === 'client' && (
+                          <Tip label={`Self-signup${user.account.email_verified ? '' : ' · Unverified'}`}>
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 gap-0.5 text-violet-400 border-violet-400/30"><UserPlusIcon className="size-2.5" />Signup</Badge>
+                          </Tip>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[160px]">

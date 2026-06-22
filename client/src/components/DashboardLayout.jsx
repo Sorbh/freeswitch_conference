@@ -30,6 +30,52 @@ export default function DashboardLayout() {
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
   const [changingRoom, setChangingRoom] = useState(false);
   const dropdownRef = useRef(null);
+  const wakeLockRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function acquireWakeLock() {
+      if (cancelled || document.visibilityState !== 'visible') return;
+      if (!('wakeLock' in navigator) || wakeLockRef.current) return;
+
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('[CLIENT] Screen wake lock acquired');
+        wakeLockRef.current.addEventListener('release', () => {
+          wakeLockRef.current = null;
+          console.log('[CLIENT] Screen wake lock released');
+        });
+      } catch (err) {
+        console.warn('[CLIENT] Screen wake lock unavailable:', err.message);
+      }
+    }
+
+    async function releaseWakeLock() {
+      if (!wakeLockRef.current) return;
+      try {
+        const lock = wakeLockRef.current;
+        wakeLockRef.current = null;
+        await lock.release();
+      } catch {}
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') acquireWakeLock();
+      else releaseWakeLock();
+    }
+
+    acquireWakeLock();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', acquireWakeLock);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', acquireWakeLock);
+      releaseWakeLock();
+    };
+  }, []);
 
   // Fetch room details + refresh account on mount
   useEffect(() => {

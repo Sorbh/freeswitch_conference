@@ -29,8 +29,9 @@ export default function ConferencePage() {
     if (!account || !token || sipInitRef.current) return;
     sipInitRef.current = true;
 
-    window.onHotlineReady = function () {
-      console.log('[CLIENT] SIP client ready');
+    window.onHotlineReady = function (acct) {
+      console.log('[CLIENT] SIP client ready', acct?.display_name);
+      setConnected(window.hotlineClient?.isConnected() || false);
     };
 
     function onCallState(state) {
@@ -51,7 +52,7 @@ export default function ConferencePage() {
       setOnlineCounts(online || {});
     };
 
-    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false };
+    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, email: account.email };
 
     if (!document.getElementById('sip-client-script')) {
       const script = document.createElement('script');
@@ -60,8 +61,12 @@ export default function ConferencePage() {
       script.src = '/redline_sip_client.js';
       document.body.appendChild(script);
     } else if (window.hotlineClient) {
-      setConnected(window.hotlineClient.isConnected());
-      setMuted(window.hotlineClient.isMuted());
+      if (window.hotlineClient.isConnected()) {
+        setConnected(true);
+        setMuted(window.hotlineClient.isMuted());
+      } else {
+        window.hotlineClient.login(account.email);
+      }
     }
 
     // Own SSE connection for callerID data (works even if SIP client login fails)
