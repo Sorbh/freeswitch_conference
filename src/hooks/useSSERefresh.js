@@ -15,9 +15,9 @@ export function useSSERefresh(refetch, scopes = []) {
         const data = JSON.parse(e.data);
         let shouldRefetch = false;
 
-        if (data.type === "state_change" && scopes.includes(data.scope)) {
+        if (data.type === "state_event" && scopes.includes(data.scope)) {
           shouldRefetch = true;
-        } else if (data.type === "user_update" && scopes.includes("users")) {
+        } else if (data.type === "user_sync" && scopes.includes("users")) {
           shouldRefetch = true;
         } else if (data.type === "event_log" && scopes.includes("events")) {
           shouldRefetch = true;

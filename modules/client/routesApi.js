@@ -6,7 +6,9 @@ import { JWT_SECRET } from "../../service/auth/middleware.js";
 import { declineByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
 import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
-import { sendExtensionRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
+import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
+import { changeUserRoom } from "../admin/users.js";
+import { clientEventsRouter, buildRoomSnapshot, buildOnlineCounts, sendClientEventToRoom } from "./events.js";
 
 const CLIENT_TOKEN_EXPIRY = '7d';
 const VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours
@@ -54,22 +56,8 @@ function requireClientAuth(req, res, next) {
     }
 }
 
-function requireClientSSEAuth(req, res, next) {
-    const token = req.query.token;
-    if (!token) {
-        return res.status(401).json({ status: false, error: 'Authentication required' });
-    }
-    try {
-        const payload = jwt.verify(token, JWT_SECRET);
-        if (payload.type !== 'client') {
-            return res.status(401).json({ status: false, error: 'Invalid token type' });
-        }
-        req.client = payload;
-        next();
-    } catch {
-        return res.status(401).json({ status: false, error: 'Invalid or expired token' });
-    }
-}
+// Mount client SSE events sub-router
+clientRouter.use("/events", clientEventsRouter);
 
 // GET /rooms — public list of rooms for signup form
 clientRouter.get("/rooms", (req, res) => {
@@ -526,45 +514,51 @@ clientRouter.put("/account", requireClientAuth, async (req, res) => {
     }
 });
 
-// POST /room-request — request a new room (authenticated)
+// POST /room-request — request a preferred room/market
 clientRouter.post("/room-request", requireClientAuth, async (req, res) => {
     try {
-        const ip = _getClientIp(req);
-        if (!_rateLimit(`roomreq:${ip}`, 2)) {
-            return res.status(429).json({ status: false, error: "Too many requests. Please try again later." });
+        const email = req.client.email;
+        const requestedRoom = String(req.body?.roomName || req.body?.room || req.body?.city || '').trim();
+        const requestedState = String(req.body?.state || req.body?.stateName || '').trim();
+        const message = String(req.body?.message || '').trim();
+        logSystem('CLIENT', `API /room-request user=sip:${email} room="${requestedRoom}" ip=${_getClientIp(req)}`);
+
+        if (!requestedRoom || requestedRoom.length < 2 || requestedRoom.length > 80) {
+            return res.status(400).json({ status: false, error: "Room name is required" });
+        }
+        if (requestedState.length > 80) {
+            return res.status(400).json({ status: false, error: "State is too long" });
+        }
+        if (message.length > 500) {
+            return res.status(400).json({ status: false, error: "Message is too long" });
         }
 
-        const { city, state: stateVal, message } = req.body;
-        if (!city) return res.status(400).json({ status: false, error: "City/market name is required" });
-
-        const account = global.db.getAccountById(req.client.sub);
-        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
-
-        const to = global.config.EXTENSION_REQUEST_TO_EMAIL;
-        if (to) {
-            const { sendMail } = await import("../../service/emailSender.js");
-            await sendMail({
-                to,
-                subject: `New room request: ${city}${stateVal ? ', ' + stateVal : ''}`,
-                text: [
-                    'New room/market request on Hotline HQ',
-                    '',
-                    `Requested city: ${city}`,
-                    `State: ${stateVal || '-'}`,
-                    `Message: ${message || '-'}`,
-                    '',
-                    `Requester: ${account.company_name || '-'} / ${account.display_name || '-'}`,
-                    `Email: ${account.email}`,
-                    `Current room: ${account.room}`,
-                    `IP: ${ip}`,
-                    `Time: ${new Date().toISOString()}`,
-                ].join('\n'),
-            }).catch(err => console.error('[ROOM-REQUEST] Email failed:', err.message));
+        const account = global.db.getAccountByEmail(email);
+        if (!account || !account.active) {
+            return res.status(404).json({ status: false, error: "Account not found or inactive" });
         }
 
-        logSystem('CLIENT', `API /room-request email=${account.email} city=${city} ip=${ip}`);
-        res.json({ status: true, message: "Room request submitted. We'll get back to you." });
+        const rooms = {};
+        for (const room of global.db.getAllRooms()) {
+            rooms[room.id] = room.name;
+        }
+
+        await sendRoomRequestEmail({
+            email,
+            requestedRoom,
+            requestedState,
+            message,
+            companyName: account.company_name,
+            displayName: account.display_name,
+            currentRoom: account.room,
+            currentRoomName: rooms[account.room],
+            ip: _getClientIp(req),
+        });
+
+        logSystem('CLIENT', `API /room-request sent user=sip:${email} room="${requestedRoom}" to=${global.config.ROOM_REQUEST_TO_EMAIL}`);
+        res.json({ status: true, message: "Room request sent." });
     } catch (err) {
+        logSystem('CLIENT', `API /room-request failed error=${err.message}`);
         res.status(500).json({ status: false, error: err.message });
     }
 });
@@ -643,171 +637,82 @@ clientRouter.post("/direct-call/start", requireClientAuth, async (req, res) => {
     }
 });
 
-// --- Broadcast SSE helpers (module-level, shared across all connections) ---
-
-function buildRoomSnapshot(room) {
-    const connectedUsers = global.db.filter(u =>
-        u.connectionState === 'connected' && (u.currentRoom || u.room) === room && !u.payment
-    );
-    const unmutedUsers = connectedUsers.filter(u => !u.mute);
-    const callerIds = [];
-    const callerIdHtml = [];
-    const roomData = global.db.getRoom(room);
-    const template = roomData?.caller_id_template || '';
-
-    for (const u of unmutedUsers) {
-        const email = u.userName?.replace('sip:', '');
-        const account = email ? global.db.getAccountByEmail(email) : null;
-        const name = account
-            ? `${account.company_name || ''} / ${account.display_name || email}`
-            : (u.callerIdName || u.userName);
-        callerIds.push(name);
-
-        if (template && account) {
-            callerIdHtml.push(template
-                .replace(/\{\{name\}\}/g, name)
-                .replace(/\{\{city\}\}/g, account.city || '')
-                .replace(/\{\{phone\}\}/g, account.company_phone || '')
-                .replace(/\{\{userId\}\}/g, account.id || '')
-            );
-        } else {
-            callerIdHtml.push(name);
-        }
+// GET /rooms/details — all rooms with online/connected counts
+clientRouter.get("/rooms/details", requireClientAuth, (req, res) => {
+    try {
+        const allRooms = global.db.getAllRooms();
+        const online = buildOnlineCounts();
+        const data = allRooms.map(r => ({
+            id: r.id,
+            code: r.id,
+            name: r.name,
+            short_code: r.short_code,
+            timezone: r.timezone,
+            online: online[r.id] || 0,
+        }));
+        res.json({ status: true, data });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
     }
-    return { userCount: connectedUsers.length, unmutedCount: unmutedUsers.length, callerIds, callerIdHtml };
-}
-
-function buildOnlineCounts() {
-    const online = {};
-    const rooms = global.db.getAllRooms();
-    for (const r of rooms) {
-        const count = global.db.filter(u =>
-            u.connectionState === 'connected' && u.room === r.id && !u.payment
-        ).length;
-        online[r.id] = count;
-    }
-    return online;
-}
-
-function _normalizeClientUserName(userName) {
-    if (!userName) return null;
-    return userName.startsWith('sip:') ? userName : `sip:${userName}`;
-}
-
-function _writeClientEvent(client, event) {
-    client.res.write(`data: ${JSON.stringify(event)}\n\n`);
-}
-
-function _addToMapSet(map, key, client) {
-    if (!key) return;
-    if (!map.has(key)) map.set(key, new Set());
-    map.get(key).add(client);
-}
-
-function _removeFromMapSet(map, key, client) {
-    const clients = map.get(key);
-    if (!clients) return;
-    clients.delete(client);
-    if (clients.size === 0) map.delete(key);
-}
-
-// Map<roomId, Set<client>> — tracks all active SSE connections per room
-const clientRoomSSE = new Map();
-// Map<userName, Set<client>> — tracks all active SSE connections per SIP user
-const clientUserSSE = new Map();
-
-export function sendClientEventToRoom(room, event) {
-    const roomId = parseInt(room);
-    if (!roomId) return 0;
-
-    const clients = clientRoomSSE.get(roomId);
-    if (!clients || clients.size === 0) return 0;
-
-    const payload = { ...event, ts: event?.ts || Date.now() };
-    for (const client of clients) {
-        _writeClientEvent(client, payload);
-    }
-    return clients.size;
-}
-
-export function sendClientEventToUser(userName, event) {
-    const normalizedUserName = _normalizeClientUserName(userName);
-    if (!normalizedUserName) return 0;
-
-    const clients = clientUserSSE.get(normalizedUserName);
-    if (!clients || clients.size === 0) return 0;
-
-    const payload = { ...event, ts: event?.ts || Date.now() };
-    for (const client of clients) {
-        _writeClientEvent(client, payload);
-    }
-    return clients.size;
-}
-
-// Single STATE_CHANGE listener — registered lazily on first SSE connect
-let _clientListenerRegistered = false;
-function _ensureClientListener() {
-    if (_clientListenerRegistered) return;
-    _clientListenerRegistered = true;
-    global.db.eventEmitter.on('STATE_CHANGE', (eventData) => {
-        if (eventData.scope === 'callerid' && eventData.room) {
-            const room = eventData.room;
-            sendClientEventToRoom(room, {
-                type: 'callerid',
-                ...buildRoomSnapshot(room),
-                online: buildOnlineCounts(),
-                ts: eventData.ts || Date.now()
-            });
-        } else if (eventData.scope === 'users' && eventData.userName) {
-            const email = eventData.userName?.replace('sip:', '');
-            const account = email ? global.db.getAccountByEmail(email) : null;
-            const room = account?.room;
-            if (room) {
-                sendClientEventToRoom(room, {
-                    type: 'online_update',
-                    ...buildRoomSnapshot(room),
-                    online: buildOnlineCounts(),
-                    ts: Date.now()
-                });
-            }
-        }
-    });
-    global.db.eventEmitter.on('CLIENT_USER_EVENT', (eventData) => {
-        if (!eventData.userName || !eventData.event) return;
-        sendClientEventToUser(eventData.userName, eventData.event);
-    });
-}
-
-// GET /events/room/:room — SSE callerID + online counts (auth via query param token)
-clientRouter.get("/events/room/:room", requireClientSSEAuth, (req, res) => {
-    _ensureClientListener();
-    const room = parseInt(req.params.room);
-    if (!room) return res.status(400).end();
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-    });
-
-    // Send initial snapshot
-    res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(room), online: buildOnlineCounts() })}\n\n`);
-
-    const userName = _normalizeClientUserName(req.client.email);
-    const client = {
-        res,
-        room,
-        email: req.client.email,
-        userName,
-        accountId: req.client.sub,
-    };
-
-    // Register this connection in room and user maps
-    _addToMapSet(clientRoomSSE, room, client);
-    _addToMapSet(clientUserSSE, userName, client);
-
-    // Clean up on disconnect
-    req.on('close', () => {
-        _removeFromMapSet(clientRoomSSE, room, client);
-        _removeFromMapSet(clientUserSSE, userName, client);
-    });
 });
+
+// PUT /room/change — change authenticated user's current room
+clientRouter.put("/room/change", requireClientAuth, async (req, res) => {
+    try {
+        const { room } = req.body;
+        const newRoom = parseInt(room, 10);
+        if (!newRoom) return res.status(400).json({ status: false, error: "room is required" });
+
+        const roomData = global.db.getRoom(newRoom);
+        if (!roomData) return res.status(404).json({ status: false, error: "Room not found" });
+
+        const userName = `sip:${req.client.email}`;
+        const account = global.db.getAccountByEmail(req.client.email);
+        if (!account || !account.active) {
+            return res.status(404).json({ status: false, error: "Account not found or inactive" });
+        }
+
+        const userInfo = global.db.getUserInfo(userName);
+        const oldRoom = userInfo?.currentRoom || userInfo?.room || account.room;
+
+        if (oldRoom === newRoom) {
+            return res.json({ status: true, message: "Already in this room", room: newRoom, roomName: roomData.name });
+        }
+
+        const result = await changeUserRoom(userName, newRoom, 'client-web');
+
+        sendClientEventToRoom(oldRoom, {
+            type: 'room_change',
+            direction: 'left',
+            email: req.client.email,
+            companyName: account.company_name || '',
+            displayName: account.display_name || req.client.email,
+            fromRoom: oldRoom,
+            toRoom: newRoom,
+            toRoomName: roomData.name,
+            ...buildRoomSnapshot(oldRoom),
+            online: buildOnlineCounts(),
+        });
+
+        sendClientEventToRoom(newRoom, {
+            type: 'room_change',
+            direction: 'joined',
+            email: req.client.email,
+            companyName: account.company_name || '',
+            displayName: account.display_name || req.client.email,
+            fromRoom: oldRoom,
+            toRoom: newRoom,
+            toRoomName: roomData.name,
+            ...buildRoomSnapshot(newRoom),
+            online: buildOnlineCounts(),
+        });
+
+        logSystem('CLIENT', `API /room user=sip:${req.client.email} ${oldRoom}->${newRoom} ip=${_getClientIp(req)}`);
+        res.json({ status: true, message: `Room changed to ${roomData.name}`, room: newRoom, roomName: roomData.name });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// Re-export from events.js for external consumers
+export { getClientSSEUsers, sendClientEventToUser } from "./events.js";

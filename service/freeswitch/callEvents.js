@@ -155,6 +155,7 @@ function _handleChannelAnswer(event) {
             userInfo.errFallbackAt = null;
             global.db.setUserInfo(userName, userInfo);
             logUser(userName, 'CALL', 'TRACK');
+            global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
 
             connectionHandlers.set(uuid, (_hangupUuid, cause) => {
                 _onCallHangup(userName, _hangupUuid, cause);
@@ -208,6 +209,7 @@ function _onCallHangup(userName, _uuid, cause) {
     userInfo.errFallbackStage = 0;
     userInfo.errFallbackAt = null;
     global.db.setUserInfo(userName, userInfo);
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
 
     if (userInfo.online && !isInDirectCall(_uuid)) {
         initiateCall(userName);
@@ -248,7 +250,7 @@ function _handleConferenceEvent(event) {
             _broadcastCallerIdToRoom(conferenceName);
             if (delUser) {
                 if (_talkingUsers.delete(delUser.userName)) {
-                    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: delUser.userName, talking: false });
+                    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'talking', userName: delUser.userName, talking: false });
                 }
                 delUser.fsMemberId = null;
                 const directCallLeave = isInDirectCall(delUser.userName) || isInDirectCall(uuid);
@@ -268,9 +270,9 @@ function _handleConferenceEvent(event) {
                 muteUser.mute = true;
                 global.db.setUserInfo(muteUser.userName, muteUser);
                 if (_talkingUsers.delete(muteUser.userName)) {
-                    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: muteUser.userName, talking: false });
+                    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'talking', userName: muteUser.userName, talking: false });
                 }
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: muteUser.userName });
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: muteUser.userName });
                 logUser(muteUser.userName, 'CONF', `MUTE (member ${memberId})`);
             }
             global.db.logEvent('mute', muteUser?.userName || null, room, 'Member muted');
@@ -283,7 +285,7 @@ function _handleConferenceEvent(event) {
                 logUser(unmuteUser.userName, 'MUTE_TRACE', `conference unmute-member set mute=false room=${roomName} member=${memberId}`);
                 unmuteUser.mute = false;
                 global.db.setUserInfo(unmuteUser.userName, unmuteUser);
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: unmuteUser.userName });
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: unmuteUser.userName });
                 logUser(unmuteUser.userName, 'CONF', `UNMUTE (member ${memberId})`);
             }
             global.db.logEvent('unmute', unmuteUser?.userName || null, room, 'Member unmuted');
@@ -294,7 +296,7 @@ function _handleConferenceEvent(event) {
             const talkUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (talkUser && !talkUser.mute) {
                 _talkingUsers.add(talkUser.userName);
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: talkUser.userName, talking: true });
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'talking', userName: talkUser.userName, talking: true });
             }
             break;
         }
@@ -302,7 +304,7 @@ function _handleConferenceEvent(event) {
             const stopUser = findUserByMember(conferenceName, memberId) || findUserByUuid(event.getHeader('Unique-ID'));
             if (stopUser) {
                 _talkingUsers.delete(stopUser.userName);
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'talking', userName: stopUser.userName, talking: false });
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'talking', userName: stopUser.userName, talking: false });
 
             }
             break;
@@ -378,8 +380,8 @@ function _broadcastCallerIdToRoom(conferenceName) {
         logUser(roomName, 'CONF', `CALLERID (skip) (0 unmuted, ${connectedUsers.length} connected, prev=${prevCount})`);
     }
     setImmediate(() => {
-        global.db.eventEmitter.emit('STATE_CHANGE', {
-            type: 'state_change',
+        global.db.eventEmitter.emit('STATE_EVENT', {
+            type: 'state_event',
             scope: 'callerid',
             room,
             callerIdString: unmutedUsers.length > 0 ? callerIdString : '',

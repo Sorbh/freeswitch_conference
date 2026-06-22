@@ -86,6 +86,7 @@ import {
   TriangleAlertIcon,
   XIcon,
   LogsIcon,
+  RadioIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -112,7 +113,7 @@ function useUsersLive(initialData) {
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        if (data.type === "user_update" && data.userName) {
+        if (data.type === "user_sync" && data.userName) {
           setUsers(prev => {
             const idx = prev.findIndex(u => u.userName === data.userName);
             if (idx === -1) return prev;
@@ -289,7 +290,7 @@ export default function UsersPage() {
 
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false, noSyslog: false });
+  const [filters, setFilters] = useState({ online: false, offline: false, muted: false, inCall: false, notInCall: false, talking: false, error: false, crossRoom: false, noSyslog: false, noSSE: false });
   const [roomFilter, setRoomFilter] = useState("all");
   const toggleFilter = (key) => setFilters(prev => ({ ...prev, [key]: !prev[key] }));
   const [form, setForm] = useState(EMPTY_FORM);
@@ -349,6 +350,7 @@ export default function UsersPage() {
       if (filters.talking && !u.talking) return false;
       if (filters.error && u.connectionState !== "error") return false;
       if (filters.noSyslog && u.syslogActive) return false;
+      if (filters.noSSE && u.sseConnected) return false;
       if (filters.crossRoom) {
         const defaultRoom = u.account?.room ?? u.room;
         const currentRoom = u.currentRoom ?? u.room;
@@ -706,6 +708,7 @@ export default function UsersPage() {
             { key: "error", label: "Error", active: "bg-orange-500/15 text-orange-400 border-orange-500/30", dot: "bg-orange-400" },
             { key: "crossRoom", label: "Cross Room", active: "bg-violet-500/15 text-violet-400 border-violet-500/30", dot: "bg-violet-400" },
             { key: "noSyslog", label: "No Syslog", active: "bg-red-500/15 text-red-400 border-red-500/30", dot: "bg-red-400" },
+            { key: "noSSE", label: "No SSE", active: "bg-pink-500/15 text-pink-400 border-pink-500/30", dot: "bg-pink-400" },
           ].map(({ key, label, active, dot }) => (
             <button
               key={key}
@@ -772,6 +775,7 @@ export default function UsersPage() {
               user.talking ? "Talking" : null,
               isError && user.error ? `Error: ${user.error}` : null,
               `Last seen: ${timeAgo(user.last_seen || user.updatedAt)}`,
+              user.sseConnected ? "Client SSE: Connected" : null,
               user.account ? (user.account.active ? "Account: Active" : "Account: Inactive") : null,
               user.account?.kickout ? "Kicked out" : null,
             ].filter(Boolean).join("\n");
@@ -785,6 +789,7 @@ export default function UsersPage() {
                     {isError && <PhoneOffIcon className="size-2.5 shrink-0" />}
                     {isInCall && <PhoneCallIcon className="size-2.5 shrink-0" />}
                     {user.clientType === "web" && <GlobeIcon className="size-2.5 shrink-0" />}
+                    {user.sseConnected && <RadioIcon className="size-2.5 text-blue-400 shrink-0" />}
                     {user.syslogActive && <LogsIcon className="size-2.5 text-emerald-500 shrink-0" />}
                     <span className="truncate max-w-[80px]">{company || name}</span>
                   </button>
@@ -900,6 +905,8 @@ export default function UsersPage() {
                     {user.talking ? <Badge className="gap-1 text-[10px] bg-cyan-500/15 text-cyan-400 border-cyan-500/20"><Volume2Icon className="size-3" />Talking</Badge> : null}
                     {user.account?.kickout ? <Badge variant="destructive" className="gap-1 text-[10px]"><BanIcon className="size-3" />Kicked</Badge> : null}
                     {user.clientType === "web" ? <Badge variant="outline" className="gap-1 text-[10px]"><GlobeIcon className="size-3" />Web</Badge> : null}
+                    {user.sseConnected ? <Badge variant="outline" className="gap-1 text-[10px] text-blue-400 border-blue-400/20"><RadioIcon className="size-3" />SSE</Badge> : null}
+                    {user.syslogActive ? <Badge variant="outline" className="gap-1 text-[10px] text-emerald-400 border-emerald-400/20"><LogsIcon className="size-3" />Syslog</Badge> : null}
                   </div>
                 </div>
               </div>
@@ -1021,7 +1028,8 @@ export default function UsersPage() {
                       <div className="flex items-center gap-1.5">
                         <CopyableCell text={user.account?.email || user.userName} />
                         <ClientTypeIcon clientType={user.clientType} />
-                        {user.syslogActive && user.mac && <a href={`/phone-logs?mac=${encodeURIComponent(user.mac)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} title="Syslog Active"><LogsIcon className="size-3 text-emerald-500 shrink-0 hover:text-emerald-300 cursor-pointer" /></a>}
+                        {user.sseConnected && <Tip label="Client SSE Connected"><RadioIcon className="size-3 text-blue-400 shrink-0" /></Tip>}
+                        {user.syslogActive && user.mac && <Tip label="Syslog Active"><a href={`/admin/phone-logs?mac=${encodeURIComponent(user.mac)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}><LogsIcon className="size-3 text-emerald-500 shrink-0 hover:text-emerald-300 cursor-pointer" /></a></Tip>}
                       </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground text-sm max-w-[120px]">

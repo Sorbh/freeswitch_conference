@@ -3,6 +3,7 @@ import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { handleHttpHookEvent, getActiveMacs } from "../../service/phoneEvents.js";
 import { logUser, logSystem } from "../../service/logger.js";
 import { emitStateChange, endCall, allEndCall } from "./routesApi.js";
+import { getClientSSEUsers } from "../client/events.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.get("/users", (req, res) => {
 
         const talkingUsers = global.freeswitch?.getTalkingUsers?.() || new Set();
         const activeMacs = getActiveMacs();
+        const sseUsers = getClientSSEUsers();
 
         const enriched = users.map(u => {
             const email = u.userName.replace(/^sip:/, '');
@@ -35,6 +37,7 @@ router.get("/users", (req, res) => {
                 last_seen: u.lastSeen || u.updatedAt || u.createdAt,
                 talking: talkingUsers.has(u.userName),
                 syslogActive: u.mac ? activeMacs.has(u.mac) : false,
+                sseConnected: sseUsers.has(u.userName),
                 account: account ? safeAccount : null,
             };
         });
@@ -55,6 +58,7 @@ router.get("/users", (req, res) => {
                     last_seen: acc.updated_at || acc.created_at,
                     updatedAt: acc.updated_at,
                     createdAt: acc.created_at,
+                    sseConnected: sseUsers.has(`sip:${acc.email}`),
                     account: safeAccount,
                     accountOnly: true,
                 };

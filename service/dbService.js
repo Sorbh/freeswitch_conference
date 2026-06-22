@@ -500,8 +500,8 @@ function setUserInfo(userName, userInfo) {
     const talkingUsers = global.freeswitch?.getTalkingUsers?.() || new Set();
     const email = userName.replace(/^sip:/, '');
     const acct = getAccountByEmail(email);
-    eventEmitter.emit('USER_UPDATE', {
-        type: 'user_update', userName, ...userInfo,
+    eventEmitter.emit('USER_SYNC', {
+        type: 'user_sync', userName, ...userInfo,
         talking: talkingUsers.has(userName),
         last_seen: userInfo.lastSeen || userInfo.updatedAt || userInfo.createdAt,
         online_duration: userInfo.online && userInfo.lastConnectionStateUpdate ? now - userInfo.lastConnectionStateUpdate : 0,
@@ -677,9 +677,9 @@ function logBroadcast({ room, roomName, userName, displayName, durationMs, answe
         INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath, responseTimeMs, listenerCount || 0);
-    eventEmitter.emit('BROADCAST', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, created_at: Math.floor(Date.now() / 1000) });
-    eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'broadcasts' });
-    eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'dashboard' });
+    eventEmitter.emit('BROADCAST_LOG', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, created_at: Math.floor(Date.now() / 1000) });
+    eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'broadcasts' });
+    eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'dashboard' });
 }
 
 function getBroadcastStats(days = 7, room) {

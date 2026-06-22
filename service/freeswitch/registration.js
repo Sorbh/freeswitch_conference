@@ -64,6 +64,7 @@ async function _handleRegistration(event) {
     const existingUser = global.db.getUserInfo(userName);
 
     if (Object.keys(existingUser).length > 0) {
+        const wasOffline = !existingUser.online;
         existingUser.contact = contact;
         existingUser.ip = networkIp;
         existingUser.port = parseInt(networkPort);
@@ -90,6 +91,9 @@ async function _handleRegistration(event) {
             global.db.setUserInfo(userName, existingUser);
         }
 
+        if (wasOffline) {
+            global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+        }
         ensureInConference(userName);
         return;
     }
@@ -123,6 +127,7 @@ async function _handleRegistration(event) {
     global.db.logOnlineStatus(userName, 'online');
     logUser(userName, 'REG', `NEW -> ${global.config.ROOM_NAME[room] || room}`);
 
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
     ensureInConference(userName);
 }
 
@@ -156,6 +161,7 @@ async function _handleUnregister(event) {
     global.db.logEvent('unregister', userName, userInfo.room, 'Explicit unregistration');
     global.db.logOnlineStatus(userName, 'offline');
     clearOnlineTimer(userName);
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
 
     // Now end the call on FreeSWITCH — BYE sent, but no reconnect attempt
     if (wasConnected && savedUuid) {
@@ -197,6 +203,7 @@ async function _handleExpire(event) {
     global.db.logEvent('expired', userName, userInfo.room, 'Registration expired');
     global.db.logOnlineStatus(userName, 'offline');
     clearOnlineTimer(userName);
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
 
     // Now end the call on FreeSWITCH
     if (wasConnected && savedUuid) {

@@ -88,7 +88,7 @@ setInterval(() => {
             const userInfo = global.db.findUserInfo('mac', mac);
             if (userInfo.userName) {
                 logUser(userInfo.userName, 'PHONE', `Syslog stale (${mac})`);
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: userInfo.userName });
             }
         }
     }
@@ -280,7 +280,7 @@ export function handleDirectCallHookEvent(userName, event, source = 'hook') {
             } else {
                 userInfo.mute = true;
                 global.db.setUserInfo(userName, userInfo);
-                global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
             }
         }
         return {
@@ -365,7 +365,7 @@ function _handleHookEvent(macAddress, event) {
         }
         userInfo.mute = true;
         global.db.setUserInfo(userInfo.userName, userInfo);
-        global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName: userInfo.userName });
+        global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: userInfo.userName });
         logUser(userInfo.userName, 'PHONE', 'MUTED (on_hook)');
         return;
     }
@@ -387,7 +387,7 @@ function _applyMuteState(userName, userInfo, event) {
 
     userInfo.mute = mute;
     global.db.setUserInfo(userName, userInfo);
-    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
 }
 
 export function stopSyslogServer() {

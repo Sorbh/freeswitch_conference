@@ -108,7 +108,7 @@ export function showMessage(targets, message, timeout = 4) {
     }
     // if (sent > 0) logSystem('NOTIFY', `message -> ${sent} phone${sent > 1 ? 's' : ''}`);
 
-    global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'message', message, targets });
+    global.db?.eventEmitter?.emit('USER_SYNC', { type: 'message', message, targets });
 }
 
 function _escapeXml(value) {
@@ -139,7 +139,7 @@ export function showMessageWithSoftKeys(targets, message, softKeys = [], timeout
         sent++;
     }
 
-    global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'message', message, targets });
+    global.db?.eventEmitter?.emit('USER_SYNC', { type: 'message', message, targets });
 }
 
 export function sendCommands(targets, commands) {
@@ -158,7 +158,7 @@ export function sendCommands(targets, commands) {
     }
     if (sent > 0) logSystem('NOTIFY', `commands -> ${sent} phone${sent > 1 ? 's' : ''}`);
 
-    global.db?.eventEmitter?.emit('USER_UPDATE', { type: 'commands', commands, targets });
+    global.db?.eventEmitter?.emit('USER_SYNC', { type: 'commands', commands, targets });
 }
 
 export function sendActionUri(targets, actionUri) {

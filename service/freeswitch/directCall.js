@@ -46,7 +46,7 @@ const pendingAccepts = new Map();
 const recentHookEvents = new Map();
 
 function _clientEvent(userName, event) {
-    global.db?.eventEmitter?.emit('CLIENT_USER_EVENT', {
+    global.db?.eventEmitter?.emit('CLIENT_EVENT', {
         userName,
         event: { ...event, ts: Date.now() },
     });
@@ -84,7 +84,7 @@ function _markReturnMuted(userName, reason) {
     userInfo.mute = true;
     userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
     global.db.setUserInfo(userName, userInfo);
-    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope: 'users', userName });
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
 
     if (userInfo.fsMemberId && activeRoom && global.freeswitch?.muteByMemberId) {
         logSystem('MUTE_TRACE', `directCall return-muted -> ${userName} room=${activeRoom} member=${userInfo.fsMemberId} reason=${reason}`);

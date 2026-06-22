@@ -14,7 +14,7 @@ import directCallsRouter from "./directCalls.js";
 export let adminRouter = express.Router();
 
 export function emitStateChange(scope, detail = {}) {
-    global.db.eventEmitter.emit('STATE_CHANGE', { type: 'state_change', scope, ...detail });
+    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope, ...detail });
 }
 
 // ── Call lifecycle helpers (used by admin API + shutdown) ──
