@@ -16,7 +16,7 @@
 //   <div id="caller_grid"></div>
 //
 // HOW TO USE (single script tag, no function calls needed):
-//   <script src="/redline_sip_client.js"></script>
+//   <script type="module" src="https://hotline.redlineusedautoparts.com/redline_sip_client.js"></script>
 //
 //   That's it. JsSIP is auto-loaded from /jssip.bundle.js.
 //   If localStorage has "user_data" with is_sip=0, it auto-connects.
@@ -47,7 +47,8 @@
 //   window.HOTLINE_CONFIG = {
 //     wsServer: '',              // WebSocket URL for SIP (default: wss://hotline.redlineusedautoparts.com/fs_wss/)
 //     apiBase: '',               // API base URL (default: https://hotline.redlineusedautoparts.com/fs/)
-//     defaultPassword: '12345678' // SIP password (also used for /client/login)
+//     defaultPassword: '12345678', // SIP password (also used for /client/login)
+//     directCallAnswerButton: false // set true to show Answer button for incoming direct calls
 //   };
 //
 // API ENDPOINTS USED:
@@ -60,24 +61,31 @@
 //   PUT  /api/v1/client/room/change    — change user's current room
 //   GET  /api/v1/client/events/room/:room?token=<jwt>  — CallerID SSE
 //
-// OPTIONAL CALLBACKS (set before or after loading):
-//   window.onHotlineReady = function(accountData) { ... }     // fired when registered + account loaded
-//   window.onHotlineCallState = function(state) { ... }       // 'connected' or 'disconnected'
-//   window.onHotlineRoomChange = function(data) { ... }       // { source, room, roomName } — called on room change (API or SSE)
-//   window.updateOnlineCounts = function(onlineMap) { ... }   // { roomId: count, ... }
+// OPTIONAL CALLBACKS (same contract in redline_sip_client.js and redline_callerid.js):
+//   window.onHotlineReady = function(accountData) { ... }              // account loaded and client initialized
+//   window.onHotlineCallState = function(state) { ... }                // conference media state: 'connected' or 'disconnected'
+//   window.onHotlineMuteState = function(muted) { ... }                // true when muted, false when unmuted
+//   window.onHotlineDirectCallState = function(state, data) { ... }    // 'incoming', 'outgoing', 'connected', 'ending', 'ended', 'declined', 'missed', 'cancelled', 'busy', 'unavailable'
+//   window.onHotlineRoomChange = function(data) { ... }                // { source, room, roomName } — called on room change (API or SSE)
+//   window.updateOnlineCounts = function(onlineMap) { ... }            // { roomId: count, ... }
+//   window.onCallerIdUpdate = function(callerIdHtml) { ... }           // raw caller ID HTML array
 //
 // MANUAL CONTROL (if needed):
-//   window.hotlineClient.login('email@example.com')  // login with specific email
-//   window.hotlineClient.toggleMute()                // Ctrl+L equivalent
-//   window.hotlineClient.joinConference()            // request server to call this user
-//   window.hotlineClient.hangup()                    // end current call
-//   window.hotlineClient.logout()                    // disconnect everything
-//   window.hotlineClient.getRoomDetails()             // get all rooms with online counts
-//   window.hotlineClient.changeRoom(roomId)          // switch to a different room (reloads page)
-//   window.hotlineClient.getAccount()                // get loaded account data
-//   window.hotlineClient.isConnected()               // true if in active call
-//   window.hotlineClient.isMuted()                   // true if muted
-//   window.RedlineExtensionDirectory.open()          // open extension search
+//   window.hotlineClient.login('email@example.com')               // login with specific email
+//   window.hotlineClient.logout()                                 // disconnect everything
+//   window.hotlineClient.reconnect()                              // force reconnect SSE
+//   window.hotlineClient.disconnect()                             // stop SSE and clear grid
+//   window.hotlineClient.toggleMute()                             // Ctrl+L equivalent
+//   window.hotlineClient.joinConference()                         // request server to call this user
+//   window.hotlineClient.hangup()                                 // end current call
+//   window.hotlineClient.getRoom()                                // get current room
+//   window.hotlineClient.getRoomDetails()                         // get all rooms with online counts
+//   window.hotlineClient.changeRoom(roomId)                       // switch to a different room (reloads page)
+//   window.hotlineClient.requestRoom({ city, state, message })    // request a new room
+//   window.hotlineClient.getAccount()                             // get loaded account data
+//   window.hotlineClient.isConnected()                            // true if in active call
+//   window.hotlineClient.isMuted()                                // true if muted
+//   window.RedlineExtensionDirectory.open()                       // open extension search
 //
 // SSE EVENTS HANDLED:
 //   callerid      — caller ID HTML + online counts
@@ -110,6 +118,26 @@ import "./jssip.bundle.js";
         var lastHeartbeat = Date.now();
         var callerIdReconnectAttempts = 0;
         var directCallHideTimer = null;
+        var directCallTimer = null;
+        var directCallState = null;
+
+        function notifyCallState(state) {
+            try {
+                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState(state);
+            } catch (e) { }
+        }
+
+        function notifyMuteState() {
+            try {
+                if (typeof window.onHotlineMuteState === 'function') window.onHotlineMuteState(isMuted);
+            } catch (e) { }
+        }
+
+        function notifyDirectCallState(state, data) {
+            try {
+                if (typeof window.onHotlineDirectCallState === 'function') window.onHotlineDirectCallState(state, data || null);
+            } catch (e) { }
+        }
 
         // ── Sleep/wake detection ──
         setInterval(function () {
@@ -361,7 +389,7 @@ import "./jssip.bundle.js";
                 var dialCode = '*' + item.extension;
                 if (typeof state.callExtension === 'function') {
                     var result = state.callExtension(item, dialCode) || {};
-                    setMessage(result.message || ('Calling ' + dialCode));
+                    if (result.message) setMessage(result.message);
                     return;
                 }
                 try {
@@ -630,14 +658,13 @@ import "./jssip.bundle.js";
                         });
                     })
                     .then(function () {
-                        if (window.RedlineExtensionDirectory?.setMessage) window.RedlineExtensionDirectory.setMessage('Calling ' + dialCode + '...');
                         renderDirectCallStatus('Calling extension', (item.companyName || '') + ' / ' + (item.displayName || '') + ' • ' + dialCode, false, 3000, 'info');
                     })
                     .catch(function (err) {
                         if (window.RedlineExtensionDirectory?.setMessage) window.RedlineExtensionDirectory.setMessage(err.message);
                         renderDirectCallStatus('Unable to call extension', err.message, false, 3000, 'warn');
                     });
-                return { ok: true, message: 'Calling ' + dialCode + '...' };
+                return { ok: true };
             },
         });
 
@@ -678,6 +705,71 @@ import "./jssip.bundle.js";
             }
         }
 
+        function endDirectCall(options) {
+            try {
+                options = options || {};
+                if (!clientToken || !directCallState) return;
+                var url = apiBase + '/api/v1/client/direct-call/end';
+                var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken };
+                if (options.keepalive && navigator.sendBeacon) {
+                    var blob = new Blob([JSON.stringify({})], { type: 'application/json' });
+                    navigator.sendBeacon(url + '?token=' + encodeURIComponent(clientToken), blob);
+                } else {
+                    fetch(url, { method: 'POST', headers: headers, keepalive: !!options.keepalive })
+                        .catch(function (err) { console.error('[DIRECT] End failed:', err.message); });
+                }
+                if (!options.silent) {
+                    notifyDirectCallState('ending', { source: 'web' });
+                    clearDirectCallState();
+                    renderDirectCallStatus('Ending private call...', '', false, 2500, 'warn');
+                }
+            } catch (err) {
+                console.error('[DIRECT] end error:', err.message);
+            }
+        }
+
+        function formatDirectCallDuration(ms) {
+            var total = Math.max(0, Math.floor((ms || 0) / 1000));
+            var minutes = Math.floor(total / 60);
+            var seconds = total % 60;
+            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+
+        function clearDirectCallState() {
+            directCallState = null;
+            if (directCallTimer) { clearInterval(directCallTimer); directCallTimer = null; }
+        }
+
+        function renderActiveDirectCall() {
+            if (!directCallState) return;
+            renderDirectCallStatus(
+                'Private call connected',
+                directCallState.detail,
+                false,
+                0,
+                'success',
+                false,
+                {
+                    duration: formatDirectCallDuration(Date.now() - directCallState.startedAt),
+                    showEnd: true,
+                }
+            );
+        }
+
+        function startDirectCallState(data, detail) {
+            directCallState = {
+                callId: data.callId,
+                role: data.role,
+                peer: data.peer,
+                detail: detail,
+                startedAt: Date.now(),
+            };
+            if (directCallTimer) clearInterval(directCallTimer);
+            renderActiveDirectCall();
+            directCallTimer = setInterval(renderActiveDirectCall, 1000);
+            notifyDirectCallState('connected', data);
+        }
+
         function getDirectCallTheme(tone) {
             if (tone === 'danger') return { accent: '#ef4444', bg: 'rgba(239,68,68,.14)', icon: '✕' };
             if (tone === 'success') return { accent: '#22c55e', bg: 'rgba(34,197,94,.14)', icon: '✓' };
@@ -685,16 +777,18 @@ import "./jssip.bundle.js";
             return { accent: '#38bdf8', bg: 'rgba(56,189,248,.14)', icon: '☎' };
         }
 
-        function renderDirectCallStatus(title, detail, showReject, autoHideMs, tone, showAnswer) {
+        function renderDirectCallStatus(title, detail, showReject, autoHideMs, tone, showAnswer, options) {
             try {
+                options = options || {};
                 var banner = getDirectCallBanner();
                 var theme = getDirectCallTheme(tone);
                 if (directCallHideTimer) { clearTimeout(directCallHideTimer); directCallHideTimer = null; }
                 var buttonHtml = '';
-                if (showAnswer || showReject) {
+                if (showAnswer || showReject || options.showEnd) {
                     buttonHtml = '<div style="display:flex;gap:8px;margin-top:12px;">' +
                         (showAnswer ? '<button id="redline_direct_call_answer" style="flex:1;background:#22c55e;color:#fff;border:0;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(34,197,94,.25);">Answer</button>' : '') +
                         (showReject ? '<button id="redline_direct_call_reject" style="flex:1;background:#ef4444;color:#fff;border:0;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(239,68,68,.28);">Reject</button>' : '') +
+                        (options.showEnd ? '<button id="redline_direct_call_end" style="flex:1;background:#ef4444;color:#fff;border:0;border-radius:11px;padding:10px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(239,68,68,.28);">End Call</button>' : '') +
                         '</div>';
                 }
                 banner.innerHTML =
@@ -706,6 +800,7 @@ import "./jssip.bundle.js";
                     '<div style="height:8px;width:8px;border-radius:999px;background:' + theme.accent + ';box-shadow:0 0 0 4px ' + theme.bg + ';flex:0 0 auto;"></div>' +
                     '</div>' +
                     (detail ? '<div style="font-size:12px;color:rgba(255,255,255,.74);line-height:1.35;margin-bottom:2px;">' + escapeHtml(detail) + '</div>' : '') +
+                    (options.duration ? '<div style="display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px;font-weight:800;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#fff;"><span style="width:7px;height:7px;border-radius:999px;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.14);"></span>' + escapeHtml(options.duration) + '</div>' : '') +
                     buttonHtml +
                     '</div></div>';
                 banner.style.display = 'block';
@@ -713,6 +808,8 @@ import "./jssip.bundle.js";
                 if (answerButton) answerButton.onclick = answerDirectCall;
                 var rejectButton = document.getElementById('redline_direct_call_reject');
                 if (rejectButton) rejectButton.onclick = rejectDirectCall;
+                var endButton = document.getElementById('redline_direct_call_end');
+                if (endButton) endButton.onclick = function () { endDirectCall(); };
                 if (autoHideMs) {
                     directCallHideTimer = setTimeout(function () {
                         banner.style.display = 'none';
@@ -730,27 +827,49 @@ import "./jssip.bundle.js";
             var timeoutMs = data.timeoutMs || 15000;
 
             if (data.type === 'direct_call_incoming') {
+                notifyDirectCallState('incoming', data);
                 var showAnswer = config.directCallAnswerButton === true;
                 renderDirectCallStatus('Incoming private call', detail + (showAnswer ? ' — answer here or reject' : ' — lift handset to accept'), true, timeoutMs + 2000, 'info', showAnswer);
             } else if (data.type === 'direct_call_outgoing') {
+                notifyDirectCallState('outgoing', data);
                 renderDirectCallStatus('Calling...', detail, false, timeoutMs + 2000, 'info');
             } else if (data.type === 'direct_call_answered') {
-                renderDirectCallStatus('Private call connected', detail, false, 0, 'success');
+                startDirectCallState(data, detail);
             } else if (data.type === 'direct_call_busy') {
+                notifyDirectCallState('busy', data);
+                clearDirectCallState();
                 renderDirectCallStatus('User busy', detail, false, 3000, 'warn');
             } else if (data.type === 'direct_call_unavailable') {
+                notifyDirectCallState('unavailable', data);
+                clearDirectCallState();
                 renderDirectCallStatus('Extension unavailable', data.message || ('Extension *' + (data.extension || '') + ' is not available'), false, 3000, 'warn');
             } else if (data.type === 'direct_call_declined') {
+                notifyDirectCallState('declined', data);
+                clearDirectCallState();
                 renderDirectCallStatus('Private call declined', detail, false, 3000, 'danger');
             } else if (data.type === 'direct_call_missed') {
+                notifyDirectCallState('missed', data);
+                clearDirectCallState();
                 renderDirectCallStatus('Private call missed', detail, false, 3000, 'warn');
             } else if (data.type === 'direct_call_cancelled') {
+                notifyDirectCallState('cancelled', data);
+                clearDirectCallState();
                 renderDirectCallStatus('Private call cancelled', detail, false, 3000, 'warn');
             } else if (data.type === 'direct_call_ended') {
+                notifyDirectCallState('ended', data);
+                clearDirectCallState();
                 renderDirectCallStatus('Private call ended', 'Returning to room', false, 3000, 'success');
             }
             return true;
         }
+
+        function handleDirectCallPageExit() {
+            if (!directCallState) return;
+            endDirectCall({ keepalive: true, silent: true });
+        }
+
+        window.addEventListener('pagehide', handleDirectCallPageExit);
+        window.addEventListener('beforeunload', handleDirectCallPageExit);
 
         // ── CallerID SSE ──
         function startCallerIdSSE(room) {
@@ -1014,20 +1133,19 @@ import "./jssip.bundle.js";
                                     muteAudio(true);
                                     attachRemoteAudio(session);
                                     if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(true);
-                                    if (typeof window.onHotlineCallState === 'function') {
-                                        window.onHotlineCallState('connected');
-                                    }
+                                    notifyMuteState();
+                                    notifyCallState('connected');
                                 } catch (e) { }
                             });
                             session.on('failed', function (e) {
                                 currentSession = null;
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
-                                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
+                                notifyCallState('disconnected');
                             });
                             session.on('ended', function (e) {
                                 currentSession = null;
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
-                                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
+                                notifyCallState('disconnected');
                             });
                             session.answer({
                                 mediaConstraints: { audio: true, video: false },
@@ -1076,11 +1194,22 @@ import "./jssip.bundle.js";
             });
         }
 
+        function requestRoom(data) {
+            if (!clientToken) { console.error('[SIP] requestRoom: not logged in'); return Promise.reject(new Error('Not logged in')); }
+            return fetch(apiBase + '/api/v1/client/room-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+                body: JSON.stringify(data),
+            })
+            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); });
+        }
+
         // ── Actions ──
         function toggleMute() {
             try {
                 isMuted = !isMuted;
                 muteAudio(isMuted);
+                notifyMuteState();
 
                 if (!accountData || !clientToken) return;
                 var muteUrl = apiBase + '/api/v1/client/' + (isMuted ? 'mute' : 'unmute');
@@ -1101,7 +1230,7 @@ import "./jssip.bundle.js";
             try {
                 if (currentSession) { currentSession.terminate(); currentSession = null; }
                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
-                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState('disconnected');
+                notifyCallState('disconnected');
             } catch (e) {
                 console.error('[SIP] hangup error:', e.message);
             }
@@ -1142,11 +1271,15 @@ import "./jssip.bundle.js";
         window.hotlineClient = {
             login: doLogin,
             logout: logout,
+            reconnect: function () { callerIdReconnectAttempts = 0; var r = accountData && (accountData.current_room || accountData.room); if (r) startCallerIdSSE(r); },
+            disconnect: stopCallerIdSSE,
             toggleMute: toggleMute,
             joinConference: joinConference,
             hangup: hangup,
+            getRoom: function () { return accountData && (accountData.current_room || accountData.room) || ''; },
             getRoomDetails: getRoomDetails,
             changeRoom: changeRoom,
+            requestRoom: requestRoom,
             getAccount: function () { return accountData; },
             getLocalData: getLocalStorageUserData,
             isConnected: function () { return !!currentSession; },

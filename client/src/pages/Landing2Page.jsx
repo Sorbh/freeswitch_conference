@@ -2748,6 +2748,49 @@ const CSS = `
   .l2-rooms { grid-template-columns: 1fr; }
   .l2-hero-copy h1 { font-size: 24px; }
 }
+@media (max-width: 320px) {
+  .l2-hero { padding: 100px 12px 0; }
+  .l2-hero-copy h1 { font-size: 21px; }
+  .l2-eyebrow { font-size: 9px; letter-spacing: 0.08em; }
+  .l2-sub { font-size: 13px; margin: 10px auto 18px; }
+  .l2-hero-ctas .l2-btn { font-size: 14px; padding: 12px 16px; }
+  .l2-listen-btn { padding: 8px 12px; gap: 10px; }
+  .l2-listen-icon { width: 36px; height: 36px; }
+  .l2-listen-icon svg { width: 16px; height: 16px; }
+  .l2-listen-text strong { font-size: 13px; }
+  .l2-listen-text span { font-size: 10px; max-width: 160px; }
+  .l2-stats strong { font-size: 22px; }
+  .l2-stats div { min-width: 80px; }
+  .l2-section { padding: 36px 12px; }
+  .l2-section-head h2 { font-size: 20px; }
+  .l2-lede { font-size: 13px; }
+  .l2-step { padding: 14px 12px; }
+  .l2-step-n { width: 36px; height: 36px; font-size: 18px; }
+  .l2-step h3 { font-size: 14px; }
+  .l2-step p { font-size: 12.5px; }
+  .l2-compare-card { padding: 14px 12px; }
+  .l2-compare-label { font-size: 11px; }
+  .l2-compare-time strong { font-size: 20px; }
+  .l2-compare-copy { font-size: 13px; }
+  .l2-feature { padding: 14px 12px; }
+  .l2-feature h3 { font-size: 14px; }
+  .l2-feature p { font-size: 12.5px; }
+  .l2-mid-cta-band { padding: 32px 12px; }
+  .l2-mid-cta-inner h2 { font-size: 20px; }
+  .l2-contact-btn { padding: 10px 12px; }
+  .l2-contact-icon { width: 42px; height: 42px; }
+  .l2-contact-text strong { font-size: 16px; }
+  .l2-contact-text span { font-size: 13px; }
+  .l2-join-inner { padding: 32px 12px; }
+  .l2-join-inner h2 { font-size: 20px; }
+  .l2-form { padding: 16px 12px; }
+  .l2-form-title { font-size: 20px; }
+  .l2-nav { padding: 8px 10px; }
+  .l2-nav-links { gap: 6px; }
+  .l2-nav-login { padding: 6px 6px; font-size: 11px; }
+  .l2-nav-cta { padding: 6px 8px; font-size: 11px; }
+  .l2-sticky-cta { font-size: 14px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
 
 /* reveal */
 .l2-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
