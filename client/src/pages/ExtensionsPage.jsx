@@ -41,7 +41,6 @@ export default function ExtensionsPage() {
     setCallLoading(item.id); setMessage('');
     try {
       await apiFetch('/direct-call/start', { method: 'POST', body: JSON.stringify({ extension: item.extension }) });
-      setMessage(`Calling *${item.extension}...`);
     } catch (err) { setMessage(err.message); }
     finally { setCallLoading(null); }
   }

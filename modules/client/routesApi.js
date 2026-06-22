@@ -3,7 +3,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../service/auth/middleware.js";
-import { acceptByUserName, declineByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
+import { acceptByUserName, declineByUserName, hangupDirectCallByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
 import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
@@ -37,11 +37,12 @@ function _getClientIp(req) {
 
 function requireClientAuth(req, res, next) {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const queryToken = typeof req.query?.token === 'string' ? req.query.token : '';
+    if ((!authHeader || !authHeader.startsWith('Bearer ')) && !queryToken) {
         return res.status(401).json({ status: false, error: 'Authentication required' });
     }
     try {
-        const token = authHeader.slice(7);
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : queryToken;
         const payload = jwt.verify(token, JWT_SECRET);
         if (payload.type !== 'client') {
             return res.status(401).json({ status: false, error: 'Invalid token type' });
@@ -623,6 +624,19 @@ clientRouter.post("/direct-call/accept", requireClientAuth, (req, res) => {
         const accepted = acceptByUserName(userName);
         if (!accepted) return res.status(409).json({ status: false, error: "No pending direct call" });
         res.json({ status: true, message: "Direct call accepted" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /direct-call/end — end active private direct call from web client
+clientRouter.post("/direct-call/end", requireClientAuth, (req, res) => {
+    try {
+        const userName = `sip:${req.client.email}`;
+        logSystem('CLIENT', `API /direct-call/end user=${userName} ip=${_getClientIp(req)}`);
+        const ended = hangupDirectCallByUserName(userName, 'web_end');
+        if (!ended) return res.status(409).json({ status: false, error: "No active direct call" });
+        res.json({ status: true, message: "Direct call ending" });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

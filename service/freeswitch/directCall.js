@@ -1,5 +1,101 @@
-// Direct (1:1) private calling via DTMF in conference.
-// Flow: User A dials *102 → whisper to B → B presses 1 to accept → bridge A↔B → hangup → both return to conference.
+// Direct (1:1) private calling via DTMF or web API in conference.
+//
+// This file owns the full lifecycle of extension-to-extension private calls.
+// Both parties stay in their conference channels during ringing; only on accept
+// are they transferred out to a private bridge.
+//
+// Inputs
+// ┌──────────────────────┬─────────────────────────────────────────────────────┐
+// │ Source               │ Entry point                                        │
+// ├──────────────────────┼─────────────────────────────────────────────────────┤
+// │ DTMF *NNN in conf   │ handleDTMF(uuid, digit) → initiateDirectCall()     │
+// │ Web API POST         │ initiateDirectCallByUserName() → same flow         │
+// │ Phone off-hook       │ acceptByUserName() → _acceptCall()                 │
+// │ Phone on-hook / API  │ declineByUserName() / hangupDirectCallByUserName() │
+// │ Channel hangup (ESL) │ handleHangup(uuid)                                │
+// └──────────────────────┴─────────────────────────────────────────────────────┘
+//
+// Call lifecycle
+// ┌────┬──────────────────────────────────┬──────────────────────────────────────┐
+// │ #  │ Phase                            │ What happens                         │
+// ├────┼──────────────────────────────────┼──────────────────────────────────────┤
+// │ 1  │ Initiate (*NNN or API)           │ Validate both parties are in conf,   │
+// │    │                                  │ not busy/unmuted/in-direct-call.     │
+// │ 2  │ Ringing                          │ Looped ring tone → caller,           │
+// │    │                                  │ looped whisper → callee.             │
+// │    │                                  │ Callee sees softkey "Reject".        │
+// │    │                                  │ 15s timeout (ACCEPT_TIMEOUT_MS).     │
+// │ 3a │ Accept (callee off-hook / API)   │ Stop tones, play accept tone,        │
+// │    │                                  │ transfer both to park, uuid_bridge,  │
+// │    │                                  │ start recording.                     │
+// │ 3b │ Decline (callee rejects / API)   │ Stop looped tones immediately        │
+// │    │                                  │ (clearInterval), play decline tone   │
+// │    │                                  │ to caller, recover callee to conf.   │
+// │ 3c │ Timeout (no answer)              │ Same as decline but "No answer" msg. │
+// │ 3d │ Cancel (caller hangs up)         │ Stop tones, recover callee to conf.  │
+// │ 4  │ Active bridge                    │ Both in direct_call state, bridged.  │
+// │    │                                  │ Either party on-hook → uuid_kill →   │
+// │    │                                  │ handleHangup cleans up session.      │
+// │ 5  │ End                              │ Stop recording, clear states, both   │
+// │    │                                  │ parties reconnect to conference      │
+// │    │                                  │ muted via initiateCall().            │
+// └────┴──────────────────────────────────┴──────────────────────────────────────┘
+//
+// Tone management
+// ┌──────────────┬──────────────────────────────────────────────────────────────┐
+// │ Tone         │ How it works                                                │
+// ├──────────────┼──────────────────────────────────────────────────────────────┤
+// │ RING_TONE    │ Single cycle played via conference play, repeated by JS     │
+// │              │ setInterval (RING_INTERVAL). clearInterval stops it         │
+// │              │ instantly — no unstoppable FS loops.                        │
+// │ WHISPER_TONE │ Same pattern, shorter interval (WHISPER_INTERVAL).          │
+// │ DECLINE_TONE │ One-shot with loops=2 (short, no need to cancel).          │
+// │ ACCEPT_TONE  │ One-shot, two quick beeps.                                 │
+// │ BUSY_TONE    │ One-shot with loops=3 (short).                             │
+// └──────────────┴──────────────────────────────────────────────────────────────┘
+//
+// State transitions
+// ┌─────────────────────┐  *NNN DTMF / API   ┌─────────────────────┐
+// │ connected+muted     │ ─────────────────▶ │ ringing (pending)   │
+// │ in conference       │                    │ both still in conf  │
+// └─────────────────────┘                    └──────────┬──────────┘
+//                                                       │
+//                          ┌────────────────────────────┬┴───────────────────┐
+//                          │ accept (off-hook)          │ decline / timeout  │
+//                          ▼                            ▼                    │
+//               ┌─────────────────────┐    ┌─────────────────────┐          │
+//               │ direct_call         │    │ caller: back in     │          │
+//               │ uuid_bridge A ↔ B   │    │ conf (never left)   │          │
+//               │ recording active    │    │ callee: recovered   │          │
+//               └──────────┬──────────┘    │ to conference muted │          │
+//                          │ either        └─────────────────────┘          │
+//                          │ on-hook                                        │
+//                          ▼                            ┌──────────────────┘
+//               ┌─────────────────────┐                 │ cancel (caller
+//               │ both reconnect to   │                 │ hangs up)
+//               │ conference muted    │                 ▼
+//               │ via initiateCall()  │    ┌─────────────────────┐
+//               └─────────────────────┘    │ callee: recovered   │
+//                                          │ to conference muted │
+//                                          └─────────────────────┘
+//
+// Key exports
+// ┌──────────────────────────────┬──────────────────────────────────────────────┐
+// │ Function                     │ Used by                                     │
+// ├──────────────────────────────┼──────────────────────────────────────────────┤
+// │ handleDTMF(uuid, digit)      │ connection.js (ESL DTMF events)             │
+// │ handleHangup(uuid)           │ connection.js (ESL hangup events)           │
+// │ initiateDirectCall(uuid,ext) │ DTMF handler, web API                      │
+// │ initiateDirectCallByUserName │ client routesApi.js (POST /direct-call/start│
+// │ acceptByUserName(userName)   │ phoneEvents.js (off-hook), client API       │
+// │ declineByUserName(userName)  │ phoneEvents.js (on-hook), client API,       │
+// │                              │ yealink softkey                             │
+// │ hangupDirectCallByUserName   │ phoneEvents.js (on-hook during bridge)      │
+// │ isInDirectCall(id)           │ callEvents.js, phoneEvents.js, broadcast.js │
+// │ hasPendingCall(userName)     │ phoneEvents.js                              │
+// │ isPendingCaller(userName)    │ phoneEvents.js                              │
+// │ getActiveCalls()             │ admin API                                   │
+// └──────────────────────────────┴──────────────────────────────────────────────┘
 
 import fs from 'fs';
 import path from 'path';
@@ -31,11 +127,38 @@ onHangupEvent((event) => {
 });
 
 const ACCEPT_TIMEOUT_MS = 15000;
-const RING_TONE = 'tone_stream://%(300,180,440,480);%(300,1800,440,480);loops=6';
+const RING_TONE = 'tone_stream://%(300,180,440,480);%(300,1800,440,480)';
+const RING_INTERVAL = 2600;
 const BUSY_TONE = 'tone_stream://%(500,500,480,620);loops=3';
 const ACCEPT_TONE = 'tone_stream://%(200,0,600);%(200,0,800)';
 const DECLINE_TONE = 'tone_stream://%(400,0,480,620);loops=2';
-const WHISPER_TONE = 'tone_stream://%(200,100,600);%(200,100,800);%(200,100,1000);loops=3';
+const WHISPER_TONE = 'tone_stream://%(200,100,600);%(200,100,800);%(200,100,1000)';
+const WHISPER_INTERVAL = 1000;
+
+const toneTimers = new Map();
+
+function playLoopedTone(targets, tone, intervalMs, maxCount = 8) {
+    if (!Array.isArray(targets)) targets = [targets];
+    for (const target of targets) {
+        stopLoopedTone(target);
+        let count = 0;
+        playTone([target], tone);
+        const timer = setInterval(() => {
+            if (++count >= maxCount) { stopLoopedTone(target); return; }
+            playTone([target], tone);
+        }, intervalMs);
+        toneTimers.set(target, timer);
+    }
+}
+
+function stopLoopedTone(targets) {
+    if (!Array.isArray(targets)) targets = [targets];
+    for (const target of targets) {
+        const timer = toneTimers.get(target);
+        if (timer) { clearInterval(timer); toneTimers.delete(target); }
+        stopTone([target]);
+    }
+}
 
 // Active sessions: userName -> session data (both caller and callee point to same session)
 const activeSessions = new Map();
@@ -397,8 +520,8 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
     });
 
     // Play continuous ring tone to caller, whisper tone to callee
-    playTone([caller.userName], RING_TONE);
-    playTone([callee.userName], WHISPER_TONE);
+    playLoopedTone(caller.userName, RING_TONE, RING_INTERVAL);
+    playLoopedTone(callee.userName, WHISPER_TONE, WHISPER_INTERVAL);
 
     // Delay screen notifications so they arrive after any broadcast side-effects settle
     setTimeout(() => {
@@ -483,7 +606,7 @@ async function _acceptCall(calleeUserName) {
     if (!callerUuid || !calleeUuid) {
         logSystem('DIRECT', `ACCEPT FAILED — missing UUID: caller=${callerUuid || 'none'} callee=${calleeUuid || 'none'}`);
         global.db.updateDirectCall(callId, { status: 'failed', ended_at: now, end_reason: 'missing_uuid' });
-        stopTone([callerInfo.userName, calleeInfo.userName]);
+        stopLoopedTone([callerInfo.userName, calleeInfo.userName]);
         playTone([callerInfo.userName], DECLINE_TONE);
         return;
     }
@@ -524,7 +647,7 @@ async function _acceptCall(calleeUserName) {
         connectionHandlers.delete(calleeUuid);
 
         // Stop ring/whisper tones, then replace waiting screens with a short connected notification
-        stopTone([callerInfo.userName, calleeInfo.userName]);
+        stopLoopedTone([callerInfo.userName, calleeInfo.userName]);
         showMessage([callerInfo.userName], `Extension call connected\n${calleeInfo.displayName}`, 1);
         showMessage([calleeInfo.userName], `Extension call connected\n${callerInfo.displayName}`, 1);
         playTone([callerInfo.userName, calleeInfo.userName], ACCEPT_TONE);
@@ -575,7 +698,7 @@ export function declineByUserName(calleeUserName, reason = 'declined') {
             logSystem('DIRECT', `${callerInfo.displayName} CANCELLED call to ${calleeInfo.displayName} (${reason})`);
 
             global.db.updateDirectCall(callId, { status: 'cancelled', ended_at: now, end_reason: reason });
-            stopTone([callerInfo.userName, calleeInfo.userName]);
+            stopLoopedTone([callerInfo.userName, calleeInfo.userName]);
             showMessage([calleeInfo.userName], `${callerInfo.displayName}\nCancelled private call`, 3);
             _recoverConferenceUser(calleeInfo.userName, reason);
             _clientEvent(callerInfo.userName, _directCallPayload('direct_call_cancelled', callId, 'caller', calleeInfo));
@@ -595,8 +718,8 @@ export function declineByUserName(calleeUserName, reason = 'declined') {
 
     global.db.updateDirectCall(callId, { status: 'declined', ended_at: now, end_reason: reason });
 
-    // Stop ring/whisper tones, play decline tone to caller
-    stopTone([callerInfo.userName, calleeInfo.userName]);
+    // Stop looped ring/whisper tones immediately, then play decline tone
+    stopLoopedTone([callerInfo.userName, calleeInfo.userName]);
     playTone([callerInfo.userName], DECLINE_TONE);
     showMessage([callerInfo.userName], `${calleeInfo.displayName}\nDeclined`, 3);
     showMessage([calleeInfo.userName], `Private call\nDeclined`, 2);
@@ -614,8 +737,8 @@ function _timeoutCall(calleeUserName, callId, callerInfo, calleeInfo) {
     const now = Math.floor(Date.now() / 1000);
     global.db.updateDirectCall(callId, { status: 'no_answer', ended_at: now, end_reason: 'timeout' });
 
-    // Stop ring/whisper tones, play decline tone to caller
-    stopTone([callerInfo.userName, calleeInfo.userName]);
+    // Stop looped ring/whisper tones immediately, then play decline tone
+    stopLoopedTone([callerInfo.userName, calleeInfo.userName]);
     playTone([callerInfo.userName], DECLINE_TONE);
     showMessage([callerInfo.userName], `${calleeInfo.displayName}\nNo answer`, 3);
     showMessage([calleeInfo.userName], `Private call\nMissed`, 2);
@@ -645,7 +768,7 @@ export function handleHangup(uuid) {
             pendingAccepts.delete(calleeUserName);
             const now = Math.floor(Date.now() / 1000);
             global.db.updateDirectCall(pending.callId, { status: 'cancelled', ended_at: now, end_reason: 'caller_hangup' });
-            stopTone([pending.callerInfo.userName, pending.calleeInfo.userName]);
+            stopLoopedTone([pending.callerInfo.userName, pending.calleeInfo.userName]);
             showMessage([pending.calleeInfo.userName], `${pending.callerInfo.displayName}\nCancelled private call`, 3);
             _recoverConferenceUser(pending.calleeInfo.userName, 'caller_cancelled_pending_call');
             _clientEvent(pending.callerInfo.userName, _directCallPayload('direct_call_cancelled', pending.callId, 'caller', pending.calleeInfo));
@@ -662,7 +785,7 @@ export function handleHangup(uuid) {
         pendingAccepts.delete(userName);
         const now = Math.floor(Date.now() / 1000);
         global.db.updateDirectCall(pending.callId, { status: 'cancelled', ended_at: now, end_reason: 'callee_hangup' });
-        stopTone([pending.callerInfo.userName, pending.calleeInfo.userName]);
+        stopLoopedTone([pending.callerInfo.userName, pending.calleeInfo.userName]);
         showMessage([pending.callerInfo.userName], `${pending.calleeInfo.displayName}\nCancelled private call`, 3);
         _recoverConferenceUser(pending.calleeInfo.userName, 'callee_cancelled_pending_call');
         _clientEvent(pending.callerInfo.userName, _directCallPayload('direct_call_cancelled', pending.callId, 'caller', pending.calleeInfo));

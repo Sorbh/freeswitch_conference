@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 export default function ConferencePage() {
   const { account, token } = useAuth();
-  const [connected, setConnected] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute } = useOutletContext() || {};
   const [callerIds, setCallerIds] = useState([]);
   const [userCount, setUserCount] = useState(0);
   const [unmutedCount, setUnmutedCount] = useState(0);
   const [onlineCounts, setOnlineCounts] = useState({});
   const [rooms, setRooms] = useState([]);
-  const sipInitRef = useRef(false);
   const sseRef = useRef(null);
 
   const totalOnline = Object.values(onlineCounts).reduce((sum, n) => sum + n, 0);
@@ -26,20 +25,7 @@ export default function ConferencePage() {
   }, [token]);
 
   useEffect(() => {
-    if (!account || !token || sipInitRef.current) return;
-    sipInitRef.current = true;
-
-    window.onHotlineReady = function (acct) {
-      console.log('[CLIENT] SIP client ready', acct?.display_name);
-      setConnected(window.hotlineClient?.isConnected() || false);
-    };
-
-    function onCallState(state) {
-      setConnected(state === 'connected');
-      if (state === 'connected') setMuted(true);
-    }
-    window._hotlineCallStateListeners = window._hotlineCallStateListeners || [];
-    window._hotlineCallStateListeners.push(onCallState);
+    if (!account || !token) return;
 
     window._onCallerIdData = function (data) {
       if (data.callerIds) setCallerIds(data.callerIds);
@@ -52,26 +38,13 @@ export default function ConferencePage() {
       setOnlineCounts(online || {});
     };
 
-    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, email: account.email };
-
-    if (!document.getElementById('sip-client-script')) {
-      const script = document.createElement('script');
-      script.id = 'sip-client-script';
-      script.type = 'module';
-      script.src = '/redline_sip_client.js';
-      document.body.appendChild(script);
-    } else if (window.hotlineClient) {
-      if (window.hotlineClient.isConnected()) {
-        setConnected(true);
-        setMuted(window.hotlineClient.isMuted());
-      } else {
-        window.hotlineClient.login(account.email);
-      }
-    }
-
     // Own SSE connection for callerID data (works even if SIP client login fails)
     const activeRoom = account.current_room || account.room;
     if (activeRoom && token) {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
       const sse = new EventSource(`/api/v1/client/events/room/${activeRoom}?token=${token}`);
       sse.onmessage = function (event) {
         try {
@@ -93,17 +66,24 @@ export default function ConferencePage() {
       sseRef.current = sse;
     }
 
+    return () => {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+    };
+
   }, [account, token]);
 
   useEffect(() => {
-    return () => { if (sseRef.current) sseRef.current.close(); };
+    return () => {
+      if (sseRef.current) sseRef.current.close();
+    };
   }, []);
 
   function handleToggleMute() {
-    if (window.hotlineClient) {
-      window.hotlineClient.toggleMute();
-      setMuted(!muted);
-    }
+    if (toggleMute) toggleMute();
+    else if (window.hotlineClient) window.hotlineClient.toggleMute();
   }
 
   const room = account?.current_room || account?.room;

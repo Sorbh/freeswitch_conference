@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const BOTTOM_NAV_ITEMS = [
@@ -20,17 +20,23 @@ const CONN_COLORS = {
   error:      { shadow: '0 4px 20px rgba(239,68,68,0.35)', bar: '#ef4444' },
 };
 
+const HOTLINE_SIP_CLIENT_URL = 'https://hotline.redlineusedautoparts.com/redline_sip_client.js';
+
 export default function DashboardLayout() {
   const { account, token, logout, apiFetch, refreshAccount } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [connState, setConnState] = useState('idle');
   const [connError, setConnError] = useState('');
+  const [muted, setMuted] = useState(true);
   const [rooms, setRooms] = useState([]);
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
   const [changingRoom, setChangingRoom] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenMessage, setFullscreenMessage] = useState('');
   const dropdownRef = useRef(null);
   const wakeLockRef = useRef(null);
+  const sipInitRef = useRef(false);
+  const dashboardRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +92,29 @@ export default function DashboardLayout() {
     refreshAccount();
   }, [token, apiFetch, refreshAccount]);
 
+  useEffect(() => {
+    if (!account || !token || sipInitRef.current) return;
+    sipInitRef.current = true;
+
+    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, email: account.email };
+
+    if (!document.getElementById('sip-client-script')) {
+      const script = document.createElement('script');
+      script.id = 'sip-client-script';
+      script.type = 'module';
+      script.src = `${HOTLINE_SIP_CLIENT_URL}?v=${Date.now()}`;
+      document.body.appendChild(script);
+    } else if (window.hotlineClient) {
+      if (window.hotlineClient.isConnected()) {
+        setConnState('connected');
+        setConnError('');
+      } else {
+        setConnState('connecting');
+        window.hotlineClient.login(account.email);
+      }
+    }
+  }, [account, token]);
+
   // Register room change callback — called by redline_sip_client.js / redline_callerid.js
   useEffect(() => {
     window.onHotlineRoomChange = async (data) => {
@@ -108,24 +137,97 @@ export default function DashboardLayout() {
   }, [roomDropdownOpen]);
 
   useEffect(() => {
-    window._hotlineCallStateListeners = window._hotlineCallStateListeners || [];
-    window.onHotlineCallState = function (state) {
-      if (state === 'connected') { setConnState('connected'); setConnError(''); }
-      else { setConnState(prev => prev === 'connected' ? 'idle' : prev); }
-      (window._hotlineCallStateListeners || []).forEach(fn => fn(state));
-    };
-    window.onHotlineLoginFailed = function (msg) {
+    function handleCallState(state) {
+      if (state === 'connected') {
+        setConnState('connected');
+        setConnError('');
+        if (window.hotlineClient) setMuted(window.hotlineClient.isMuted());
+      } else {
+        setConnState(prev => prev === 'connected' ? 'idle' : prev);
+        setMuted(true);
+      }
+    }
+    function handleMuteState(nextMuted) {
+      setMuted(!!nextMuted);
+    }
+    function handleLoginFailed(msg) {
       setConnState('error');
       setConnError(msg || 'Login failed');
+    }
+    window.onHotlineReady = function () {
+      if (window.hotlineClient?.isConnected()) {
+        setConnState('connected');
+        setMuted(window.hotlineClient.isMuted());
+      }
     };
+    window.onHotlineCallState = handleCallState;
+    window.onHotlineMuteState = handleMuteState;
+    window.onHotlineLoginFailed = handleLoginFailed;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
-        if (window.hotlineClient.isConnected()) setConnState('connected');
-        else if (connState === 'idle' && document.getElementById('sip-client-script')) setConnState('connecting');
+        if (window.hotlineClient.isConnected()) {
+          setConnState('connected');
+          setMuted(window.hotlineClient.isMuted());
+        }
+        else if (document.getElementById('sip-client-script')) {
+          setConnState(prev => prev === 'idle' ? 'connecting' : prev);
+        }
       }
     }, 2000);
-    return () => clearInterval(checkInterval);
-  }, [connState]);
+    return () => {
+      clearInterval(checkInterval);
+      delete window.onHotlineReady;
+      if (window.onHotlineCallState === handleCallState) delete window.onHotlineCallState;
+      if (window.onHotlineMuteState === handleMuteState) delete window.onHotlineMuteState;
+      if (window.onHotlineLoginFailed === handleLoginFailed) delete window.onHotlineLoginFailed;
+    };
+  }, []);
+
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    handleFullscreenChange();
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  function toggleMute() {
+    if (window.hotlineClient) window.hotlineClient.toggleMute();
+  }
+
+  function showFullscreenMessage(message) {
+    setFullscreenMessage(message);
+    window.clearTimeout(window.__hotlineFullscreenMessageTimer);
+    window.__hotlineFullscreenMessageTimer = window.setTimeout(() => setFullscreenMessage(''), 3500);
+  }
+
+  async function toggleFullscreen() {
+    try {
+      const activeElement = document.fullscreenElement || document.webkitFullscreenElement;
+      if (activeElement) {
+        const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exitFullscreen) await exitFullscreen.call(document);
+        return;
+      }
+
+      const target = dashboardRef.current || document.documentElement;
+      const requestFullscreen = target.requestFullscreen || target.webkitRequestFullscreen;
+      if (!requestFullscreen) {
+        showFullscreenMessage('Fullscreen is not supported in this browser. Use Add to Home Screen for the best mobile view.');
+        return;
+      }
+      await requestFullscreen.call(target);
+    } catch (err) {
+      showFullscreenMessage(err?.message || 'Fullscreen request failed. Tap the button again.');
+    }
+  }
 
   function handleLogout() {
     logout();
@@ -152,12 +254,11 @@ export default function DashboardLayout() {
   const currentRoomId = account?.current_room || account?.room;
   const currentRoom = rooms.find(r => r.id === currentRoomId);
   const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? `Room ${currentRoomId}` : '');
-  const isConferencePage = location.pathname === '/client/dashboard' || location.pathname === '/client/dashboard/';
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
 
   return (
-    <div className="flex h-screen" style={{ background: 'var(--bg)' }}>
+    <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
       {/* ── Desktop sidebar (hidden on mobile) ── */}
       <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0" style={{ background: 'var(--ink)', color: '#fff' }}>
         <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
@@ -265,14 +366,24 @@ export default function DashboardLayout() {
               </div>
             </div>
 
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-red-50"
-              style={{ color: 'var(--muted)' }}
-            >
-              <LogoutIcon />
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={toggleFullscreen}
+                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                style={{ color: isFullscreen ? 'var(--red)' : 'var(--muted)' }}
+              >
+                {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+              </button>
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                style={{ color: 'var(--muted)' }}
+              >
+                <LogoutIcon />
+              </button>
+            </div>
           </div>
 
           {/* Error banner */}
@@ -281,16 +392,21 @@ export default function DashboardLayout() {
               {connError}
             </div>
           )}
+          {fullscreenMessage && (
+            <div className="px-4 md:px-6 py-2 text-xs font-medium" style={{ background: 'rgba(245,158,11,0.08)', color: '#b45309', borderTop: '1px solid rgba(245,158,11,0.2)' }}>
+              {fullscreenMessage}
+            </div>
+          )}
         </header>
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6">
-          <Outlet />
+          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute }} />
         </main>
       </div>
 
-      {/* ── Mobile mute FAB (only during active call) ── */}
-      {isConferencePage && isConnected && <MuteFAB />}
+      {/* ── Mute FAB (visible on every dashboard tab during active call) ── */}
+      {isConnected && <MuteFAB muted={muted} onToggle={toggleMute} />}
 
       {/* ── Mobile bottom navigation (hidden on desktop) ── */}
       <nav
@@ -319,28 +435,12 @@ export default function DashboardLayout() {
   );
 }
 
-function MuteFAB() {
-  const [muted, setMuted] = useState(true);
-
-  useEffect(() => {
-    if (window.hotlineClient) setMuted(window.hotlineClient.isMuted());
-  }, []);
-
-  function toggle() {
-    if (window.hotlineClient) {
-      window.hotlineClient.toggleMute();
-      setMuted(m => !m);
-    }
-  }
-
+function MuteFAB({ muted, onToggle }) {
   return (
     <button
-      onClick={toggle}
-      className="md:hidden fixed z-50 w-14 h-14 rounded-full flex items-center justify-center"
+      onClick={onToggle}
+      className="fixed z-50 w-14 h-14 rounded-full flex items-center justify-center left-1/2 -translate-x-1/2 bottom-[calc(60px+env(safe-area-inset-bottom)+12px)] md:left-auto md:right-6 md:bottom-6 md:translate-x-0"
       style={{
-        bottom: 'calc(60px + env(safe-area-inset-bottom) + 12px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
         background: muted ? 'var(--red)' : 'var(--green)',
         color: '#fff',
         boxShadow: muted
@@ -417,6 +517,28 @@ function MicOffIcon({ size = 16 }) {
       <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
       <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.48-.35 2.15" />
       <line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  );
+}
+
+function FullscreenIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+      <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+      <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
+function ExitFullscreenIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+      <path d="M16 3v3a2 2 0 0 0 2 2h3" />
+      <path d="M8 21v-3a2 2 0 0 0-2-2H3" />
+      <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
     </svg>
   );
 }
