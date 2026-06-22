@@ -56,11 +56,14 @@
 //   POST /api/v1/client/direct-call/start — start direct call by extension
 //   POST /api/v1/client/mute           — mute in conference (Bearer token)
 //   POST /api/v1/client/unmute         — unmute in conference (Bearer token)
+//   GET  /api/v1/client/rooms/details   — all rooms with online counts
+//   PUT  /api/v1/client/room/change    — change user's current room
 //   GET  /api/v1/client/events/room/:room?token=<jwt>  — CallerID SSE
 //
 // OPTIONAL CALLBACKS (set before or after loading):
 //   window.onHotlineReady = function(accountData) { ... }     // fired when registered + account loaded
 //   window.onHotlineCallState = function(state) { ... }       // 'connected' or 'disconnected'
+//   window.onHotlineRoomChange = function(data) { ... }       // { source, room, roomName } — called on room change (API or SSE)
 //   window.updateOnlineCounts = function(onlineMap) { ... }   // { roomId: count, ... }
 //
 // MANUAL CONTROL (if needed):
@@ -69,10 +72,18 @@
 //   window.hotlineClient.joinConference()            // request server to call this user
 //   window.hotlineClient.hangup()                    // end current call
 //   window.hotlineClient.logout()                    // disconnect everything
+//   window.hotlineClient.getRoomDetails()             // get all rooms with online counts
+//   window.hotlineClient.changeRoom(roomId)          // switch to a different room (reloads page)
 //   window.hotlineClient.getAccount()                // get loaded account data
 //   window.hotlineClient.isConnected()               // true if in active call
 //   window.hotlineClient.isMuted()                   // true if muted
 //   window.RedlineExtensionDirectory.open()          // open extension search
+//
+// SSE EVENTS HANDLED:
+//   callerid      — caller ID HTML + online counts
+//   online_update — online/offline count changes
+//   room_change   — user changed room (auto-reloads if current user)
+//   direct_call_* — incoming/outgoing direct call notifications
 //
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -426,10 +437,10 @@ import "./jssip.bundle.js";
                 var requestOverlayHtml = requestSubmitted
                     ? '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.58);backdrop-filter:blur(.8px);"><div style="text-align:center;padding:0 26px;"><div style="font-size:22px;font-weight:850;color:#b91c1c;">Request received</div><div style="margin-top:8px;color:#475569;font-size:14px;font-weight:650;line-height:1.35;">We will review your preferred extension and update your account shortly.</div></div></div>'
                     : '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.44);backdrop-filter:blur(.6px);"><div style="text-align:center;padding:0 24px;"><button id="redline_ext_request_overlay" style="border:0;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;border-radius:999px;padding:15px 26px;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 18px 36px rgba(225,29,46,.34);">Request Extension</button><div class="redline-ext-hook-text">Limited Extension Slot left, Hurry up to book your slot.</div></div></div>';
-                return '<div style="position:relative;min-height:230px;">' +
-                    '<div style="' + (hasExtension ? '' : 'filter:blur(.6px);opacity:.34;pointer-events:none;') + '">' +
-                    '<div style="padding:13px 16px 0;"><input id="redline_ext_search" value="' + escapeHtml(state.query) + '" placeholder="Search company, name, ext..." style="width:100%;box-sizing:border-box;border:1px solid #fecaca;border-radius:14px;padding:12px 13px;font-size:13px;outline:none;background:#fff;color:#111827;box-shadow:0 5px 18px rgba(225,29,46,.08);"></div>' +
-                    '<div id="redline_extension_list" style="padding:4px 16px 14px;overflow:auto;"></div>' +
+                return '<div style="position:relative;min-height:0;flex:1;display:flex;flex-direction:column;">' +
+                    '<div style="min-height:0;flex:1;display:flex;flex-direction:column;' + (hasExtension ? '' : 'filter:blur(.6px);opacity:.34;pointer-events:none;') + '">' +
+                    '<div style="padding:13px 16px 0;flex:0 0 auto;"><input id="redline_ext_search" value="' + escapeHtml(state.query) + '" placeholder="Search company, name, ext..." style="width:100%;box-sizing:border-box;border:1px solid #fecaca;border-radius:14px;padding:12px 13px;font-size:13px;outline:none;background:#fff;color:#111827;box-shadow:0 5px 18px rgba(225,29,46,.08);"></div>' +
+                    '<div id="redline_extension_list" style="min-height:0;flex:1;padding:4px 16px 14px;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>' +
                     '</div>' +
                     (hasExtension ? '' : requestOverlayHtml) +
                     '</div>';
@@ -480,8 +491,8 @@ import "./jssip.bundle.js";
                     return;
                 }
                 clearExtensionRequestIfAssigned();
-                var sipIcon = '<img src="' + publicAsset('/favicon.svg') + '" alt="Extension Directory" style="display:block;width:36px;height:36px;object-fit:contain;">';
-                var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:' + getFabBottom() + 'px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center;touch-action:none}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(217,45,32,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}.redline-ext-hook-text{display:inline-block;margin-top:14px;color:#991b1b;font-size:14px;font-weight:800;line-height:1.25;letter-spacing:-.01em}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#d92d20,#b42318);color:#fff;box-shadow:0 18px 38px rgba(217,45,32,.42);display:flex;align-items:center;justify-content:center;cursor:grab;padding:0;transition:transform .16s ease,box-shadow .16s ease}#redline_ext_fab:active{cursor:grabbing}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(217,45,32,.5)}</style>';
+                var sipIcon = '<img src="' + publicAsset('/favicon.svg') + '" alt="Extension Directory" draggable="false" style="display:block;width:36px;height:36px;object-fit:contain;pointer-events:none;-webkit-user-drag:none;user-select:none;">';
+                var rippleCss = '<style id="redline_ext_ripple_css">@keyframes redlineExtRipple{0%{transform:scale(.72);opacity:.42}70%{opacity:.12}100%{transform:scale(1.9);opacity:0}}#redline_ext_fab_wrap{position:fixed;right:20px;bottom:' + getFabBottom() + 'px;z-index:2147483646;width:74px;height:74px;display:flex;align-items:center;justify-content:center;touch-action:none;-webkit-user-select:none;user-select:none}#redline_ext_fab_wrap:before,#redline_ext_fab_wrap:after{content:"";position:absolute;inset:5px;border:2px solid rgba(217,45,32,.38);border-radius:999px;animation:redlineExtRipple 2.2s ease-out infinite}#redline_ext_fab_wrap:after{animation-delay:1.1s}.redline-ext-hook-text{display:inline-block;margin-top:14px;color:#991b1b;font-size:14px;font-weight:800;line-height:1.25;letter-spacing:-.01em}#redline_ext_fab{position:relative;z-index:1;width:62px;height:62px;border-radius:999px;border:4px solid #fff;background:linear-gradient(135deg,#d92d20,#b42318);color:#fff;box-shadow:0 18px 38px rgba(217,45,32,.42);display:flex;align-items:center;justify-content:center;cursor:grab;padding:0;transition:transform .16s ease,box-shadow .16s ease;-webkit-user-select:none;user-select:none}#redline_ext_fab:active{cursor:grabbing}#redline_ext_fab:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 22px 46px rgba(217,45,32,.5)}</style>';
                 el.innerHTML =
                     rippleCss +
                     '<div id="redline_ext_fab_wrap"><button id="redline_ext_fab" title="Search SIP extensions">' + sipIcon + '</button></div>' +
@@ -497,22 +508,31 @@ import "./jssip.bundle.js";
 
                 var fabWrap = document.getElementById('redline_ext_fab_wrap');
                 var fabButton = document.getElementById('redline_ext_fab');
-                var drag = { active: false, moved: false, startY: 0, startBottom: 0 };
+                var drag = { active: false, moved: false, suppressClick: false, startX: 0, startY: 0, startBottom: 0 };
                 if (fabWrap) {
                     fabWrap.onpointerdown = function (event) {
+                        if (event.button !== undefined && event.button !== 0) return;
                         drag.active = true;
                         drag.moved = false;
+                        drag.suppressClick = false;
+                        drag.startX = event.clientX;
                         drag.startY = event.clientY;
                         drag.startBottom = getFabBottom();
                         try { fabWrap.setPointerCapture(event.pointerId); } catch (e) { }
                     };
                     fabWrap.onpointermove = function (event) {
                         if (!drag.active) return;
-                        var delta = drag.startY - event.clientY;
-                        if (Math.abs(delta) > 4) drag.moved = true;
+                        var deltaX = event.clientX - drag.startX;
+                        var deltaY = drag.startY - event.clientY;
+                        if (Math.sqrt((deltaX * deltaX) + (deltaY * deltaY)) > 10) drag.moved = true;
                         if (!drag.moved) return;
-                        state.bottom = clampBottom(drag.startBottom + delta);
+                        drag.suppressClick = true;
+                        state.bottom = clampBottom(drag.startBottom + deltaY);
                         fabWrap.style.bottom = state.bottom + 'px';
+                    };
+                    fabWrap.onpointercancel = function (event) {
+                        drag.active = false;
+                        try { fabWrap.releasePointerCapture(event.pointerId); } catch (e) { }
                     };
                     fabWrap.onpointerup = function (event) {
                         if (!drag.active) return;
@@ -520,7 +540,6 @@ import "./jssip.bundle.js";
                         try { fabWrap.releasePointerCapture(event.pointerId); } catch (e) { }
                         if (drag.moved) {
                             try { localStorage.setItem('redline_extension_widget_bottom', String(state.bottom)); } catch (e) { }
-                            render();
                             return;
                         }
                         state.open = !state.open;
@@ -528,7 +547,12 @@ import "./jssip.bundle.js";
                         if (state.open) load(true);
                     };
                 }
-                if (fabButton) fabButton.onclick = function () {
+                if (fabButton) fabButton.onclick = function (event) {
+                    if (drag.suppressClick) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        drag.suppressClick = false;
+                    }
                     return false;
                 };
                 var close = document.getElementById('redline_ext_close');
@@ -724,6 +748,14 @@ import "./jssip.bundle.js";
                     try {
                         var data = JSON.parse(event.data);
                         if (handleDirectCallEvent(data)) return;
+                        if (data.type === 'room_change') {
+                            var myEmail = accountData && accountData.email;
+                            if (myEmail && data.email === myEmail) {
+                                console.log("[SIP] Own room changed to", data.toRoom);
+                                _notifyRoomChange({ source: 'sse', room: data.toRoom, roomName: data.toRoomName, direction: data.direction });
+                                return;
+                            }
+                        }
                         if (data.ts && window._muteToggleAt) {
                             console.log('[TIMING] Ctrl+L -> callerID rendered: +' + (Date.now() - window._muteToggleAt) + 'ms (server emit -> browser: +' + (Date.now() - data.ts) + 'ms)');
                             window._muteToggleAt = null;
@@ -989,6 +1021,38 @@ import "./jssip.bundle.js";
             }
         }
 
+        // ── Room API ──
+        function getRoomDetails() {
+            if (!clientToken) { console.error('[SIP] getRoomDetails: not logged in'); return Promise.reject(new Error('Not logged in')); }
+            return fetch(apiBase + '/api/v1/client/rooms/details', {
+                headers: { 'Authorization': 'Bearer ' + clientToken },
+            })
+            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json.data; }); });
+        }
+
+        function _notifyRoomChange(data) {
+            if (typeof window.onHotlineRoomChange === 'function') {
+                window.onHotlineRoomChange(data);
+            } else {
+                window.location.reload();
+            }
+        }
+
+        function changeRoom(newRoomId) {
+            if (!clientToken) { console.error('[SIP] changeRoom: not logged in'); return Promise.reject(new Error('Not logged in')); }
+            return fetch(apiBase + '/api/v1/client/room/change', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+                body: JSON.stringify({ room: newRoomId }),
+            })
+            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
+            .then(function (json) {
+                console.log('[SIP] Room changed to', json.room, json.roomName);
+                _notifyRoomChange({ source: 'api', room: json.room, roomName: json.roomName });
+                return json;
+            });
+        }
+
         // ── Actions ──
         function toggleMute() {
             try {
@@ -1058,6 +1122,8 @@ import "./jssip.bundle.js";
             toggleMute: toggleMute,
             joinConference: joinConference,
             hangup: hangup,
+            getRoomDetails: getRoomDetails,
+            changeRoom: changeRoom,
             getAccount: function () { return accountData; },
             getLocalData: getLocalStorageUserData,
             isConnected: function () { return !!currentSession; },

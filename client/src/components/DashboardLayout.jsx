@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -21,11 +21,45 @@ const CONN_COLORS = {
 };
 
 export default function DashboardLayout() {
-  const { account, logout } = useAuth();
+  const { account, token, logout, apiFetch, refreshAccount } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [connState, setConnState] = useState('idle');
   const [connError, setConnError] = useState('');
+  const [rooms, setRooms] = useState([]);
+  const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
+  const [changingRoom, setChangingRoom] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Fetch room details + refresh account on mount
+  useEffect(() => {
+    if (!token) return;
+    apiFetch('/rooms/details')
+      .then(json => setRooms(json.data || []))
+      .catch(() => {});
+    refreshAccount();
+  }, [token, apiFetch, refreshAccount]);
+
+  // Register room change callback — called by redline_sip_client.js / redline_callerid.js
+  useEffect(() => {
+    window.onHotlineRoomChange = async (data) => {
+      console.log('[DASHBOARD] Room changed:', data);
+      await refreshAccount();
+      window.location.reload();
+    };
+    return () => { delete window.onHotlineRoomChange; };
+  }, [refreshAccount]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setRoomDropdownOpen(false);
+      }
+    }
+    if (roomDropdownOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [roomDropdownOpen]);
 
   useEffect(() => {
     window._hotlineCallStateListeners = window._hotlineCallStateListeners || [];
@@ -52,7 +86,26 @@ export default function DashboardLayout() {
     navigate('/client/login');
   }
 
-  const roomName = account?.room ? `Room ${account.room}` : '';
+  async function handleRoomChange(newRoomId) {
+    if (changingRoom) return;
+    setRoomDropdownOpen(false);
+    setChangingRoom(true);
+    try {
+      await apiFetch('/room/change', {
+        method: 'PUT',
+        body: JSON.stringify({ room: newRoomId }),
+      });
+      await refreshAccount();
+      window.location.reload();
+    } catch (err) {
+      console.error('[ROOM] Change failed:', err.message);
+      setChangingRoom(false);
+    }
+  }
+
+  const currentRoomId = account?.current_room || account?.room;
+  const currentRoom = rooms.find(r => r.id === currentRoomId);
+  const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? `Room ${currentRoomId}` : '');
   const isConferencePage = location.pathname === '/client/dashboard' || location.pathname === '/client/dashboard/';
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
@@ -116,9 +169,51 @@ export default function DashboardLayout() {
                 <div className="text-sm font-bold truncate" style={{ fontFamily: 'var(--display)', color: 'var(--ink)' }}>
                   {account?.company_name || 'Hotline HQ'}{account?.display_name ? ' / ' + account.display_name : ''}
                 </div>
-                {roomName && (
-                  <div className="text-[10px] font-semibold tracking-widest uppercase mt-0.5" style={{ fontFamily: 'var(--mono)', color: 'var(--red)' }}>
-                    {roomName}
+                {roomLabel && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setRoomDropdownOpen(o => !o)}
+                      disabled={changingRoom}
+                      className="flex items-center gap-1 text-[10px] font-semibold tracking-widest uppercase mt-0.5 hover:opacity-80 transition-opacity"
+                      style={{ fontFamily: 'var(--mono)', color: 'var(--red)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    >
+                      {changingRoom ? 'Switching...' : roomLabel}
+                      <ChevronDownIcon />
+                    </button>
+                    {roomDropdownOpen && rooms.length > 0 && (
+                      <div
+                        className="absolute left-0 top-full mt-1 z-50 rounded-xl shadow-xl overflow-hidden"
+                        style={{ background: 'var(--surface)', border: '1px solid var(--line)', minWidth: '200px', maxHeight: '300px', overflowY: 'auto' }}
+                      >
+                        {rooms.map(r => (
+                          <button
+                            key={r.id}
+                            onClick={() => r.id !== currentRoomId && handleRoomChange(r.id)}
+                            className="w-full text-left px-4 py-2.5 flex items-center justify-between gap-3 transition-colors"
+                            style={{
+                              background: r.id === currentRoomId ? 'var(--red-soft)' : 'transparent',
+                              color: 'var(--ink)',
+                              borderBottom: '1px solid var(--line)',
+                              cursor: r.id === currentRoomId ? 'default' : 'pointer',
+                            }}
+                            onMouseEnter={e => { if (r.id !== currentRoomId) e.currentTarget.style.background = 'var(--band)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = r.id === currentRoomId ? 'var(--red-soft)' : 'transparent'; }}
+                          >
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold truncate">{r.name}</div>
+                              {r.short_code && <div className="text-[10px]" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{r.short_code}</div>}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {r.id === currentRoomId && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--red)' }}>Current</span>
+                              )}
+                              <span className="w-2 h-2 rounded-full" style={{ background: r.online > 0 ? 'var(--green)' : 'var(--line)' }} />
+                              <span className="text-[10px] font-mono font-semibold" style={{ color: 'var(--muted)' }}>{r.online}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -248,6 +343,14 @@ function PlusIcon({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }

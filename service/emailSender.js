@@ -253,3 +253,34 @@ export async function sendExtensionRequestEmail(payload) {
         text: lines.join('\n'),
     });
 }
+
+export async function sendRoomRequestEmail(payload) {
+    const config = global.config || {};
+    const to = config.ROOM_REQUEST_TO_EMAIL || config.EXTENSION_REQUEST_TO_EMAIL;
+    if (!to) throw new Error('Room request recipient email is not configured');
+
+    const requestedLocation = [
+        payload.requestedRoom,
+        payload.requestedState,
+    ].filter(Boolean).join(', ');
+
+    const lines = [
+        'New room request',
+        '',
+        `Requested room: ${requestedLocation || '-'}`,
+        `Message: ${payload.message || '-'}`,
+        '',
+        `Requester email: ${payload.email}`,
+        `Company: ${payload.companyName || '-'}`,
+        `Name: ${payload.displayName || '-'}`,
+        `Current room: ${payload.currentRoomName || payload.currentRoom || '-'}`,
+        `IP: ${payload.ip || '-'}`,
+        `Time: ${new Date().toISOString()}`,
+    ];
+
+    await sendMail({
+        to,
+        subject: `Room request: ${payload.email} wants ${requestedLocation || 'a new room'}`,
+        text: lines.join('\n'),
+    });
+}

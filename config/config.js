@@ -17,6 +17,7 @@ config.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 config.TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 config.EXTENSION_REQUEST_TO_EMAIL = process.env.EXTENSION_REQUEST_TO_EMAIL || 'er.sorbh@gmail.com';
+config.ROOM_REQUEST_TO_EMAIL = process.env.ROOM_REQUEST_TO_EMAIL || config.EXTENSION_REQUEST_TO_EMAIL;
 config.SMTP_HOST = process.env.SMTP_HOST;
 config.SMTP_PORT = process.env.SMTP_PORT;
 config.SMTP_SECURE = process.env.SMTP_SECURE;

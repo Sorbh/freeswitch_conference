@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Your Parts Counter Is Losing Sales Right Now</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f4f2ee;
+      color: #16181d;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .email-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+    }
+
+    /* ---- Hero Section ---- */
+    .hero {
+      background: linear-gradient(135deg, #16181d 0%, #1e2028 50%, #2a1215 100%);
+      padding: 52px 40px 56px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60%;
+      right: -20%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(217,45,32,0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -40%;
+      left: -10%;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(217,45,32,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 36px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: #d92d20;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-text span {
+      color: #d92d20;
+    }
+
+    .hero h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.15;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: #f04438;
+      display: block;
+      font-size: 36px;
+      margin-top: 4px;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.65;
+      max-width: 480px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ---- Live Stats Bar ---- */
+    .stats-bar {
+      display: flex;
+      background: #fef3f2;
+      border-bottom: 2px solid #fde8e4;
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 22px 12px;
+      border-right: 1px solid #fde8e4;
+    }
+
+    .stat-item:last-child {
+      border-right: none;
+    }
+
+    .stat-number {
+      font-size: 30px;
+      font-weight: 800;
+      color: #d92d20;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #93370d;
+      margin-top: 6px;
+    }
+
+    /* ---- Problem Section ---- */
+    .problem-section {
+      padding: 48px 40px 44px;
+      border-bottom: 1px solid #e7e4dd;
+    }
+
+    .section-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #d92d20;
+      margin-bottom: 12px;
+    }
+
+    .problem-section h2 {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.015em;
+      margin-bottom: 20px;
+    }
+
+    .problem-section p {
+      font-size: 15px;
+      color: #5d6370;
+      line-height: 1.7;
+    }
+
+    .problem-section p strong {
+      color: #16181d;
+    }
+
+    /* ---- Compare Cards ---- */
+    .compare-grid {
+      padding: 0 40px 44px;
+    }
+
+    .compare-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border: 1px solid #e7e4dd;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: #fbfaf8;
+    }
+
+    .compare-row.hot {
+      border-color: #d92d20;
+      background: linear-gradient(135deg, #fef3f2, #fff 60%);
+      box-shadow: 0 4px 16px -4px rgba(217,45,32,0.15);
+    }
+
+    .compare-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-right: 16px;
+      flex-shrink: 0;
+      background: #f4f2ee;
+    }
+
+    .compare-row.hot .compare-icon {
+      background: #d92d20;
+    }
+
+    .compare-method {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: #5d6370;
+    }
+
+    .compare-row.hot .compare-method {
+      color: #16181d;
+      font-weight: 700;
+    }
+
+    .compare-time {
+      font-size: 14px;
+      font-weight: 800;
+      color: #a3a094;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .compare-row.hot .compare-time {
+      color: #d92d20;
+      font-size: 16px;
+    }
+
+    /* ---- How It Works ---- */
+    .how-section {
+      padding: 48px 40px;
+      background: #fbfaf8;
+      border-top: 1px solid #e7e4dd;
+      border-bottom: 1px solid #e7e4dd;
+    }
+
+    .how-section h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      margin-bottom: 32px;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 26px;
+    }
+
+    .step:last-child {
+      margin-bottom: 0;
+    }
+
+    .step-num {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      background: #fef3f2;
+      border: 2px solid #fde8e4;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: #d92d20;
+    }
+
+    .step-content h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: -0.01em;
+    }
+
+    .step-content p {
+      font-size: 14px;
+      color: #5d6370;
+      line-height: 1.6;
+    }
+
+    /* ---- What You Get ---- */
+    .features-section {
+      padding: 48px 40px;
+      border-bottom: 1px solid #e7e4dd;
+    }
+
+    .features-section h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      margin-bottom: 28px;
+    }
+
+    .feature-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px dashed #e7e4dd;
+    }
+
+    .feature-row:last-child {
+      border-bottom: none;
+    }
+
+    .check-circle {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 50%;
+      background: #ecfdf3;
+      border: 1.5px solid #abefc6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: #12b76a;
+      font-weight: 700;
+    }
+
+    .feature-text {
+      font-size: 14.5px;
+      color: #16181d;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    /* ---- CTA Section ---- */
+    .cta-section {
+      background: linear-gradient(135deg, #d92d20 0%, #b42318 100%);
+      padding: 52px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 60%);
+      border-radius: 50%;
+    }
+
+    .cta-section h2 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.15;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .cta-section p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.82);
+      line-height: 1.6;
+      margin-bottom: 32px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      background: #ffffff;
+      color: #d92d20;
+      font-size: 17px;
+      font-weight: 800;
+      padding: 18px 44px;
+      border-radius: 12px;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      box-shadow: 0 8px 24px -6px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
+      transition: transform 0.2s;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .cta-fine {
+      margin-top: 18px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.55);
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-contact {
+      margin-top: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-contact a {
+      display: inline-block;
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 24px;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      border-radius: 999px;
+      margin: 0 6px 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .cta-contact a:hover {
+      border-color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.08);
+    }
+
+    /* ---- Footer ---- */
+    .email-footer {
+      padding: 36px 40px;
+      text-align: center;
+      background: #16181d;
+      color: #6b6f7a;
+    }
+
+    .footer-logo {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+
+    .footer-logo span {
+      color: #d92d20;
+    }
+
+    .footer-text {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #6b6f7a;
+      margin-bottom: 4px;
+    }
+
+    .footer-link {
+      color: #ff6f61;
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .footer-unsub {
+      margin-top: 16px;
+      font-size: 11px;
+      color: #4a4e59;
+    }
+
+    .footer-unsub a {
+      color: #6b6f7a;
+      text-decoration: underline;
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 600px) {
+      .hero { padding: 40px 24px 44px; }
+      .hero h1 { font-size: 26px; }
+      .hero h1 em { font-size: 28px; }
+      .stats-bar { flex-wrap: wrap; }
+      .stat-item { flex: 50%; border-bottom: 1px solid #fde8e4; }
+      .stat-item:nth-child(3), .stat-item:nth-child(4) { border-bottom: none; }
+      .problem-section, .how-section, .features-section, .compare-grid { padding-left: 24px; padding-right: 24px; }
+      .cta-section { padding: 44px 24px; }
+      .cta-section h2 { font-size: 24px; }
+      .email-footer { padding: 28px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-wrapper">
+
+    <!-- ============ HERO ============ -->
+    <div class="hero">
+      <div class="logo-row">
+        <div class="logo-icon">
+          <!-- Phone icon -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <div class="logo-text">Hotline <span>HQ</span></div>
+      </div>
+
+      <h1>
+        How many parts did your counter lose today<br>because you didn't have them?
+        <em>We fix that.</em>
+      </h1>
+
+      <p class="hero-sub">
+        One voice broadcast. 500+ salvage yards hear it instantly.
+        The yard sitting on your part answers back in 2 seconds.
+        Your customer gets the part. You get the sale.
+      </p>
+    </div>
+
+    <!-- ============ STATS BAR ============ -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-number">500+</div>
+        <div class="stat-label">Member Yards</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">12</div>
+        <div class="stat-label">Regional Rooms</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">2s</div>
+        <div class="stat-label">Avg. Response</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">Line Monitoring</div>
+      </div>
+    </div>
+
+    <!-- ============ THE PROBLEM ============ -->
+    <div class="problem-section">
+      <div class="section-kicker">The Problem</div>
+      <h2>You know the drill. A customer needs a part you don't have.</h2>
+      <p>
+        So you start calling around. <strong>Forty minutes of hold music to check five yards.</strong>
+        Or you search a database &mdash; the part shows in stock, but when you call, it's been gone for weeks.
+        Or you post in a Facebook group and hope someone sees it before your customer walks.
+        <br><br>
+        Meanwhile, <strong>the yard 20 miles away that actually has the part doesn't even know you're looking.</strong>
+      </p>
+    </div>
+
+    <!-- ============ COMPARE ============ -->
+    <div class="compare-grid">
+      <div class="compare-row">
+        <div class="compare-icon">&#128451;</div>
+        <div class="compare-method">Inventory databases</div>
+        <div class="compare-time">30&ndash;60 min</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-icon">&#128222;</div>
+        <div class="compare-method">Calling around</div>
+        <div class="compare-time">40+ min</div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-icon">&#128172;</div>
+        <div class="compare-method">Facebook groups</div>
+        <div class="compare-time">Hours (if ever)</div>
+      </div>
+      <div class="compare-row hot">
+        <div class="compare-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <div class="compare-method">Hotline HQ</div>
+        <div class="compare-time">2 seconds</div>
+      </div>
+    </div>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <div class="how-section">
+      <div class="section-kicker">How It Works</div>
+      <h2>One broadcast. One answer. One sale saved.</h2>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Broadcast the request</h3>
+          <p>Customer asks for a part you don't have. Pick up the handset and say it once &mdash; every yard in your region hears it instantly, hands-free.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>A yard answers back</h3>
+          <p>The yard that has your part unmutes and replies. Typical answer time: about two seconds. No searching, no waiting on hold.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>Close the sale</h3>
+          <p>Talk it through live or take it private. Your customer gets the part, both yards get paid &mdash; and the call is logged and recorded.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ WHAT YOU GET ============ -->
+    <div class="features-section">
+      <div class="section-kicker">What's Included</div>
+      <h2>Everything you need. Nothing to manage.</h2>
+
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">Preconfigured desk phone shipped to your yard &mdash; plug in and you're live</div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">Always-on connection &mdash; auto-reconnects if it ever drops</div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">Hands-free listening at your counter &mdash; no apps, no logins, no screens</div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">Reach beyond your region &mdash; switch rooms right from the phone</div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">Every broadcast recorded &mdash; go back and hear exactly what was said</div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">24/7 line monitoring &mdash; we get you back on before you notice it's down</div>
+      </div>
+      <div class="feature-row">
+        <div class="check-circle">&check;</div>
+        <div class="feature-text">Flat monthly membership &mdash; no per-call charges, ever</div>
+      </div>
+    </div>
+
+    <!-- ============ CTA ============ -->
+    <div class="cta-section">
+      <h2>One saved sale pays for the whole month.</h2>
+      <p>Get on the network. We'll ship the phone, set everything up,<br>and have you live in your regional room within days.</p>
+
+      <a href="https://redlineusedautoparts.com/hotlinehq/#join" class="cta-btn">
+        Put a line in my yard &rarr;
+      </a>
+
+      <p class="cta-fine">A human calls you back. No bots, no drip emails.</p>
+
+      <div class="cta-contact">
+        <a href="https://wa.me/14246260202?text=Hi%2C%20I%27m%20interested%20in%20Hotline%20HQ%20for%20my%20yard">WhatsApp: (424) 626-0202</a>
+        <a href="sms:+18335645350?body=Hi%2C%20I%27m%20interested%20in%20Hotline%20HQ%20for%20my%20yard">Text: (833) 564-5350</a>
+        <a href="mailto:hello@hotlinehq.com">hello@hotlinehq.com</a>
+      </div>
+    </div>
+
+    <!-- ============ FOOTER ============ -->
+    <div class="email-footer">
+      <div class="footer-logo">Hotline <span>HQ</span></div>
+      <p class="footer-text">
+        The parts-locating voice network for auto recyclers.
+      </p>
+      <a href="https://redlineusedautoparts.com/hotlinehq/" class="footer-link">redlineusedautoparts.com/hotlinehq</a>
+
+      <div class="footer-unsub">
+        <p>You're receiving this because you're listed on an auto recycler directory.</p>
+        <p>Not interested? <a href="#">Unsubscribe</a></p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

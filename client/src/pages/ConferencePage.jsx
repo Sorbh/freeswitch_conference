@@ -9,11 +9,21 @@ export default function ConferencePage() {
   const [userCount, setUserCount] = useState(0);
   const [unmutedCount, setUnmutedCount] = useState(0);
   const [onlineCounts, setOnlineCounts] = useState({});
+  const [rooms, setRooms] = useState([]);
   const sipInitRef = useRef(false);
   const sseRef = useRef(null);
 
   const totalOnline = Object.values(onlineCounts).reduce((sum, n) => sum + n, 0);
   const roomOnline = onlineCounts[account?.current_room || account?.room] || 0;
+
+  // Fetch room details for name lookup
+  useEffect(() => {
+    if (!token) return;
+    fetch('/api/v1/client/rooms/details', { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(json => { if (json.data) setRooms(json.data); })
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     if (!account || !token || sipInitRef.current) return;
@@ -61,6 +71,14 @@ export default function ConferencePage() {
       sse.onmessage = function (event) {
         try {
           const data = JSON.parse(event.data);
+          if (data.type === 'room_change' && data.email === account.email) {
+            if (typeof window.onHotlineRoomChange === 'function') {
+              window.onHotlineRoomChange({ source: 'sse', room: data.toRoom, roomName: data.toRoomName, direction: data.direction });
+            } else {
+              window.location.reload();
+            }
+            return;
+          }
           if (data.callerIds) setCallerIds(data.callerIds);
           if (data.userCount !== undefined) setUserCount(data.userCount);
           if (data.unmutedCount !== undefined) setUnmutedCount(data.unmutedCount);
@@ -84,6 +102,8 @@ export default function ConferencePage() {
   }
 
   const room = account?.current_room || account?.room;
+  const currentRoomData = rooms.find(r => r.id === room);
+  const roomDisplayName = currentRoomData ? currentRoomData.name : (room ? `Room ${room}` : 'N/A');
 
   return (
     <div>
@@ -92,7 +112,7 @@ export default function ConferencePage() {
         <div>
           <h2 className="text-xl font-bold">Conference</h2>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            {account?.company_name || ''} — Room {room || 'N/A'}
+            {account?.company_name || ''} — {roomDisplayName}
           </p>
         </div>
         {connected && (
