@@ -3,7 +3,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../service/auth/middleware.js";
-import { declineByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
+import { acceptByUserName, declineByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
 import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
@@ -610,6 +610,19 @@ clientRouter.post("/direct-call/decline", requireClientAuth, (req, res) => {
         const declined = declineByUserName(userName, 'web_decline');
         if (!declined) return res.status(409).json({ status: false, error: "No pending direct call" });
         res.json({ status: true, message: "Direct call declined" });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /direct-call/accept — accept pending private direct call from web client
+clientRouter.post("/direct-call/accept", requireClientAuth, (req, res) => {
+    try {
+        const userName = `sip:${req.client.email}`;
+        logSystem('CLIENT', `API /direct-call/accept user=${userName} ip=${_getClientIp(req)}`);
+        const accepted = acceptByUserName(userName);
+        if (!accepted) return res.status(409).json({ status: false, error: "No pending direct call" });
+        res.json({ status: true, message: "Direct call accepted" });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

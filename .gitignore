@@ -29,6 +29,7 @@ public/jssip.bundle.js
 
 # Vite build output
 dist/
+dist-client/
 out/
 
 # Yealink backup data

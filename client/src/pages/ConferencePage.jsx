@@ -52,7 +52,7 @@ export default function ConferencePage() {
       setOnlineCounts(online || {});
     };
 
-    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, email: account.email };
+    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, email: account.email };
 
     if (!document.getElementById('sip-client-script')) {
       const script = document.createElement('script');

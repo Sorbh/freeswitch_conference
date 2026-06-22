@@ -665,6 +665,19 @@ import "./jssip.bundle.js";
             }
         }
 
+        function answerDirectCall() {
+            try {
+                if (!clientToken) return;
+                fetch(apiBase + '/api/v1/client/direct-call/accept', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+                }).catch(function (err) { console.error('[DIRECT] Accept failed:', err.message); });
+                renderDirectCallStatus('Answering private call...', '', false, 2500, 'success');
+            } catch (err) {
+                console.error('[DIRECT] answer error:', err.message);
+            }
+        }
+
         function getDirectCallTheme(tone) {
             if (tone === 'danger') return { accent: '#ef4444', bg: 'rgba(239,68,68,.14)', icon: '✕' };
             if (tone === 'success') return { accent: '#22c55e', bg: 'rgba(34,197,94,.14)', icon: '✓' };
@@ -672,11 +685,18 @@ import "./jssip.bundle.js";
             return { accent: '#38bdf8', bg: 'rgba(56,189,248,.14)', icon: '☎' };
         }
 
-        function renderDirectCallStatus(title, detail, showReject, autoHideMs, tone) {
+        function renderDirectCallStatus(title, detail, showReject, autoHideMs, tone, showAnswer) {
             try {
                 var banner = getDirectCallBanner();
                 var theme = getDirectCallTheme(tone);
                 if (directCallHideTimer) { clearTimeout(directCallHideTimer); directCallHideTimer = null; }
+                var buttonHtml = '';
+                if (showAnswer || showReject) {
+                    buttonHtml = '<div style="display:flex;gap:8px;margin-top:12px;">' +
+                        (showAnswer ? '<button id="redline_direct_call_answer" style="flex:1;background:#22c55e;color:#fff;border:0;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(34,197,94,.25);">Answer</button>' : '') +
+                        (showReject ? '<button id="redline_direct_call_reject" style="flex:1;background:#ef4444;color:#fff;border:0;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(239,68,68,.28);">Reject</button>' : '') +
+                        '</div>';
+                }
                 banner.innerHTML =
                     '<div style="display:flex;gap:12px;align-items:flex-start;">' +
                     '<div style="width:38px;height:38px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:' + theme.bg + ';color:' + theme.accent + ';font-size:18px;font-weight:800;flex:0 0 auto;">' + theme.icon + '</div>' +
@@ -685,10 +705,12 @@ import "./jssip.bundle.js";
                     '<div style="font-size:14px;font-weight:800;line-height:1.2;letter-spacing:-.01em;">' + escapeHtml(title) + '</div>' +
                     '<div style="height:8px;width:8px;border-radius:999px;background:' + theme.accent + ';box-shadow:0 0 0 4px ' + theme.bg + ';flex:0 0 auto;"></div>' +
                     '</div>' +
-                    (detail ? '<div style="font-size:12px;color:rgba(255,255,255,.74);line-height:1.35;margin-bottom:' + (showReject ? '12px' : '2px') + ';">' + escapeHtml(detail) + '</div>' : '') +
-                    (showReject ? '<button id="redline_direct_call_reject" style="width:100%;background:#ef4444;color:#fff;border:0;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(239,68,68,.28);">Reject</button>' : '') +
+                    (detail ? '<div style="font-size:12px;color:rgba(255,255,255,.74);line-height:1.35;margin-bottom:2px;">' + escapeHtml(detail) + '</div>' : '') +
+                    buttonHtml +
                     '</div></div>';
                 banner.style.display = 'block';
+                var answerButton = document.getElementById('redline_direct_call_answer');
+                if (answerButton) answerButton.onclick = answerDirectCall;
                 var rejectButton = document.getElementById('redline_direct_call_reject');
                 if (rejectButton) rejectButton.onclick = rejectDirectCall;
                 if (autoHideMs) {
@@ -708,7 +730,8 @@ import "./jssip.bundle.js";
             var timeoutMs = data.timeoutMs || 15000;
 
             if (data.type === 'direct_call_incoming') {
-                renderDirectCallStatus('Incoming private call', detail + ' — lift handset to accept', true, timeoutMs + 2000, 'info');
+                var showAnswer = config.directCallAnswerButton === true;
+                renderDirectCallStatus('Incoming private call', detail + (showAnswer ? ' — answer here or reject' : ' — lift handset to accept'), true, timeoutMs + 2000, 'info', showAnswer);
             } else if (data.type === 'direct_call_outgoing') {
                 renderDirectCallStatus('Calling...', detail, false, timeoutMs + 2000, 'info');
             } else if (data.type === 'direct_call_answered') {
