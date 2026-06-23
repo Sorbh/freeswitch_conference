@@ -1,3 +1,81 @@
+// Smart Transcription — local-first, cloud-fallback pipeline.
+//
+// Goal: extract Year/Make/Model/Part from every broadcast at minimum cost.
+// Local Whisper is free and fast; cloud STT (Deepgram/OpenRouter) is accurate
+// but costs money. We only pay for cloud when local can't get the job done.
+//
+// Pipeline (processBroadcastTranscription)
+// ┌────┬──────────────────────────────────┬──────────────────────────────────────┐
+// │ #  │ Step                             │ Condition                            │
+// ├────┼──────────────────────────────────┼──────────────────────────────────────┤
+// │ 1  │ Local Whisper (whisper.cpp)      │ Always runs (free, fast)             │
+// │ 2  │ Extract Y/M/M from local text   │ If text has year/number pattern      │
+// │ 3  │ ✓ Done — skip cloud STT         │ If Y/M/M extraction is valid         │
+// │ 4  │ Cloud STT (Deepgram/OpenRouter)  │ Only if #2 failed AND               │
+// │    │                                  │   global stt_enabled = true AND      │
+// │    │                                  │   provider API key configured AND    │
+// │    │                                  │   room.auto_transcribe = true        │
+// │ 5  │ Extract Y/M/M from cloud text   │ If cloud text has year/number pattern│
+// └────┴──────────────────────────────────┴──────────────────────────────────────┘
+//
+// Decision flow
+// ┌─────────────────────┐
+// │ Broadcast finalized │
+// │ recording saved     │
+// └──────────┬──────────┘
+//            │
+//            ▼
+// ┌─────────────────────┐
+// │ 1. Local Whisper     │
+// │    (always runs)     │
+// └──────────┬──────────┘
+//            │
+//            ▼
+// ┌─────────────────────┐    valid Y/M/M    ┌──────────────────┐
+// │ 2. Extract parts    │ ────────────────▶ │ ✓ Done           │
+// │    from local text  │                   │ skip cloud STT   │
+// └──────────┬──────────┘                   └──────────────────┘
+//            │ extraction failed / incomplete
+//            ▼
+//   ┌── room.auto_transcribe ──┐
+//   │  AND stt_enabled         │
+//   │  AND API key set?        │
+//   └──────────┬───────────────┘
+//         no   │   yes
+//         │    │
+//         ▼    ▼
+//  ┌────────┐ ┌─────────────────────┐
+//  │ Done   │ │ 4. Cloud STT        │
+//  │ (local │ │ (Deepgram/OpenRouter)│
+//  │  only) │ └──────────┬──────────┘
+//  └────────┘            │
+//                        ▼
+//              ┌─────────────────────┐
+//              │ 5. Extract parts    │
+//              │    from cloud text  │
+//              └─────────────────────┘
+//
+// Settings gates
+// ┌────────────────────────┬──────────────────────────────────────────────────┐
+// │ Setting                │ Effect                                           │
+// ├────────────────────────┼──────────────────────────────────────────────────┤
+// │ stt_enabled (global)   │ Master switch for all cloud STT                  │
+// │ stt_provider           │ 'deepgram' or 'openrouter'                       │
+// │ stt_*_api_key          │ Provider API key (must be set for cloud to run)  │
+// │ room.auto_transcribe   │ Per-room toggle for cloud STT fallback           │
+// └────────────────────────┴──────────────────────────────────────────────────┘
+//
+// Storage
+// ┌──────────────────────────┬────────────────────────────────────────────────┐
+// │ Column                   │ Content                                        │
+// ├──────────────────────────┼────────────────────────────────────────────────┤
+// │ local_transcription      │ Whisper.cpp output (always populated)          │
+// │ has_parts_request        │ 1 if local text contains year/number pattern   │
+// │ transcription            │ Cloud STT output (only if fallback triggered)  │
+// │ transcription_status     │ processing / completed / failed                │
+// │ part_details             │ JSON {year, make, model, trim, part, spec}     │
+// └──────────────────────────┴────────────────────────────────────────────────┘
+
 import fs from 'fs';
 import { execFileSync } from 'child_process';
 import config from '../config/config.js';
@@ -340,16 +418,7 @@ export async function processBroadcastTranscription(broadcastId, recordingPath) 
     if (!row) return { hasPartsRequest: false };
     const id = row.id;
 
-    // 1. Deepgram (if enabled)
-    if (shouldAutoTranscribe(row.room)) {
-        try {
-            await transcribeBroadcast(id);
-        } catch (err) {
-            logSystem('BCAST', `Deepgram failed for #${id}: ${err.message}`);
-        }
-    }
-
-    // 2. Local whisper
+    // 1. Local whisper first (free, fast)
     let hasPartsRequest = false;
     try {
         const result = whisperTranscribeBroadcast(id);
@@ -358,14 +427,40 @@ export async function processBroadcastTranscription(broadcastId, recordingPath) 
         logSystem('BCAST', `Whisper failed for #${id}: ${err.message}`);
     }
 
-    // 3. Extract parts (deepgram priority, fallback whisper)
-    const broadcast = global.db.getBroadcastById(id);
-    const text = broadcast?.transcription || broadcast?.local_transcription;
-    if (text && text.length > 10 && checkContainsYearOrNumber(text)) {
+    // 2. Try part extraction from local transcription
+    let partsExtracted = false;
+    const afterWhisper = global.db.getBroadcastById(id);
+    const localText = afterWhisper?.local_transcription;
+    if (localText && localText.length > 10 && checkContainsYearOrNumber(localText)) {
         try {
-            await extractPartDetails(id, text);
+            await extractPartDetails(id, localText);
+            const updated = global.db.getBroadcastById(id);
+            const parts = updated?.part_details ? JSON.parse(updated.part_details) : null;
+            if (parts && isValidPartRequest(parts)) {
+                partsExtracted = true;
+                logSystem('BCAST', `#${id}: Y/M/M extracted from local whisper — skipping cloud STT`);
+            }
         } catch (err) {
-            logSystem('PARTS', `Extract failed for #${id}: ${err.message}`);
+            logSystem('PARTS', `Local extract failed for #${id}: ${err.message}`);
+        }
+    }
+
+    // 3. Cloud STT fallback — only if local didn't yield valid Y/M/M, and room + global settings allow it
+    if (!partsExtracted && shouldAutoTranscribe(row.room)) {
+        logSystem('BCAST', `#${id}: local whisper didn't yield Y/M/M — falling back to cloud STT`);
+        try {
+            await transcribeBroadcast(id);
+            const afterCloud = global.db.getBroadcastById(id);
+            const cloudText = afterCloud?.transcription;
+            if (cloudText && cloudText.length > 10 && checkContainsYearOrNumber(cloudText)) {
+                try {
+                    await extractPartDetails(id, cloudText);
+                } catch (err) {
+                    logSystem('PARTS', `Cloud extract failed for #${id}: ${err.message}`);
+                }
+            }
+        } catch (err) {
+            logSystem('BCAST', `Cloud STT failed for #${id}: ${err.message}`);
         }
     }
 

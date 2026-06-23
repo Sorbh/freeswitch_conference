@@ -20,7 +20,7 @@ function NavItem({ item }) {
         <span>{item.title}</span>
       </SidebarMenuButton>
       <a
-        href={item.url}
+        href={"/admin" + item.url}
         target="_blank"
         rel="noopener noreferrer"
         title="Open in new tab"

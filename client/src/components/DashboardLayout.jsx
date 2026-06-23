@@ -160,9 +160,18 @@ export default function DashboardLayout() {
         setMuted(window.hotlineClient.isMuted());
       }
     };
+    function handleDirectCallState(state) {
+      if (!window.hotlineClient) return;
+      if (state === 'connected') {
+        if (window.hotlineClient.isMuted()) window.hotlineClient.toggleMute();
+      } else if (['ended', 'declined', 'cancelled', 'missed'].includes(state)) {
+        if (!window.hotlineClient.isMuted()) window.hotlineClient.toggleMute();
+      }
+    }
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
     window.onHotlineLoginFailed = handleLoginFailed;
+    window.onHotlineDirectCallState = handleDirectCallState;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
         if (window.hotlineClient.isConnected()) {
@@ -180,6 +189,7 @@ export default function DashboardLayout() {
       if (window.onHotlineCallState === handleCallState) delete window.onHotlineCallState;
       if (window.onHotlineMuteState === handleMuteState) delete window.onHotlineMuteState;
       if (window.onHotlineLoginFailed === handleLoginFailed) delete window.onHotlineLoginFailed;
+      if (window.onHotlineDirectCallState === handleDirectCallState) delete window.onHotlineDirectCallState;
     };
   }, []);
 

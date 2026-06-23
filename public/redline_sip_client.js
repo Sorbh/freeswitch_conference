@@ -668,6 +668,52 @@ import "./jssip.bundle.js";
             },
         });
 
+        // ── Mic permission check ──
+        var micPermissionModal = null;
+
+        function showMicPermissionModal() {
+            if (micPermissionModal) return;
+            micPermissionModal = document.createElement('div');
+            micPermissionModal.id = 'redline_mic_permission_modal';
+            micPermissionModal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);';
+            micPermissionModal.innerHTML =
+                '<div style="width:min(400px,calc(100vw - 40px));background:#fff;border-radius:20px;padding:32px 28px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3);">' +
+                '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:16px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">' +
+                '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<line x1="1" y1="1" x2="23" y2="23"/>' +
+                '<path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>' +
+                '<path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.48-.35 2.15"/>' +
+                '<line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>' +
+                '</svg>' +
+                '</div>' +
+                '<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px;">Microphone Access Required</div>' +
+                '<div style="font-size:14px;color:#6b7280;line-height:1.5;margin-bottom:24px;">Hotline HQ needs microphone access to connect you to the conference. Please allow microphone access in your browser settings and refresh the page.</div>' +
+                '<button id="redline_mic_refresh" style="border:0;border-radius:12px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:14px;font-weight:700;padding:12px 32px;cursor:pointer;box-shadow:0 8px 20px rgba(225,29,46,.3);transition:transform .15s ease;">Refresh Page</button>' +
+                '</div>';
+            document.body.appendChild(micPermissionModal);
+            document.getElementById('redline_mic_refresh').onclick = function () { window.location.reload(); };
+        }
+
+        function hideMicPermissionModal() {
+            if (micPermissionModal) {
+                micPermissionModal.remove();
+                micPermissionModal = null;
+            }
+        }
+
+        async function checkMicPermission() {
+            try {
+                var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(function (t) { t.stop(); });
+                hideMicPermissionModal();
+                return true;
+            } catch (err) {
+                console.error('[SIP] Microphone permission denied:', err.message);
+                showMicPermissionModal();
+                return false;
+            }
+        }
+
         function getDirectCallBanner() {
             var banner = document.getElementById('redline_direct_call_banner');
             if (banner) return banner;
@@ -1031,7 +1077,13 @@ import "./jssip.bundle.js";
                     window.onHotlineReady(accountData);
                 }
 
-                _startSipRegistration(email, password);
+                checkMicPermission().then(function (granted) {
+                    if (granted) {
+                        _startSipRegistration(email, password);
+                    } else {
+                        console.warn('[SIP] Mic permission denied — SIP registration skipped');
+                    }
+                });
             })
             .catch(function (e) {
                 console.error('[SIP] Login failed:', e.message);

@@ -1567,7 +1567,7 @@ export default function UsersPage() {
                     <div className="px-6 py-5 space-y-2">
                       {selectedUser.mac && (
                         <a
-                          href={`/phone-logs?mac=${encodeURIComponent(selectedUser.mac)}`}
+                          href={`/admin/phone-logs?mac=${encodeURIComponent(selectedUser.mac)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground border border-border/40 bg-muted/30 hover:bg-muted/50 hover:text-foreground hover:border-border/60 transition-all cursor-pointer"
