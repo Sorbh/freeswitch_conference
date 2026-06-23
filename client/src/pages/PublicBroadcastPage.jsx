@@ -31,7 +31,28 @@ function formatTime(unix) {
   });
 }
 
-function AudioPlayer({ src, knownDurationMs }) {
+function setClarityTags(tags) {
+  if (typeof window === "undefined" || typeof window.clarity !== "function") return;
+  try {
+    Object.entries(tags).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      window.clarity("set", key, String(value));
+    });
+  } catch {
+    // Analytics should never affect the public page experience.
+  }
+}
+
+function trackClarityEvent(name) {
+  if (typeof window === "undefined" || typeof window.clarity !== "function") return;
+  try {
+    window.clarity("event", name);
+  } catch {
+    // Analytics should never affect the public page experience.
+  }
+}
+
+function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
   const audioRef = useRef(null);
   const trackRef = useRef(null);
   const animRef = useRef(null);
@@ -115,9 +136,10 @@ function AudioPlayer({ src, knownDurationMs }) {
       setPlaying(false);
     } else {
       a.play().catch(() => {});
+      onPlayStart?.();
       setPlaying(true);
     }
-  }, [playing]);
+  }, [onPlayStart, playing]);
 
   const seek = useCallback((e) => {
     const a = audioRef.current;
@@ -283,8 +305,15 @@ export default function PublicBroadcastPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const audioPlayTrackedRef = useRef(false);
 
   useEffect(() => {
+    setClarityTags({
+      page_type: "public_broadcast",
+      public_broadcast_token: token,
+    });
+    trackClarityEvent("public_broadcast_view");
+
     if (!token) {
       setError("Invalid link");
       setLoading(false);
@@ -306,14 +335,30 @@ export default function PublicBroadcastPage() {
   useEffect(() => {
     if (data) {
       document.title = `Broadcast by ${data.display_name || "Unknown"} — Hotline HQ`;
+      setClarityTags({
+        public_broadcast_id: data.id,
+        public_broadcast_room: data.room_name || "unknown",
+        public_broadcast_answered: data.answered ? "yes" : "no",
+        public_broadcast_has_recording: data.has_recording ? "yes" : "no",
+        public_broadcast_listener_count: data.listener_count ?? 0,
+      });
+      trackClarityEvent("public_broadcast_loaded");
     } else {
       document.title = "Broadcast — Hotline HQ";
     }
   }, [data]);
 
-  const respondedList = data?.responded_by
-    ? data.responded_by.split(",").map((s) => s.trim()).filter(Boolean)
-    : [];
+  const handleAudioPlayStart = useCallback(() => {
+    if (audioPlayTrackedRef.current) return;
+    audioPlayTrackedRef.current = true;
+    setClarityTags({
+      page_type: "public_broadcast",
+      public_broadcast_token: token,
+      public_broadcast_id: data?.id,
+      public_broadcast_audio_played: "yes",
+    });
+    trackClarityEvent("public_broadcast_audio_play");
+  }, [data?.id, token]);
 
   const content = loading ? (
     <LoadingState />
@@ -406,14 +451,11 @@ export default function PublicBroadcastPage() {
                 </svg>
                 Recording
               </div>
-              <AudioPlayer src={`/api/v1/public/broadcast/${token}/audio`} knownDurationMs={data.duration_ms} />
-            </div>
-          )}
-
-          {data.answered && respondedList.length > 0 && (
-            <div className="bp-response-panel">
-              <span className="bp-response-label">Responded by</span>
-              <p>{respondedList.join(", ")}</p>
+              <AudioPlayer
+                src={`/api/v1/public/broadcast/${token}/audio`}
+                knownDurationMs={data.duration_ms}
+                onPlayStart={handleAudioPlayStart}
+              />
             </div>
           )}
 
@@ -996,28 +1038,6 @@ const PAGE_CSS = `
   border-radius: 12px;
   box-shadow: 0 8px 18px rgba(217,45,32,0.26);
 }
-.bp-response-panel {
-  margin: 18px 22px 0;
-  padding: 14px 16px;
-  background: var(--green-soft);
-  border: 1px solid #abefc6;
-  border-radius: 12px;
-}
-.bp-response-panel p {
-  margin: 4px 0 0;
-  color: var(--ink);
-  font-size: 14px;
-  line-height: 1.5;
-  font-weight: 600;
-}
-.bp-response-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #067647;
-}
 .bp-participants-section,
 .bp-transcript-section {
   margin: 22px 22px 0;
@@ -1139,7 +1159,6 @@ const PAGE_CSS = `
   .bp-chip { padding: 5px 10px; font-size: 12px; }
   .bp-participant-list { flex-direction: column; }
   .bp-participant { width: 100%; }
-  .bp-response-panel,
   .bp-participants-section,
   .bp-transcript-section {
     margin-left: 16px;

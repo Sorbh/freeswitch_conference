@@ -46,26 +46,32 @@ export function initRdlSocket() {
 
     // Inbound: panel changed user's room
     socket.on('production:room.change.to_sip', async (eventData) => {
-        const { user_id, room } = eventData || {};
-        logSystem('RDL-SOCKET', `room.change.to_sip userId=${user_id} room=${room}`);
+        const { user_email, room } = eventData || {};
+        logSystem('RDL-SOCKET', `room.change.to_sip email=${user_email} room=${room}`);
         try {
-            const users = global.db.filter(u => u.userId === user_id);
-            if (users.length === 0) {
-                logSystem('RDL-SOCKET', `userId ${user_id} not found`);
+            if (!user_email) {
+                logSystem('RDL-SOCKET', `room.change.to_sip missing user_email`);
                 return;
             }
-            await changeUserRoom(users[0].userName, parseInt(room), 'rdl-socket');
+            const userName = `sip:${user_email}`;
+            const userInfo = global.db.getUserInfo(userName);
+            if (!userInfo || Object.keys(userInfo).length === 0) {
+                logSystem('RDL-SOCKET', `email ${user_email} not found`);
+                return;
+            }
+            await changeUserRoom(userName, parseInt(room), 'rdl-socket');
         } catch (e) {
             logSystem('RDL-SOCKET', `room.change.to_sip error: ${e.message}`);
         }
     });
 }
 
-export function sendRoomChangeNotification(userId, room) {
+export function sendRoomChangeNotification(userEmail, room) {
     if (!socket || !socket.connected) {
         logSystem('RDL-SOCKET', `Cannot send room change — not connected`);
         return;
     }
-    socket.emit('production:room.change.to_panel', { user_id: userId, room });
-    logSystem('RDL-SOCKET', `room.change.to_panel userId=${userId} room=${room}`);
+    const email = userEmail.replace(/^sip:/, '');
+    socket.emit('production:room.change.to_panel', { user_email: email, room });
+    logSystem('RDL-SOCKET', `room.change.to_panel email=${email} room=${room}`);
 }

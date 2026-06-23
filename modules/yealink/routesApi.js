@@ -117,11 +117,7 @@ yealinkRouter.get("/updateroom", async (req, res) => {
 
         await changeUserRoom(userInfo.userName, newRoom, 'yealink-softkey');
 
-        if (userInfo.userId) {
-            sendRoomChangeNotification(userInfo.userId, newRoom);
-        } else {
-            logSystem('YEALINK', `No userId for ${userInfo.userName}, skipping panel notification`);
-        }
+        sendRoomChangeNotification(userInfo.userName, newRoom);
 
         res.json({ status: true, message: `Room changed to ${newRoom}` });
     } catch (err) {
