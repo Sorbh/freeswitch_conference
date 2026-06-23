@@ -33,7 +33,7 @@ export function HQLogo({ light = false, size = 32 }) {
   );
 }
 
-export const CONTACT_EMAIL = "hello@hotlinehq.com";
+export const CONTACT_EMAIL = "hotlinehq@redlineusedautoparts.com";
 const SITE_BASE_PATH = "/hotlinehq";
 
 function getSiteBasePath() {
@@ -215,7 +215,12 @@ export function SiteFooter() {
             The parts-locating voice network for auto recyclers. One broadcast,
             your whole region on the line, a sale saved.
           </p>
-          <a className="l2f-mail" href={`mailto:${CONTACT_EMAIL}`}>
+          <a
+            className="l2f-mail"
+            href={`mailto:${CONTACT_EMAIL}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {CONTACT_EMAIL}
           </a>
         </div>
@@ -247,7 +252,9 @@ export function SiteFooter() {
           <Link to="/privacy-policy">Privacy policy</Link>
           <Link to="/terms-and-conditions">Terms &amp; conditions</Link>
           <Link to="/disclaimer">Disclaimer</Link>
-          <a href={`mailto:${CONTACT_EMAIL}`}>Contact</a>
+          <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
+            Contact
+          </a>
           <a href="/admin/login">Admin</a>
         </div>
       </div>

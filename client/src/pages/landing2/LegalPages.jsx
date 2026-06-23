@@ -117,7 +117,10 @@ export function AboutPage() {
       <h2>Get in touch</h2>
       <p>
         Want a line in your yard, or have a question? Email us at{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or request a
+        <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
+          {CONTACT_EMAIL}
+        </a>{" "}
+        or request a
         line from the <Link to="/#join">home page</Link> — a human calls
         you back within one business day.
       </p>
@@ -216,7 +219,10 @@ export function PrivacyPage() {
       <p>
         You may request access to, correction of, or deletion of your account
         information by emailing{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Note that some
+        <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
+          {CONTACT_EMAIL}
+        </a>
+        . Note that some
         records (such as recordings involving other members or billing
         records) may need to be retained where we have a legitimate or legal
         basis to do so.
@@ -233,7 +239,10 @@ export function PrivacyPage() {
       <h2>Contact</h2>
       <p>
         Questions about privacy? Email{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
+          {CONTACT_EMAIL}
+        </a>
+        .
       </p>
     </PageShell>
   );
@@ -358,7 +367,10 @@ export function TermsPage() {
       <h2>10. Contact</h2>
       <p>
         Questions about these terms? Email{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
+          {CONTACT_EMAIL}
+        </a>
+        .
       </p>
     </PageShell>
   );
@@ -426,7 +438,10 @@ export function DisclaimerPage() {
       <h2>Questions</h2>
       <p>
         If anything here is unclear, contact us at{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> before relying
+        <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
+          {CONTACT_EMAIL}
+        </a>{" "}
+        before relying
         on the service.
       </p>
     </PageShell>

@@ -1819,47 +1819,6 @@ export default function Landing2Page() {
             <a className="l2-btn l2-btn-hot" href="/client/signup" style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
             <a className="l2-btn l2-btn-ghost" href="/client/login" style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
           </div>
-          <p className="l2-contact-fine" style={{marginBottom:'20px'}}>Or reach out directly — a human answers, no bots.</p>
-          <div className="l2-contact-btns">
-            <a
-              className="l2-contact-btn wa-btn"
-              href="https://wa.me/14246260202?text=Hi%2C%20I%27m%20interested%20in%20Hotline%20HQ%20for%20my%20yard"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span className="l2-contact-icon wa">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.05 4.91A9.82 9.82 0 0012.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 004.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.23 8.23 0 01-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 01-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.79.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.16 0-.43.06-.66.31-.23.25-.86.84-.86 2.05 0 1.21.88 2.38 1 2.55.12.16 1.74 2.66 4.21 3.73.59.25 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28z" />
-                </svg>
-              </span>
-              <span className="l2-contact-text">
-                <strong>WhatsApp on this</strong>
-                <span>(424) 626-0202</span>
-              </span>
-              <span className="l2-contact-arrow">
-                <svg width="16" height="12" viewBox="0 0 18 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M1 7h15M11 1l5 6-5 6" /></svg>
-              </span>
-            </a>
-            <a
-              className="l2-contact-btn sms-btn"
-              href="sms:+18335645350?body=Hi%2C%20I%27m%20interested%20in%20Hotline%20HQ%20for%20my%20yard"
-            >
-              <span className="l2-contact-icon sms">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  <path d="M8 10h.01M12 10h.01M16 10h.01" />
-                </svg>
-              </span>
-              <span className="l2-contact-text">
-                <strong>Text it to</strong>
-                <span>(833) 564-5350</span>
-              </span>
-              <span className="l2-contact-arrow">
-                <svg width="16" height="12" viewBox="0 0 18 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M1 7h15M11 1l5 6-5 6" /></svg>
-              </span>
-            </a>
-          </div>
-          <p className="l2-contact-fine">A human answers. No bots, no drip emails.</p>
         </div>
       </section>
 
@@ -2595,80 +2554,6 @@ const CSS = `
   line-height: 1.08; margin: 0 0 14px;
 }
 .l2-mid-cta-band > .l2-reveal > p { color: rgba(255,255,255,0.82); font-size: 17px; line-height: 1.6; margin: 0 0 36px; }
-.l2-contact-btns {
-  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
-}
-.l2-contact-btn {
-  display: inline-grid; grid-template-columns: 52px 1fr 20px;
-  align-items: center; gap: 14px;
-  padding: 14px 22px 14px 12px;
-  background: #fff; border-radius: 999px;
-  color: #0d0f14; text-decoration: none;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.85) inset,
-    0 14px 28px -10px rgba(0,0,0,0.38),
-    0 4px 10px rgba(0,0,0,0.16);
-  transition: transform .18s ease, box-shadow .22s ease, color .15s ease;
-}
-.l2-contact-btn:hover {
-  transform: translateY(-3px); color: #0d0f14;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.85) inset,
-    0 22px 42px -10px rgba(0,0,0,0.48),
-    0 6px 14px rgba(0,0,0,0.2);
-}
-.l2-contact-btn:active { transform: translateY(-1px); }
-.l2-contact-icon {
-  position: relative; width: 52px; height: 52px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 50%; color: #fff; flex-shrink: 0; z-index: 1;
-}
-.l2-contact-icon svg { position: relative; z-index: 1; }
-.l2-contact-icon::before, .l2-contact-icon::after {
-  content: ""; position: absolute; inset: 0; border-radius: 50%;
-  border: 1.5px solid; opacity: 0; pointer-events: none;
-  animation: l2-pill-ring 2.4s cubic-bezier(.2,.6,.25,1) infinite; z-index: 0;
-}
-.l2-contact-icon::after { animation-delay: 1.2s; }
-.l2-contact-icon.wa {
-  background: linear-gradient(180deg, #2bd86a 0%, #1fa753 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 14px rgba(31,167,83,0.4);
-}
-.l2-contact-icon.wa::before, .l2-contact-icon.wa::after { border-color: rgba(31,167,83,0.65); }
-.l2-contact-icon.sms {
-  background: linear-gradient(180deg, #da1a36 0%, #b5142c 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.3) inset, 0 6px 14px rgba(218,26,54,0.4);
-}
-.l2-contact-icon.sms::before, .l2-contact-icon.sms::after { border-color: rgba(218,26,54,0.65); }
-@keyframes l2-pill-ring {
-  0% { transform: scale(1); opacity: 0.65; }
-  70% { opacity: 0.12; }
-  100% { transform: scale(1.85); opacity: 0; }
-}
-.l2-contact-text {
-  display: flex; flex-direction: column; gap: 2px; min-width: 0;
-}
-.l2-contact-text strong {
-  font-family: var(--body); font-size: 19px; font-weight: 700;
-  letter-spacing: -0.012em; color: #0d0f14; line-height: 1.15;
-}
-.l2-contact-text span {
-  font-size: 16px; font-weight: 600; color: #6b7180;
-  font-variant-numeric: tabular-nums; line-height: 1.2; white-space: nowrap;
-}
-.l2-contact-arrow {
-  display: inline-flex; align-items: center; justify-content: center;
-  color: #80869a; transition: transform .2s ease, color .2s ease;
-}
-.l2-contact-btn:hover .l2-contact-arrow { transform: translateX(3px); }
-.l2-contact-btn.wa-btn:hover .l2-contact-arrow { color: #1fa753; }
-.l2-contact-btn.sms-btn:hover .l2-contact-arrow { color: #da1a36; }
-.l2-contact-fine {
-  margin: 28px 0 0; font-size: 13px; color: rgba(255,255,255,0.6);
-  font-family: var(--mono); letter-spacing: 0.04em;
-}
-@media (max-width: 480px) { .l2-contact-btn { width: 100%; } }
-
 /* sticky mobile CTA */
 .l2-sticky-cta {
   display: none;
@@ -2731,7 +2616,6 @@ const CSS = `
     border-left-width: 17px;
   }
   .l2-play-label { position: absolute; bottom: 18px; left: 0; right: 0; font-size: 11px; letter-spacing: 0.08em; }
-  .l2-contact-btn { flex-direction: row; padding: 12px 14px; }
   .l2-join-inner { padding: 40px 16px; }
   .l2-join-inner h2 { font-size: clamp(22px, 6vw, 32px); }
   .l2-join-list { font-size: 13.5px; padding-left: 18px; }
@@ -2777,10 +2661,6 @@ const CSS = `
   .l2-feature p { font-size: 12.5px; }
   .l2-mid-cta-band { padding: 32px 12px; }
   .l2-mid-cta-inner h2 { font-size: 20px; }
-  .l2-contact-btn { padding: 10px 12px; }
-  .l2-contact-icon { width: 42px; height: 42px; }
-  .l2-contact-text strong { font-size: 16px; }
-  .l2-contact-text span { font-size: 13px; }
   .l2-join-inner { padding: 32px 12px; }
   .l2-join-inner h2 { font-size: 20px; }
   .l2-form { padding: 16px 12px; }

@@ -121,6 +121,8 @@ export function OwnHotlinePage() {
             <a
               className="l2-btn l2-btn-hot"
               href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               Talk to us about your auto parts hotline
             </a>
@@ -218,6 +220,8 @@ export function OwnHotlinePage() {
           <a
             className="l2-btn l2-btn-hot"
             href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Start the conversation
           </a>
