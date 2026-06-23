@@ -516,6 +516,25 @@ export default function BroadcastsPage() {
     } catch (e) { toast.error("Failed to generate share link"); }
   }, [refetchList]);
 
+  const getBroadcastShareUrl = useCallback((token) => {
+    return `${window.location.origin}/b/${token}`;
+  }, []);
+
+  const copyBroadcastShareLink = useCallback(async (token) => {
+    if (!token) return;
+    try {
+      await navigator.clipboard.writeText(getBroadcastShareUrl(token));
+      toast.success("Share link copied to clipboard");
+    } catch {
+      toast.error("Failed to copy share link");
+    }
+  }, [getBroadcastShareUrl]);
+
+  const openBroadcastShareLink = useCallback((token) => {
+    if (!token) return;
+    window.open(getBroadcastShareUrl(token), "_blank", "noopener,noreferrer");
+  }, [getBroadcastShareUrl]);
+
   const revokeBroadcast = useCallback(async (id) => {
     try {
       const res = await apiFetch(`/api/v1/admin/broadcasts/${id}/share`, { method: "DELETE" });
@@ -1119,18 +1138,44 @@ export default function BroadcastsPage() {
                           ) : null}
 
                           {b.share_token ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => revokeBroadcast(b.id)}
-                                  className="flex size-8 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400"
-                                  aria-label="Revoke share link"
-                                >
-                                  <Unlink2Icon className="size-3.5" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>Revoke share link</TooltipContent>
-                            </Tooltip>
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => copyBroadcastShareLink(b.share_token)}
+                                    className="flex size-8 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                    aria-label="Copy share link"
+                                  >
+                                    <CopyIcon className="size-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Copy share link</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => openBroadcastShareLink(b.share_token)}
+                                    className="flex size-8 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground"
+                                    aria-label="Open share link"
+                                  >
+                                    <PlayIcon className="size-3.5 ml-0.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Open share link</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => revokeBroadcast(b.id)}
+                                    className="flex size-8 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400"
+                                    aria-label="Revoke share link"
+                                  >
+                                    <Unlink2Icon className="size-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Revoke share link</TooltipContent>
+                              </Tooltip>
+                            </>
                           ) : (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1297,17 +1342,44 @@ export default function BroadcastsPage() {
                       </TableCell>
                       <TableCell className="pr-6" onClick={e => e.stopPropagation()}>
                         {b.share_token ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => revokeBroadcast(b.id)}
-                                className="flex size-7 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer"
-                              >
-                                <Unlink2Icon className="size-3" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>Revoke share link</TooltipContent>
-                          </Tooltip>
+                          <div className="flex items-center justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => copyBroadcastShareLink(b.share_token)}
+                                  className="flex size-7 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300 hover:border-emerald-500/40 transition-all cursor-pointer"
+                                  aria-label="Copy share link"
+                                >
+                                  <CopyIcon className="size-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Copy share link</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => openBroadcastShareLink(b.share_token)}
+                                  className="flex size-7 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground hover:text-foreground hover:border-border transition-all cursor-pointer"
+                                  aria-label="Open share link"
+                                >
+                                  <PlayIcon className="size-3 ml-0.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Open share link</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => revokeBroadcast(b.id)}
+                                  className="flex size-7 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/30 transition-all cursor-pointer"
+                                  aria-label="Revoke share link"
+                                >
+                                  <Unlink2Icon className="size-3" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Revoke share link</TooltipContent>
+                            </Tooltip>
+                          </div>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1536,7 +1608,22 @@ export default function BroadcastsPage() {
                   <div className="shrink-0 border-t border-border/40 bg-muted/[0.04] px-5 py-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] text-muted-foreground/40">Share link active</span>
-                      <Badge variant="outline" className="text-[10px] px-2 py-0 font-mono">{b.share_token.slice(0, 12)}…</Badge>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => copyBroadcastShareLink(b.share_token)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/50 px-2 py-1 text-[10px] font-mono text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                        >
+                          <CopyIcon className="size-3" />
+                          {b.share_token.slice(0, 12)}…
+                        </button>
+                        <button
+                          onClick={() => openBroadcastShareLink(b.share_token)}
+                          className="inline-flex items-center gap-1 rounded-md border border-border/50 px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                        >
+                          <PlayIcon className="size-3 ml-0.5" />
+                          Open
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

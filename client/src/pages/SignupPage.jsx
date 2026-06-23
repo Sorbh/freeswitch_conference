@@ -2,12 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function SignupPage() {
-  const [form, setForm] = useState({ email: '', password: '', company_name: '', display_name: '', company_phone: '', city: '', zip: '', room: '' });
+  const [form, setForm] = useState({ email: '', password: '', company_name: '', display_name: '', company_phone: '', city: '', zip: '', room: '', referral_code: '' });
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setForm(f => ({ ...f, referral_code: ref }));
+  }, []);
 
   useEffect(() => {
     fetch('/api/v1/client/rooms')
@@ -34,7 +40,7 @@ export default function SignupPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
       setSuccess(json.message || 'Account created! Check your email to verify.');
-      setForm({ email: '', password: '', company_name: '', display_name: '', company_phone: '', city: '', zip: '', room: '' });
+      setForm({ email: '', password: '', company_name: '', display_name: '', company_phone: '', city: '', zip: '', room: '', referral_code: '' });
     } catch (err) {
       setError(err.message);
       setShake(true);
@@ -124,6 +130,11 @@ export default function SignupPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="hq-label">Referral Code <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
+              <input type="text" value={form.referral_code} onChange={update('referral_code')} className="hq-input" placeholder="e.g. A7K2M9" maxLength={6} style={{ textTransform: 'uppercase' }} />
             </div>
 
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">

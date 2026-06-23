@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AccountSettingsPage() {
@@ -23,6 +23,19 @@ export default function AccountSettingsPage() {
   const [roomMessage, setRoomMessage] = useState('');
   const [roomError, setRoomError] = useState('');
   const [roomLoading, setRoomLoading] = useState(false);
+  const [referralData, setReferralData] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/referral').then(json => { if (json.data) setReferralData(json.data); }).catch(() => {});
+  }, []);
+
+  function copyReferralLink() {
+    if (!referralData?.referral_link) return;
+    navigator.clipboard.writeText(referralData.referral_link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   function update(field) {
     return e => setForm(f => ({ ...f, [field]: e.target.value }));
@@ -130,6 +143,42 @@ export default function AccountSettingsPage() {
           <button type="submit" disabled={roomLoading} className="hq-btn px-6 py-2.5">{roomLoading ? 'Submitting...' : 'Submit Request'}</button>
         </form>
       </div>
+
+      {referralData && (
+        <div className="hq-card p-6 mt-6">
+          <h3 className="hq-label mb-1">Refer a Yard</h3>
+          <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>Share your code and get 10% off your future bill for each referral.</p>
+
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 px-4 py-3 rounded-xl font-mono text-lg font-bold tracking-widest text-center" style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink)' }}>
+              {referralData.referral_code}
+            </div>
+            <button onClick={copyReferralLink} className="hq-btn px-4 py-3" style={{ whiteSpace: 'nowrap' }}>
+              {copied ? 'Copied!' : 'Copy Link'}
+            </button>
+          </div>
+
+          {referralData.referral_count > 0 && (
+            <div className="text-sm" style={{ color: 'var(--muted)' }}>
+              <span className="font-bold" style={{ color: 'var(--ink)' }}>{referralData.referral_count}</span> yard{referralData.referral_count !== 1 ? 's' : ''} referred
+              {referralData.referrals?.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {referralData.referrals.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                      <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{r.company_name || r.display_name}</span>
+                      <span className="text-xs" style={{ color: 'var(--muted)' }}>{new Date(r.created_at * 1000).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {referralData.referral_count === 0 && (
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>No referrals yet. Share your link to get started!</p>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 text-xs text-center" style={{ color: 'var(--muted)' }}>
         Logged in as <strong>{account?.email}</strong>

@@ -956,7 +956,7 @@ export default function UsersPage() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
                     No yards found
                   </TableCell>
                 </TableRow>
@@ -1364,6 +1364,9 @@ export default function UsersPage() {
                           const isNotDefault = currentRoom && defaultRoom && String(currentRoom) !== String(defaultRoom);
                           return { icon: <ArrowRightLeftIcon className={`size-3.5 ${isNotDefault ? "text-red-400" : ""}`} />, label: "Current Room", value: ROOM_NAMES[currentRoom] || currentRoom, hasRoomChange: true, isNotDefault };
                         })(),
+                        { icon: <HashIcon className="size-3.5" />, label: "Referral Code", value: acc.referral_code || "—", copyable: !!acc.referral_code, mono: true },
+                        { icon: <HashIcon className="size-3.5" />, label: "Referrals", value: acc.referral_count != null ? String(acc.referral_count) : "0" },
+                        ...(acc.referred_by_name ? [{ icon: <UserPlusIcon className="size-3.5" />, label: "Referred By", value: acc.referred_by_name }] : []),
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Account ID", value: acc.ymcs_account_id || "—", refreshKey: "account", copyable: !!acc.ymcs_account_id },
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Device ID", value: acc.ymcs_device_id || "—", refreshKey: "device", copyable: !!acc.ymcs_device_id },
                         { icon: <HashIcon className="size-3.5" />, label: "YMCS Config ID", value: acc.ymcs_config_id || "—", copyable: !!acc.ymcs_config_id },
@@ -1372,7 +1375,7 @@ export default function UsersPage() {
                           <span className="text-muted-foreground/60 mt-0.5 group-hover:text-muted-foreground transition-colors">{field.icon}</span>
                           <div className="min-w-0 flex-1">
                             <p className="text-[11px] text-muted-foreground/50 uppercase tracking-wider">{field.label}</p>
-                            <p className={`text-sm truncate ${field.isNotDefault ? "text-red-400" : ""}`}>{field.value}</p>
+                            <p className={`text-sm truncate ${field.isNotDefault ? "text-red-400" : ""} ${field.mono ? "font-mono text-xs" : ""}`}>{field.value}</p>
                           </div>
                           {field.copyable && (
                             <button

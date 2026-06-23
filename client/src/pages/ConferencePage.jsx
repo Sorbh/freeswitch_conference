@@ -90,8 +90,30 @@ export default function ConferencePage() {
   const currentRoomData = rooms.find(r => r.id === room);
   const roomDisplayName = currentRoomData ? currentRoomData.name : (room ? `Room ${room}` : 'N/A');
 
+  const [showBanner, setShowBanner] = useState(() => localStorage.getItem('hideReferralBanner') !== 'true');
+
+  function dismissBanner() {
+    setShowBanner(false);
+    localStorage.setItem('hideReferralBanner', 'true');
+  }
+
   return (
     <div>
+      {showBanner && (
+        <div className="hq-card referral-banner mb-4 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="referral-emoji text-xl flex-shrink-0">🎉</span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Refer a yard, get 10% off!</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>Share your referral link in <a href="/client/dashboard/settings" className="font-semibold" style={{ color: 'var(--red)' }}>Settings</a></p>
+            </div>
+          </div>
+          <button onClick={dismissBanner} className="flex-shrink-0 p-1.5 rounded-lg" style={{ color: 'var(--muted)' }} aria-label="Dismiss">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      )}
+
       {/* Desktop: title + mute button */}
       <div className="hidden md:flex items-center justify-between mb-6">
         <div>

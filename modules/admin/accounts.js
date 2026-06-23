@@ -11,7 +11,14 @@ const router = express.Router();
 router.get("/accounts", (req, res) => {
     try {
         const accounts = global.db.getAllAccounts();
-        const safe = accounts.map(({ password, ...rest }) => rest);
+        const safe = accounts.map(({ password, ...rest }) => {
+            rest.referral_count = global.db.getReferralCount(rest.id);
+            if (rest.referred_by) {
+                const referrer = global.db.getAccountById(rest.referred_by);
+                rest.referred_by_name = referrer ? (referrer.company_name || referrer.email) : null;
+            }
+            return rest;
+        });
         res.json({ status: true, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });

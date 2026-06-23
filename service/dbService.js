@@ -210,11 +210,27 @@ function init() {
         ['reset_token', "ALTER TABLE accounts ADD COLUMN reset_token TEXT"],
         ['reset_token_expires', "ALTER TABLE accounts ADD COLUMN reset_token_expires INTEGER"],
         ['signup_source', "ALTER TABLE accounts ADD COLUMN signup_source TEXT DEFAULT 'admin'"],
+        ['referral_code', "ALTER TABLE accounts ADD COLUMN referral_code TEXT"],
+        ['referred_by', "ALTER TABLE accounts ADD COLUMN referred_by INTEGER"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);
     }
     sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_extension ON accounts(extension) WHERE extension IS NOT NULL");
+    sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_referral_code ON accounts(referral_code) WHERE referral_code IS NOT NULL");
+
+    // Backfill referral codes for existing accounts
+    const needCodes = sqlite.prepare("SELECT id FROM accounts WHERE referral_code IS NULL").all();
+    if (needCodes.length > 0) {
+        const update = sqlite.prepare("UPDATE accounts SET referral_code = ? WHERE id = ?");
+        for (const { id } of needCodes) {
+            let code;
+            do {
+                code = crypto.randomBytes(3).toString('hex').toUpperCase();
+            } while (sqlite.prepare("SELECT 1 FROM accounts WHERE referral_code = ?").get(code));
+            update.run(code, id);
+        }
+    }
 
     sqlite.exec(`
         CREATE TABLE IF NOT EXISTS rooms (
@@ -830,10 +846,11 @@ function getTimelineBroadcasts(minutes = 30) {
 }
 
 function createAccount({ email, password, displayName, companyName, companyAddress, city, state, zip, room, critical, userName, companyPhone, ymcsAccountId, extension }) {
+    const referralCode = generateReferralCode();
     sqlite.prepare(`
-        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name, company_phone, ymcs_account_id, extension)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null, companyPhone || null, ymcsAccountId || null, extension || null);
+        INSERT INTO accounts (email, password, display_name, company_name, company_address, city, state, zip, room, critical, user_name, company_phone, ymcs_account_id, extension, referral_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(email, password, displayName, companyName, companyAddress, city, state, zip, room, critical ? 1 : 0, userName || null, companyPhone || null, ymcsAccountId || null, extension || null, referralCode);
     return sqlite.prepare('SELECT * FROM accounts WHERE email = ?').get(email);
 }
 
@@ -858,7 +875,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension', 'password_hash', 'email_verified', 'verification_token', 'verification_token_expires', 'reset_token', 'reset_token_expires', 'signup_source'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension', 'password_hash', 'email_verified', 'verification_token', 'verification_token_expires', 'reset_token', 'reset_token_expires', 'signup_source', 'referral_code', 'referred_by'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -884,6 +901,27 @@ function getAccountByResetToken(token) {
 
 function deleteAccount(id) {
     sqlite.prepare('DELETE FROM accounts WHERE id = ?').run(id);
+}
+
+function generateReferralCode() {
+    let code;
+    do {
+        code = crypto.randomBytes(3).toString('hex').toUpperCase();
+    } while (sqlite.prepare("SELECT 1 FROM accounts WHERE referral_code = ?").get(code));
+    return code;
+}
+
+function getAccountByReferralCode(code) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE referral_code = ?').get(code) || null;
+}
+
+function getReferralCount(accountId) {
+    const row = sqlite.prepare('SELECT COUNT(*) as count FROM accounts WHERE referred_by = ?').get(accountId);
+    return row ? row.count : 0;
+}
+
+function getReferrals(accountId) {
+    return sqlite.prepare('SELECT id, email, company_name, display_name, created_at FROM accounts WHERE referred_by = ? ORDER BY created_at DESC').all(accountId);
 }
 
 function getAllNotificationChannels() {
@@ -1193,6 +1231,10 @@ db.getAccountByExtension = getAccountByExtension;
 db.getAllAccounts = getAllAccounts;
 db.updateAccount = updateAccount;
 db.deleteAccount = deleteAccount;
+db.generateReferralCode = generateReferralCode;
+db.getAccountByReferralCode = getAccountByReferralCode;
+db.getReferralCount = getReferralCount;
+db.getReferrals = getReferrals;
 db.getAccountByVerificationToken = getAccountByVerificationToken;
 db.getAccountByResetToken = getAccountByResetToken;
 db.touchLastSeen = touchLastSeen;

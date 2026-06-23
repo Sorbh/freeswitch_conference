@@ -8,7 +8,7 @@ import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
-import { clientEventsRouter, buildRoomSnapshot, buildOnlineCounts, sendClientEventToRoom } from "./events.js";
+import { clientEventsRouter, buildOnlineCounts } from "./events.js";
 
 const CLIENT_TOKEN_EXPIRY = '7d';
 const VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours
@@ -78,7 +78,7 @@ clientRouter.post("/signup", async (req, res) => {
             return res.status(429).json({ status: false, error: "Too many signup attempts. Please try again later." });
         }
 
-        const { email, password, company_name, display_name, company_phone, city, zip, room } = req.body;
+        const { email, password, company_name, display_name, company_phone, city, zip, room, referral_code } = req.body;
 
         if (!email || !password || !company_name || !display_name || !company_phone || !city || !zip || !room) {
             return res.status(400).json({ status: false, error: "All fields are required: email, password, company_name, display_name, company_phone, city, zip, room" });
@@ -119,14 +119,23 @@ clientRouter.post("/signup", async (req, res) => {
             room: roomId,
         });
 
-        global.db.updateAccount(account.id, {
+        const updateFields = {
             password_hash: passwordHash,
             email_verified: 0,
             verification_token: verificationToken,
             verification_token_expires: verificationExpires,
             signup_source: 'client',
             active: 0,
-        });
+        };
+
+        if (referral_code) {
+            const referrer = global.db.getAccountByReferralCode(referral_code.trim().toUpperCase());
+            if (referrer) {
+                updateFields.referred_by = referrer.id;
+            }
+        }
+
+        global.db.updateAccount(account.id, updateFields);
 
         logSystem('CLIENT', `API /signup email=${email} company=${company_name} room=${roomId} ip=${ip}`);
 
@@ -464,6 +473,32 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
     }
 });
 
+// GET /referral — get authenticated user's referral info
+clientRouter.get("/referral", requireClientAuth, (req, res) => {
+    try {
+        const account = global.db.getAccountById(req.client.sub);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        const referralCount = global.db.getReferralCount(account.id);
+        const referrals = global.db.getReferrals(account.id);
+        const referralLink = `${global.config.CLIENT_APP_URL}/client/signup?ref=${account.referral_code}`;
+        res.json({
+            status: true,
+            data: {
+                referral_code: account.referral_code,
+                referral_link: referralLink,
+                referral_count: referralCount,
+                referrals: referrals.map(r => ({
+                    company_name: r.company_name,
+                    display_name: r.display_name,
+                    created_at: r.created_at,
+                })),
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // PUT /account — update account settings
 clientRouter.put("/account", requireClientAuth, async (req, res) => {
     try {
@@ -707,32 +742,6 @@ clientRouter.put("/room/change", requireClientAuth, async (req, res) => {
         }
 
         const result = await changeUserRoom(userName, newRoom, 'client-web');
-
-        sendClientEventToRoom(oldRoom, {
-            type: 'room_change',
-            direction: 'left',
-            email: req.client.email,
-            companyName: account.company_name || '',
-            displayName: account.display_name || req.client.email,
-            fromRoom: oldRoom,
-            toRoom: newRoom,
-            toRoomName: roomData.name,
-            ...buildRoomSnapshot(oldRoom),
-            online: buildOnlineCounts(),
-        });
-
-        sendClientEventToRoom(newRoom, {
-            type: 'room_change',
-            direction: 'joined',
-            email: req.client.email,
-            companyName: account.company_name || '',
-            displayName: account.display_name || req.client.email,
-            fromRoom: oldRoom,
-            toRoom: newRoom,
-            toRoomName: roomData.name,
-            ...buildRoomSnapshot(newRoom),
-            online: buildOnlineCounts(),
-        });
 
         logSystem('CLIENT', `API /room user=sip:${req.client.email} ${oldRoom}->${newRoom} ip=${_getClientIp(req)}`);
         res.json({ status: true, message: `Room changed to ${roomData.name}`, room: newRoom, roomName: roomData.name });

@@ -3,7 +3,7 @@ import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { handleHttpHookEvent, getActiveMacs } from "../../service/phoneEvents.js";
 import { logUser, logSystem } from "../../service/logger.js";
 import { emitStateChange, endCall, allEndCall } from "./routesApi.js";
-import { getClientSSEUsers } from "../client/events.js";
+import { getClientSSEUsers, sendClientEventToRoom, buildRoomSnapshot, buildOnlineCounts } from "../client/events.js";
 
 const router = express.Router();
 
@@ -428,6 +428,20 @@ export async function changeUserRoom(userName, newRoom, source = 'api') {
             logSystem('ROOM-CHANGE', `Hangup failed for ${userName}: ${e.message}`);
         }
     }
+
+    const email = userName.replace(/^sip:/, '');
+    const account = global.db.getAccountByEmail(email);
+    const roomData = global.db.getRoom(newRoom);
+    const sharedFields = {
+        email,
+        companyName: account?.company_name || '',
+        displayName: account?.display_name || email,
+        fromRoom: oldRoom,
+        toRoom: newRoom,
+        toRoomName: roomData?.name || '',
+    };
+    sendClientEventToRoom(oldRoom, { type: 'room_change', direction: 'left', ...sharedFields, ...buildRoomSnapshot(oldRoom), online: buildOnlineCounts() });
+    sendClientEventToRoom(newRoom, { type: 'room_change', direction: 'joined', ...sharedFields, ...buildRoomSnapshot(newRoom), online: buildOnlineCounts() });
 
     emitStateChange('users', { userName });
     emitStateChange('rooms');
