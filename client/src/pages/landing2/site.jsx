@@ -34,6 +34,9 @@ export function HQLogo({ light = false, size = 32 }) {
 }
 
 export const CONTACT_EMAIL = "hotlinehq@redlineusedautoparts.com";
+const HOTLINE_LOGIN_URL = "https://hotline.redlineusedautoparts.com/client/login";
+const HOTLINE_SIGNUP_URL = "https://hotline.redlineusedautoparts.com/client/signup";
+const HOTLINE_ADMIN_URL = "https://hotline.redlineusedautoparts.com/admin/login";
 const SITE_BASE_PATH = "/hotlinehq";
 
 function getSiteBasePath() {
@@ -179,10 +182,10 @@ export function SiteNav() {
       <nav className="l2-nav-links">
         <Link to="/">Home</Link>
         <Link to="/#how">How it works</Link>
-        <Link to="/client/login" className="l2-nav-login">Login</Link>
-        <Link to="/client/signup" className="l2-nav-cta">
+        <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">Login</a>
+        <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
           Sign Up Free
-        </Link>
+        </a>
       </nav>
     </header>
   );
@@ -255,7 +258,7 @@ export function SiteFooter() {
           <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
             Contact
           </a>
-          <a href="/admin/login">Admin</a>
+          <a href={HOTLINE_ADMIN_URL}>Admin</a>
         </div>
       </div>
 

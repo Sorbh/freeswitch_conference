@@ -61,13 +61,13 @@
 </head>
 <body>
     <h1>Hotline HQ — API Route Map</h1>
-    <p class="subtitle">Base: /api/v1 &nbsp;·&nbsp; 92 endpoints &nbsp;·&nbsp; 6 routers &nbsp;·&nbsp; 0 dead routes</p>
+    <p class="subtitle">Base: /api/v1 &nbsp;·&nbsp; 118 endpoints &nbsp;·&nbsp; 6 routers &nbsp;·&nbsp; 0 dead routes</p>
 
     <input type="text" class="search" id="search" placeholder="Filter routes... (e.g. broadcasts, POST, bearer, dead)">
 
     <div class="stats">
-        <div class="stat"><div class="stat-num" id="totalCount">92</div><div class="stat-label">Total Routes</div></div>
-        <div class="stat"><div class="stat-num" id="visibleCount">92</div><div class="stat-label">Visible</div></div>
+        <div class="stat"><div class="stat-num" id="totalCount">118</div><div class="stat-label">Total Routes</div></div>
+        <div class="stat"><div class="stat-num" id="visibleCount">118</div><div class="stat-label">Visible</div></div>
         <div class="stat"><div class="stat-num">0</div><div class="stat-label">Dead Routes</div></div>
         <div class="stat"><div class="stat-num">0</div><div class="stat-label">Duplicates</div></div>
     </div>
@@ -119,10 +119,29 @@
             {
                 name: "Client (SIP Web Client)", file: "modules/client/routesApi.js", mount: "/api/v1/client", auth: "no-auth", authLabel: "Client JWT",
                 routes: [
-                    { m: "POST", p: "/login", tags: ["no-auth"], desc: "Authenticate with email + SIP password, returns 7-day client JWT + account info" },
-                    { m: "POST", p: "/mute", tags: ["client-jwt"], desc: "Mute user in conference (client JWT Bearer required)" },
-                    { m: "POST", p: "/unmute", tags: ["client-jwt"], desc: "Unmute user in conference (client JWT Bearer required)" },
-                    { m: "GET", p: "/events/room/:room", tags: ["client-jwt", "sse"], desc: "Room SSE — callerIdHtml, online counts. Auth via ?token= query param (client JWT)" },
+                    { m: "GET", p: "/rooms", tags: ["no-auth"], desc: "Public list of rooms for signup form" },
+                    { m: "POST", p: "/signup", tags: ["no-auth", "rate-limit"], desc: "Create client account with email verification" },
+                    { m: "GET", p: "/verify", tags: ["no-auth"], desc: "Verify email via token, redirect to client login" },
+                    { m: "POST", p: "/resend-verification", tags: ["no-auth", "rate-limit"], desc: "Resend verification email" },
+                    { m: "POST", p: "/forgot-password", tags: ["no-auth", "rate-limit"], desc: "Send password reset email" },
+                    { m: "POST", p: "/reset-password", tags: ["no-auth"], desc: "Reset password with token" },
+                    { m: "POST", p: "/login", tags: ["no-auth", "rate-limit"], desc: "Authenticate with email + password, returns 7-day client JWT + account info" },
+                    { m: "GET", p: "/account", tags: ["client-jwt"], desc: "Get authenticated user's account info" },
+                    { m: "PUT", p: "/account", tags: ["client-jwt"], desc: "Update account settings (display name, phone, city, password)" },
+                    { m: "GET", p: "/referral", tags: ["client-jwt"], desc: "Get referral code, link, and referral list" },
+                    { m: "GET", p: "/extensions", tags: ["client-jwt"], desc: "Directory of callable SIP extensions" },
+                    { m: "GET", p: "/conference-status", tags: ["client-jwt"], desc: "Whether user is currently in conference" },
+                    { m: "POST", p: "/extension-request", tags: ["client-jwt"], desc: "Request a preferred SIP extension number" },
+                    { m: "POST", p: "/room-request", tags: ["client-jwt"], desc: "Request a new room/market" },
+                    { m: "POST", p: "/mute", tags: ["client-jwt"], desc: "Mute user in conference" },
+                    { m: "POST", p: "/unmute", tags: ["client-jwt"], desc: "Unmute user in conference" },
+                    { m: "GET", p: "/rooms/details", tags: ["client-jwt"], desc: "All rooms with online/connected counts" },
+                    { m: "PUT", p: "/room/change", tags: ["client-jwt"], desc: "Change user's current room" },
+                    { m: "POST", p: "/direct-call/start", tags: ["client-jwt"], desc: "Start private direct call by extension" },
+                    { m: "POST", p: "/direct-call/accept", tags: ["client-jwt"], desc: "Accept pending private direct call" },
+                    { m: "POST", p: "/direct-call/decline", tags: ["client-jwt"], desc: "Decline pending private direct call" },
+                    { m: "POST", p: "/direct-call/end", tags: ["client-jwt"], desc: "End active private direct call" },
+                    { m: "GET", p: "/events/room/:room", tags: ["client-jwt", "sse"], desc: "Room SSE — callerIdHtml, online counts, direct call events. Auth via ?token= query param" },
                 ]
             },
             {
@@ -272,6 +291,28 @@
                     { m: "POST", p: "/audio-ads/:id/stop", desc: "Stop playing audio ad" },
                     { m: "GET", p: "/audio-ads/:id/stats", desc: "Get play count and stats for ad" },
                     { m: "GET", p: "/audio-ads/play-log", desc: "Play history log for all ads" },
+                ]
+            },
+            {
+                name: "Admin — Short Links", file: "modules/admin/shortUrls.js", mount: "/api/v1/admin", auth: "bearer", authLabel: "Bearer + Role Guard",
+                routes: [
+                    { m: "GET", p: "/short-urls", desc: "List all short URLs with click counts" },
+                    { m: "POST", p: "/short-urls", desc: "Create a short URL (auto-generates 6-char code)" },
+                    { m: "DELETE", p: "/short-urls/:id", desc: "Delete a short URL" },
+                ]
+            },
+            {
+                name: "Short Links (Localhost)", file: "index.js", mount: "/local", auth: "localhost", authLabel: "Localhost Only",
+                routes: [
+                    { m: "GET", p: "/short-urls", tags: ["localhost"], desc: "List all short URLs (no auth, localhost only)" },
+                    { m: "POST", p: "/short-urls", tags: ["localhost"], desc: "Create a short URL (no auth, localhost only)" },
+                    { m: "DELETE", p: "/short-urls/:id", tags: ["localhost"], desc: "Delete a short URL (no auth, localhost only)" },
+                ]
+            },
+            {
+                name: "Short URL Redirect", file: "index.js", mount: "", auth: "no-auth", authLabel: "No Auth",
+                routes: [
+                    { m: "GET", p: "/s/:code", desc: "Redirect to destination URL, increment click counter. Returns 410 if expired." },
                 ]
             },
         ];

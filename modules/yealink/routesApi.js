@@ -1,6 +1,5 @@
 import express from "express";
 import { logUser, logSystem } from "../../service/logger.js";
-import { sendRoomChangeNotification } from "../../service/rdlSocket.js";
 import { changeUserRoom } from "../admin/users.js";
 import { declineByUserName } from "../../service/freeswitch/directCall.js";
 import { handleDirectCallHookEvent } from "../../service/phoneEvents.js";
@@ -116,8 +115,6 @@ yealinkRouter.get("/updateroom", async (req, res) => {
         if (!newRoom) return res.status(400).json({ status: false, error: "room is required" });
 
         await changeUserRoom(userInfo.userName, newRoom, 'yealink-softkey');
-
-        sendRoomChangeNotification(userInfo.userName, newRoom);
 
         res.json({ status: true, message: `Room changed to ${newRoom}` });
     } catch (err) {

@@ -15,8 +15,21 @@ export default function LoginPage() {
   useEffect(() => {
     const verified = searchParams.get('verified');
     const msg = searchParams.get('msg');
+    const queryEmail = searchParams.get('email') || searchParams.get('e');
+    const queryPassword = searchParams.get('password') || searchParams.get('p') || searchParams.get('pwd');
+
+    if (queryEmail) setEmail(queryEmail.trim());
+    if (queryPassword) setPassword(queryPassword.trim());
+
     if (verified === 'success') setMessage('Email verified successfully! You can now log in.');
     else if (verified === 'error') setError(msg ? decodeURIComponent(msg.replace(/\+/g, ' ')) : 'Verification failed');
+
+    if (queryEmail || queryPassword) {
+      const nextParams = new URLSearchParams(searchParams);
+      ['email', 'e', 'password', 'p', 'pwd'].forEach(key => nextParams.delete(key));
+      const nextUrl = `${window.location.pathname}${nextParams.toString() ? `?${nextParams}` : ''}${window.location.hash}`;
+      window.history.replaceState({}, document.title, nextUrl);
+    }
   }, [searchParams]);
 
   async function handleSubmit(e) {
@@ -25,7 +38,11 @@ export default function LoginPage() {
     setMessage('');
     setLoading(true);
     try {
-      await login(email, password);
+      const cleanEmail = email.trim();
+      const cleanPassword = password.trim();
+      setEmail(cleanEmail);
+      setPassword(cleanPassword);
+      await login(cleanEmail, cleanPassword);
     } catch (err) {
       setError(err.message);
       setShake(true);
@@ -57,6 +74,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
+                onBlur={() => setEmail(v => v.trim())}
                 required
                 autoFocus
                 className="hq-input"
@@ -64,16 +82,22 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
               <label className="hq-label">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                onBlur={() => setPassword(v => v.trim())}
                 required
                 className="hq-input"
                 placeholder="Enter your password"
               />
+            </div>
+
+            <div className="flex items-center justify-center gap-2 mb-4 text-xs" style={{ color: 'var(--muted)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--green)' }} />
+              <span>Secure client access. No card required.</span>
             </div>
 
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">

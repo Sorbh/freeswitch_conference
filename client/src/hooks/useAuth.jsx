@@ -3,6 +3,19 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 const AuthContext = createContext(null);
 
 const API_BASE = '/api/v1/client';
+const PROFILE_PROMPT_LOGIN_KEY = 'hq_profile_prompt_login';
+const PROFILE_PROMPT_HANDLED_KEY = 'hq_profile_prompt_handled_login';
+
+function getProfilePromptLoginId(account) {
+  return `${account?.id || account?.email || 'account'}:${Date.now()}`;
+}
+
+function clearProfilePromptSession() {
+  try {
+    sessionStorage.removeItem(PROFILE_PROMPT_LOGIN_KEY);
+    sessionStorage.removeItem(PROFILE_PROMPT_HANDLED_KEY);
+  } catch {}
+}
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('hq_token'));
@@ -21,6 +34,7 @@ export function AuthProvider({ children }) {
       setAccount(null);
       localStorage.removeItem('hq_token');
       localStorage.removeItem('hq_account');
+      clearProfilePromptSession();
     }
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     return json;
@@ -37,7 +51,11 @@ export function AuthProvider({ children }) {
       setAccount(json.data);
       localStorage.setItem('hq_token', json.token);
       localStorage.setItem('hq_account', JSON.stringify(json.data));
-      try { sessionStorage.setItem('hq_sip_pwd', password); } catch {};
+      try {
+        sessionStorage.setItem('hq_sip_pwd', password);
+        sessionStorage.setItem(PROFILE_PROMPT_LOGIN_KEY, getProfilePromptLoginId(json.data));
+        sessionStorage.removeItem(PROFILE_PROMPT_HANDLED_KEY);
+      } catch {};
       // Also set user_data + room for redline_sip_client.js compatibility
       localStorage.setItem('user_data', JSON.stringify({
         id: json.data.id,
@@ -70,6 +88,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user_data');
     localStorage.removeItem('room');
     try { sessionStorage.removeItem('hq_sip_pwd'); } catch {};
+    clearProfilePromptSession();
     if (window.hotlineClient?.logout) window.hotlineClient.logout();
   }, []);
 

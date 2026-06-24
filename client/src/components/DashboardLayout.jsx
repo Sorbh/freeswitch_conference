@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const BOTTOM_NAV_ITEMS = [
@@ -21,10 +21,62 @@ const CONN_COLORS = {
 };
 
 const HOTLINE_SIP_CLIENT_URL = 'https://hotline.redlineusedautoparts.com/redline_sip_client.js';
+const BROADCAST_HELP_SEEN_KEY = 'hq_broadcast_help_seen';
+const PROFILE_PROMPT_LOGIN_KEY = 'hq_profile_prompt_login';
+const PROFILE_PROMPT_HANDLED_KEY = 'hq_profile_prompt_handled_login';
+
+function readSessionValue(key) {
+  try { return sessionStorage.getItem(key) || ''; } catch { return ''; }
+}
+
+function writeSessionValue(key, value) {
+  try { sessionStorage.setItem(key, value); } catch {}
+}
+
+function clearProfilePromptSession() {
+  try {
+    sessionStorage.removeItem(PROFILE_PROMPT_LOGIN_KEY);
+    sessionStorage.removeItem(PROFILE_PROMPT_HANDLED_KEY);
+  } catch {}
+}
+
+function activeProfilePromptLogin(account) {
+  if (!account) return '';
+  const loginId = readSessionValue(PROFILE_PROMPT_LOGIN_KEY);
+  if (!loginId) return '';
+  const accountKey = String(account.id || account.email || 'account');
+  return loginId.startsWith(`${accountKey}:`) ? loginId : '';
+}
+
+function isProfilePromptHandledForLogin(account) {
+  const loginId = activeProfilePromptLogin(account);
+  if (!loginId) return true;
+  return readSessionValue(PROFILE_PROMPT_HANDLED_KEY) === loginId;
+}
+
+function markProfilePromptHandledForLogin(account) {
+  const loginId = activeProfilePromptLogin(account);
+  if (loginId) writeSessionValue(PROFILE_PROMPT_HANDLED_KEY, loginId);
+}
+
+function getMissingProfileFields(account) {
+  if (!account) return [];
+  const missing = [];
+  const displayName = String(account.display_name || '').trim();
+  const companyName = String(account.company_name || '').trim();
+  if (!displayName || (account.signup_source === 'client' && companyName && displayName === companyName)) {
+    missing.push('display_name');
+  }
+  if (!String(account.company_phone || '').trim()) missing.push('company_phone');
+  if (!String(account.city || '').trim()) missing.push('city');
+  if (!String(account.zip || '').trim()) missing.push('zip');
+  return missing;
+}
 
 export default function DashboardLayout() {
   const { account, token, logout, apiFetch, refreshAccount } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [connState, setConnState] = useState('idle');
   const [connError, setConnError] = useState('');
   const [muted, setMuted] = useState(true);
@@ -33,6 +85,14 @@ export default function DashboardLayout() {
   const [changingRoom, setChangingRoom] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenMessage, setFullscreenMessage] = useState('');
+  const [profilePromptOpen, setProfilePromptOpen] = useState(false);
+  const [profilePromptFields, setProfilePromptFields] = useState([]);
+  const [profilePromptForm, setProfilePromptForm] = useState({ display_name: '', company_phone: '', city: '', zip: '' });
+  const [profilePromptSaving, setProfilePromptSaving] = useState(false);
+  const [profilePromptError, setProfilePromptError] = useState('');
+  const [profilePromptHandled, setProfilePromptHandled] = useState(false);
+  const [broadcastHelpOpen, setBroadcastHelpOpen] = useState(false);
+  const [extensionHelpOpen, setExtensionHelpOpen] = useState(false);
   const dropdownRef = useRef(null);
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
@@ -93,10 +153,38 @@ export default function DashboardLayout() {
   }, [token, apiFetch, refreshAccount]);
 
   useEffect(() => {
+    if (!account) return;
+    if (profilePromptHandled || isProfilePromptHandledForLogin(account)) return;
+
+    const missingFields = getMissingProfileFields(account);
+    if (missingFields.length === 0) return;
+
+    setProfilePromptFields(missingFields);
+    setProfilePromptForm({
+      display_name: missingFields.includes('display_name') ? '' : account.display_name || '',
+      company_phone: account.company_phone || '',
+      city: account.city || '',
+      zip: account.zip || '',
+    });
+    setProfilePromptError('');
+    setProfilePromptOpen(true);
+    markProfilePromptHandledForLogin(account);
+    setProfilePromptHandled(true);
+  }, [account, profilePromptHandled]);
+
+  useEffect(() => {
+    if (!account || profilePromptOpen) return;
+    if (localStorage.getItem(BROADCAST_HELP_SEEN_KEY)) return;
+    const timer = window.setTimeout(() => setBroadcastHelpOpen(true), 600);
+    return () => window.clearTimeout(timer);
+  }, [account, profilePromptOpen]);
+
+  useEffect(() => {
     if (!account || !token || sipInitRef.current) return;
     sipInitRef.current = true;
 
-    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, email: account.email };
+    const sipPwd = sessionStorage.getItem('hq_sip_pwd') || undefined;
+    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, email: account.email, ...(sipPwd ? { defaultPassword: sipPwd } : {}) };
 
     if (!document.getElementById('sip-client-script')) {
       const script = document.createElement('script');
@@ -240,6 +328,11 @@ export default function DashboardLayout() {
   }
 
   function handleLogout() {
+    clearProfilePromptSession();
+    setProfilePromptHandled(false);
+    setProfilePromptOpen(false);
+    setBroadcastHelpOpen(false);
+    setExtensionHelpOpen(false);
     logout();
     navigate('/client/login');
   }
@@ -261,11 +354,63 @@ export default function DashboardLayout() {
     }
   }
 
+  function updateProfilePrompt(field) {
+    return e => setProfilePromptForm(f => ({ ...f, [field]: e.target.value }));
+  }
+
+  function skipProfilePrompt() {
+    markProfilePromptHandledForLogin(account);
+    setProfilePromptHandled(true);
+    setProfilePromptOpen(false);
+    setProfilePromptError('');
+  }
+
+  async function saveProfilePrompt(e) {
+    e.preventDefault();
+    if (!account || profilePromptSaving) return;
+    setProfilePromptSaving(true);
+    setProfilePromptError('');
+    try {
+      const updates = {};
+      for (const field of profilePromptFields) {
+        const value = String(profilePromptForm[field] || '').trim();
+        if (value) updates[field] = value;
+      }
+      if (Object.keys(updates).length > 0) {
+        await apiFetch('/account', { method: 'PUT', body: JSON.stringify(updates) });
+        await refreshAccount();
+      }
+      markProfilePromptHandledForLogin(account);
+      setProfilePromptHandled(true);
+      setProfilePromptOpen(false);
+    } catch (err) {
+      setProfilePromptError(err.message);
+    } finally {
+      setProfilePromptSaving(false);
+    }
+  }
+
+  function openBroadcastHelp() {
+    if (location.pathname.endsWith('/extensions')) {
+      setExtensionHelpOpen(true);
+      setBroadcastHelpOpen(false);
+      return;
+    }
+    setBroadcastHelpOpen(true);
+    setExtensionHelpOpen(false);
+  }
+
+  function closeBroadcastHelp(markSeen = true) {
+    if (markSeen) localStorage.setItem(BROADCAST_HELP_SEEN_KEY, '1');
+    setBroadcastHelpOpen(false);
+  }
+
   const currentRoomId = account?.current_room || account?.room;
   const currentRoom = rooms.find(r => r.id === currentRoomId);
   const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? `Room ${currentRoomId}` : '');
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
+  const onExtensionsPage = location.pathname.endsWith('/extensions');
 
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
@@ -378,6 +523,14 @@ export default function DashboardLayout() {
 
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
+                onClick={openBroadcastHelp}
+                title={onExtensionsPage ? 'What are extensions?' : 'How to broadcast'}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                style={{ color: 'var(--muted)' }}
+              >
+                <InfoIcon />
+              </button>
+              <button
                 onClick={toggleFullscreen}
                 title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
@@ -441,6 +594,194 @@ export default function DashboardLayout() {
           </NavLink>
         ))}
       </nav>
+
+      {profilePromptOpen && (
+        <ProfileCompletionModal
+          fields={profilePromptFields}
+          form={profilePromptForm}
+          saving={profilePromptSaving}
+          error={profilePromptError}
+          onChange={updateProfilePrompt}
+          onSave={saveProfilePrompt}
+          onSkip={skipProfilePrompt}
+        />
+      )}
+
+      {broadcastHelpOpen && (
+        <BroadcastHelpOverlay
+          connected={isConnected}
+          muted={muted}
+          onClose={() => closeBroadcastHelp(true)}
+        />
+      )}
+
+      {extensionHelpOpen && (
+        <ExtensionHelpModal onClose={() => setExtensionHelpOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function ExtensionHelpModal({ onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center px-4 py-6"
+      style={{ background: 'rgba(17,24,39,0.36)', backdropFilter: 'blur(4px)' }}
+    >
+      <div className="hq-card w-full max-w-md p-6 animate-fadeIn" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.22)' }}>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+            <GridIcon size={19} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Extensions</h2>
+            <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
+              Extensions are short 3-digit numbers for direct yard-to-yard calls inside Hotline HQ.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          <HelpPoint title="Get your number" text="Request an extension first. Once approved, the directory unlocks for your account." />
+          <HelpPoint title="Call another yard" text="Search by company, person, room, or extension, then press Call when they are available." />
+          <HelpPoint title="Stay on the line" text="Your extension works while you are logged in and connected to the Hotline HQ line." />
+        </div>
+
+        <button type="button" onClick={onClose} className="hq-btn w-full py-3 mt-5">
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function HelpPoint({ title, text }) {
+  return (
+    <div className="flex gap-3">
+      <span className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: 'var(--green)' }} />
+      <div>
+        <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{title}</div>
+        <div className="text-sm mt-0.5" style={{ color: 'var(--muted)', lineHeight: 1.45 }}>{text}</div>
+      </div>
+    </div>
+  );
+}
+
+function BroadcastHelpOverlay({ connected, muted, onClose }) {
+  return (
+    <div className="fixed inset-0 z-[110] pointer-events-none">
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(17,24,39,0.18)', backdropFilter: 'blur(1px)' }}
+      />
+
+      <div
+        className="absolute right-12 bottom-28 hidden md:block"
+        style={{ color: 'var(--red)', filter: 'drop-shadow(0 10px 22px rgba(217,45,32,0.22))' }}
+      >
+        <ArrowDownRightIcon />
+      </div>
+      <div
+        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(60px+env(safe-area-inset-bottom)+88px)] md:hidden"
+        style={{ color: 'var(--red)', filter: 'drop-shadow(0 8px 18px rgba(217,45,32,0.2))' }}
+      >
+        <ArrowDownIcon />
+      </div>
+
+      <div className="absolute left-4 right-4 bottom-[calc(60px+env(safe-area-inset-bottom)+126px)] md:left-auto md:right-28 md:bottom-52 md:w-80 pointer-events-auto">
+        <div className="hq-card p-5" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)' }}>
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+              <MicOnIcon size={18} />
+            </div>
+            <div>
+              <h2 className="text-base font-bold" style={{ color: 'var(--ink)' }}>Need a part?</h2>
+              <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
+                Unmute, speak your request to the room, then mute again. Other yards in this room can answer live.
+              </p>
+              {!connected && (
+                <p className="text-xs mt-2" style={{ color: 'var(--red)' }}>
+                  The broadcast button appears after the line connects.
+                </p>
+              )}
+              {connected && (
+                <p className="text-xs mt-2" style={{ color: muted ? 'var(--muted)' : 'var(--green)' }}>
+                  Current mic state: {muted ? 'muted' : 'live'}
+                </p>
+              )}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="hq-btn w-full py-2.5 mt-4">
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave, onSkip }) {
+  const fieldMeta = {
+    display_name: { label: 'Owner Name', placeholder: 'John Smith', type: 'text', autoComplete: 'name' },
+    company_phone: { label: 'Phone Number', placeholder: '(555) 555-5555', type: 'tel', autoComplete: 'tel' },
+    city: { label: 'City', placeholder: 'Phoenix', type: 'text', autoComplete: 'address-level2' },
+    zip: { label: 'Zip Code', placeholder: '85001', type: 'text', autoComplete: 'postal-code' },
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6"
+      style={{ background: 'rgba(17,24,39,0.36)', backdropFilter: 'blur(4px)' }}
+    >
+      <div className="hq-card w-full max-w-md p-6 animate-fadeIn" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.22)' }}>
+        <div className="mb-5">
+          <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Complete your profile</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+            Add any details you want. You can skip this and update it later in Account Settings.
+          </p>
+        </div>
+
+        {error && <div className="hq-alert-error">{error}</div>}
+
+        <form onSubmit={onSave}>
+          <div className="space-y-3">
+            {fields.map(field => {
+              const meta = fieldMeta[field];
+              if (!meta) return null;
+              return (
+                <div key={field}>
+                  <label className="hq-label">
+                    {meta.label} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span>
+                  </label>
+                  <input
+                    type={meta.type}
+                    value={form[field] || ''}
+                    onChange={onChange(field)}
+                    className="hq-input"
+                    placeholder={meta.placeholder}
+                    autoComplete={meta.autoComplete}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3 mt-5">
+            <button type="submit" disabled={saving} className="hq-btn flex-1 py-3">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={onSkip}
+              disabled={saving}
+              className="px-5 py-3 rounded-xl text-sm font-semibold"
+              style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
+            >
+              Skip
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -507,6 +848,34 @@ function ChevronDownIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+function ArrowDownRightIcon() {
+  return (
+    <svg width="86" height="86" viewBox="0 0 86 86" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 18c17 0 44 15 52 45" />
+      <path d="M52 58l17 8 6-18" />
+    </svg>
+  );
+}
+
+function ArrowDownIcon() {
+  return (
+    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M26 6v34" />
+      <path d="m15 30 11 11 11-11" />
     </svg>
   );
 }

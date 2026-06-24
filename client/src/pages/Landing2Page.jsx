@@ -1647,8 +1647,8 @@ export default function Landing2Page() {
           <a href="#try">Try it</a>
           <a href="#rooms">Coverage</a>
           <a href="./own-a-hotline">Own a hotline</a>
-          <a href="/client/login" className="l2-nav-login">Login</a>
-          <a href="/client/signup" className="l2-nav-cta">
+          <a href="https://hotline.redlineusedautoparts.com/client/login" className="l2-nav-login">Login</a>
+          <a href="https://hotline.redlineusedautoparts.com/client/signup" className="l2-nav-cta">
             Sign Up Free
           </a>
         </nav>
@@ -1679,10 +1679,10 @@ export default function Landing2Page() {
             yards — broadcast once, get an answer in seconds, and keep the sale.
           </p>
           <div className="l2-hero-ctas">
-            <a className="l2-btn l2-btn-hot" href="/client/signup">
+            <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup">
               Sign Up Free
             </a>
-            <a className="l2-btn l2-btn-ghost" href="/client/login">
+            <a className="l2-btn l2-btn-ghost" href="https://hotline.redlineusedautoparts.com/client/login">
               Login
             </a>
           </div>
@@ -1816,8 +1816,8 @@ export default function Landing2Page() {
           <h2>Ready to stop losing sales?</h2>
           <p>Join 500+ yards already on the network. Set up takes 30 seconds.</p>
           <div style={{display:'flex',gap:'14px',justifyContent:'center',marginBottom:'28px',flexWrap:'wrap'}}>
-            <a className="l2-btn l2-btn-hot" href="/client/signup" style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
-            <a className="l2-btn l2-btn-ghost" href="/client/login" style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
+            <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup" style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
+            <a className="l2-btn l2-btn-ghost" href="https://hotline.redlineusedautoparts.com/client/login" style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
           </div>
         </div>
       </section>
@@ -1946,7 +1946,7 @@ export default function Landing2Page() {
           ))}
         </div>
         <div className="l2-reveal" style={{textAlign:'center',marginTop:'40px'}}>
-          <a className="l2-btn l2-btn-hot" href="/client/signup">Sign Up Free — pick your room</a>
+          <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup">Sign Up Free — pick your room</a>
         </div>
       </section>
 
@@ -1989,11 +1989,11 @@ export default function Landing2Page() {
           </div>
           <div className="l2-form l2-reveal" style={{textAlign:'center'}}>
             <p className="l2-form-title">Get started in 30 seconds</p>
-            <a className="l2-btn l2-btn-hot" href="/client/signup" style={{width:'100%',display:'block',textAlign:'center',marginBottom:'14px'}}>
+            <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup" style={{width:'100%',display:'block',textAlign:'center',marginBottom:'14px'}}>
               Sign Up Free
             </a>
             <p style={{color:'rgba(255,255,255,0.6)',fontSize:'14px',marginBottom:'14px'}}>
-              Already have an account? <a href="/client/login" style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>Login</a>
+              Already have an account? <a href="https://hotline.redlineusedautoparts.com/client/login" style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>Login</a>
             </p>
             <p className="l2-form-fine">
               No credit card required. Set up your yard in minutes.
@@ -2006,7 +2006,7 @@ export default function Landing2Page() {
       <SiteFooter />
 
       {/* sticky mobile CTA */}
-      <a className="l2-sticky-cta" href="/client/signup">
+      <a className="l2-sticky-cta" href="https://hotline.redlineusedautoparts.com/client/signup">
         Sign Up Free
       </a>
     </div>

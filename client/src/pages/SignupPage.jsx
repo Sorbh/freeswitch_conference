@@ -1,30 +1,67 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+const PUBLIC_SIGNUP_ROOMS = [
+  { id: 123456701, name: 'California' },
+  { id: 123456712, name: 'Arizona' },
+  { id: 123456703, name: 'Texas' },
+  { id: 123456704, name: 'NewJersey' },
+  { id: 123456705, name: 'Florida' },
+  { id: 123456706, name: 'Mexico' },
+  { id: 123456707, name: 'Egypt' },
+  { id: 123456708, name: 'Spain' },
+  { id: 123456709, name: 'Ghana' },
+  { id: 123456711, name: 'SanDiego' },
+];
+
+const PRIMARY_ROOM_COUNT = 3;
+
 export default function SignupPage() {
   const [form, setForm] = useState({ email: '', password: '', company_name: '', display_name: '', company_phone: '', city: '', zip: '', room: '', referral_code: '' });
-  const [rooms, setRooms] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  const [showMoreRooms, setShowMoreRooms] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
-    if (ref) setForm(f => ({ ...f, referral_code: ref }));
-  }, []);
-
-  useEffect(() => {
-    fetch('/api/v1/client/rooms')
-      .then(r => r.json())
-      .then(json => { if (json.data) setRooms(json.data); })
-      .catch(() => {});
+    const email = params.get('email') || params.get('e');
+    const company = params.get('company_name') || params.get('company') || params.get('c');
+    const ref = params.get('ref') || params.get('referral_code');
+    const room = params.get('room');
+    const requestedRoom = room && PUBLIC_SIGNUP_ROOMS.find(item => (
+      String(item.id) === String(room) ||
+      item.name.toLowerCase() === String(room).toLowerCase()
+    ));
+    const defaultRoom = requestedRoom || PUBLIC_SIGNUP_ROOMS[0];
+    setForm(f => ({
+      ...f,
+      ...(email ? { email } : {}),
+      ...(company ? { company_name: company } : {}),
+      ...(ref ? { referral_code: ref } : {}),
+      room: String(defaultRoom.id),
+    }));
   }, []);
 
   function update(field) {
     return e => setForm(f => ({ ...f, [field]: e.target.value }));
   }
+
+  function trimField(field) {
+    return () => setForm(f => ({ ...f, [field]: String(f[field] || '').trim() }));
+  }
+
+  function selectRoom(roomId) {
+    setForm(f => ({ ...f, room: String(f.room) === String(roomId) ? '' : String(roomId) }));
+  }
+
+  function roomLabel(room) {
+    return room.name.replace(/([a-z])([A-Z])/g, '$1 $2');
+  }
+
+  const visibleRooms = showMoreRooms ? PUBLIC_SIGNUP_ROOMS : PUBLIC_SIGNUP_ROOMS.slice(0, PRIMARY_ROOM_COUNT);
+  const hiddenRoomCount = PUBLIC_SIGNUP_ROOMS.length - PRIMARY_ROOM_COUNT;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -32,10 +69,18 @@ export default function SignupPage() {
     setSuccess('');
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        email: form.email.trim(),
+        password: form.password.trim(),
+        company_name: form.company_name.trim(),
+        referral_code: form.referral_code.trim(),
+      };
+      setForm(payload);
       const res = await fetch('/api/v1/client/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
@@ -84,57 +129,70 @@ export default function SignupPage() {
           {error && <div className="hq-alert-error">{error}</div>}
 
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="hq-label">Company Name</label>
-                <input type="text" value={form.company_name} onChange={update('company_name')} required className="hq-input" placeholder="Acme Auto Parts" />
-              </div>
-              <div>
-                <label className="hq-label">Owner Name</label>
-                <input type="text" value={form.display_name} onChange={update('display_name')} required className="hq-input" placeholder="John Smith" />
-              </div>
+            <div className="mb-3">
+              <label className="hq-label">Company Name</label>
+              <input type="text" value={form.company_name} onChange={update('company_name')} onBlur={trimField('company_name')} required className="hq-input" placeholder="Acme Auto Parts" />
             </div>
 
             <div className="mb-3">
               <label className="hq-label">Email</label>
-              <input type="email" value={form.email} onChange={update('email')} required className="hq-input" placeholder="you@company.com" />
+              <input type="email" value={form.email} onChange={update('email')} onBlur={trimField('email')} required className="hq-input" placeholder="you@company.com" />
             </div>
 
             <div className="mb-3">
               <label className="hq-label">Password</label>
-              <input type="password" value={form.password} onChange={update('password')} required minLength={6} className="hq-input" placeholder="At least 6 characters" />
+              <input type="password" value={form.password} onChange={update('password')} onBlur={trimField('password')} required minLength={6} className="hq-input" placeholder="At least 6 characters" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="hq-label">Phone</label>
-                <input type="tel" value={form.company_phone} onChange={update('company_phone')} required className="hq-input" placeholder="(555) 555-5555" />
+            <div className="mb-4">
+              <label className="hq-label">Starting Room <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {visibleRooms.map(room => {
+                  const selected = String(form.room) === String(room.id);
+                  return (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => selectRoom(room.id)}
+                      className="px-4 py-2 rounded-lg text-sm font-normal"
+                      style={{
+                        background: selected ? 'var(--red-soft)' : 'var(--surface)',
+                        border: selected ? '1px solid var(--red)' : '1px solid var(--line)',
+                        color: selected ? 'var(--red)' : 'var(--ink)',
+                        boxShadow: selected ? '0 8px 20px rgba(217,45,32,0.12)' : 'none',
+                      }}
+                    >
+                      {roomLabel(room)}
+                    </button>
+                  );
+                })}
               </div>
-              <div>
-                <label className="hq-label">City</label>
-                <input type="text" value={form.city} onChange={update('city')} required className="hq-input" placeholder="San Bernardino" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="hq-label">Zip Code</label>
-                <input type="text" value={form.zip} onChange={update('zip')} required className="hq-input" placeholder="92407" />
-              </div>
-              <div>
-                <label className="hq-label">Room</label>
-                <select value={form.room} onChange={update('room')} required className="hq-input appearance-none" style={{ color: form.room ? 'var(--ink)' : 'var(--muted)' }}>
-                  <option value="">Select a room</option>
-                  {rooms.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-              </div>
+              {hiddenRoomCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowMoreRooms(v => !v)}
+                  className="mt-2 text-xs font-medium"
+                  style={{
+                    color: 'var(--red)',
+                    background: 'transparent',
+                    border: 0,
+                    padding: 0,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {showMoreRooms ? 'Show fewer rooms' : `Show ${hiddenRoomCount} more rooms`}
+                </button>
+              )}
             </div>
 
             <div className="mb-4">
               <label className="hq-label">Referral Code <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
-              <input type="text" value={form.referral_code} onChange={update('referral_code')} className="hq-input" placeholder="e.g. A7K2M9" maxLength={6} style={{ textTransform: 'uppercase' }} />
+              <input type="text" value={form.referral_code} onChange={update('referral_code')} onBlur={trimField('referral_code')} className="hq-input" placeholder="e.g. A7K2M9" maxLength={6} style={{ textTransform: 'uppercase' }} />
+            </div>
+
+            <div className="flex items-center justify-center gap-2 mb-4 text-xs" style={{ color: 'var(--muted)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--green)' }} />
+              <span>Free signup. No card required.</span>
             </div>
 
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">

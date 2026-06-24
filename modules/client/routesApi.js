@@ -79,13 +79,20 @@ clientRouter.post("/signup", async (req, res) => {
         }
 
         const { email, password, company_name, display_name, company_phone, city, zip, room, referral_code } = req.body;
+        const cleanEmail = String(email || '').toLowerCase().trim();
+        const cleanCompanyName = String(company_name || '').trim();
+        const cleanDisplayName = String(display_name || '').trim();
+        const cleanCompanyPhone = String(company_phone || '').trim();
+        const cleanCity = String(city || '').trim();
+        const cleanZip = String(zip || '').trim();
+        const cleanReferralCode = String(referral_code || '').trim().toUpperCase();
 
-        if (!email || !password || !company_name || !display_name || !company_phone || !city || !zip || !room) {
-            return res.status(400).json({ status: false, error: "All fields are required: email, password, company_name, display_name, company_phone, city, zip, room" });
+        if (!cleanEmail || !password || !cleanCompanyName) {
+            return res.status(400).json({ status: false, error: "Company name, email, and password are required" });
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(cleanEmail)) {
             return res.status(400).json({ status: false, error: "Invalid email address" });
         }
 
@@ -93,13 +100,16 @@ clientRouter.post("/signup", async (req, res) => {
             return res.status(400).json({ status: false, error: "Password must be at least 6 characters" });
         }
 
-        const roomId = parseInt(room, 10);
-        const roomData = global.db.getRoom(roomId);
-        if (!roomData) {
+        const requestedRoomId = parseInt(room, 10);
+        const defaultRoomId = parseInt(process.env.SIGNUP_DEFAULT_ROOM_ID, 10);
+        const allRooms = global.db.getAllRooms();
+        const roomId = requestedRoomId || defaultRoomId || allRooms[0]?.id || null;
+        const roomData = roomId ? global.db.getRoom(roomId) : null;
+        if (roomId && !roomData) {
             return res.status(400).json({ status: false, error: "Selected room does not exist" });
         }
 
-        const existing = global.db.getAccountByEmail(email.toLowerCase().trim());
+        const existing = global.db.getAccountByEmail(cleanEmail);
         if (existing) {
             return res.status(409).json({ status: false, error: "An account with this email already exists" });
         }
@@ -107,15 +117,16 @@ clientRouter.post("/signup", async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 12);
         const verificationToken = crypto.randomBytes(32).toString('hex');
         const verificationExpires = Math.floor(Date.now() / 1000) + VERIFICATION_TOKEN_EXPIRY;
+        const fallbackDisplayName = cleanDisplayName || cleanCompanyName || cleanEmail.split('@')[0];
 
         const account = global.db.createAccount({
-            email: email.toLowerCase().trim(),
+            email: cleanEmail,
             password: password,
-            displayName: display_name.trim(),
-            companyName: company_name.trim(),
-            companyPhone: company_phone.trim(),
-            city: city.trim(),
-            zip: zip.trim(),
+            displayName: fallbackDisplayName,
+            companyName: cleanCompanyName,
+            companyPhone: cleanCompanyPhone || null,
+            city: cleanCity || null,
+            zip: cleanZip || null,
             room: roomId,
         });
 
@@ -128,8 +139,8 @@ clientRouter.post("/signup", async (req, res) => {
             active: 0,
         };
 
-        if (referral_code) {
-            const referrer = global.db.getAccountByReferralCode(referral_code.trim().toUpperCase());
+        if (cleanReferralCode) {
+            const referrer = global.db.getAccountByReferralCode(cleanReferralCode);
             if (referrer) {
                 updateFields.referred_by = referrer.id;
             }
@@ -137,21 +148,21 @@ clientRouter.post("/signup", async (req, res) => {
 
         global.db.updateAccount(account.id, updateFields);
 
-        logSystem('CLIENT', `API /signup email=${email} company=${company_name} room=${roomId} ip=${ip}`);
+        logSystem('CLIENT', `API /signup email=${cleanEmail} company=${cleanCompanyName} room=${roomId || ''} ip=${ip}`);
 
         try {
-            await sendVerificationEmail({ email: account.email, token: verificationToken, displayName: display_name });
+            await sendVerificationEmail({ email: account.email, token: verificationToken, displayName: fallbackDisplayName });
         } catch (emailErr) {
             console.error('[SIGNUP] Verification email failed:', emailErr.message);
         }
 
         sendNewSignupNotification({
             email: account.email,
-            companyName: company_name,
-            displayName: display_name,
+            companyName: cleanCompanyName,
+            displayName: fallbackDisplayName,
             room: roomId,
-            roomName: roomData.name,
-            zip,
+            roomName: roomData?.name || '',
+            zip: cleanZip,
         }).catch(() => {});
 
         res.json({ status: true, message: "Account created. Please check your email to verify your account." });

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <!-- Suggested subject: Join the network or own your own parts hotline -->
+  <!-- Personalization variables: {{company_name}}, {{company_name_sentence}}, {{recipient_email}} -->
+  <meta name="recipient-email" content="{{recipient_email}}">
   <meta name="email-subject" content="Join the network or own your own parts hotline">
   <title>Own your own Hotline HQ line</title>
   <style>
@@ -385,6 +387,21 @@
       font-size: 0;
     }
 
+    .call-action {
+      margin: 10px 0 0;
+      font-size: 0;
+    }
+
+    .call-action .badge {
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .call-action .play-link {
+      margin-top: 0;
+      vertical-align: middle;
+    }
+
     .proof-chip {
       display: inline-block;
       margin: 0 5px 5px 0;
@@ -589,18 +606,28 @@
         border-bottom: 1px solid #e7e4dd;
       }
       .money-table tr td:last-child { border-bottom: 0; }
-      .badge-cell {
-        display: block;
-        width: auto;
-        padding: 0 14px 14px 66px;
-        text-align: left;
-      }
-      .call-icon, .call-main { padding-bottom: 6px; }
       .btn, .btn-secondary {
         display: block;
         margin: 0 0 10px;
         text-align: center;
       }
+      .call-table { display: table !important; table-layout: fixed; width: 100% !important; }
+      .call-table tbody { display: table-row-group !important; }
+      .call-table tr { display: table-row !important; }
+      .call-icon {
+        display: table-cell !important;
+        width: 44px !important;
+        padding: 14px 0 14px 14px !important;
+        vertical-align: top !important;
+      }
+      .call-main {
+        display: table-cell !important;
+        width: auto !important;
+        padding: 14px !important;
+      }
+      .badge-cell { display: none !important; }
+      .call-action { margin-top: 10px !important; }
+      .call-action .play-link { margin-top: 0 !important; }
       .room-table th:nth-child(3),
       .room-table td:nth-child(3) {
         display: none;
@@ -610,17 +637,17 @@
 </head>
 <body>
   <div class="preheader">
-    Join the existing Hotline HQ network, or use the same engine to run a private line for your yard, group, or market.
+    {{company_name_sentence}} can join the existing network or use the same engine to run a private parts hotline.
   </div>
 
   <div class="wrap">
     <div class="email own-line-email">
       <div class="hero">
         <div class="brand">Hotline <span>HQ</span></div>
-        <a class="eyebrow" href="https://redlineusedautoparts.com/hotlinehq/client/signup" target="_blank" rel="noopener noreferrer" style="color:#b42318 !important;text-decoration:none;">Network or private line</a>
-        <h1>Join the shared network, or own the hotline for your market.</h1>
+        <a class="eyebrow" href="{{signup_url}}" target="_blank" rel="noopener noreferrer" style="color:#b42318 !important;text-decoration:none;">Network or private line</a>
+        <h1>{{company_name_sentence}} can join the shared network, or own the hotline for your market.</h1>
         <p class="lead">
-          Hotline HQ can connect your yard to the existing parts-locating network, or we can set up a dedicated line for your yard, buying group, or broker network.
+          Hotline HQ can connect {{company_name}} to the existing parts-locating network, or we can set up a dedicated line for your yard, buying group, or broker network.
           <strong>Use the shared line to test demand, then own the workflow when you want control.</strong>
         </p>
       </div>
@@ -727,10 +754,10 @@
                     <span class="proof-chip">128 listeners</span>
                     <span class="proof-chip green">6 participants</span>
                   </p>
-                </td>
-                <td class="badge-cell">
-                  <span class="badge">Answered</span><br>
-                  <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/218bd3f7-92b7-4689-9cfa-323691eae7bb" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  <p class="call-action">
+                    <span class="badge">Answered</span>
+                    <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/218bd3f7-92b7-4689-9cfa-323691eae7bb" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  </p>
                 </td>
               </tr>
             </table>
@@ -748,10 +775,10 @@
                     <span class="proof-chip">130 listeners</span>
                     <span class="proof-chip green">Answered</span>
                   </p>
-                </td>
-                <td class="badge-cell">
-                  <span class="badge">Answered</span><br>
-                  <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/e334b10b-0d0d-436a-ae79-6417b71edb8e" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  <p class="call-action">
+                    <span class="badge">Answered</span>
+                    <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/e334b10b-0d0d-436a-ae79-6417b71edb8e" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  </p>
                 </td>
               </tr>
             </table>
@@ -769,10 +796,10 @@
                     <span class="proof-chip">130 listeners</span>
                     <span class="proof-chip green">Answered</span>
                   </p>
-                </td>
-                <td class="badge-cell">
-                  <span class="badge">Answered</span><br>
-                  <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/0ebfd21b-3f02-4f80-a406-a3c6d496baf5" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  <p class="call-action">
+                    <span class="badge">Answered</span>
+                    <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/0ebfd21b-3f02-4f80-a406-a3c6d496baf5" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  </p>
                 </td>
               </tr>
             </table>
@@ -790,10 +817,10 @@
                     <span class="proof-chip">130 listeners</span>
                     <span class="proof-chip green">Answered</span>
                   </p>
-                </td>
-                <td class="badge-cell">
-                  <span class="badge">Answered</span><br>
-                  <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/e9d8649c-2e1b-4828-9796-f6ea9204827e" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  <p class="call-action">
+                    <span class="badge">Answered</span>
+                    <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/e9d8649c-2e1b-4828-9796-f6ea9204827e" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  </p>
                 </td>
               </tr>
             </table>
@@ -811,10 +838,10 @@
                     <span class="proof-chip">130 listeners</span>
                     <span class="proof-chip green">Answered</span>
                   </p>
-                </td>
-                <td class="badge-cell">
-                  <span class="badge">Answered</span><br>
-                  <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/285c1563-8538-4bbe-a193-9ae1369af2c3" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  <p class="call-action">
+                    <span class="badge">Answered</span>
+                    <a class="play-link" href="https://hotline.redlineusedautoparts.com/b/285c1563-8538-4bbe-a193-9ae1369af2c3" target="_blank" rel="noopener noreferrer"><span class="play-icon">&#9658;</span></a>
+                  </p>
                 </td>
               </tr>
             </table>
@@ -860,7 +887,7 @@
 
         <div class="cta">
           <a class="btn" href="https://redlineusedautoparts.com/hotlinehq/own-a-hotline" target="_blank" rel="noopener noreferrer">Own your own line</a>
-          <a class="btn-secondary" href="https://redlineusedautoparts.com/hotlinehq/client/signup" target="_blank" rel="noopener noreferrer">Sign up free</a>
+          <a class="btn-secondary" href="{{signup_url}}" target="_blank" rel="noopener noreferrer">Sign up free</a>
         </div>
 
         <p>

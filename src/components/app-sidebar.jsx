@@ -29,6 +29,7 @@ import {
   BellIcon,
   MegaphoneIcon,
   TerminalIcon,
+  LinkIcon,
 } from "lucide-react"
 
 const teams = [
@@ -61,6 +62,7 @@ const allNavGroups = [
       { title: "FS Logs", url: "/fs-logs", icon: <ScrollTextIcon />, roles: ['admin'] },
       { title: "Phone Log", url: "/phone-logs", icon: <PhoneIcon />, roles: ['admin'] },
       { title: "YMCS Control", url: "/ymcs", icon: <CloudIcon />, roles: ['admin'] },
+      { title: "Short Links", url: "/short-links", icon: <LinkIcon />, roles: ['admin'] },
     ],
   },
 ]

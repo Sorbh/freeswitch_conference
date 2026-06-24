@@ -122,8 +122,8 @@ export default function ExtensionsPage() {
       <div className="relative">
         {/* Blur overlay if user has no extension */}
         {!hasExtension && !loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl" style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(3px)' }}>
-            <div className="text-center px-6">
+          <div className="absolute inset-0 z-10 flex items-start justify-center rounded-2xl px-4 pt-8 md:pt-10" style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(3px)' }}>
+            <div className="text-center px-6 py-5 rounded-2xl" style={{ background: 'rgba(255,255,255,0.82)', border: '1px solid var(--line)', boxShadow: '0 18px 50px rgba(17,24,39,0.08)' }}>
               <button
                 onClick={() => setRequestOpen(true)}
                 className="hq-btn px-6 py-3 text-sm"

@@ -32,6 +32,7 @@ const YmcsControlPage = lazy(() => import("@/pages/YmcsControlPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 const AnnouncementsPage = lazy(() => import("@/pages/AnnouncementsPage"));
 const ServerLogsPage = lazy(() => import("@/pages/ServerLogsPage"));
+const ShortLinksPage = lazy(() => import("@/pages/ShortLinksPage"));
 import { Loader2Icon } from "lucide-react";
 
 const dashboardRoutes = [
@@ -48,6 +49,7 @@ const dashboardRoutes = [
   { path: "/ymcs", element: <YmcsControlPage />, title: "YMCS Control" },
   { path: "/notifications", element: <NotificationsPage />, title: "Notifications" },
   { path: "/announcements", element: <AnnouncementsPage />, title: "Network Announcements" },
+  { path: "/short-links", element: <ShortLinksPage />, title: "Short Links" },
 ];
 
 function ScrollToTop() {

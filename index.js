@@ -54,7 +54,15 @@ import ApiRouter from "./routes/api.js";
 const { json, urlencoded } = express;
 
 const app = express();
-const distAssets = express.static(path.join(__dirname, "dist", "assets"), { index: false });
+const setNoStoreHtml = (res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+};
+
+const sendAssetNotFound = (res) => {
+    res.status(404).type("text/plain").send("Asset not found");
+};
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(json());
@@ -63,17 +71,42 @@ app.use(cookieParser());
 // Admin app assets (dist/assets/) at /admin/
 const adminDistDir = path.join(__dirname, "dist");
 const adminAssets = express.static(path.join(adminDistDir, "assets"), { index: false });
+const sendAdminIndex = (req, res) => {
+    setNoStoreHtml(res);
+    res.sendFile(path.join(adminDistDir, "index.html"));
+};
 app.use("/admin/assets", adminAssets);
-app.use("/admin", express.static(adminDistDir));
+app.get("/admin/assets/*", (req, res) => sendAssetNotFound(res));
+app.use("/admin", express.static(adminDistDir, { index: false }));
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/recordings", express.static(path.join(__dirname, "recordings")));
 
+// Short URL redirect
+app.get("/s/:code", (req, res) => {
+    const row = global.db.getShortUrlByCode(req.params.code);
+    if (!row) return res.status(404).send("Not found");
+    if (row.expires_at && row.expires_at < Math.floor(Date.now() / 1000)) return res.status(410).send("Link expired");
+    global.db.incrementShortUrlClicks(req.params.code);
+    res.redirect(302, row.destination_url);
+});
+
+// Short URL CRUD — localhost only (no auth needed)
+import shortUrlsLocalRouter from "./modules/admin/shortUrls.js";
+app.use("/local", (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress || '';
+    if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
+    res.status(403).json({ status: false, error: "Localhost only" });
+}, shortUrlsLocalRouter);
+
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
 // Admin SPA fallback — any /admin/* that didn't match static files
+app.get("/admin", sendAdminIndex);
+app.get("/admin/", sendAdminIndex);
 app.get("/admin/*", (req, res) => {
-    res.sendFile(path.join(adminDistDir, "index.html"));
+    if (path.extname(req.path)) return sendAssetNotFound(res);
+    sendAdminIndex(req, res);
 });
 
 // Client app — serve at / (must be AFTER /api and /admin)
@@ -87,10 +120,12 @@ if (fs.existsSync(clientDistDir)) {
             .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
             .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
             .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
+        setNoStoreHtml(res);
         res.type("html").send(html);
     };
 
     app.use("/hotlinehq/assets", clientAssets);
+    app.get("/hotlinehq/assets/*", (req, res) => sendAssetNotFound(res));
     app.get("/hotlinehq/favicon.svg", (req, res) => {
         res.sendFile(path.join(__dirname, "public", "favicon.svg"));
     });
@@ -98,10 +133,12 @@ if (fs.existsSync(clientDistDir)) {
     app.get("/hotlinehq/*", sendClientIndex);
 
     app.use("/assets", clientAssets);
+    app.get("/assets/*", (req, res) => sendAssetNotFound(res));
     app.use(express.static(clientDistDir, { index: false }));
     // SPA fallback for client app — skip API, admin, and static file paths
     app.get("*", (req, res, next) => {
         if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/recordings/')) return next();
+        if (path.extname(req.path)) return next();
         sendClientIndex(req, res);
     });
 }

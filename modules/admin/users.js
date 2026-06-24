@@ -443,6 +443,11 @@ export async function changeUserRoom(userName, newRoom, source = 'api') {
     sendClientEventToRoom(oldRoom, { type: 'room_change', direction: 'left', ...sharedFields, ...buildRoomSnapshot(oldRoom), online: buildOnlineCounts() });
     sendClientEventToRoom(newRoom, { type: 'room_change', direction: 'joined', ...sharedFields, ...buildRoomSnapshot(newRoom), online: buildOnlineCounts() });
 
+    if (source !== 'rdl-socket') {
+        const { sendRoomChangeNotification } = await import('../../service/rdlSocket.js');
+        sendRoomChangeNotification(userName, newRoom);
+    }
+
     emitStateChange('users', { userName });
     emitStateChange('rooms');
     emitStateChange('dashboard');
