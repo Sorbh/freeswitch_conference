@@ -233,7 +233,7 @@ router.post("/broadcasts/:id/whisper", async (req, res) => {
         if (!broadcast.recording_path) return res.status(400).json({ status: false, error: "No recording available" });
 
         const { whisperTranscribeBroadcast } = await import('../../service/transcription.js');
-        const result = whisperTranscribeBroadcast(id);
+        const result = await whisperTranscribeBroadcast(id);
         res.json({ status: true, data: result });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });

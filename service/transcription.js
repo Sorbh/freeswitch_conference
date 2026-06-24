@@ -77,7 +77,7 @@
 // └──────────────────────────┴────────────────────────────────────────────────┘
 
 import fs from 'fs';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import config from '../config/config.js';
 import { logSystem } from './logger.js';
 
@@ -378,31 +378,35 @@ export function whisperTranscribe(audioPath) {
     if (!audioPath || !fs.existsSync(audioPath)) throw new Error('Audio file not found');
 
     const startMs = Date.now();
-    const text = execFileSync(config.WHISPER_CLI, [
-        '-m', config.WHISPER_MODEL,
-        '-f', audioPath,
-        '--no-timestamps',
-        '-t', '4',
-    ], { encoding: 'utf8', timeout: 30000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-    const elapsedMs = Date.now() - startMs;
+    return new Promise((resolve, reject) => {
+        execFile(config.WHISPER_CLI, [
+            '-m', config.WHISPER_MODEL,
+            '-f', audioPath,
+            '--no-timestamps',
+            '-t', '4',
+        ], { encoding: 'utf8', timeout: 30000 }, (err, stdout) => {
+            if (err) return reject(err);
+            const text = (stdout || '').trim();
+            const elapsedMs = Date.now() - startMs;
+            const hasPartsRequest = checkContainsYearOrNumber(text);
 
-    const hasPartsRequest = checkContainsYearOrNumber(text);
+            _logSTT('Whisper Local', [
+                `file: ${audioPath.split('/').pop()}`,
+                `completed in ${elapsedMs}ms │ parts_request: ${hasPartsRequest}`,
+                `result: ${text.length} chars${text.length > 0 ? ' │ "' + text.slice(0, 100) + (text.length > 100 ? '…"' : '"') : ''}`,
+            ]);
 
-    _logSTT('Whisper Local', [
-        `file: ${audioPath.split('/').pop()}`,
-        `completed in ${elapsedMs}ms │ parts_request: ${hasPartsRequest}`,
-        `result: ${text.length} chars${text.length > 0 ? ' │ "' + text.slice(0, 100) + (text.length > 100 ? '…"' : '"') : ''}`,
-    ]);
-
-    return { text, hasPartsRequest, elapsedMs };
+            resolve({ text, hasPartsRequest, elapsedMs });
+        });
+    });
 }
 
-export function whisperTranscribeBroadcast(broadcastId) {
+export async function whisperTranscribeBroadcast(broadcastId) {
     const broadcast = global.db.getBroadcastById(broadcastId);
     if (!broadcast?.recording_path) return null;
 
     try {
-        const result = whisperTranscribe(broadcast.recording_path);
+        const result = await whisperTranscribe(broadcast.recording_path);
         global.db.updateBroadcastLocalTranscription(broadcastId, result.text, result.hasPartsRequest);
         return result;
     } catch (err) {
@@ -421,7 +425,7 @@ export async function processBroadcastTranscription(broadcastId, recordingPath) 
     // 1. Local whisper first (free, fast)
     let hasPartsRequest = false;
     try {
-        const result = whisperTranscribeBroadcast(id);
+        const result = await whisperTranscribeBroadcast(id);
         if (result) hasPartsRequest = result.hasPartsRequest;
     } catch (err) {
         logSystem('BCAST', `Whisper failed for #${id}: ${err.message}`);

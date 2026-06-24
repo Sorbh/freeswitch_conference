@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { HQMark } from "./landing2/site";
 
+const PUBLIC_LOGIN_URL = "https://hotline.redlineusedautoparts.com/client/login";
+const PUBLIC_SIGNUP_URL = "https://hotline.redlineusedautoparts.com/client/signup";
+
 function formatDuration(ms) {
   if (!ms) return "0s";
   const s = Math.floor(ms / 1000);
@@ -50,6 +53,12 @@ function trackClarityEvent(name) {
   } catch {
     // Analytics should never affect the public page experience.
   }
+}
+
+function buildSignupUrl(roomName) {
+  const url = new URL(PUBLIC_SIGNUP_URL);
+  if (roomName) url.searchParams.set("room", roomName);
+  return url.toString();
 }
 
 function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
@@ -360,6 +369,28 @@ export default function PublicBroadcastPage() {
     trackClarityEvent("public_broadcast_audio_play");
   }, [data?.id, token]);
 
+  const handleSignupClick = useCallback(() => {
+    setClarityTags({
+      page_type: "public_broadcast",
+      public_broadcast_token: token,
+      public_broadcast_id: data?.id,
+      public_broadcast_cta: "signup",
+    });
+    trackClarityEvent("public_broadcast_signup_click");
+  }, [data?.id, token]);
+
+  const handleLoginClick = useCallback(() => {
+    setClarityTags({
+      page_type: "public_broadcast",
+      public_broadcast_token: token,
+      public_broadcast_id: data?.id,
+      public_broadcast_cta: "login",
+    });
+    trackClarityEvent("public_broadcast_login_click");
+  }, [data?.id, token]);
+
+  const signupUrl = buildSignupUrl(data?.room_name);
+
   const content = loading ? (
     <LoadingState />
   ) : error ? (
@@ -373,7 +404,29 @@ export default function PublicBroadcastPage() {
             Hotline&nbsp;<em>HQ</em>
           </span>
         </Link>
-        <span className="bp-header-label">Shared Broadcast</span>
+        <div className="bp-header-side">
+          <span className="bp-header-label">Shared Broadcast</span>
+          <div className="bp-header-actions">
+            <a
+              href={PUBLIC_LOGIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bp-header-link"
+              onClick={handleLoginClick}
+            >
+              Log in
+            </a>
+            <a
+              href={signupUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bp-header-btn"
+              onClick={handleSignupClick}
+            >
+              Sign up free
+            </a>
+          </div>
+        </div>
       </div>
 
       <main className="bp-main">
@@ -527,6 +580,59 @@ export default function PublicBroadcastPage() {
               <div className="bp-transcript-text">{data.transcription}</div>
             </div>
           )}
+
+          <div className="bp-cta-section">
+            <div className="bp-cta-copy">
+              <p className="bp-section-label" style={{ marginBottom: 10 }}>
+                <ShieldCheckIcon />
+                Join the network
+              </p>
+              <h2 className="bp-cta-title">Want access to live parts calls like this?</h2>
+              <p className="bp-cta-text">
+                Join Hotline HQ to hear live room traffic, broadcast your own parts requests, and answer calls as they happen.
+              </p>
+            </div>
+
+            <div className="bp-cta-trust-grid">
+              <div className="bp-cta-trust">
+                <span className="bp-cta-trust-value">Free signup</span>
+                <span className="bp-cta-trust-label">No card required</span>
+              </div>
+              <div className="bp-cta-trust">
+                <span className="bp-cta-trust-value">{data.listener_count || 0} listeners</span>
+                <span className="bp-cta-trust-label">Heard this broadcast</span>
+              </div>
+              <div className="bp-cta-trust">
+                <span className="bp-cta-trust-value">{data.room_name || "Live room"}</span>
+                <span className="bp-cta-trust-label">Room ready on signup</span>
+              </div>
+            </div>
+
+            <div className="bp-cta-actions">
+              <a
+                href={signupUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bp-cta-btn bp-cta-btn-primary"
+                onClick={handleSignupClick}
+              >
+                Sign up free
+              </a>
+              <a
+                href={PUBLIC_LOGIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bp-cta-btn bp-cta-btn-secondary"
+                onClick={handleLoginClick}
+              >
+                Log in
+              </a>
+            </div>
+
+            <p className="bp-cta-footnote">
+              Existing member? Log in and get back to the room faster. New yard? Start free and join the network in minutes.
+            </p>
+          </div>
         </div>
       </main>
 
@@ -607,6 +713,47 @@ const PAGE_CSS = `
   text-transform: uppercase;
   color: var(--subtle);
   font-weight: 500;
+}
+.bp-header-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.bp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bp-header-link,
+.bp-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.bp-header-link {
+  color: var(--ink) !important;
+  background: #f7f5f1;
+  border: 1px solid var(--line);
+}
+.bp-header-btn {
+  color: #fff !important;
+  background: var(--red);
+  border: 1px solid var(--red);
+  box-shadow: 0 8px 18px rgba(217,45,32,0.2);
+}
+.bp-header-link:hover,
+.bp-header-btn:hover {
+  transform: translateY(-1px);
+}
+.bp-header-btn:hover {
+  background: var(--red-deep);
 }
 
 /* Main */
@@ -1051,6 +1198,99 @@ const PAGE_CSS = `
 .bp-transcript-text {
   background: var(--bg);
 }
+.bp-cta-section {
+  margin: 22px;
+  padding: 22px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(217,45,32,0.08), transparent 36%),
+    linear-gradient(180deg, #fff8f7 0%, #ffffff 100%);
+  border: 1px solid #f6d4cf;
+  box-shadow: 0 12px 30px -20px rgba(217,45,32,0.35);
+}
+.bp-cta-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(24px, 4vw, 32px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.bp-cta-text {
+  margin: 10px 0 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.bp-cta-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.bp-cta-trust {
+  padding: 14px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.84);
+  border: 1px solid #f3ddd9;
+}
+.bp-cta-trust-value {
+  display: block;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.bp-cta-trust-label {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bp-cta-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+.bp-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+.bp-cta-btn:hover {
+  transform: translateY(-1px);
+}
+.bp-cta-btn-primary {
+  color: #fff !important;
+  background: var(--red);
+  border: 1px solid var(--red);
+  box-shadow: 0 10px 24px rgba(217,45,32,0.24);
+}
+.bp-cta-btn-primary:hover {
+  background: var(--red-deep);
+}
+.bp-cta-btn-secondary {
+  color: var(--ink) !important;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.bp-cta-footnote {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
 .bp-footer {
   margin-top: auto;
   background: var(--surface);
@@ -1138,7 +1378,15 @@ const PAGE_CSS = `
   .bp-main { padding: 28px 12px 48px; }
   .bp-card { padding: 0; border-radius: 14px; }
   .bp-header { padding: 14px 16px; }
+  .bp-header-side { gap: 10px; }
   .bp-header-label { display: none; }
+  .bp-header-actions { gap: 8px; }
+  .bp-header-link,
+  .bp-header-btn {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
   .bp-dashboard-head { flex-direction: column; padding: 18px; gap: 14px; }
   .bp-badge { margin-top: 0; }
   .bp-stat-grid { grid-template-columns: 1fr 1fr; padding: 12px; gap: 8px; }
@@ -1164,5 +1412,28 @@ const PAGE_CSS = `
     margin-left: 16px;
     margin-right: 16px;
   }
+  .bp-cta-section {
+    margin: 16px;
+    padding: 18px;
+    border-radius: 16px;
+  }
+  .bp-cta-trust-grid {
+    grid-template-columns: 1fr;
+  }
+  .bp-cta-actions {
+    flex-direction: column;
+  }
+  .bp-cta-btn {
+    width: 100%;
+  }
 }
 `;
+
+function ShieldCheckIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}

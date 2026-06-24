@@ -1172,7 +1172,7 @@ function getBroadcastById(id) {
 }
 
 function getBroadcastByRecordingPath(recordingPath) {
-    return sqlite.prepare('SELECT id FROM broadcast_log WHERE recording_path = ? ORDER BY id DESC LIMIT 1').get(recordingPath) || null;
+    return sqlite.prepare('SELECT id, room FROM broadcast_log WHERE recording_path = ? ORDER BY id DESC LIMIT 1').get(recordingPath) || null;
 }
 
 // ── Settings ──

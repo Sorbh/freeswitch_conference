@@ -83,6 +83,7 @@ export default function DashboardLayout() {
   const [rooms, setRooms] = useState([]);
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
   const [changingRoom, setChangingRoom] = useState(false);
+  const [pendingRoomChange, setPendingRoomChange] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenMessage, setFullscreenMessage] = useState('');
   const [profilePromptOpen, setProfilePromptOpen] = useState(false);
@@ -93,6 +94,7 @@ export default function DashboardLayout() {
   const [profilePromptHandled, setProfilePromptHandled] = useState(false);
   const [broadcastHelpOpen, setBroadcastHelpOpen] = useState(false);
   const [extensionHelpOpen, setExtensionHelpOpen] = useState(false);
+  const [roomChangeHelpOpen, setRoomChangeHelpOpen] = useState(false);
   const dropdownRef = useRef(null);
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
@@ -333,12 +335,26 @@ export default function DashboardLayout() {
     setProfilePromptOpen(false);
     setBroadcastHelpOpen(false);
     setExtensionHelpOpen(false);
+    setRoomChangeHelpOpen(false);
+    setPendingRoomChange(null);
     logout();
     navigate('/client/login');
   }
 
   async function handleRoomChange(newRoomId) {
     if (changingRoom) return;
+    const nextRoom = rooms.find(r => String(r.id) === String(newRoomId));
+    if (location.pathname === '/client/dashboard') {
+      setRoomDropdownOpen(false);
+      setRoomChangeHelpOpen(false);
+      setPendingRoomChange(nextRoom || { id: newRoomId, name: `Room ${newRoomId}` });
+      return;
+    }
+    await performRoomChange(newRoomId);
+  }
+
+  async function performRoomChange(newRoomId) {
+    if (changingRoom) return false;
     setRoomDropdownOpen(false);
     setChangingRoom(true);
     try {
@@ -348,10 +364,24 @@ export default function DashboardLayout() {
       });
       await refreshAccount();
       window.location.reload();
+      return true;
     } catch (err) {
       console.error('[ROOM] Change failed:', err.message);
       setChangingRoom(false);
+      return false;
     }
+  }
+
+  function cancelRoomChange() {
+    if (changingRoom) return;
+    setPendingRoomChange(null);
+  }
+
+  async function confirmRoomChange() {
+    if (!pendingRoomChange) return;
+    const changed = await performRoomChange(pendingRoomChange.id);
+    if (!changed) return;
+    setPendingRoomChange(null);
   }
 
   function updateProfilePrompt(field) {
@@ -394,9 +424,18 @@ export default function DashboardLayout() {
     if (location.pathname.endsWith('/extensions')) {
       setExtensionHelpOpen(true);
       setBroadcastHelpOpen(false);
+      setRoomChangeHelpOpen(false);
       return;
     }
     setBroadcastHelpOpen(true);
+    setExtensionHelpOpen(false);
+    setRoomChangeHelpOpen(false);
+  }
+
+  function openRoomChangeHelp() {
+    setRoomDropdownOpen(false);
+    setRoomChangeHelpOpen(true);
+    setBroadcastHelpOpen(false);
     setExtensionHelpOpen(false);
   }
 
@@ -473,15 +512,26 @@ export default function DashboardLayout() {
                 </div>
                 {roomLabel && (
                   <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={() => setRoomDropdownOpen(o => !o)}
-                      disabled={changingRoom}
-                      className="flex items-center gap-1 text-[10px] font-semibold tracking-widest uppercase mt-0.5 hover:opacity-80 transition-opacity"
-                      style={{ fontFamily: 'var(--mono)', color: 'var(--red)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    >
-                      {changingRoom ? 'Switching...' : roomLabel}
-                      <ChevronDownIcon />
-                    </button>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <button
+                        onClick={() => setRoomDropdownOpen(o => !o)}
+                        disabled={changingRoom}
+                        className="flex items-center gap-1 text-[10px] font-semibold tracking-widest uppercase hover:opacity-80 transition-opacity"
+                        style={{ fontFamily: 'var(--mono)', color: 'var(--red)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                      >
+                        {changingRoom ? 'Switching...' : roomLabel}
+                        <ChevronDownIcon />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openRoomChangeHelp}
+                        title="How room change works"
+                        className="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-red-50"
+                        style={{ color: 'var(--muted)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
+                      >
+                        <InfoIcon size={13} />
+                      </button>
+                    </div>
                     {roomDropdownOpen && rooms.length > 0 && (
                       <div
                         className="absolute left-0 top-full mt-1 z-50 rounded-xl shadow-xl overflow-hidden"
@@ -618,6 +668,123 @@ export default function DashboardLayout() {
       {extensionHelpOpen && (
         <ExtensionHelpModal onClose={() => setExtensionHelpOpen(false)} />
       )}
+
+      {roomChangeHelpOpen && (
+        <RoomChangeHelpOverlay
+          currentRoom={currentRoom}
+          currentRoomId={currentRoomId}
+          onClose={() => setRoomChangeHelpOpen(false)}
+        />
+      )}
+
+      {pendingRoomChange && (
+        <RoomChangeConfirmDialog
+          currentRoom={currentRoom}
+          currentRoomId={currentRoomId}
+          nextRoom={pendingRoomChange}
+          changing={changingRoom}
+          onCancel={cancelRoomChange}
+          onConfirm={confirmRoomChange}
+        />
+      )}
+    </div>
+  );
+}
+
+function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changing, onCancel, onConfirm }) {
+  const currentLabel = currentRoom?.name || (currentRoomId ? `Room ${currentRoomId}` : 'Current room');
+  const nextLabel = nextRoom?.name || `Room ${nextRoom?.id || ''}`;
+
+  return (
+    <div
+      className="fixed inset-0 z-[130] flex items-end md:items-center justify-center px-0 md:px-4 pt-6"
+      style={{ background: 'rgba(17,24,39,0.42)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="hq-card w-full md:max-w-md p-5 md:p-6 animate-fadeIn rounded-b-none md:rounded-b-[inherit] max-h-[calc(100vh-1rem)] overflow-auto"
+        style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        <div className="md:hidden w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--line)' }} />
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+            <SwitchRoomIcon />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Switch room?</h2>
+            <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
+              Move your line from <span className="font-semibold" style={{ color: 'var(--ink)' }}>{currentLabel}</span> to <span className="font-semibold" style={{ color: 'var(--ink)' }}>{nextLabel}</span>.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-xl px-4 py-3" style={{ background: 'var(--band)', border: '1px solid var(--line)' }}>
+          <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Before you switch</div>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)', lineHeight: 1.45 }}>
+            The conference will reconnect in the selected room. Finish any active broadcast first.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-5">
+          <button type="button" onClick={onConfirm} disabled={changing} className="hq-btn py-3">
+            {changing ? 'Switching...' : 'Switch Room'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={changing}
+            className="px-5 py-3 rounded-xl text-sm font-semibold"
+            style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoomChangeHelpOverlay({ currentRoom, currentRoomId, onClose }) {
+  const currentLabel = currentRoom?.name || (currentRoomId ? `Room ${currentRoomId}` : 'Current room');
+
+  return (
+    <div className="fixed inset-0 z-[120] pointer-events-none">
+      <div
+        className="absolute inset-0"
+        style={{ background: 'rgba(17,24,39,0.18)', backdropFilter: 'blur(1px)' }}
+      />
+
+      <div
+        className="absolute left-8 top-20 md:left-[350px] md:top-24"
+        style={{ color: 'var(--red)', filter: 'drop-shadow(0 10px 22px rgba(217,45,32,0.2))' }}
+      >
+        <ArrowUpLeftIcon />
+      </div>
+
+      <div className="absolute left-4 right-4 top-36 md:left-[380px] md:right-auto md:top-40 md:w-96 pointer-events-auto">
+        <div className="hq-card p-5 animate-fadeIn" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)' }}>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+            <SwitchRoomIcon />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Room change</h2>
+            <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
+              You are currently in <span className="font-semibold" style={{ color: 'var(--ink)' }}>{currentLabel}</span>. The room controls which group hears your broadcast and which yards you hear.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          <HelpPoint title="Pick the right market" text="Use the room name under your company to move between available Hotline HQ rooms." />
+          <HelpPoint title="Switching reconnects the line" text="After you choose a room, the conference reloads and reconnects in that room." />
+          <HelpPoint title="Broadcasts stay local to the room" text="A parts request is heard by the yards in the room you are connected to." />
+        </div>
+
+        <button type="button" onClick={onClose} className="hq-btn w-full py-3 mt-5">
+          Got it
+        </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -852,12 +1019,33 @@ function ChevronDownIcon() {
   );
 }
 
-function InfoIcon() {
+function InfoIcon({ size = 18 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
       <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+function SwitchRoomIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 7h10" />
+      <path d="m14 4 3 3-3 3" />
+      <path d="M17 17H7" />
+      <path d="m10 14-3 3 3 3" />
+    </svg>
+  );
+}
+
+function ArrowUpLeftIcon() {
+  return (
+    <svg width="70" height="70" viewBox="0 0 70 70" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M57 57C43 35 27 22 12 14" />
+      <path d="M12 14l18-2" />
+      <path d="M12 14l7 16" />
     </svg>
   );
 }
