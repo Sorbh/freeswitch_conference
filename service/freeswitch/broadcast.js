@@ -289,8 +289,5 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         .finally(() => {
             notifyBroadcast(broadcastNotifyData).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
         });
-}
 
-export function isRoomBroadcasting(conferenceName) {
-    return roomSessions.has(conferenceName);
 }

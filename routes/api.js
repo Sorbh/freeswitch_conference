@@ -4,7 +4,6 @@ import { adminRouter } from "../modules/admin/routesApi.js";
 import { eventsRouter } from "../modules/admin/events.js";
 import { clientRouter } from "../modules/client/routesApi.js";
 import { publicRouter } from "../modules/public/routesApi.js";
-import { listenRouter } from "../modules/public/live.js";
 import { yealinkRouter } from "../modules/yealink/routesApi.js";
 import { authRouter } from "../modules/auth/routesApi.js";
 import {
@@ -21,7 +20,6 @@ export default class ApiRouter {
 
         this.apiRouter.use("/auth", authRouter);
         this.apiRouter.use("/public", publicRouter);
-        this.apiRouter.use("/public/live", listenRouter);
         this.apiRouter.use("/client", clientRouter);
         this.apiRouter.use("/yealink", yealinkRouter);
         this.apiRouter.use("/freeswitch", requireLocalhost, freeswitchRouter);
