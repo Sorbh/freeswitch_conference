@@ -80,7 +80,11 @@ app.get("/admin/assets/*", (req, res) => sendAssetNotFound(res));
 app.use("/admin", express.static(adminDistDir, { index: false }));
 
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/recordings", express.static(path.join(__dirname, "recordings")));
+// Recordings: require admin auth (Bearer/cookie) — no longer open static serving
+import { requireAuth as _recAuth } from './service/auth/middleware.js';
+app.use("/recordings", (req, res, next) => {
+    _recAuth(req, res, next);
+}, express.static(path.join(__dirname, "recordings")));
 
 // Short URL redirect
 app.get("/s/:code", (req, res) => {
@@ -154,6 +158,14 @@ if (fs.existsSync(path.join(tlsDir, 'key.pem')) && fs.existsSync(path.join(tlsDi
     httpsServer.listen(PORT, () => {
         ViteExpress.bind(app, httpsServer);
         _startupLines.push(`HTTPS listening at https://localhost:${PORT}/`);
+    });
+
+    // Live stream WebSocket server
+    import('./service/liveStream/streamService.js').then(({ initLiveStream }) => {
+        initLiveStream(httpsServer);
+        _startupLines.push('Live stream WebSocket initialized');
+    }).catch(err => {
+        _startupLines.push(`Live stream init failed: ${err.message}`);
     });
     app.listen(4070, '127.0.0.1', () => {
         _startupLines.push('Internal HTTP listening at http://127.0.0.1:4070/');

@@ -25,7 +25,7 @@ import { apiFetch } from "@/lib/api";
 import {
   Volume2Icon, MicIcon, MicOffIcon, PhoneOffIcon, RefreshCwIcon,
   UsersIcon, WifiIcon, PhoneCallIcon, ActivityIcon, VolumeXIcon,
-  RadioIcon, PlusIcon, PencilIcon, Trash2Icon, HeadphonesIcon, Loader2Icon, SquareIcon,
+  RadioIcon, PlusIcon, PencilIcon, Trash2Icon, HeadphonesIcon, Loader2Icon, SquareIcon, ShareIcon, CopyIcon, CheckIcon, LinkIcon,
 } from "lucide-react";
 import { useConferenceListen } from "@/hooks/useConferenceListen";
 
@@ -248,6 +248,39 @@ export default function RoomsPage() {
   const { listenRoom, listenState, startListen, stopListen } = useConferenceListen();
   const [clockTick, setClockTick] = useState(0);
   useEffect(() => { const t = setInterval(() => setClockTick(c => c + 1), 60000); return () => clearInterval(t); }, []);
+
+  // Share Live state
+  const [shareLiveOpen, setShareLiveOpen] = useState(false);
+  const [shareLiveRoom, setShareLiveRoom] = useState(null);
+  const [shareLiveHours, setShareLiveHours] = useState("3");
+  const [shareLiveUrl, setShareLiveUrl] = useState("");
+  const [shareLiveLoading, setShareLiveLoading] = useState(false);
+  const [shareLiveCopied, setShareLiveCopied] = useState(false);
+
+  async function handleShareLive() {
+    if (!shareLiveRoom) return;
+    setShareLiveLoading(true);
+    setShareLiveUrl("");
+    try {
+      const res = await apiFetch(`/api/v1/admin/rooms/${shareLiveRoom.room}/share-live`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hours: parseInt(shareLiveHours) }),
+      });
+      const json = await res.json();
+      if (json.data?.url) setShareLiveUrl(json.data.url);
+    } catch (e) {
+      console.error("Share live failed:", e);
+    } finally {
+      setShareLiveLoading(false);
+    }
+  }
+
+  function copyShareLiveUrl() {
+    navigator.clipboard.writeText(shareLiveUrl);
+    setShareLiveCopied(true);
+    setTimeout(() => setShareLiveCopied(false), 2000);
+  }
 
   function openCreateRoom() {
     setEditingRoom(null);
@@ -515,6 +548,11 @@ export default function RoomsPage() {
                           : <HeadphonesIcon className="size-4" />}
                     </Button>
                   </Tip>
+                  <Tip label="Share Live Link">
+                    <Button size="icon" variant="ghost" className="size-9" onClick={() => { setShareLiveRoom(room); setShareLiveUrl(""); setShareLiveHours("3"); setShareLiveOpen(true); }}>
+                      <ShareIcon className="size-4" />
+                    </Button>
+                  </Tip>
                   <Tip label="Edit Room">
                     <Button size="icon" variant="ghost" className="size-9" onClick={() => openEditRoom(room)}>
                       <PencilIcon className="size-4" />
@@ -674,6 +712,11 @@ export default function RoomsPage() {
                                 : listenRoom === room.room && listenState === "connected"
                                   ? <SquareIcon className="size-3 fill-current" />
                                   : <HeadphonesIcon className="size-3.5" />}
+                            </Button>
+                          </Tip>
+                          <Tip label="Share Live Link">
+                            <Button size="icon" variant="ghost" className="size-7" onClick={() => { setShareLiveRoom(room); setShareLiveUrl(""); setShareLiveHours("3"); setShareLiveOpen(true); }}>
+                              <ShareIcon className="size-3.5" />
                             </Button>
                           </Tip>
                           <Tip label="Edit Room">
@@ -980,6 +1023,57 @@ export default function RoomsPage() {
             <Button variant="destructive" className="flex-1" onClick={handleDeleteRoom}>
               Delete
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Live Dialog */}
+      <Dialog open={shareLiveOpen} onOpenChange={setShareLiveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LinkIcon className="size-4" />
+              Share Live Link
+            </DialogTitle>
+            <DialogDescription>
+              Generate a time-limited listen link for <strong>{shareLiveRoom?.roomName}</strong>. Recipients can hear live broadcasts and browse recent recordings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Link Duration</Label>
+              <Select value={shareLiveHours} onValueChange={setShareLiveHours}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 hours</SelectItem>
+                  <SelectItem value="3">3 hours</SelectItem>
+                  <SelectItem value="6">6 hours</SelectItem>
+                  <SelectItem value="8">8 hours</SelectItem>
+                  <SelectItem value="12">12 hours</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {!shareLiveUrl ? (
+              <Button className="w-full" onClick={handleShareLive} disabled={shareLiveLoading}>
+                {shareLiveLoading ? <Loader2Icon className="size-4 animate-spin mr-2" /> : <LinkIcon className="size-4 mr-2" />}
+                Generate Link
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Input value={shareLiveUrl} readOnly className="text-xs font-mono" />
+                  <Button size="icon" variant="outline" onClick={copyShareLiveUrl}>
+                    {shareLiveCopied ? <CheckIcon className="size-4 text-emerald-500" /> : <CopyIcon className="size-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This link expires in {shareLiveHours} hours. Anyone with the link can listen to live broadcasts and play recent recordings for this room.
+                </p>
+                <Button variant="outline" className="w-full" onClick={() => { setShareLiveUrl(""); }}>
+                  Generate New Link
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

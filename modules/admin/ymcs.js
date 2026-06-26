@@ -298,4 +298,50 @@ router.get("/ymcs/sync-room-sites", async (req, res) => {
     res.end();
 });
 
+// GET /ymcs/sync-room-groups — SSE: fetch YMCS groups and match to local rooms
+router.get("/ymcs/sync-room-groups", async (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+    const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+
+    try {
+        const { listGroups } = await import("../../service/yealink/yealinkGroups.js");
+        send({ type: "info", message: "Fetching YMCS groups..." });
+
+        const result = await listGroups({ limit: 200 });
+        const groups = result?.data || [];
+        send({ type: "info", message: `Found ${groups.length} YMCS groups` });
+
+        const rooms = global.db.getAllRooms();
+        let matched = 0, skipped = 0;
+
+        for (const group of groups) {
+            const groupName = (group.name || group.groupName || '').toLowerCase().trim();
+            const groupDesc = (group.description || '').toLowerCase().trim();
+            if (!groupName) { skipped++; continue; }
+
+            const room = rooms.find(r => {
+                const roomName = (r.name || '').toLowerCase().trim();
+                const shortCode = (r.short_code || '').toLowerCase().trim();
+                const roomId = String(r.id);
+                return roomName === groupName || shortCode === groupName || roomId === groupName || roomId === groupDesc;
+            });
+
+            if (room) {
+                global.db.updateRoom(room.id, { ymcs_group_id: group.id });
+                send({ type: "success", message: `${group.name || group.groupName} → Room "${room.name}" (${room.id})` });
+                matched++;
+            } else {
+                send({ type: "skip", message: `${group.name || group.groupName} — no matching room` });
+                skipped++;
+            }
+        }
+
+        send({ type: "done", success: matched, failed: 0, skipped, total: groups.length });
+    } catch (err) {
+        send({ type: "error", message: `Fatal: ${err.message}` });
+        send({ type: "done", success: 0, failed: 1, skipped: 0, total: 0 });
+    }
+    res.end();
+});
+
 export default router;

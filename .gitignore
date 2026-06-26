@@ -21,6 +21,9 @@ package-lock.json
 # Env
 .env
 
+# MCP config (contains API tokens)
+.mcp.json
+
 # TLS certificates (self-signed or production)
 config/tls/*.pem
 

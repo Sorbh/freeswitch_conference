@@ -46,14 +46,14 @@ function setAuthCookies(res, admin, refreshToken, refreshDays) {
         httpOnly: true,
         secure,
         sameSite: 'strict',
-        path: '/api/v1/admin',
+        path: '/',
         maxAge: days * 24 * 60 * 60 * 1000,
     });
 }
 
 function clearAuthCookies(res) {
     res.clearCookie(REFRESH_COOKIE_NAME, { path: '/api/v1/auth' });
-    res.clearCookie(SSE_COOKIE_NAME, { path: '/api/v1/admin' });
+    res.clearCookie(SSE_COOKIE_NAME, { path: '/' });
 }
 
 function requireAuth(req, res, next) {

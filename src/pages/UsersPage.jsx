@@ -170,6 +170,7 @@ function Tip({ label, children }) {
 const EMPTY_FORM = {
   email: "", password: "", display_name: "", company_name: "",
   company_phone: "", company_address: "", city: "", state: "", zip: "", room: "", extension: "",
+  register_ymcs: false, mac: "", sn: "",
 };
 
 function ClientTypeIcon({ clientType }) {
@@ -428,16 +429,26 @@ export default function UsersPage() {
       if (editing && !body.password) delete body.password;
       if (body.extension) body.extension = parseInt(body.extension);
       else body.extension = null;
+      if (!body.register_ymcs) {
+        delete body.register_ymcs;
+        delete body.mac;
+        delete body.sn;
+      }
 
       const url = editing?.id
         ? `/api/v1/admin/accounts/${editing.id}`
         : "/api/v1/admin/accounts";
 
-      await apiFetch(url, {
+      const res = await apiFetch(url, {
         method: editing?.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const data = await res.json();
+
+      if (data.ymcs?.error) {
+        console.warn("Account created but YMCS registration failed:", data.ymcs.error);
+      }
 
       setFormDialogOpen(false);
       refetch();
@@ -1727,10 +1738,44 @@ export default function UsersPage() {
                 <p className="text-[11px] text-muted-foreground/50">3-digit ext for private calls</p>
               </div>
             </div>
+            <div className="space-y-3 rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Register on YMCS</Label>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                    {editing?.id ? "Re-register SIP account & device on Yealink cloud" : "Create SIP account & device on Yealink cloud"}
+                  </p>
+                </div>
+                <Switch
+                  checked={form.register_ymcs}
+                  onCheckedChange={(val) => updateField("register_ymcs", val)}
+                />
+              </div>
+              {form.register_ymcs && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>MAC Address *</Label>
+                    <Input
+                      placeholder="AABBCCDDEEFF"
+                      value={form.mac}
+                      onChange={(e) => updateField("mac", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Serial Number *</Label>
+                    <Input
+                      placeholder="Machine serial number"
+                      value={form.sn}
+                      onChange={(e) => updateField("sn", e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
             <Button
               className="w-full mt-2"
               onClick={handleSave}
-              disabled={saving || !form.email || (!editing?.id && !form.password)}
+              disabled={saving || !form.email || (!editing?.id && !form.password) || (form.register_ymcs && (!form.mac || !form.sn))}
             >
               {saving ? "Saving..." : editing?.id ? "Update User" : "Create User"}
             </Button>

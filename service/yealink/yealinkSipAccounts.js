@@ -6,7 +6,9 @@ async function listAccounts({ filter = {}, limit = 100, skip = 0, autoCount = tr
 
 async function createAccount({ registerName, username, password, sipServer1Host, sipServer1Port, ...rest }) {
     return ymcs.post('/v2/dm/sipAccounts', {
-        registerName, username, password, sipServer1Host, sipServer1Port, ...rest,
+        registerName, username, password,
+        sipServer1: { host: sipServer1Host, port: sipServer1Port },
+        ...rest,
     });
 }
 

@@ -1,9 +1,88 @@
 import express from "express";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
-import { logUser, invalidateDebugCache } from "../../service/logger.js";
+import { invalidateDebugCache, logUser } from "../../service/logger.js";
 import { emitStateChange } from "./routesApi.js";
 
 const router = express.Router();
+
+async function registerOnYmcs({ email, mac, sn, roomId, companyName, displayName }) {
+    const roomData = global.db.getRoom(roomId);
+    const siteId = roomData.ymcs_site_id;
+    const groupId = roomData?.ymcs_group_id || null;
+    const shortCode = roomData?.short_code || '';
+    const displayLabel = `${companyName || ''} ${shortCode} / ${displayName || email}`.trim();
+    const sipPassword = process.env.SIP_DEFAULT_PASSWORD || '12345678';
+    const sipHost = process.env.FREESWITCH_PUBLIC_IP || '50.28.84.57';
+    const sipPort = parseInt(process.env.SIP_PORT || '5070');
+
+    const { createAccount: createYmcsAccount, bindAccounts, listAccounts } = await import("../../service/yealink/yealinkSipAccounts.js");
+    const { createDevice, listDevices, updateDevice } = await import("../../service/yealink/yealinkDevices.js");
+    const { addDevicesToGroup } = await import("../../service/yealink/yealinkGroups.js");
+
+    // 1. Create or find SIP account
+    let ymcsAccountId;
+    try {
+        const ymcsAccount = await createYmcsAccount({
+            registerName: email,
+            username: email,
+            password: sipPassword,
+            sipServer1Host: sipHost,
+            sipServer1Port: sipPort,
+            displayName: displayLabel,
+            label: 'REDLINE',
+            ...(siteId ? { siteId } : {}),
+        });
+        ymcsAccountId = ymcsAccount.id;
+    } catch (accErr) {
+        const accErrMsg = accErr.response?.message || accErr.message || '';
+        if (accErrMsg.includes('already exists') || accErrMsg.includes('Resource already exists')) {
+            const existing = await listAccounts({ filter: { username: email }, limit: 1 });
+            const found = existing?.data?.[0] || existing?.items?.[0];
+            if (!found) throw new Error(`SIP account for ${email} exists in YMCS but could not be found`);
+            ymcsAccountId = found.id;
+            logUser(email, 'API', `YMCS-REGISTER reusing existing SIP account ${ymcsAccountId}`);
+        } else {
+            throw accErr;
+        }
+    }
+
+    // 2. Create or find device
+    const cleanMac = mac.replace(/[:-]/g, '');
+    let ymcsDeviceId;
+    try {
+        const ymcsDevice = await createDevice({
+            mac: cleanMac,
+            sn,
+            name: displayLabel,
+            deviceType: 1,
+            modelId: '02c47b640c3046dc86853c9ccfd37dd0',
+            ...(siteId ? { siteId } : {}),
+        });
+        ymcsDeviceId = ymcsDevice.id;
+    } catch (devErr) {
+        const devErrMsg = devErr.response?.message || devErr.message || '';
+        if (devErrMsg.includes('MAC has been added') || devErrMsg.includes('already exists')) {
+            const existing = await listDevices({ filter: { mac: cleanMac }, limit: 1 });
+            const found = existing?.data?.[0];
+            if (!found) throw new Error(`MAC ${cleanMac} exists in YMCS but could not be found`);
+            ymcsDeviceId = found.id;
+            await updateDevice(ymcsDeviceId, { name: displayLabel });
+            logUser(email, 'API', `YMCS-REGISTER reusing existing device ${ymcsDeviceId} for MAC ${cleanMac}, updated name`);
+        } else {
+            throw devErr;
+        }
+    }
+
+    // 3. Bind device to SIP account
+    await bindAccounts(ymcsDeviceId, [{ lineId: 1, accountType: 0, accountId: ymcsAccountId }]);
+
+    // 4. Add device to group
+    if (groupId) {
+        await addDevicesToGroup(groupId, [ymcsDeviceId]);
+    }
+
+    return { ymcs_account_id: ymcsAccountId, ymcs_device_id: ymcsDeviceId, sip_server_host: sipHost, sip_server_port: String(sipPort) };
+}
 
 // --- Accounts CRUD ---
 
@@ -38,10 +117,10 @@ router.get("/accounts/:id", (req, res) => {
 });
 
 // POST /accounts — create account
-router.post("/accounts", (req, res) => {
+router.post("/accounts", async (req, res) => {
     try {
         logUser(req.body.email, 'API', 'CREATE-ACCOUNT');
-        const { email, password, display_name, company_name, company_phone, company_address, city, state, zip, room, extension } = req.body;
+        const { email, password, display_name, company_name, company_phone, company_address, city, state, zip, room, extension, register_ymcs, mac, sn } = req.body;
         if (!email || !password) {
             return res.status(400).json({ status: false, error: "Email and password are required" });
         }
@@ -58,6 +137,19 @@ router.post("/accounts", (req, res) => {
             }
         }
 
+        if (register_ymcs && (!mac || !sn)) {
+            return res.status(400).json({ status: false, error: "MAC address and Serial Number are required for YMCS registration" });
+        }
+
+        const roomId = room ? parseInt(room) : null;
+
+        if (register_ymcs) {
+            const roomData = roomId ? global.db.getRoom(roomId) : null;
+            if (!roomData?.ymcs_site_id) {
+                return res.status(400).json({ status: false, error: `Room "${roomData?.name || roomId || 'none'}" has no YMCS Site ID — sync room sites first` });
+            }
+        }
+
         const account = global.db.createAccount({
             email,
             password,
@@ -68,7 +160,7 @@ router.post("/accounts", (req, res) => {
             city,
             state,
             zip,
-            room: room ? parseInt(room) : null,
+            room: roomId,
             extension: extension ? parseInt(extension) : null,
         });
 
@@ -77,7 +169,7 @@ router.post("/accounts", (req, res) => {
         if (!existingUser || Object.keys(existingUser).length === 0) {
             global.db.setUserInfo(sipUser, {
                 callerIdName: display_name || email,
-                room: room ? parseInt(room) : null,
+                room: roomId,
                 connectionState: 'ideal',
                 authState: 'logout',
                 mute: true,
@@ -87,11 +179,24 @@ router.post("/accounts", (req, res) => {
             });
         }
 
-        const { password: _, ...safe } = account;
+        let ymcsResult = null;
+        if (register_ymcs) {
+            try {
+                const result = await registerOnYmcs({ email, mac, sn, roomId, companyName: company_name, displayName: display_name });
+                global.db.updateAccount(account.id, result);
+                ymcsResult = { ymcs_account_id: result.ymcs_account_id, ymcs_device_id: result.ymcs_device_id };
+                logUser(email, 'API', `YMCS-REGISTER account=${result.ymcs_account_id} device=${result.ymcs_device_id}`);
+            } catch (ymcsErr) {
+                console.error('[YMCS-REGISTER]', ymcsErr.message, ymcsErr.response ? JSON.stringify(ymcsErr.response) : '');
+                ymcsResult = { error: ymcsErr.message };
+            }
+        }
+
+        const { password: _, ...safe } = global.db.getAccountById(account.id);
         global.db.logEvent('account_created', email, null, `Account created for ${company_name || email}`);
         emitStateChange('users');
         emitStateChange('dashboard');
-        res.status(201).json({ status: true, data: safe });
+        res.status(201).json({ status: true, data: safe, ymcs: ymcsResult });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -167,11 +272,40 @@ router.put("/accounts/:id", async (req, res) => {
             }
         }
 
-        const { password, ...safe } = updated;
+        let ymcsResult = null;
+        const { register_ymcs, mac, sn } = req.body;
+        if (register_ymcs) {
+            if (!mac || !sn) {
+                return res.status(400).json({ status: false, error: "MAC address and Serial Number are required for YMCS registration" });
+            }
+            const ymcsRoomId = fields.room !== undefined ? fields.room : account.room;
+            const ymcsRoomData = ymcsRoomId ? global.db.getRoom(ymcsRoomId) : null;
+            if (!ymcsRoomData?.ymcs_site_id) {
+                return res.status(400).json({ status: false, error: `Room "${ymcsRoomData?.name || ymcsRoomId || 'none'}" has no YMCS Site ID — sync room sites first` });
+            }
+            try {
+                const result = await registerOnYmcs({
+                    email: account.email,
+                    mac, sn,
+                    roomId: ymcsRoomId,
+                    companyName: fields.company_name ?? account.company_name,
+                    displayName: fields.display_name ?? account.display_name,
+                });
+                global.db.updateAccount(id, result);
+                ymcsResult = { ymcs_account_id: result.ymcs_account_id, ymcs_device_id: result.ymcs_device_id };
+                logUser(account.email, 'API', `YMCS-REGISTER account=${result.ymcs_account_id} device=${result.ymcs_device_id}`);
+            } catch (ymcsErr) {
+                console.error('[YMCS-REGISTER]', ymcsErr.message, ymcsErr.response ? JSON.stringify(ymcsErr.response) : '');
+                ymcsResult = { error: ymcsErr.message };
+            }
+        }
+
+        const refreshed = global.db.getAccountById(id);
+        const { password, ...safe } = refreshed;
         global.db.logEvent('account_updated', account.email, null, `Account ${fields.active === 0 || fields.active === false ? 'deactivated' : 'updated'}`);
         emitStateChange('users', { userName: account.email });
         emitStateChange('dashboard');
-        res.json({ status: true, data: safe });
+        res.json({ status: true, data: safe, ymcs: ymcsResult });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
@@ -189,7 +323,7 @@ router.delete("/accounts/:id", async (req, res) => {
         const userInfo = global.db.getUserInfo(userName);
         if (Object.keys(userInfo).length > 0) {
             if (userInfo.fsChannelUUID) {
-                try { await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName); } catch (_) {}
+                try { await global.freeswitch.hangupCall(userInfo.fsChannelUUID, userName); } catch (_) { }
             }
             global.db.deleteUserInfo(userName);
         }

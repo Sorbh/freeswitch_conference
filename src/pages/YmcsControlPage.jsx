@@ -36,6 +36,7 @@ import {
   ShieldAlertIcon,
   FileCodeIcon,
   MapPinIcon,
+  FolderIcon,
 } from "lucide-react";
 
 function SyncLog({ entries }) {
@@ -112,6 +113,9 @@ export default function YmcsControlPage() {
   const [syncingSites, setSyncingSites] = useState(false);
   const [siteLog, setSiteLog] = useState([]);
   const [siteResult, setSiteResult] = useState(null);
+  const [syncingGroups, setSyncingGroups] = useState(false);
+  const [groupLog, setGroupLog] = useState([]);
+  const [groupResult, setGroupResult] = useState(null);
   const [sipHost, setSipHost] = useState("50.28.84.57");
   const [sipPort, setSipPort] = useState("5070");
   const [sipRoom, setSipRoom] = useState("all");
@@ -122,7 +126,7 @@ export default function YmcsControlPage() {
   const [configSyncLog, setConfigSyncLog] = useState([]);
   const [configSyncResult, setConfigSyncResult] = useState(null);
   const abortRef = useRef(null);
-  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites || syncingConfigs;
+  const anySyncing = syncingAccounts || syncingDevices || syncingBind || syncingSipServer || rebooting || syncingSites || syncingGroups || syncingConfigs;
   const [confirmAction, setConfirmAction] = useState(null);
   const [stats, setStats] = useState(null);
   const [missingDialog, setMissingDialog] = useState(null);
@@ -142,6 +146,7 @@ export default function YmcsControlPage() {
       const missingAccount = accounts.filter(a => !a.ymcs_account_id);
       const notEligible = accounts.filter(a => !a.ymcs_account_id || !a.ymcs_device_id);
       const missingSite = roomsList.filter(r => !r.ymcs_site_id);
+      const missingGroup = roomsList.filter(r => !r.ymcs_group_id);
       const missingConfig = accounts.filter(a => a.ymcs_device_id && !a.ymcs_config_id);
       setStats({
         total: accounts.length,
@@ -153,6 +158,8 @@ export default function YmcsControlPage() {
         notEligibleList: notEligible.map(a => ({ email: a.email, name: a.display_name, hasAccountId: !!a.ymcs_account_id, hasDeviceId: !!a.ymcs_device_id })),
         missingSiteId: missingSite.length,
         missingSiteList: missingSite.map(r => ({ name: r.name, id: String(r.id), short_code: r.short_code })),
+        missingGroupId: missingGroup.length,
+        missingGroupList: missingGroup.map(r => ({ name: r.name, id: String(r.id), short_code: r.short_code })),
         missingConfigId: missingConfig.length,
         missingConfigList: missingConfig.map(a => ({ email: a.email, name: a.display_name })),
         totalRooms: roomsList.length,
@@ -285,6 +292,40 @@ export default function YmcsControlPage() {
     } catch (e) {
       addLog(setSiteLog, { type: "error", message: `Fatal: ${e.message}` });
       setSyncingSites(false);
+    }
+  }
+
+  async function syncRoomGroups() {
+    setSyncingGroups(true);
+    setGroupLog([]);
+    setGroupResult(null);
+    const start = Date.now();
+
+    try {
+      const eventSource = new EventSource("/api/v1/admin/ymcs/sync-room-groups");
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "done") {
+          eventSource.close();
+          const duration = ((Date.now() - start) / 1000).toFixed(1);
+          setGroupResult({ success: data.success, failed: data.failed, skipped: data.skipped, total: data.total, duration });
+          addLog(setGroupLog, { type: "info", message: `Done — ${data.success} matched, ${data.skipped} skipped (${duration}s)` });
+          setSyncingGroups(false); fetchStats();
+        } else {
+          addLog(setGroupLog, data);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        addLog(setGroupLog, { type: "error", message: "Connection lost" });
+        setSyncingGroups(false);
+      };
+    } catch (e) {
+      addLog(setGroupLog, { type: "error", message: `Fatal: ${e.message}` });
+      setSyncingGroups(false);
     }
   }
 
@@ -593,6 +634,49 @@ export default function YmcsControlPage() {
             <SyncResult result={siteResult} />
             {siteLog.length > 0 && (
               <div data-sync-log><SyncLog entries={siteLog} /></div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sync Room Groups */}
+        <Card>
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="size-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <FolderIcon className="size-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Sync Room Groups</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Match YMCS device groups to local rooms by name
+                  </p>
+                  {stats && (
+                    stats.missingGroupId > 0 ? (
+                      <button onClick={() => setMissingDialog({ title: "Rooms Missing YMCS Group ID", list: stats.missingGroupList, columns: ["name", "id", "short_code"] })} className="text-[11px] mt-1.5 font-mono text-red-400 hover:text-red-300 transition-colors cursor-pointer underline underline-offset-2 decoration-red-400/30">
+                        {stats.missingGroupId} missing
+                      </button>
+                    ) : (
+                      <p className="text-[11px] mt-1.5 font-mono text-emerald-400">all synced</p>
+                    )
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setConfirmAction({ title: "Sync Room Groups", description: "This will fetch all YMCS device groups and match them to local rooms by name, short code, or room ID. Matched rooms will store the YMCS group ID.", action: syncRoomGroups })}
+                disabled={anySyncing}
+                className="shrink-0 self-end sm:self-auto"
+              >
+                {syncingGroups
+                  ? <Loader2Icon className="size-3.5 animate-spin" />
+                  : <PlayIcon className="size-3.5" />
+                }
+              </Button>
+            </div>
+            <SyncResult result={groupResult} />
+            {groupLog.length > 0 && (
+              <div data-sync-log><SyncLog entries={groupLog} /></div>
             )}
           </CardContent>
         </Card>

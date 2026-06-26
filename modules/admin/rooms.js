@@ -1,6 +1,7 @@
 import express from "express";
 import { logUser } from "../../service/logger.js";
 import { emitStateChange } from "./routesApi.js";
+import { generateLiveLink } from "../../service/liveStream/hmac.js";
 
 const router = express.Router();
 
@@ -222,6 +223,23 @@ router.post("/rooms/:roomId/listen", async (req, res) => {
         logUser(email, 'API', `LISTEN room ${roomName}`);
         global.db.logEvent('listen', email, roomId, `Admin listening to ${roomName}`);
         res.json({ status: true, uuid: result });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /rooms/:roomId/share-live — generate a signed live listen link
+router.post("/rooms/:roomId/share-live", (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        const existing = global.db.getRoom(roomId);
+        if (!existing) return res.status(404).json({ status: false, error: "Room not found" });
+
+        const hours = Math.min(12, Math.max(1, parseInt(req.body.hours) || 3));
+        const link = generateLiveLink(roomId, existing.name, hours);
+
+        global.db.logEvent('share_live', req.user?.email || null, roomId, `Live listen link generated (${hours}h)`);
+        res.json({ status: true, data: link });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

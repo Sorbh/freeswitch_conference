@@ -247,6 +247,7 @@ function init() {
         ['ymcs_parent_site_id', "ALTER TABLE rooms ADD COLUMN ymcs_parent_site_id TEXT"],
         ['timezone', "ALTER TABLE rooms ADD COLUMN timezone TEXT DEFAULT 'America/Chicago'"],
         ['auto_transcribe', "ALTER TABLE rooms ADD COLUMN auto_transcribe INTEGER DEFAULT 0"],
+        ['ymcs_group_id', "ALTER TABLE rooms ADD COLUMN ymcs_group_id TEXT"],
     ];
     for (const [col, sql] of roomMigrations) {
         if (!roomCols.includes(col)) sqlite.exec(sql);
@@ -436,6 +437,7 @@ function updateRoom(id, fields) {
     if (fields.caller_id_template !== undefined) { sets.push('caller_id_template = ?'); vals.push(fields.caller_id_template); }
     if (fields.ymcs_site_id !== undefined) { sets.push('ymcs_site_id = ?'); vals.push(fields.ymcs_site_id); }
     if (fields.ymcs_parent_site_id !== undefined) { sets.push('ymcs_parent_site_id = ?'); vals.push(fields.ymcs_parent_site_id); }
+    if (fields.ymcs_group_id !== undefined) { sets.push('ymcs_group_id = ?'); vals.push(fields.ymcs_group_id); }
     if (fields.timezone !== undefined) { sets.push('timezone = ?'); vals.push(fields.timezone); }
     if (fields.auto_transcribe !== undefined) { sets.push('auto_transcribe = ?'); vals.push(fields.auto_transcribe ? 1 : 0); }
     if (sets.length === 0) return null;
@@ -1412,5 +1414,70 @@ db.getAllShortUrls = getAllShortUrls;
 db.updateShortUrl = updateShortUrl;
 db.deleteShortUrl = deleteShortUrl;
 db.incrementShortUrlClicks = incrementShortUrlClicks;
+
+// ── Public Live Listen ──
+
+function getBroadcastsForPublicListen(room, sinceUnix, limit, offset) {
+    return sqlite.prepare(`
+        SELECT id, display_name, room_name, duration_ms, answered, responded_by,
+               participant_count, listener_count, response_time_ms,
+               transcription, local_transcription, recording_path, created_at
+        FROM broadcast_log
+        WHERE room = ? AND created_at >= ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
+    `).all(room, sinceUnix, limit, offset);
+}
+
+function getBroadcastCountForPublicListen(room, sinceUnix) {
+    return sqlite.prepare('SELECT COUNT(*) as count FROM broadcast_log WHERE room = ? AND created_at >= ?')
+        .get(room, sinceUnix).count;
+}
+
+function getBroadcastStatsForPublicListen(room, sinceUnix) {
+    const row = sqlite.prepare(`
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN answered = 1 THEN 1 ELSE 0 END) as answered,
+            AVG(duration_ms) as avg_duration_ms,
+            AVG(CASE WHEN response_time_ms IS NOT NULL THEN response_time_ms END) as avg_response_time_ms
+        FROM broadcast_log
+        WHERE room = ? AND created_at >= ?
+    `).get(room, sinceUnix);
+    return {
+        total: row.total || 0,
+        answered: row.answered || 0,
+        unanswered: (row.total || 0) - (row.answered || 0),
+        responseRate: row.total > 0 ? Math.round(((row.answered || 0) / row.total) * 100) : 0,
+        avgDurationMs: Math.round(row.avg_duration_ms || 0),
+        avgResponseTimeMs: Math.round(row.avg_response_time_ms || 0),
+    };
+}
+
+function getBroadcastForPublicListen(room, broadcastId, sinceUnix) {
+    return sqlite.prepare(`
+        SELECT * FROM broadcast_log
+        WHERE id = ? AND room = ? AND created_at >= ?
+    `).get(broadcastId, room, sinceUnix) || null;
+}
+
+function getBroadcastHourlyForPublicListen(room, sinceUnix) {
+    return sqlite.prepare(`
+        SELECT
+            CAST(strftime('%H', created_at, 'unixepoch', 'localtime') AS INTEGER) as hour,
+            COUNT(*) as total,
+            SUM(CASE WHEN answered = 1 THEN 1 ELSE 0 END) as answered
+        FROM broadcast_log
+        WHERE room = ? AND created_at >= ?
+        GROUP BY hour
+        ORDER BY hour
+    `).all(room, sinceUnix);
+}
+
+db.getBroadcastsForPublicListen = getBroadcastsForPublicListen;
+db.getBroadcastCountForPublicListen = getBroadcastCountForPublicListen;
+db.getBroadcastStatsForPublicListen = getBroadcastStatsForPublicListen;
+db.getBroadcastForPublicListen = getBroadcastForPublicListen;
+db.getBroadcastHourlyForPublicListen = getBroadcastHourlyForPublicListen;
 
 export default { db };
