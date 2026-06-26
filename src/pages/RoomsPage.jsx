@@ -303,7 +303,7 @@ export default function RoomsPage() {
 
   const rooms = useMemo(() => {
     if (!Array.isArray(roomsRaw)) return [];
-    return [...roomsRaw].filter(r => (r.accountCount || 0) > 0).sort((a, b) => (b.online || 0) - (a.online || 0));
+    return [...roomsRaw].sort((a, b) => (b.online || 0) - (a.online || 0));
   }, [roomsRaw]);
 
   const talkingUsers = useMemo(() => {
@@ -471,7 +471,9 @@ export default function RoomsPage() {
                         <div className="min-w-0">
                           <p className="truncate text-lg font-semibold leading-tight">{room.roomName}</p>
                           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="font-mono">{room.shortCode || `Room ${room.room}`}</span>
+                            <span className="font-mono font-semibold text-sky-400">{room.shortCode || `Room ${room.room}`}</span>
+                            <span>•</span>
+                            <span className="font-mono">{room.room}</span>
                             <span>•</span>
                             <span>{getLocalTime(room.timezone)}</span>
                           </p>
@@ -593,7 +595,8 @@ export default function RoomsPage() {
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {room.roomName}
-                          <span className="text-[10px] font-mono text-muted-foreground/40">{room.shortCode}</span>
+                          <span className="text-[10px] font-mono font-semibold text-sky-400">{room.shortCode}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{room.room}</span>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">

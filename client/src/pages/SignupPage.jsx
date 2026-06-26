@@ -2,19 +2,22 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const PUBLIC_SIGNUP_ROOMS = [
-  { id: 123456701, name: 'California' },
-  { id: 123456712, name: 'Arizona' },
-  { id: 123456703, name: 'Texas' },
-  { id: 123456704, name: 'NewJersey' },
-  { id: 123456705, name: 'Florida' },
-  { id: 123456706, name: 'Mexico' },
-  { id: 123456707, name: 'Egypt' },
-  { id: 123456708, name: 'Spain' },
-  { id: 123456709, name: 'Ghana' },
-  { id: 123456711, name: 'SanDiego' },
+  { id: 123456701, name: 'California', code: 'CA' },
+  { id: 123456712, name: 'Arizona', code: 'AZ' },
+  { id: 123456703, name: 'Texas', code: 'TX' },
+  { id: 123456704, name: 'NewJersey', code: 'NJ' },
+  { id: 123456705, name: 'Florida', code: 'FL' },
+  { id: 123456706, name: 'Mexico', code: 'MX' },
+  { id: 123456707, name: 'Egypt', code: 'EG' },
+  { id: 123456708, name: 'Spain', code: 'ES' },
+  { id: 123456709, name: 'Ghana', code: 'GH' },
+  { id: 123456711, name: 'SanDiego', code: 'SD' },
+  { id: 123456714, name: 'Alberta', code: 'AB' },
+  { id: 123456715, name: 'Canada', code: 'CA' },
+  { id: 123456716, name: 'Iowa', code: 'IA' },
+  { id: 123456717, name: 'Kentucky', code: 'KY' },
+  { id: 123456718, name: 'Georgia', code: 'GA' },
 ];
-
-const PRIMARY_ROOM_COUNT = 3;
 
 export default function SignupPage() {
   const [form, setForm] = useState({ email: '', password: '', company_name: '', display_name: '', company_phone: '', city: '', zip: '', room: '', referral_code: '' });
@@ -23,6 +26,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
   const [showMoreRooms, setShowMoreRooms] = useState(false);
+  const [orderedRooms, setOrderedRooms] = useState(PUBLIC_SIGNUP_ROOMS);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -30,11 +34,16 @@ export default function SignupPage() {
     const company = params.get('company_name') || params.get('company') || params.get('c');
     const ref = params.get('ref') || params.get('referral_code');
     const room = params.get('room');
+    const roomLower = room ? String(room).toLowerCase() : '';
     const requestedRoom = room && PUBLIC_SIGNUP_ROOMS.find(item => (
-      String(item.id) === String(room) ||
-      item.name.toLowerCase() === String(room).toLowerCase()
+      String(item.id) === roomLower ||
+      item.name.toLowerCase() === roomLower ||
+      item.code.toLowerCase() === roomLower
     ));
     const defaultRoom = requestedRoom || PUBLIC_SIGNUP_ROOMS[0];
+    if (requestedRoom) {
+      setOrderedRooms([requestedRoom, ...PUBLIC_SIGNUP_ROOMS.filter(r => r.id !== requestedRoom.id)]);
+    }
     setForm(f => ({
       ...f,
       ...(email ? { email } : {}),
@@ -60,8 +69,9 @@ export default function SignupPage() {
     return room.name.replace(/([a-z])([A-Z])/g, '$1 $2');
   }
 
-  const visibleRooms = showMoreRooms ? PUBLIC_SIGNUP_ROOMS : PUBLIC_SIGNUP_ROOMS.slice(0, PRIMARY_ROOM_COUNT);
-  const hiddenRoomCount = PUBLIC_SIGNUP_ROOMS.length - PRIMARY_ROOM_COUNT;
+  const PRIMARY_ROOM_COUNT = 3;
+  const visibleRooms = showMoreRooms ? orderedRooms : orderedRooms.slice(0, PRIMARY_ROOM_COUNT);
+  const hiddenRoomCount = orderedRooms.length - PRIMARY_ROOM_COUNT;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -190,14 +200,35 @@ export default function SignupPage() {
               <input type="text" value={form.referral_code} onChange={update('referral_code')} onBlur={trimField('referral_code')} className="hq-input" placeholder="e.g. A7K2M9" maxLength={6} style={{ textTransform: 'uppercase' }} />
             </div>
 
-            <div className="flex items-center justify-center gap-2 mb-4 text-xs" style={{ color: 'var(--muted)' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--green)' }} />
-              <span>Free signup. No card required.</span>
+            <div className="flex items-center justify-center gap-2 mb-4 text-sm" style={{ color: 'var(--muted)' }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: 'var(--green)' }} />
+              <span className="text-base font-medium">Free signup. No card required.</span>
             </div>
 
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
+
+            <div className="signup-offer mt-4 rounded-lg px-4 py-2.5 flex items-center justify-center gap-3" style={{
+              background: 'rgba(217,45,32,0.06)',
+              border: '1px solid rgba(217,45,32,0.15)',
+            }}>
+              <div className="signup-eq" aria-hidden="true">
+                <span /><span /><span /><span /><span />
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded" style={{
+                background: 'var(--red)',
+                color: '#fff',
+                letterSpacing: '0.08em',
+                flexShrink: 0,
+              }}>Offer</span>
+              <span className="text-sm" style={{ color: 'var(--ink)' }}>
+                Signup and get a <span className="font-semibold" style={{ color: 'var(--red)' }}>free website</span> <span style={{ color: 'var(--muted)', fontSize: '0.65rem', verticalAlign: 'super' }}>*</span>
+              </span>
+              <div className="signup-eq" aria-hidden="true">
+                <span /><span /><span /><span /><span />
+              </div>
+            </div>
           </form>
         </div>
 
