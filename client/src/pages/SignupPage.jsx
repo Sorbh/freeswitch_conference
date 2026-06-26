@@ -213,21 +213,16 @@ export default function SignupPage() {
               background: 'rgba(217,45,32,0.06)',
               border: '1px solid rgba(217,45,32,0.15)',
             }}>
-              <div className="signup-eq" aria-hidden="true">
-                <span /><span /><span /><span /><span />
-              </div>
+              <div className="offer-pulse" aria-hidden="true" />
               <span className="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded" style={{
                 background: 'var(--red)',
                 color: '#fff',
                 letterSpacing: '0.08em',
                 flexShrink: 0,
               }}>Offer</span>
-              <span className="text-sm" style={{ color: 'var(--ink)' }}>
+              <span className="text-base" style={{ color: 'var(--ink)' }}>
                 Signup and get a <span className="font-semibold" style={{ color: 'var(--red)' }}>free website</span> <span style={{ color: 'var(--muted)', fontSize: '0.65rem', verticalAlign: 'super' }}>*</span>
               </span>
-              <div className="signup-eq" aria-hidden="true">
-                <span /><span /><span /><span /><span />
-              </div>
             </div>
           </form>
         </div>

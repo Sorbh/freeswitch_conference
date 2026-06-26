@@ -496,6 +496,8 @@ export default function DashboardLayout() {
 
         {isListenOnly && <ListenOnlySidebarCard />}
 
+        <FreeWebsiteOffer />
+
         <div className="p-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{account?.company_name}</div>
           <div className="text-[11px] truncate" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.3)' }}>{account?.email}</div>
@@ -624,13 +626,16 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 pb-32 md:pb-6">
           <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly }} />
         </main>
       </div>
 
       {/* ── Mute FAB (visible on every dashboard tab during active call, hidden in listen-only) ── */}
       {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} />}
+
+      {/* ── Mobile offer bar (hidden on desktop) ── */}
+      <FreeWebsiteOfferMobile />
 
       {/* ── Mobile bottom navigation (hidden on desktop) ── */}
       <nav
@@ -1044,7 +1049,7 @@ function MuteFAB({ muted, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="fixed z-50 w-14 h-14 rounded-full flex items-center justify-center left-1/2 -translate-x-1/2 bottom-[calc(60px+env(safe-area-inset-bottom)+12px)] md:left-auto md:right-6 md:bottom-6 md:translate-x-0"
+      className="fixed z-50 w-14 h-14 rounded-full flex items-center justify-center left-1/2 -translate-x-1/2 bottom-[calc(60px+env(safe-area-inset-bottom)+52px)] md:left-auto md:right-6 md:bottom-6 md:translate-x-0"
       style={{
         background: muted ? 'var(--red)' : 'var(--green)',
         color: '#fff',
@@ -1055,6 +1060,109 @@ function MuteFAB({ muted, onToggle }) {
     >
       {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
     </button>
+  );
+}
+
+const OFFER_DISMISSED_KEY = 'hq_website_offer_dismissed';
+
+function useOfferDismissed() {
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(OFFER_DISMISSED_KEY) === '1'; } catch { return false; }
+  });
+  function dismiss() {
+    try { localStorage.setItem(OFFER_DISMISSED_KEY, '1'); } catch {}
+    setDismissed(true);
+  }
+  return [dismissed, dismiss];
+}
+
+function FreeWebsiteOffer() {
+  const [dismissed, dismiss] = useOfferDismissed();
+  if (dismissed) return null;
+
+  return (
+    <div className="mx-3 mb-3 rounded-2xl p-4 relative" style={{ background: 'rgba(217,45,32,0.1)', border: '1px solid rgba(217,45,32,0.2)' }}>
+      <button
+        onClick={dismiss}
+        className="absolute top-2 right-2 w-6 h-6 rounded-lg flex items-center justify-center transition-colors"
+        style={{ color: 'rgba(255,255,255,0.35)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+        onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+        title="Dismiss"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="offer-pulse" aria-hidden="true" />
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--red, #d92d20)' }}>Offer</span>
+      </div>
+      <div className="text-sm font-medium mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>
+        Get a <span className="font-bold" style={{ color: '#fff' }}>free website</span> for your yard
+      </div>
+      <a
+        href="mailto:er.sorbh@gmail.com?subject=Free%20Website%20Request%20-%20Hotline%20HQ&body=I%27d%20like%20to%20request%20my%20free%20website."
+        target="_blank" rel="noopener noreferrer"
+        className="block w-full py-2 rounded-xl text-xs font-bold text-center transition-all"
+        style={{
+          background: 'var(--red, #d92d20)',
+          color: '#fff',
+          border: 'none',
+          boxShadow: '0 6px 16px rgba(217,45,32,0.35)',
+        }}
+      >
+        Request
+      </a>
+    </div>
+  );
+}
+
+function FreeWebsiteOfferMobile() {
+  const [dismissed, dismiss] = useOfferDismissed();
+  if (dismissed) return null;
+
+  return (
+    <div
+      className="md:hidden fixed left-0 right-0 z-50 flex items-center justify-between px-4 py-2"
+      style={{
+        bottom: 'calc(52px + env(safe-area-inset-bottom))',
+        background: 'var(--surface)',
+        borderTop: '1px solid var(--line)',
+        borderBottom: '1px solid var(--line)',
+      }}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <div className="offer-pulse" aria-hidden="true" />
+        <span className="text-sm" style={{ color: 'var(--ink)' }}>
+          Get a <span className="font-semibold" style={{ color: 'var(--red)' }}>free website</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <a
+          href="mailto:er.sorbh@gmail.com?subject=Free%20Website%20Request%20-%20Hotline%20HQ&body=I%27d%20like%20to%20request%20my%20free%20website."
+        target="_blank" rel="noopener noreferrer"
+          className="px-3 py-1.5 rounded-lg text-[11px] font-bold"
+          style={{
+            background: 'var(--red)',
+            color: '#fff',
+            boxShadow: '0 4px 12px rgba(217,45,32,0.3)',
+          }}
+        >
+          Request
+        </a>
+        <button
+          onClick={dismiss}
+          className="w-7 h-7 rounded-lg flex items-center justify-center"
+          style={{ color: 'var(--muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          title="Dismiss"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
