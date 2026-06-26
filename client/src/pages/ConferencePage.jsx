@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function ConferencePage() {
   const { account, token } = useAuth();
-  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute } = useOutletContext() || {};
+  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false } = useOutletContext() || {};
   const [callerIds, setCallerIds] = useState([]);
   const [userCount, setUserCount] = useState(0);
   const [unmutedCount, setUnmutedCount] = useState(0);
@@ -122,16 +122,25 @@ export default function ConferencePage() {
             {account?.company_name || ''} — {roomDisplayName}
           </p>
         </div>
-        {connected && (
+        {connected && !isListenOnly && (
           <div className="flex items-center gap-3">
             <button onClick={handleToggleMute} className="hq-btn flex items-center gap-2 px-4 py-2" style={{ background: muted ? 'var(--red)' : 'var(--green)', boxShadow: muted ? '0 8px 18px rgba(217,45,32,0.3)' : '0 8px 18px rgba(18,183,106,0.3)' }}>
               {muted ? <><MicOffIcon /> Unmute</> : <><MicOnIcon /> Mute</>}
             </button>
           </div>
         )}
+        {connected && isListenOnly && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(37,99,235,0.1)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.2)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+            </svg>
+            <span className="text-xs font-bold">Listen Only</span>
+          </div>
+        )}
       </div>
 
-      {connected && (
+      {connected && !isListenOnly && (
         <div className="hidden md:block mb-4 px-4 py-2.5 rounded-xl text-xs" style={{ background: 'var(--band)', color: 'var(--muted)', border: '1px solid var(--line)' }}>
           <span className="font-semibold font-mono">Ctrl+L</span> to toggle mute
         </div>

@@ -106,10 +106,13 @@ import "./jssip.bundle.js";
         var wsServer = config.wsServer || 'wss://hotline.redlineusedautoparts.com/fs_wss/';
         var sipDomain = '50.28.84.57';
         var defaultPassword = config.defaultPassword || '12345678';
+        if (config.listenOnly) listenOnly = true;
 
         var ua = null;
         var currentSession = null;
         var isMuted = true;
+        var listenOnly = false;
+        var listenOnlySilentStream = null;
         var accountData = null;
         var clientToken = null;
         var loggingOut = false;
@@ -136,6 +139,12 @@ import "./jssip.bundle.js";
         function notifyDirectCallState(state, data) {
             try {
                 if (typeof window.onHotlineDirectCallState === 'function') window.onHotlineDirectCallState(state, data || null);
+            } catch (e) { }
+        }
+
+        function notifyListenOnly() {
+            try {
+                if (typeof window.onHotlineListenOnly === 'function') window.onHotlineListenOnly(true);
             } catch (e) { }
         }
 
@@ -671,27 +680,57 @@ import "./jssip.bundle.js";
         // ── Mic permission check ──
         var micPermissionModal = null;
 
-        function showMicPermissionModal() {
+        function showMicPermissionModal(mode) {
             if (micPermissionModal) return;
+            var isBlocked = mode === 'denied';
             micPermissionModal = document.createElement('div');
             micPermissionModal.id = 'redline_mic_permission_modal';
             micPermissionModal.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);';
-            micPermissionModal.innerHTML =
-                '<div style="width:min(400px,calc(100vw - 40px));background:#fff;border-radius:20px;padding:32px 28px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3);">' +
-                '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:16px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">' +
+
+            var iconHtml = '<div style="width:56px;height:56px;margin:0 auto 16px;border-radius:16px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">' +
                 '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                 '<line x1="1" y1="1" x2="23" y2="23"/>' +
                 '<path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>' +
                 '<path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.48-.35 2.15"/>' +
                 '<line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>' +
-                '</svg>' +
+                '</svg></div>';
+
+            var blockedStepsHtml =
+                '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:16px;text-align:left;">' +
+                '<div style="font-size:13px;font-weight:700;color:#b91c1c;margin-bottom:8px;">Microphone is blocked. To fix:</div>' +
+                '<div style="font-size:12px;color:#64748b;line-height:1.8;">' +
+                '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:2px;"><span style="font-weight:700;color:#334155;">1.</span> Click the lock icon in your browser address bar (top left)</div>' +
+                '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:2px;"><span style="font-weight:700;color:#334155;">2.</span> Find <strong>Microphone</strong> and change to <strong style="color:#16a34a;">Allow</strong></div>' +
+                '<div style="display:flex;align-items:flex-start;gap:8px;"><span style="font-weight:700;color:#334155;">3.</span> Refresh the page</div>' +
+                '</div></div>';
+
+            var buttonsHtml =
+                '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">' +
+                '<button id="redline_mic_refresh" style="border:0;border-radius:12px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:13px;font-weight:700;padding:10px 24px;cursor:pointer;box-shadow:0 8px 20px rgba(225,29,46,.3);">Refresh Page</button>' +
+                '<button id="redline_mic_listen_only" style="border:0;border-radius:12px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:13px;font-weight:700;padding:10px 24px;cursor:pointer;box-shadow:0 6px 16px rgba(37,99,235,.25);">Listen Only</button>' +
                 '</div>' +
-                '<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px;">Microphone Access Required</div>' +
-                '<div style="font-size:14px;color:#6b7280;line-height:1.5;margin-bottom:24px;">Hotline HQ needs microphone access to connect you to the conference. Please allow microphone access in your browser settings and refresh the page.</div>' +
-                '<button id="redline_mic_refresh" style="border:0;border-radius:12px;background:linear-gradient(135deg,#e11d2e,#b91c1c);color:#fff;font-size:14px;font-weight:700;padding:12px 32px;cursor:pointer;box-shadow:0 8px 20px rgba(225,29,46,.3);transition:transform .15s ease;">Refresh Page</button>' +
+                '<div style="font-size:11px;color:#9ca3af;margin-top:10px;">Listen Only: hear the broadcast without a microphone</div>';
+
+            micPermissionModal.innerHTML =
+                '<div style="width:min(400px,calc(100vw - 40px));background:#fff;border-radius:20px;padding:32px 28px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3);">' +
+                iconHtml +
+                '<div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:8px;">' + (isBlocked ? 'Microphone Blocked' : 'Microphone Access Required') + '</div>' +
+                '<div style="font-size:14px;color:#6b7280;line-height:1.5;margin-bottom:20px;">' +
+                (isBlocked ? 'Your browser has blocked microphone access. Follow the steps below to enable it, or listen without a mic.' : 'Hotline HQ needs microphone access to connect you to the conference.') +
+                '</div>' +
+                (isBlocked ? blockedStepsHtml : '') +
+                buttonsHtml +
                 '</div>';
+
             document.body.appendChild(micPermissionModal);
             document.getElementById('redline_mic_refresh').onclick = function () { window.location.reload(); };
+            document.getElementById('redline_mic_listen_only').onclick = function () {
+                listenOnly = true;
+                _activateListenOnly();
+                hideMicPermissionModal();
+                var email = accountData && accountData.email;
+                if (email) _startSipRegistration(email, defaultPassword);
+            };
         }
 
         function hideMicPermissionModal() {
@@ -703,15 +742,58 @@ import "./jssip.bundle.js";
 
         async function checkMicPermission() {
             try {
+                var devices = await navigator.mediaDevices.enumerateDevices();
+                var hasMic = devices.some(function (d) { return d.kind === 'audioinput'; });
+                if (!hasMic) {
+                    console.warn('[SIP] No microphone detected on this device');
+                    listenOnly = true;
+                    _activateListenOnly();
+                    return 'listen-only';
+                }
+            } catch (e) { }
+
+            // Check permission state without triggering prompt
+            var permState = 'unknown';
+            try {
+                var perm = await navigator.permissions.query({ name: 'microphone' });
+                permState = perm.state; // 'granted', 'denied', or 'prompt'
+            } catch (e) { permState = 'unknown'; }
+
+            if (permState === 'denied') {
+                console.warn('[SIP] Microphone permanently blocked by browser');
+                showMicPermissionModal('denied');
+                return false;
+            }
+
+            // 'granted' or 'prompt' or 'unknown' — try getUserMedia
+            try {
                 var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(function (t) { t.stop(); });
                 hideMicPermissionModal();
                 return true;
             } catch (err) {
                 console.error('[SIP] Microphone permission denied:', err.message);
-                showMicPermissionModal();
+                showMicPermissionModal('denied');
                 return false;
             }
+        }
+
+        function _activateListenOnly() {
+            try {
+                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                ctx.resume();
+                var oscillator = ctx.createOscillator();
+                var gain = ctx.createGain();
+                gain.gain.value = 0;
+                oscillator.connect(gain);
+                var dest = ctx.createMediaStreamDestination();
+                gain.connect(dest);
+                oscillator.start();
+                listenOnlySilentStream = dest.stream;
+                console.log('[SIP] Listen-only activated, silent stream tracks:', listenOnlySilentStream.getAudioTracks().length);
+            } catch (e) { console.error('[SIP] Silent stream creation failed:', e.message); }
+            var el = ensureAudioElement();
+            if (el) { el.play().catch(function () {}); }
         }
 
         function getDirectCallBanner() {
@@ -1009,13 +1091,14 @@ import "./jssip.bundle.js";
                 var tracks = session.connection.getReceivers()
                     .filter(function (r) { return r.track && r.track.kind === 'audio'; })
                     .map(function (r) { return r.track; });
+                console.log('[SIP] attachRemoteAudio: remote audio tracks:', tracks.length, 'listenOnly:', listenOnly);
                 if (tracks.length > 0) {
                     var el = ensureAudioElement();
                     if (!el) return;
                     el.srcObject = new MediaStream(tracks);
-                    el.play().catch(function (e) { });
+                    el.play().catch(function (e) { console.error('[SIP] Audio play failed:', e.message); });
                 }
-            } catch (e) { }
+            } catch (e) { console.error('[SIP] attachRemoteAudio error:', e.message); }
         }
 
         function muteAudio(mute) {
@@ -1077,13 +1160,18 @@ import "./jssip.bundle.js";
                     window.onHotlineReady(accountData);
                 }
 
-                checkMicPermission().then(function (granted) {
-                    if (granted) {
-                        _startSipRegistration(email, password);
-                    } else {
-                        console.warn('[SIP] Mic permission denied — SIP registration skipped');
-                    }
-                });
+                if (listenOnly) {
+                    console.log('[SIP] Listen-only mode — skipping mic check');
+                    _startSipRegistration(email, password);
+                } else {
+                    checkMicPermission().then(function (result) {
+                        if (result === true || result === 'listen-only') {
+                            _startSipRegistration(email, password);
+                        } else {
+                            console.warn('[SIP] Mic permission denied — SIP registration skipped, listen-only available via modal');
+                        }
+                    });
+                }
             })
             .catch(function (e) {
                 console.error('[SIP] Login failed:', e.message);
@@ -1182,11 +1270,12 @@ import "./jssip.bundle.js";
                                 try {
                                     currentSession = session;
                                     isMuted = true;
-                                    muteAudio(true);
+                                    if (!listenOnly) muteAudio(true);
                                     attachRemoteAudio(session);
                                     if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(true);
                                     notifyMuteState();
                                     notifyCallState('connected');
+                                    if (listenOnly) notifyListenOnly();
                                 } catch (e) { }
                             });
                             session.on('failed', function (e) {
@@ -1199,10 +1288,18 @@ import "./jssip.bundle.js";
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
                                 notifyCallState('disconnected');
                             });
-                            session.answer({
-                                mediaConstraints: { audio: true, video: false },
-                                pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
-                            });
+                            if (listenOnly && listenOnlySilentStream) {
+                                console.log('[SIP] Listen-only: answering with pre-created silent stream');
+                                session.answer({
+                                    mediaStream: listenOnlySilentStream,
+                                    pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
+                                });
+                            } else {
+                                session.answer({
+                                    mediaConstraints: { audio: true, video: false },
+                                    pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
+                                });
+                            }
                         }
                     } catch (e) { }
                 });
@@ -1259,6 +1356,7 @@ import "./jssip.bundle.js";
         // ── Actions ──
         function toggleMute() {
             try {
+                if (listenOnly) return;
                 isMuted = !isMuted;
                 muteAudio(isMuted);
                 notifyMuteState();
@@ -1311,6 +1409,7 @@ import "./jssip.bundle.js";
                 try {
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
+                        if (listenOnly) return;
                         window._muteToggleAt = Date.now();
                         console.log('[TIMING] Ctrl+L pressed — ' + (isMuted ? 'unmuting' : 'muting'));
                         if (accountData) toggleMute();
@@ -1336,6 +1435,7 @@ import "./jssip.bundle.js";
             getLocalData: getLocalStorageUserData,
             isConnected: function () { return !!currentSession; },
             isMuted: function () { return isMuted; },
+            isListenOnly: function () { return listenOnly; },
         };
 
         // ── Auto-login from localStorage or HOTLINE_CONFIG ──

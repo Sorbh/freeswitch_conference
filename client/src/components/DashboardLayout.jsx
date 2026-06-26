@@ -80,6 +80,7 @@ export default function DashboardLayout() {
   const [connState, setConnState] = useState('idle');
   const [connError, setConnError] = useState('');
   const [muted, setMuted] = useState(true);
+  const [isListenOnly, setIsListenOnly] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
   const [changingRoom, setChangingRoom] = useState(false);
@@ -258,10 +259,14 @@ export default function DashboardLayout() {
         if (!window.hotlineClient.isMuted()) window.hotlineClient.toggleMute();
       }
     }
+    function handleListenOnly(active) {
+      setIsListenOnly(!!active);
+    }
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
     window.onHotlineLoginFailed = handleLoginFailed;
     window.onHotlineDirectCallState = handleDirectCallState;
+    window.onHotlineListenOnly = handleListenOnly;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
         if (window.hotlineClient.isConnected()) {
@@ -270,6 +275,9 @@ export default function DashboardLayout() {
         }
         else if (document.getElementById('sip-client-script')) {
           setConnState(prev => prev === 'idle' ? 'connecting' : prev);
+        }
+        if (window.hotlineClient.isListenOnly && window.hotlineClient.isListenOnly()) {
+          setIsListenOnly(true);
         }
       }
     }, 2000);
@@ -280,6 +288,7 @@ export default function DashboardLayout() {
       if (window.onHotlineMuteState === handleMuteState) delete window.onHotlineMuteState;
       if (window.onHotlineLoginFailed === handleLoginFailed) delete window.onHotlineLoginFailed;
       if (window.onHotlineDirectCallState === handleDirectCallState) delete window.onHotlineDirectCallState;
+      if (window.onHotlineListenOnly === handleListenOnly) delete window.onHotlineListenOnly;
     };
   }, []);
 
@@ -485,6 +494,8 @@ export default function DashboardLayout() {
           ))}
         </nav>
 
+        {isListenOnly && <ListenOnlySidebarCard />}
+
         <div className="p-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{account?.company_name}</div>
           <div className="text-[11px] truncate" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.3)' }}>{account?.email}</div>
@@ -614,12 +625,12 @@ export default function DashboardLayout() {
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6">
-          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute }} />
+          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly }} />
         </main>
       </div>
 
-      {/* ── Mute FAB (visible on every dashboard tab during active call) ── */}
-      {isConnected && <MuteFAB muted={muted} onToggle={toggleMute} />}
+      {/* ── Mute FAB (visible on every dashboard tab during active call, hidden in listen-only) ── */}
+      {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} />}
 
       {/* ── Mobile bottom navigation (hidden on desktop) ── */}
       <nav
@@ -949,6 +960,82 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+function ListenOnlySidebarCard() {
+  const [micStatus, setMicStatus] = useState('idle'); // idle | requesting | blocked
+
+  async function handleEnableMic() {
+    setMicStatus('requesting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+      window.location.reload();
+    } catch {
+      setMicStatus('blocked');
+    }
+  }
+
+  return (
+    <div className="mx-3 mb-3 rounded-2xl p-4" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)' }}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.2)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+          </svg>
+        </div>
+        <div>
+          <div className="text-xs font-bold" style={{ color: '#93bbfd' }}>Listen Only Mode</div>
+          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Mic is off — you can hear but not talk</div>
+        </div>
+      </div>
+
+      <button
+        onClick={handleEnableMic}
+        disabled={micStatus === 'requesting'}
+        className="w-full py-2.5 rounded-xl text-xs font-bold transition-all"
+        style={{
+          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+          color: '#fff',
+          border: 'none',
+          cursor: micStatus === 'requesting' ? 'wait' : 'pointer',
+          boxShadow: '0 6px 16px rgba(37,99,235,0.35)',
+        }}
+      >
+        <span className="flex items-center justify-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+          {micStatus === 'requesting' ? 'Requesting...' : 'Enable Microphone'}
+        </span>
+      </button>
+
+      {micStatus === 'blocked' && (
+        <div className="mt-3 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div className="text-[11px] font-semibold mb-2" style={{ color: '#fca5a5' }}>
+            Mic was blocked. To fix:
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-start gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>1.</span>
+              <span>Click the <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>lock icon</span> in your browser's address bar (top left)</span>
+            </div>
+            <div className="flex items-start gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>2.</span>
+              <span>Find <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>Microphone</span> and change it to <span className="font-semibold" style={{ color: '#86efac' }}>Allow</span></span>
+            </div>
+            <div className="flex items-start gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>3.</span>
+              <span>Refresh the page</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
