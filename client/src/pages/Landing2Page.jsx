@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { toast } from "sonner";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
@@ -1422,6 +1422,19 @@ export default function Landing2Page() {
   const formRef = useRef(null);
   const demoApi = useRef(null);
 
+  const signupBase = "https://hotline.redlineusedautoparts.com/client/signup";
+  const loginBase = "https://hotline.redlineusedautoparts.com/client/login";
+  const referralParams = useMemo(() => {
+    return new URLSearchParams(window.location.search).toString();
+  }, []);
+  const signupUrl = referralParams ? `${signupBase}?${referralParams}` : signupBase;
+  const loginUrl = referralParams ? `${loginBase}?${referralParams}` : loginBase;
+  function signupWithRoom(room) {
+    const p = new URLSearchParams(referralParams);
+    p.set('room', room);
+    return `${signupBase}?${p.toString()}`;
+  }
+
   const [sent, setSent] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [heroFeed, setHeroFeed] = useState({ deals: 0, revenue: 0 });
@@ -1647,8 +1660,8 @@ export default function Landing2Page() {
           <a href="#try">Try it</a>
           <a href="#rooms">Coverage</a>
           <a href="./own-a-hotline">Own a hotline</a>
-          <a href="https://hotline.redlineusedautoparts.com/client/login" className="l2-nav-login">Login</a>
-          <a href="https://hotline.redlineusedautoparts.com/client/signup" className="l2-nav-cta">
+          <a href={loginUrl} className="l2-nav-login">Login</a>
+          <a href={signupUrl} className="l2-nav-cta">
             Sign Up Free
           </a>
         </nav>
@@ -1679,10 +1692,10 @@ export default function Landing2Page() {
             yards — broadcast once, get an answer in seconds, and keep the sale.
           </p>
           <div className="l2-hero-ctas">
-            <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup">
+            <a className="l2-btn l2-btn-hot" href={signupUrl}>
               Sign Up Free
             </a>
-            <a className="l2-btn l2-btn-ghost" href="https://hotline.redlineusedautoparts.com/client/login">
+            <a className="l2-btn l2-btn-ghost" href={loginUrl}>
               Login
             </a>
           </div>
@@ -1759,7 +1772,8 @@ export default function Landing2Page() {
             ref={videoRef}
             src="./hotlinehq.mp4"
             controls={playing}
-            preload="metadata"
+            preload="none"
+            poster=""
             playsInline
             onEnded={() => setPlaying(false)}
           />
@@ -1816,8 +1830,8 @@ export default function Landing2Page() {
           <h2>Ready to stop losing sales?</h2>
           <p>Join 500+ yards already on the network. Set up takes 30 seconds.</p>
           <div style={{display:'flex',gap:'14px',justifyContent:'center',marginBottom:'28px',flexWrap:'wrap'}}>
-            <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup" style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
-            <a className="l2-btn l2-btn-ghost" href="https://hotline.redlineusedautoparts.com/client/login" style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
+            <a className="l2-btn l2-btn-hot" href={signupUrl} style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
+            <a className="l2-btn l2-btn-ghost" href={loginUrl} style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
           </div>
         </div>
       </section>
@@ -1938,15 +1952,16 @@ export default function Landing2Page() {
         </div>
         <div className="l2-rooms">
           {HUBS.map((h, i) => (
-            <div className="l2-room l2-reveal" key={h.name} style={{ transitionDelay: `${i * 40}ms` }}>
+            <a className="l2-room l2-reveal" key={h.name} style={{ transitionDelay: `${i * 40}ms` }}
+              href={signupWithRoom(h.name.charAt(0) + h.name.slice(1).toLowerCase())}>
               <span className="l2-room-code">RM-{String(i + 1).padStart(2, "0")}</span>
               <span className="l2-room-name">{h.name.charAt(0) + h.name.slice(1).toLowerCase()}</span>
               <span className="l2-room-live">● Live</span>
-            </div>
+            </a>
           ))}
         </div>
         <div className="l2-reveal" style={{textAlign:'center',marginTop:'40px'}}>
-          <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup">Sign Up Free — pick your room</a>
+          <a className="l2-btn l2-btn-hot" href={signupUrl}>Sign Up Free — pick your room</a>
         </div>
       </section>
 
@@ -1989,11 +2004,11 @@ export default function Landing2Page() {
           </div>
           <div className="l2-form l2-reveal" style={{textAlign:'center'}}>
             <p className="l2-form-title">Get started in 30 seconds</p>
-            <a className="l2-btn l2-btn-hot" href="https://hotline.redlineusedautoparts.com/client/signup" style={{width:'100%',display:'block',textAlign:'center',marginBottom:'14px'}}>
+            <a className="l2-btn l2-btn-hot" href={signupUrl} style={{width:'100%',display:'block',textAlign:'center',marginBottom:'14px'}}>
               Sign Up Free
             </a>
             <p style={{color:'rgba(255,255,255,0.6)',fontSize:'14px',marginBottom:'14px'}}>
-              Already have an account? <a href="https://hotline.redlineusedautoparts.com/client/login" style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>Login</a>
+              Already have an account? <a href={loginUrl} style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>Login</a>
             </p>
             <p className="l2-form-fine">
               No credit card required. Set up your yard in minutes.
@@ -2006,7 +2021,7 @@ export default function Landing2Page() {
       <SiteFooter />
 
       {/* sticky mobile CTA */}
-      <a className="l2-sticky-cta" href="https://hotline.redlineusedautoparts.com/client/signup">
+      <a className="l2-sticky-cta" href={signupUrl}>
         Sign Up Free
       </a>
     </div>
@@ -2018,7 +2033,7 @@ export default function Landing2Page() {
 /* ------------------------------------------------------------------ */
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 
 .l2 {
   --bg: #fbfaf8;
@@ -2467,6 +2482,7 @@ const CSS = `
   padding: 18px; display: flex; flex-direction: column; gap: 8px;
   transition: border-color .2s, transform .2s, box-shadow .2s;
 }
+.l2-room { cursor: pointer; text-decoration: none; color: inherit; }
 .l2-room:hover { border-color: rgba(217,45,32,0.4); transform: translateY(-2px); box-shadow: var(--shadow); }
 .l2-room-code { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; color: #a3a094; }
 .l2-room-name { font-family: var(--display); font-weight: 700; font-size: 19px; }
@@ -2481,7 +2497,8 @@ const CSS = `
   padding: 28px 26px 32px; box-shadow: var(--shadow);
   transition: transform .2s, border-color .2s;
 }
-.l2-feature:hover { transform: translateY(-3px); border-color: rgba(217,45,32,0.3); }
+.l2-feature { cursor: default; }
+.l2-feature:hover { border-color: rgba(217,45,32,0.15); }
 .l2-feature-code {
   width: 44px; height: 44px; border-radius: 12px;
   background: var(--red-soft); color: var(--red);

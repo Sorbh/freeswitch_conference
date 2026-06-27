@@ -631,11 +631,18 @@ export default function DashboardLayout() {
         </main>
       </div>
 
-      {/* ── Mute FAB (visible on every dashboard tab during active call, hidden in listen-only) ── */}
+      {/* ── Mute FAB — desktop only (fixed bottom-right) ── */}
       {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} />}
 
-      {/* ── Mobile offer bar (hidden on desktop) ── */}
-      <FreeWebsiteOfferMobile />
+      {/* ── Mobile bottom stack: items stack above bottom nav naturally ── */}
+      <div
+        className="md:hidden fixed left-0 right-0 z-50 flex flex-col items-stretch"
+        style={{ bottom: 'calc(49px + env(safe-area-inset-bottom))' }}
+      >
+        {isConnected && !isListenOnly && <MobileMuteFAB muted={muted} onToggle={toggleMute} />}
+        {isListenOnly && <ListenOnlyMobileBanner />}
+        <FreeWebsiteOfferMobile />
+      </div>
 
       {/* ── Mobile bottom navigation (hidden on desktop) ── */}
       <nav
@@ -1045,11 +1052,67 @@ function ListenOnlySidebarCard() {
   );
 }
 
+function ListenOnlyMobileBanner() {
+  const [micStatus, setMicStatus] = useState('idle');
+
+  async function handleEnableMic() {
+    setMicStatus('requesting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop());
+      window.location.reload();
+    } catch {
+      setMicStatus('blocked');
+    }
+  }
+
+  return (
+    <div className="px-2 pb-1">
+      <div className="rounded-2xl p-3 flex items-center gap-3" style={{ background: '#1e3a5f', border: '1px solid rgba(37,99,235,0.35)' }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(37,99,235,0.25)' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-bold" style={{ color: '#93bbfd' }}>Listen Only</div>
+          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Mic is off — tap to enable</div>
+        </div>
+        <button
+          onClick={handleEnableMic}
+          disabled={micStatus === 'requesting'}
+          className="px-4 py-2 rounded-xl text-xs font-bold flex-shrink-0"
+          style={{
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            color: '#fff',
+            border: 'none',
+            cursor: micStatus === 'requesting' ? 'wait' : 'pointer',
+            boxShadow: '0 4px 12px rgba(37,99,235,0.35)',
+          }}
+        >
+          {micStatus === 'requesting' ? 'Requesting...' : 'Enable Mic'}
+        </button>
+      </div>
+      {micStatus === 'blocked' && (
+        <div className="mx-0 mt-1 rounded-xl p-3" style={{ background: '#1e3a5f', border: '1px solid rgba(37,99,235,0.25)' }}>
+          <div className="text-[11px] font-semibold mb-1.5" style={{ color: '#fca5a5' }}>Mic blocked. To fix:</div>
+          <div className="text-[11px] space-y-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
+            <div>1. Tap the <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>lock icon</span> in the address bar</div>
+            <div>2. Set <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>Microphone</span> to <span style={{ color: '#86efac' }}>Allow</span></div>
+            <div>3. Refresh the page</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MuteFAB({ muted, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="fixed z-50 w-14 h-14 rounded-full flex items-center justify-center left-1/2 -translate-x-1/2 bottom-[calc(60px+env(safe-area-inset-bottom)+52px)] md:left-auto md:right-6 md:bottom-6 md:translate-x-0"
+      className="hidden md:flex fixed z-50 w-14 h-14 rounded-full items-center justify-center right-6 bottom-6"
       style={{
         background: muted ? 'var(--red)' : 'var(--green)',
         color: '#fff',
@@ -1060,6 +1123,26 @@ function MuteFAB({ muted, onToggle }) {
     >
       {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
     </button>
+  );
+}
+
+function MobileMuteFAB({ muted, onToggle }) {
+  return (
+    <div className="flex justify-center py-2">
+      <button
+        onClick={onToggle}
+        className="w-14 h-14 rounded-full flex items-center justify-center"
+        style={{
+          background: muted ? 'var(--red)' : 'var(--green)',
+          color: '#fff',
+          boxShadow: muted
+            ? '0 6px 20px rgba(217,45,32,0.45)'
+            : '0 6px 20px rgba(18,183,106,0.45)',
+        }}
+      >
+        {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
+      </button>
+    </div>
   );
 }
 
@@ -1124,12 +1207,10 @@ function FreeWebsiteOfferMobile() {
 
   return (
     <div
-      className="md:hidden fixed left-0 right-0 z-50 flex items-center justify-between px-4 py-2"
+      className="flex items-center justify-between px-4 py-2"
       style={{
-        bottom: 'calc(52px + env(safe-area-inset-bottom))',
         background: 'var(--surface)',
         borderTop: '1px solid var(--line)',
-        borderBottom: '1px solid var(--line)',
       }}
     >
       <div className="flex items-center gap-2 min-w-0">

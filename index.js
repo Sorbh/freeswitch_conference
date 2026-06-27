@@ -1,3 +1,4 @@
+import compression from 'compression';
 import cors from "cors";
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
@@ -63,14 +64,21 @@ const setNoStoreHtml = (res) => {
 const sendAssetNotFound = (res) => {
     res.status(404).type("text/plain").send("Asset not found");
 };
+const immutableAssets = { maxAge: 365 * 24 * 60 * 60 * 1000, immutable: true };
 
+app.use(compression({
+    filter: (req, res) => {
+        if (req.headers.accept?.includes('text/event-stream')) return false;
+        return compression.filter(req, res);
+    }
+}));
 app.use(cors({ origin: true, credentials: true }));
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
 // Admin app assets (dist/assets/) at /admin/
 const adminDistDir = path.join(__dirname, "dist");
-const adminAssets = express.static(path.join(adminDistDir, "assets"), { index: false });
+const adminAssets = express.static(path.join(adminDistDir, "assets"), { index: false, ...immutableAssets });
 const sendAdminIndex = (req, res) => {
     setNoStoreHtml(res);
     res.sendFile(path.join(adminDistDir, "index.html"));
@@ -113,15 +121,16 @@ app.get("/admin/*", (req, res) => {
 // Client app — serve at / (must be AFTER /api and /admin)
 const clientDistDir = path.join(__dirname, "dist-client");
 if (fs.existsSync(clientDistDir)) {
-    const clientAssets = express.static(path.join(clientDistDir, "assets"), { index: false });
+    const clientAssets = express.static(path.join(clientDistDir, "assets"), { index: false, ...immutableAssets });
     const clientIndexPath = path.join(clientDistDir, "index.html");
+    const clientIndexHtml = fs.readFileSync(clientIndexPath, "utf8");
+    const hotlineIndexHtml = clientIndexHtml
+        .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
+        .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
+        .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
     const sendClientIndex = (req, res) => {
-        let html = fs.readFileSync(clientIndexPath, "utf8");
-        html = html
-            .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
-            .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
-            .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
         setNoStoreHtml(res);
+        const html = req.path.startsWith('/hotlinehq') ? hotlineIndexHtml : clientIndexHtml;
         res.type("html").send(html);
     };
 
