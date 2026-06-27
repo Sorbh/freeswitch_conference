@@ -8,6 +8,7 @@ import fs from 'fs';
 import https from 'https';
 import path from "path";
 import { fileURLToPath } from 'url';
+import zlib from 'zlib';
 import ViteExpress from "vite-express";
 ViteExpress.config({
     mode: "production",
@@ -66,12 +67,13 @@ const sendAssetNotFound = (res) => {
 };
 const immutableAssets = { maxAge: 365 * 24 * 60 * 60 * 1000, immutable: true };
 
-app.use(compression({
+const compressMiddleware = compression({
     filter: (req, res) => {
         if (req.headers.accept?.includes('text/event-stream')) return false;
         return compression.filter(req, res);
     }
-}));
+});
+app.use(compressMiddleware);
 app.use(cors({ origin: true, credentials: true }));
 app.use(json());
 app.use(urlencoded({ extended: true }));
@@ -123,15 +125,32 @@ const clientDistDir = path.join(__dirname, "dist-client");
 if (fs.existsSync(clientDistDir)) {
     const clientAssets = express.static(path.join(clientDistDir, "assets"), { index: false, ...immutableAssets });
     const clientIndexPath = path.join(clientDistDir, "index.html");
-    const clientIndexHtml = fs.readFileSync(clientIndexPath, "utf8");
+    let clientIndexHtml = fs.readFileSync(clientIndexPath, "utf8");
+    const cssLinkMatch = clientIndexHtml.match(/<link[^>]+href="(\/assets\/[^"]+\.css)"[^>]*>/);
+    if (cssLinkMatch) {
+        const cssFileName = cssLinkMatch[1].replace(/^\//, '');
+        const cssPath = path.join(clientDistDir, cssFileName);
+        if (fs.existsSync(cssPath)) {
+            const cssContent = fs.readFileSync(cssPath, "utf8");
+            clientIndexHtml = clientIndexHtml.replace(cssLinkMatch[0], `<style>${cssContent}</style>`);
+        }
+    }
     const hotlineIndexHtml = clientIndexHtml
         .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
         .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
         .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
+    const clientIndexGz = zlib.gzipSync(clientIndexHtml);
+    const hotlineIndexGz = zlib.gzipSync(hotlineIndexHtml);
     const sendClientIndex = (req, res) => {
         setNoStoreHtml(res);
-        const html = req.path.startsWith('/hotlinehq') ? hotlineIndexHtml : clientIndexHtml;
-        res.type("html").send(html);
+        const isHotline = req.path.startsWith('/hotlinehq');
+        if (req.headers['accept-encoding']?.includes('gzip')) {
+            res.set('Content-Encoding', 'gzip');
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.end(isHotline ? hotlineIndexGz : clientIndexGz);
+        } else {
+            res.type("html").send(isHotline ? hotlineIndexHtml : clientIndexHtml);
+        }
     };
 
     app.use("/hotlinehq/assets", clientAssets);

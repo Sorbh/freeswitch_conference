@@ -56,8 +56,12 @@ function trackClarityEvent(name) {
 }
 
 function buildSignupUrl(roomName) {
+  const incoming = new URLSearchParams(window.location.search);
   const url = new URL(PUBLIC_SIGNUP_URL);
-  if (roomName) url.searchParams.set("room", roomName);
+  for (const [k, v] of incoming) {
+    if (v) url.searchParams.set(k, v);
+  }
+  if (roomName && !incoming.has("room")) url.searchParams.set("room", roomName);
   return url.toString();
 }
 
@@ -412,6 +416,62 @@ export default function PublicBroadcastPage() {
       </div>
 
       <main className="bp-main">
+        <div className="bp-split">
+          {/* LEFT — Hero / selling section */}
+          <div className="bp-hero-col">
+            <div className="bp-hero-mesh" aria-hidden="true" />
+            <div className="bp-hero-scrim" aria-hidden="true" />
+            <div className="bp-hero-inner">
+              <div className="bp-hero-chip">
+                <span className="bp-hero-live-dot" />
+                Live network · 12 regional rooms
+              </div>
+
+              <p className="bp-hero-eyebrow">The parts-locating voice network for auto recyclers</p>
+
+              <h1 className="bp-hero-headline">
+                Every &ldquo;we don&rsquo;t have it&rdquo; is a customer walking out.{" "}
+                <em>It doesn&rsquo;t have to be.</em>
+              </h1>
+
+              <p className="bp-hero-sub">
+                The part you don&rsquo;t have is sitting in somebody&rsquo;s yard.
+                Hotline HQ connects 500+ salvage yards — broadcast once, get an answer
+                in seconds, and keep the sale.
+              </p>
+
+              <div className="bp-hero-ctas">
+                <a href={signupUrl} className="bp-hero-btn-hot" onClick={handleSignupClick}>
+                  Sign Up Free
+                </a>
+                <a href={PUBLIC_LOGIN_URL} className="bp-hero-btn-ghost" onClick={handleLoginClick}>
+                  Login
+                </a>
+              </div>
+
+              <div className="bp-hero-stats-row">
+                <div className="bp-hero-stat-item">
+                  <strong>500+</strong>
+                  <span>member yards</span>
+                </div>
+                <div className="bp-hero-stat-item">
+                  <strong>12</strong>
+                  <span>regional rooms</span>
+                </div>
+                <div className="bp-hero-stat-item">
+                  <strong>2s</strong>
+                  <span>typical answer</span>
+                </div>
+                <div className="bp-hero-stat-item">
+                  <strong>24/7</strong>
+                  <span>line monitoring</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT — Broadcast proof card */}
+          <div className="bp-proof-col">
         <div className="bp-card">
           <div className="bp-dashboard-head">
             <div className="bp-head-main">
@@ -419,7 +479,7 @@ export default function PublicBroadcastPage() {
                 {(data.display_name || "H")[0].toUpperCase()}
               </span>
               <div className="bp-head-copy">
-                <p className="bp-kicker">Shared broadcast</p>
+                <p className="bp-kicker">Live broadcast</p>
                 <h1 className="bp-speaker">{data.display_name || "Unknown Speaker"}</h1>
                 <p className="bp-timestamp">
                   {formatTimestamp(data.created_at)}
@@ -571,57 +631,7 @@ export default function PublicBroadcastPage() {
             </div>
           )}
 
-          <div className="bp-cta-section">
-            <div className="bp-cta-copy">
-              <p className="bp-section-label" style={{ marginBottom: 10 }}>
-                <ShieldCheckIcon />
-                Join the network
-              </p>
-              <h2 className="bp-cta-title">Want access to live parts calls like this?</h2>
-              <p className="bp-cta-text">
-                Join Hotline HQ to hear live room traffic, broadcast your own parts requests, and answer calls as they happen.
-              </p>
-            </div>
-
-            <div className="bp-cta-trust-grid">
-              <div className="bp-cta-trust">
-                <span className="bp-cta-trust-value">Free signup</span>
-                <span className="bp-cta-trust-label">No card required</span>
-              </div>
-              <div className="bp-cta-trust">
-                <span className="bp-cta-trust-value">{data.listener_count || 0} listeners</span>
-                <span className="bp-cta-trust-label">Heard this broadcast</span>
-              </div>
-              <div className="bp-cta-trust">
-                <span className="bp-cta-trust-value">{data.room_name || "Live room"}</span>
-                <span className="bp-cta-trust-label">Room ready on signup</span>
-              </div>
-            </div>
-
-            <div className="bp-cta-actions">
-              <a
-                href={signupUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bp-cta-btn bp-cta-btn-primary"
-                onClick={handleSignupClick}
-              >
-                Sign up free
-              </a>
-              <a
-                href={PUBLIC_LOGIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bp-cta-btn bp-cta-btn-secondary"
-                onClick={handleLoginClick}
-              >
-                Log in
-              </a>
-            </div>
-
-            <p className="bp-cta-footnote">
-              Existing member? Log in and get back to the room faster. New yard? Start free and join the network in minutes.
-            </p>
+        </div>
           </div>
         </div>
       </main>
@@ -774,10 +784,188 @@ const PAGE_CSS = `
   padding: 48px 20px 64px;
 }
 
+/* Split layout */
+.bp-split {
+  display: flex;
+  gap: 40px;
+  max-width: 1140px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+/* Hero column (left) */
+.bp-hero-col {
+  flex: 1;
+  position: sticky;
+  top: 80px;
+  border-radius: 20px;
+  overflow: hidden;
+  min-height: 580px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+.bp-hero-mesh {
+  position: absolute;
+  inset: -40%;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(217,45,32,0.25), transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(18,183,106,0.15), transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(217,45,32,0.12), transparent 50%),
+    #16181d;
+  animation: bp-mesh-drift 12s ease-in-out infinite alternate;
+  z-index: 0;
+}
+@keyframes bp-mesh-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(5%, -3%) scale(1.05); }
+  66%  { transform: translate(-3%, 5%) scale(1.02); }
+  100% { transform: translate(2%, -2%) scale(1.08); }
+}
+.bp-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 40%, rgba(22,24,29,0.6) 30%, rgba(22,24,29,0.3) 70%, transparent 100%),
+    linear-gradient(180deg, rgba(22,24,29,0.7) 0%, transparent 30%),
+    linear-gradient(0deg, rgba(22,24,29,0.8) 0%, transparent 25%);
+  z-index: 1;
+  pointer-events: none;
+}
+.bp-hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 480px;
+  padding: 48px 36px;
+  text-align: center;
+}
+.bp-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 7px 14px;
+  margin-bottom: 22px;
+}
+.bp-hero-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(217,45,32,0.25);
+  animation: bp-pulse 1.6s infinite;
+}
+@keyframes bp-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.bp-hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 0 0 18px;
+}
+.bp-hero-headline {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  margin: 0 0 18px;
+}
+.bp-hero-headline em {
+  font-style: normal;
+  color: var(--red);
+  background: linear-gradient(transparent 68%, rgba(217,45,32,0.2) 68%);
+}
+.bp-hero-sub {
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.65);
+  font-weight: 500;
+  margin: 0 0 28px;
+}
+.bp-hero-ctas {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.bp-hero-btn-hot {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 15.5px;
+  padding: 14px 28px;
+  border-radius: 11px;
+  background: var(--red);
+  color: #fff !important;
+  box-shadow: 0 8px 24px -8px rgba(217,45,32,0.5);
+  transition: transform .15s, background .2s, box-shadow .2s;
+  cursor: pointer;
+}
+.bp-hero-btn-hot:hover { background: var(--red-deep); box-shadow: 0 10px 30px -8px rgba(217,45,32,0.6); transform: translateY(-2px); }
+.bp-hero-btn-hot:active { transform: translateY(1px); }
+.bp-hero-btn-ghost {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 15.5px;
+  padding: 14px 28px;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff !important;
+  transition: transform .15s, background .2s, border-color .2s;
+  cursor: pointer;
+}
+.bp-hero-btn-ghost:hover { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.bp-hero-btn-ghost:active { transform: translateY(1px); }
+.bp-hero-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: clamp(24px, 4vw, 48px);
+  flex-wrap: wrap;
+}
+.bp-hero-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.bp-hero-stat-item strong {
+  font-family: var(--display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+.bp-hero-stat-item span {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+
+/* Proof column (right) */
+.bp-proof-col {
+  flex: 1;
+  max-width: 560px;
+}
+
 /* Card */
 .bp-card {
   width: 100%;
-  max-width: 620px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -1382,6 +1570,14 @@ const PAGE_CSS = `
   100% { background-position: -200% 0; }
 }
 
+/* Tablet — stack split */
+@media (max-width: 960px) {
+  .bp-split { flex-direction: column; gap: 0; }
+  .bp-hero-col { position: static; border-radius: 16px; min-height: 480px; }
+  .bp-proof-col { max-width: 100%; margin-top: 28px; }
+  .bp-hero-inner { max-width: 100%; }
+}
+
 /* Mobile */
 @media (max-width: 640px) {
   .bp-main { padding: 28px 12px 48px; }
@@ -1396,6 +1592,13 @@ const PAGE_CSS = `
     padding: 0 11px;
     font-size: 12px;
   }
+  .bp-hero-col { min-height: 420px; border-radius: 12px; }
+  .bp-hero-inner { padding: 36px 20px; }
+  .bp-hero-headline { font-size: 24px; }
+  .bp-hero-stats-row { gap: 16px; }
+  .bp-hero-stat-item strong { font-size: 24px; }
+  .bp-hero-ctas { flex-direction: column; }
+  .bp-hero-btn-hot, .bp-hero-btn-ghost { width: 100%; text-align: center; display: block; }
   .bp-dashboard-head { flex-direction: column; padding: 18px; gap: 14px; }
   .bp-badge { margin-top: 0; }
   .bp-stat-grid { grid-template-columns: 1fr 1fr; padding: 12px; gap: 8px; }
@@ -1420,20 +1623,6 @@ const PAGE_CSS = `
   .bp-transcript-section {
     margin-left: 16px;
     margin-right: 16px;
-  }
-  .bp-cta-section {
-    margin: 16px;
-    padding: 18px;
-    border-radius: 16px;
-  }
-  .bp-cta-trust-grid {
-    grid-template-columns: 1fr;
-  }
-  .bp-cta-actions {
-    flex-direction: column;
-  }
-  .bp-cta-btn {
-    width: 100%;
   }
 }
 

@@ -95,7 +95,7 @@ export function OwnHotlinePage() {
         title="Auto Parts Hotline — Own a Used Auto Parts Hotline Network | Hotline HQ"
         description="Own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, phones, recordings, and monitoring while you own the member revenue."
         keywords="auto parts hotline, used auto parts hotline, own an auto parts hotline, salvage yard hotline, auto recycler hotline, used auto parts network, hotline for salvage yards, parts locating hotline, own a hotline, start a hotline business"
-        canonicalUrl="https://redlineusedautoparts.com/hotlinehq/own-a-hotline"
+        canonicalUrl="https://hotline.redlineusedautoparts.com/own-a-hotline"
         path="/own-a-hotline"
         jsonLd={ownJsonLd()}
       />

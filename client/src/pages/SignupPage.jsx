@@ -193,12 +193,14 @@ export default function SignupPage() {
             <div className="mb-3">
               <label className="hq-label">Email</label>
               <input
-                type="email"
+                type="text"
+                inputMode="email"
                 value={form.email}
                 onChange={update('email')}
                 onBlur={trimField('email')}
                 required
                 autoFocus={!hasUrlCompany}
+                autoComplete="off"
                 className="hq-input"
                 placeholder="you@company.com"
               />
@@ -213,6 +215,7 @@ export default function SignupPage() {
                 onChange={update('password')}
                 required
                 minLength={6}
+                autoComplete="new-password"
                 className="hq-input"
                 placeholder="At least 6 characters"
               />

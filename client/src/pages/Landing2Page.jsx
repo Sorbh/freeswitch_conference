@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
 import { toast } from "sonner";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
+
+let THREE;
+const threeReady = import("three").then(m => { THREE = m; });
 
 /* ------------------------------------------------------------------ */
 /*  Landing 2 — Hotline HQ. Light B2B theme, Three.js throughout:     */
@@ -1508,36 +1510,48 @@ export default function Landing2Page() {
 
   /* hero scene */
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!heroRef.current) return;
-    const api = buildNetworkScene(heroRef.current, {
-      reducedMotion,
-      onReply: (price) =>
-        setHeroFeed((f) => ({ deals: f.deals + 1, revenue: f.revenue + price })),
+    let disposed = false;
+    threeReady.then(() => {
+      if (disposed || !heroRef.current) return;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const api = buildNetworkScene(heroRef.current, {
+        reducedMotion,
+        onReply: (price) =>
+          setHeroFeed((f) => ({ deals: f.deals + 1, revenue: f.revenue + price })),
+      });
+      heroSceneApi.current = api;
     });
-    heroSceneApi.current = api;
     return () => {
-      heroSceneApi.current = null;
-      api.dispose();
+      disposed = true;
+      if (heroSceneApi.current) { heroSceneApi.current.dispose(); heroSceneApi.current = null; }
     };
   }, []);
 
   /* playable demo scene */
   useEffect(() => {
-    if (!demoRef.current) return;
-    const api = buildDemoScene(demoRef.current);
-    demoApi.current = api;
+    let disposed = false;
+    threeReady.then(() => {
+      if (disposed || !demoRef.current) return;
+      const api = buildDemoScene(demoRef.current);
+      demoApi.current = api;
+    });
     return () => {
-      demoApi.current = null;
-      api.dispose();
+      disposed = true;
+      if (demoApi.current) { demoApi.current.dispose(); demoApi.current = null; }
     };
   }, []);
 
   /* CTA wave scene */
   useEffect(() => {
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!waveRef.current || reducedMotion) return;
-    return buildWaveScene(waveRef.current);
+    let disposed = false;
+    threeReady.then(() => {
+      if (disposed) return;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!waveRef.current || reducedMotion) return;
+      const cleanup = buildWaveScene(waveRef.current);
+      if (disposed && cleanup) cleanup();
+    });
+    return () => { disposed = true; };
   }, []);
 
   /* scroll reveal */
@@ -1640,7 +1654,7 @@ export default function Landing2Page() {
         title="Hotline HQ — Find Any Used Auto Part in 2 Seconds | Salvage Yard Parts Locator"
         description="Stop losing sales when you don't have the part. Broadcast once to 500+ salvage yards — get an answer in 2 seconds. The fastest way to locate and sell used auto parts."
         keywords="find used auto parts fast, used auto parts locator, salvage yard parts finder, locate used car parts, sell used auto parts to yards, junkyard parts sourcing, used OEM parts supplier, auto parts interchange, salvage yard parts network, used car parts wholesale, auto recycler parts locator, find junkyard parts near me"
-        canonicalUrl="https://redlineusedautoparts.com/hotlinehq/"
+        canonicalUrl="https://hotline.redlineusedautoparts.com/"
         path="/"
         jsonLd={landingJsonLd()}
       />
