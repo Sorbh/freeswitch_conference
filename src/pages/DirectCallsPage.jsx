@@ -161,7 +161,7 @@ export default function DirectCallsPage() {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
         <Skeleton className="h-8 w-48" />
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
         </div>
         <Skeleton className="h-[400px]" />
@@ -173,8 +173,8 @@ export default function DirectCallsPage() {
     <div className="space-y-5 animate-in fade-in duration-300">
       {/* Header */}
       <div className="min-w-0">
-        <h2 className="text-2xl font-bold tracking-tight leading-tight">Extension Calls</h2>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+        <h2 className="text-xl font-bold tracking-tight leading-tight sm:text-2xl">Extension Calls</h2>
+        <p className="text-xs text-muted-foreground mt-2 leading-relaxed sm:text-sm">
           <span className="font-mono tabular-nums">{stats.total}</span> total{" • "}
           <span className="font-mono tabular-nums">{stats.answered}</span> answered{" • "}
           <span className="font-mono tabular-nums">{stats.missed}</span> missed
@@ -182,7 +182,7 @@ export default function DirectCallsPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2">
         <StatCard label="Total Calls" value={stats.total} icon={<PhoneCallIcon className="size-4" />} color="#8b5cf6" />
         <StatCard label="Answered" value={stats.answered} icon={<CheckCircle2Icon className="size-4" />} color="#22c55e" />
         <StatCard label="Missed" value={stats.missed} icon={<PhoneMissedIcon className="size-4" />} color="#f59e0b" />
@@ -190,7 +190,7 @@ export default function DirectCallsPage() {
       </div>
 
       {/* Call Log */}
-      <Card className="border-border/40">
+      <Card className="border-border/40 overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
@@ -225,7 +225,7 @@ export default function DirectCallsPage() {
             <p className="text-sm text-muted-foreground text-center py-12">No calls found</p>
           ) : (
             <>
-            <div className="space-y-2 px-3 pb-3 md:hidden">
+            <div className="space-y-2 px-2.5 pb-3 sm:px-3 md:hidden">
               {filtered.map((c) => {
                 const url = c.recording_path ? `/recordings/direct/${c.recording_path.split("/").pop()}` : null;
                 const playing = playingId === c.id;
@@ -233,7 +233,7 @@ export default function DirectCallsPage() {
                 return (
                   <div
                     key={c.id}
-                    className={`rounded-xl border bg-card/70 p-3 transition-colors ${playing ? "border-violet-500/25 bg-violet-500/[0.04]" : "border-border/60"}`}
+                    className={`rounded-xl border bg-card/70 p-3 transition-colors active:scale-[0.995] sm:p-3.5 ${playing ? "border-violet-500/25 bg-violet-500/[0.04]" : "border-border/60"}`}
                     onClick={() => { setSelectedCall(c); setSheetOpen(true); }}
                   >
                     <div className="flex items-start gap-3">
@@ -267,7 +267,7 @@ export default function DirectCallsPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="truncate text-base font-semibold leading-tight">{c.caller_display_name || c.caller_email}</p>
+                            <p className="truncate text-sm font-semibold leading-tight sm:text-base">{c.caller_display_name || c.caller_email}</p>
                             <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                               {c.caller_extension && <code className="font-mono text-violet-400/70 bg-violet-500/10 px-1.5 py-px rounded">*{c.caller_extension}</code>}
                               {c.caller_company && <span className="truncate">{c.caller_company}</span>}
@@ -397,7 +397,7 @@ export default function DirectCallsPage() {
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-[420px] sm:w-[460px] p-0 flex flex-col gap-0 overflow-y-auto border-border/40">
+        <SheetContent className="!w-full !max-w-full sm:!w-[460px] sm:!max-w-[460px] p-0 flex flex-col gap-0 overflow-y-auto border-border/40">
           <SheetHeader className="sr-only">
             <SheetTitle>Call Detail</SheetTitle>
             <SheetDescription>Extension call detail view</SheetDescription>
@@ -410,7 +410,7 @@ export default function DirectCallsPage() {
             return (
               <>
                 {/* Hero header */}
-                <div className={`relative px-5 pt-12 pb-5 ${isAnswered ? "bg-emerald-500/[0.04]" : "bg-red-500/[0.04]"}`}>
+                <div className={`relative px-4 pt-12 pb-5 sm:px-5 ${isAnswered ? "bg-emerald-500/[0.04]" : "bg-red-500/[0.04]"}`}>
                   <div className={`absolute top-0 left-0 right-0 h-px ${isAnswered ? "bg-emerald-500/30" : "bg-red-500/30"}`} />
                   <div className="flex items-start justify-between">
                     <div>
@@ -434,7 +434,7 @@ export default function DirectCallsPage() {
                   </div>
                 </div>
 
-                <div className="px-5 py-4 space-y-4">
+                <div className="px-4 py-4 space-y-4 sm:px-5">
                   {/* Caller → Callee flow */}
                   <div className="space-y-0">
                     {/* Caller */}
@@ -487,23 +487,23 @@ export default function DirectCallsPage() {
                   {/* Metadata grid */}
                   <div className="rounded-lg border border-border/40 overflow-hidden divide-y divide-border/30">
                     {selectedCall.caller_room_name && (
-                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                      <div className="flex flex-col gap-1 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-[12px] text-muted-foreground/50">Room</span>
                         <span className="text-[12px] font-medium">{selectedCall.caller_room_name}</span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between px-3.5 py-2.5">
+                    <div className="flex flex-col gap-1 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-[12px] text-muted-foreground/50">Started</span>
                       <span className="text-[12px] font-mono tabular-nums">{formatFullDateTime(selectedCall.started_at || selectedCall.created_at)}</span>
                     </div>
                     {selectedCall.answered_at && (
-                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                      <div className="flex flex-col gap-1 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-[12px] text-muted-foreground/50">Answered</span>
                         <span className="text-[12px] font-mono tabular-nums">{formatTime(selectedCall.answered_at)}</span>
                       </div>
                     )}
                     {selectedCall.ended_at && (
-                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                      <div className="flex flex-col gap-1 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-[12px] text-muted-foreground/50">Ended</span>
                         <span className="text-[12px] font-mono tabular-nums">{formatTime(selectedCall.ended_at)}</span>
                       </div>

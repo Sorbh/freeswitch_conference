@@ -118,17 +118,17 @@ export function OwnHotlinePage() {
             seconds. You own the network and revenue. We run the system.
           </p>
           <div className="l2-own-ctas">
+            <Link className="l2-btn l2-btn-hot" to="/">
+              See the live network →
+            </Link>
             <a
-              className="l2-btn l2-btn-hot"
+              className="l2-btn l2-btn-ghost"
               href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              Talk to us about your auto parts hotline
+              Talk to us about launching
             </a>
-            <Link className="l2-btn l2-btn-ghost" to="/">
-              See the live auto parts hotline →
-            </Link>
           </div>
         </section>
 
@@ -217,14 +217,23 @@ export function OwnHotlinePage() {
             what an auto parts hotline launch looks like and what the live
             network model earns.
           </p>
-          <a
-            className="l2-btn l2-btn-hot"
-            href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Start the conversation
-          </a>
+          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a
+              className="l2-btn l2-btn-hot"
+              href={`mailto:${CONTACT_EMAIL}?subject=Launching an auto parts hotline`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Start the conversation
+            </a>
+            <a
+              className="l2-btn l2-btn-ghost"
+              href="https://hotline.redlineusedautoparts.com/client/signup"
+              style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff', background: 'transparent' }}
+            >
+              Sign Up Free
+            </a>
+          </div>
         </section>
       </main>
 

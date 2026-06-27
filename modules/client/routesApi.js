@@ -151,7 +151,7 @@ clientRouter.post("/signup", async (req, res) => {
         logSystem('CLIENT', `API /signup email=${cleanEmail} company=${cleanCompanyName} room=${roomId || ''} ip=${ip}`);
 
         try {
-            await sendVerificationEmail({ email: account.email, token: verificationToken, displayName: fallbackDisplayName });
+            await sendVerificationEmail({ email: account.email, token: verificationToken, displayName: fallbackDisplayName, roomName: roomData?.name });
         } catch (emailErr) {
             console.error('[SIGNUP] Verification email failed:', emailErr.message);
         }

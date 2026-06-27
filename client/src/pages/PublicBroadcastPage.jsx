@@ -314,6 +314,7 @@ export default function PublicBroadcastPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAudioNudge, setShowAudioNudge] = useState(false);
   const audioPlayTrackedRef = useRef(false);
 
   useEffect(() => {
@@ -360,6 +361,7 @@ export default function PublicBroadcastPage() {
   const handleAudioPlayStart = useCallback(() => {
     if (audioPlayTrackedRef.current) return;
     audioPlayTrackedRef.current = true;
+    setShowAudioNudge(true);
     setClarityTags({
       page_type: "public_broadcast",
       public_broadcast_token: token,
@@ -406,26 +408,6 @@ export default function PublicBroadcastPage() {
         </Link>
         <div className="bp-header-side">
           <span className="bp-header-label">Shared Broadcast</span>
-          <div className="bp-header-actions">
-            <a
-              href={PUBLIC_LOGIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bp-header-link"
-              onClick={handleLoginClick}
-            >
-              Log in
-            </a>
-            <a
-              href={signupUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bp-header-btn"
-              onClick={handleSignupClick}
-            >
-              Sign up free
-            </a>
-          </div>
         </div>
       </div>
 
@@ -509,6 +491,14 @@ export default function PublicBroadcastPage() {
                 knownDurationMs={data.duration_ms}
                 onPlayStart={handleAudioPlayStart}
               />
+              {showAudioNudge && (
+                <p className="bp-audio-nudge">
+                  Hear calls like this live —{" "}
+                  <a href={signupUrl} target="_blank" rel="noopener noreferrer" onClick={handleSignupClick}>
+                    {data.room_name ? `${data.room_name} room` : "12 rooms"} running right now
+                  </a>
+                </p>
+              )}
             </div>
           )}
 
@@ -640,6 +630,25 @@ export default function PublicBroadcastPage() {
         <HQMark size={20} />
         <span>Powered by Hotline HQ</span>
       </footer>
+
+      {/* Sticky bottom CTA bar */}
+      <div className="bp-sticky-cta">
+        <div className="bp-sticky-cta-inner">
+          <div className="bp-sticky-cta-copy">
+            <strong>Join the hotline</strong>
+            <span>Free signup · No card required</span>
+          </div>
+          <a
+            href={signupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bp-sticky-cta-btn"
+            onClick={handleSignupClick}
+          >
+            Sign up free
+          </a>
+        </div>
+      </div>
     </div>
   );
 
@@ -1355,7 +1364,7 @@ const PAGE_CSS = `
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 20px;
+  padding: 20px 20px 72px;
   font-family: var(--mono);
   font-size: 12px;
   color: var(--subtle);
@@ -1426,6 +1435,89 @@ const PAGE_CSS = `
   .bp-cta-btn {
     width: 100%;
   }
+}
+
+/* Audio nudge */
+.bp-audio-nudge {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  animation: bp-fadeIn 0.5s ease-out;
+}
+.bp-audio-nudge a {
+  color: var(--red) !important;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.bp-audio-nudge a:hover {
+  color: var(--red-deep) !important;
+}
+@keyframes bp-fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sticky bottom CTA bar */
+.bp-sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: rgba(251,250,248,0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  padding: 12px 20px;
+  animation: bp-slideUp 0.4s ease-out;
+}
+@keyframes bp-slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.bp-sticky-cta-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.bp-sticky-cta-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bp-sticky-cta-copy strong {
+  font-family: var(--display);
+  font-size: 15px;
+  color: var(--ink);
+}
+.bp-sticky-cta-copy span {
+  font-size: 14px;
+  color: var(--muted);
+}
+.bp-sticky-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  background: var(--red);
+  color: #fff !important;
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  white-space: nowrap;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+.bp-sticky-cta-btn:hover {
+  background: var(--red-deep);
+}
+@media (max-width: 640px) {
+  .bp-sticky-cta { padding: 10px 14px; }
+  .bp-sticky-cta-btn { padding: 10px 18px; font-size: 13px; }
 }
 `;
 

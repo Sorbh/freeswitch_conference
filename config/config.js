@@ -18,15 +18,9 @@ config.TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 config.EXTENSION_REQUEST_TO_EMAIL = process.env.EXTENSION_REQUEST_TO_EMAIL || 'er.sorbh@gmail.com';
 config.ROOM_REQUEST_TO_EMAIL = process.env.ROOM_REQUEST_TO_EMAIL || config.EXTENSION_REQUEST_TO_EMAIL;
-config.SMTP_HOST = process.env.SMTP_HOST;
-config.SMTP_PORT = process.env.SMTP_PORT;
-config.SMTP_SECURE = process.env.SMTP_SECURE;
-config.SMTP_STARTTLS = process.env.SMTP_STARTTLS;
-config.SMTP_USER = process.env.SMTP_USER;
-config.SMTP_PASS = process.env.SMTP_PASS;
-config.SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL;
-config.SMTP_FROM_NAME = process.env.SMTP_FROM_NAME;
-config.SMTP_HELO_NAME = process.env.SMTP_HELO_NAME;
+config.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+config.SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
+config.SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME;
 config.CLIENT_APP_URL = process.env.CLIENT_APP_URL || 'https://hotline.redlineusedautoparts.com';
 
 config.USER_VALIDATION_API = process.env.USER_VALIDATION_API || 'https://apis.redlineusedautoparts.com/api/user-info';

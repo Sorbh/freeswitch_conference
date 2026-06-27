@@ -328,7 +328,7 @@ export default function NotificationsPage() {
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
         <Skeleton className="h-8 w-48" />
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
         </div>
       </div>
@@ -359,7 +359,7 @@ export default function NotificationsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {channels.map((ch) => {
             const isWhatsApp = ch.type === "whatsapp";
             const waSt = isWhatsApp ? (waStatuses[ch.id] || { state: "disconnected" }) : null;
@@ -369,7 +369,7 @@ export default function NotificationsPage() {
             const waNotReady = isWhatsApp && (waMissingGroup || waSt?.state !== "ready");
 
             return (
-              <Card key={ch.id} className={!ch.enabled || waNotReady ? "opacity-60" : ""}>
+              <Card key={ch.id} className={`min-w-0 ${!ch.enabled || waNotReady ? "opacity-60" : ""}`}>
                 <CardContent className="py-4">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-start gap-3 min-w-0">

@@ -1,16 +1,16 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import DashboardLayout from './components/DashboardLayout';
-import ConferencePage from './pages/ConferencePage';
-import ExtensionsPage from './pages/ExtensionsPage';
-import AccountSettingsPage from './pages/AccountSettingsPage';
-import RequestRoomPage from './pages/RequestRoomPage';
 
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const SignupPage = lazy(() => import('./pages/SignupPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
+const ConferencePage = lazy(() => import('./pages/ConferencePage'));
+const ExtensionsPage = lazy(() => import('./pages/ExtensionsPage'));
+const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
+const RequestRoomPage = lazy(() => import('./pages/RequestRoomPage'));
 const Landing2Page = lazy(() => import('./pages/Landing2Page'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const PublicBroadcastPage = lazy(() => import('./pages/PublicBroadcastPage'));
@@ -53,17 +53,17 @@ export default function App() {
         <Route path="/landing_2" element={<Navigate to="/" replace />} />
 
         {/* Client auth pages */}
-        <Route path="/client/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/client/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
-        <Route path="/client/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-        <Route path="/client/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+        <Route path="/client/login" element={<PublicRoute><Lazy><LoginPage /></Lazy></PublicRoute>} />
+        <Route path="/client/signup" element={<PublicRoute><Lazy><SignupPage /></Lazy></PublicRoute>} />
+        <Route path="/client/forgot-password" element={<PublicRoute><Lazy><ForgotPasswordPage /></Lazy></PublicRoute>} />
+        <Route path="/client/reset-password" element={<PublicRoute><Lazy><ResetPasswordPage /></Lazy></PublicRoute>} />
 
         {/* Client dashboard (authenticated) */}
-        <Route path="/client/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route index element={<ConferencePage />} />
-          <Route path="extensions" element={<ExtensionsPage />} />
-          <Route path="settings" element={<AccountSettingsPage />} />
-          <Route path="request-room" element={<RequestRoomPage />} />
+        <Route path="/client/dashboard" element={<ProtectedRoute><Lazy><DashboardLayout /></Lazy></ProtectedRoute>}>
+          <Route index element={<Lazy><ConferencePage /></Lazy>} />
+          <Route path="extensions" element={<Lazy><ExtensionsPage /></Lazy>} />
+          <Route path="settings" element={<Lazy><AccountSettingsPage /></Lazy>} />
+          <Route path="request-room" element={<Lazy><RequestRoomPage /></Lazy>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
