@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -9,6 +11,22 @@ import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
 import { clientEventsRouter, buildOnlineCounts } from "./events.js";
+
+function enrichBroadcast(b) {
+    b.has_recording = !!b.recording_path;
+    if (b.participants) {
+        try {
+            const parsed = typeof b.participants === 'string' ? JSON.parse(b.participants) : b.participants;
+            b.participants = JSON.stringify(parsed.map(p => {
+                if (p.extension) return p;
+                const email = p.userName?.replace('sip:', '');
+                const acct = email ? global.db.getAccountByEmail(email) : null;
+                return acct?.extension ? { ...p, extension: acct.extension } : p;
+            }));
+        } catch {}
+    }
+    return b;
+}
 
 const CLIENT_TOKEN_EXPIRY = '7d';
 const VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours
@@ -756,6 +774,50 @@ clientRouter.put("/room/change", requireClientAuth, async (req, res) => {
 
         logSystem('CLIENT', `API /room user=sip:${req.client.email} ${oldRoom}->${newRoom} ip=${_getClientIp(req)}`);
         res.json({ status: true, message: `Room changed to ${roomData.name}`, room: newRoom, roomName: roomData.name });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /broadcasts/:id/audio — stream broadcast recording (authenticated via header or query token)
+clientRouter.get("/broadcasts/:id/audio", (req, res) => {
+    const authToken = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
+    if (!authToken) return res.status(401).json({ status: false, error: 'Authentication required' });
+    try {
+        const payload = jwt.verify(authToken, JWT_SECRET);
+        if (payload.type !== 'client') return res.status(401).json({ status: false, error: 'Invalid token' });
+    } catch { return res.status(401).json({ status: false, error: 'Invalid or expired token' }); }
+    try {
+        const id = parseInt(req.params.id);
+        if (!id) return res.status(400).json({ status: false, error: "Invalid broadcast ID" });
+        const broadcast = global.db.getBroadcastById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: "Broadcast not found" });
+        if (!broadcast.recording_path) return res.status(404).json({ status: false, error: "No recording available" });
+        const filePath = broadcast.recording_path.startsWith('/') ? broadcast.recording_path : path.join(process.cwd(), broadcast.recording_path);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ status: false, error: "Recording file not found" });
+        res.setHeader('Content-Type', 'audio/wav');
+        res.setHeader('Accept-Ranges', 'bytes');
+        fs.createReadStream(filePath).pipe(res);
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /broadcasts/list/:room? — paginated broadcast list with optional room + filters
+clientRouter.get("/broadcasts/list/:room?", requireClientAuth, (req, res) => {
+    try {
+        const room = req.params.room ? parseInt(req.params.room) : undefined;
+        if (req.params.room && !room) return res.status(400).json({ status: false, error: "Invalid room code" });
+
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = Math.min(parseInt(req.query.pageSize) || 25, 100);
+        const answered = req.query.answered !== undefined ? parseInt(req.query.answered) : undefined;
+        const dateFrom = req.query.dateFrom ? Math.floor(new Date(req.query.dateFrom).getTime() / 1000) : undefined;
+        const dateTo = req.query.dateTo ? Math.floor(new Date(req.query.dateTo + 'T23:59:59').getTime() / 1000) : undefined;
+
+        const result = global.db.getPaginatedBroadcasts({ page, pageSize, room, answered, dateFrom, dateTo });
+        result.data = result.data.map(enrichBroadcast);
+        res.json({ status: true, ...result });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

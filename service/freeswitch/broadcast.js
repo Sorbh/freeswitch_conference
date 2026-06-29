@@ -158,7 +158,9 @@ function _handleUnmute(conferenceName, memberId, room, event) {
     }
 
     if (!session.participants.has(memberId)) {
-        const info = { userName: member.userName, displayName: member.displayName };
+        const email = member.userName?.replace('sip:', '');
+        const acct = email ? global.db.getAccountByEmail(email) : null;
+        const info = { userName: member.userName, displayName: member.displayName, extension: acct?.extension || null };
         const isResponder = session.allParticipants.length > 0 && !session.allParticipants.some(p => p.userName === info.userName);
         session.participants.set(memberId, info);
         if (!session.allParticipants.some(p => p.userName === info.userName)) {

@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+
+const BroadcastPanel = lazy(() => import('./BroadcastPanel'));
 
 const BOTTOM_NAV_ITEMS = [
   { to: '/client/dashboard', label: 'Conference', icon: PhoneIcon, end: true },
@@ -96,6 +98,10 @@ export default function DashboardLayout() {
   const [broadcastHelpOpen, setBroadcastHelpOpen] = useState(false);
   const [extensionHelpOpen, setExtensionHelpOpen] = useState(false);
   const [roomChangeHelpOpen, setRoomChangeHelpOpen] = useState(false);
+  const [broadcastPanelOpen, setBroadcastPanelOpen] = useState(() => {
+    try { return localStorage.getItem('hq_broadcast_panel') !== '0'; } catch { return true; }
+  });
+  const [mobileBroadcastOpen, setMobileBroadcastOpen] = useState(false);
   const dropdownRef = useRef(null);
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
@@ -453,6 +459,14 @@ export default function DashboardLayout() {
     setBroadcastHelpOpen(false);
   }
 
+  function toggleBroadcastPanel() {
+    setBroadcastPanelOpen(prev => {
+      const next = !prev;
+      try { localStorage.setItem('hq_broadcast_panel', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  }
+
   const currentRoomId = account?.current_room || account?.room;
   const currentRoom = rooms.find(r => r.id === currentRoomId);
   const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? `Room ${currentRoomId}` : '');
@@ -464,7 +478,7 @@ export default function DashboardLayout() {
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
       {/* ── Desktop sidebar (hidden on mobile) ── */}
       <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0" style={{ background: 'var(--ink)', color: '#fff' }}>
-        <div className="flex items-center gap-3 px-5 py-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="flex items-center gap-3 px-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', height: 64 }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--red)' }}>
             <HQMarkSVG />
           </div>
@@ -504,7 +518,8 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      {/* ── Main area ── */}
+      {/* ── Main area + Broadcast panel ── */}
+      <div className="flex-1 flex min-w-0">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top header */}
         <header
@@ -514,7 +529,7 @@ export default function DashboardLayout() {
           {/* Colored bar under header */}
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '2px', background: colors.bar, transition: 'background 0.4s ease' }} />
 
-          <div className="flex items-center justify-between px-4 md:px-6 py-3">
+          <div className="flex items-center justify-between px-4 md:px-6" style={{ height: 62 }}>
             <div className="flex items-center gap-3 min-w-0">
               <div className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red)' }}>
                 <HQMarkSVG size={18} />
@@ -585,6 +600,24 @@ export default function DashboardLayout() {
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Mobile broadcast panel toggle */}
+              <button
+                onClick={() => setMobileBroadcastOpen(true)}
+                title="Broadcasts"
+                className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                style={{ color: 'var(--muted)' }}
+              >
+                <BroadcastNavIcon />
+              </button>
+              {/* Desktop broadcast panel toggle */}
+              <button
+                onClick={toggleBroadcastPanel}
+                title={broadcastPanelOpen ? 'Hide broadcasts' : 'Show broadcasts'}
+                className="hidden md:flex w-8 h-8 rounded-lg items-center justify-center transition-colors hover:bg-red-50"
+                style={{ color: broadcastPanelOpen ? 'var(--red)' : 'var(--muted)' }}
+              >
+                <BroadcastNavIcon />
+              </button>
               <button
                 onClick={openBroadcastHelp}
                 title={onExtensionsPage ? 'What are extensions?' : 'How to broadcast'}
@@ -629,6 +662,14 @@ export default function DashboardLayout() {
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-32 md:pb-6">
           <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly }} />
         </main>
+      </div>
+
+      {/* ── Desktop broadcast panel (right side) ── */}
+      <div className="hidden md:block" style={{ width: broadcastPanelOpen ? 340 : 0, flexShrink: 0, transition: 'width 0.25s ease' }}>
+        <Suspense fallback={<div />}>
+          <BroadcastPanel rooms={rooms} collapsed={!broadcastPanelOpen} onToggle={toggleBroadcastPanel} />
+        </Suspense>
+      </div>
       </div>
 
       {/* ── Mute FAB — desktop only (fixed bottom-right) ── */}
@@ -709,6 +750,34 @@ export default function DashboardLayout() {
           onCancel={cancelRoomChange}
           onConfirm={confirmRoomChange}
         />
+      )}
+
+      {/* ── Mobile broadcast sheet ── */}
+      {mobileBroadcastOpen && (
+        <div className="md:hidden fixed inset-0 z-[120]" style={{ background: 'rgba(17,24,39,0.42)', backdropFilter: 'blur(4px)' }}>
+          <div
+            className="absolute inset-x-0 bottom-0 animate-fadeIn"
+            style={{ top: 56, background: 'var(--surface)', borderTopLeftRadius: 20, borderTopRightRadius: 20, boxShadow: '0 -8px 40px rgba(17,24,39,0.18)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
+              <div className="text-sm font-bold" style={{ fontFamily: 'var(--display)', color: 'var(--ink)' }}>Broadcasts</div>
+              <button
+                onClick={() => setMobileBroadcastOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ color: 'var(--muted)', background: 'var(--band)', border: 'none', cursor: 'pointer' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ height: 'calc(100vh - 56px - 52px)', overflow: 'hidden' }}>
+              <Suspense fallback={<div />}>
+                <BroadcastPanel rooms={rooms} collapsed={false} onToggle={() => setMobileBroadcastOpen(false)} hideHeader />
+              </Suspense>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1390,6 +1459,18 @@ function LogoutIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+function BroadcastNavIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+      <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+      <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
     </svg>
   );
 }

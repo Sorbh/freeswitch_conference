@@ -60,6 +60,8 @@
 //   GET  /api/v1/client/rooms/details   — all rooms with online counts
 //   PUT  /api/v1/client/room/change    — change user's current room
 //   GET  /api/v1/client/events/room/:room?token=<jwt>  — CallerID SSE
+//   GET  /api/v1/client/events/broadcasts/:room??token=<jwt>&answered=0|1  — Broadcast SSE
+//   GET  /api/v1/client/broadcasts/list/:room?  — paginated broadcast list
 //
 // OPTIONAL CALLBACKS (same contract in redline_sip_client.js and redline_callerid.js):
 //   window.onHotlineReady = function(accountData) { ... }              // account loaded and client initialized
@@ -67,6 +69,8 @@
 //   window.onHotlineMuteState = function(muted) { ... }                // true when muted, false when unmuted
 //   window.onHotlineDirectCallState = function(state, data) { ... }    // 'incoming', 'outgoing', 'connected', 'ending', 'ended', 'declined', 'missed', 'cancelled', 'busy', 'unavailable'
 //   window.onHotlineRoomChange = function(data) { ... }                // { source, room, roomName } — called on room change (API or SSE)
+//   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
+//   window.onHotlineBroadcast = function(data) { ... }                 // { type:'broadcast', data:{...broadcast row...}, ts }
 //   window.updateOnlineCounts = function(onlineMap) { ... }            // { roomId: count, ... }
 //   window.onCallerIdUpdate = function(callerIdHtml) { ... }           // raw caller ID HTML array
 //
@@ -83,6 +87,10 @@
 //   window.hotlineClient.changeRoom(roomId)                       // switch to a different room (reloads page)
 //   window.hotlineClient.requestRoom({ city, state, message })    // request a new room
 //   window.hotlineClient.getAccount()                             // get loaded account data
+//   window.hotlineClient.getToken()                               // get current JWT token
+//   window.hotlineClient.startBroadcastFeed(room, {answered})     // start broadcast SSE (room optional)
+//   window.hotlineClient.stopBroadcastFeed()                      // stop broadcast SSE
+//   window.hotlineClient.getBroadcasts(room, {page,pageSize,answered,dateFrom,dateTo})  // REST fetch
 //   window.hotlineClient.isConnected()                            // true if in active call
 //   window.hotlineClient.isMuted()                                // true if muted
 //   window.RedlineExtensionDirectory.open()                       // open extension search
@@ -1390,6 +1398,7 @@ import "./jssip.bundle.js";
             try {
                 loggingOut = true;
                 stopCallerIdSSE();
+                stopBroadcastFeed();
                 if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
                 if (currentSession) { try { currentSession.terminate(); } catch (e) { } currentSession = null; }
                 if (ua) { try { ua.unregister(); ua.stop(); } catch (e) { } ua = null; }
@@ -1418,6 +1427,89 @@ import "./jssip.bundle.js";
             });
         } catch (e) { }
 
+        // ── Broadcast Feed (SSE + REST) ──
+        var broadcastSource = null;
+        var broadcastReconnectAttempts = 0;
+        var broadcastFeedRoom = null;
+        var broadcastFeedAnswered = undefined;
+
+        function startBroadcastFeed(room, options) {
+            stopBroadcastFeed();
+            broadcastReconnectAttempts = 0;
+            options = options || {};
+            broadcastFeedRoom = room || undefined;
+            broadcastFeedAnswered = options.answered;
+            connectBroadcastSSE();
+        }
+
+        function connectBroadcastSSE() {
+            if (!clientToken) return;
+            var url = apiBase + '/api/v1/client/events/broadcasts';
+            if (broadcastFeedRoom) url += '/' + broadcastFeedRoom;
+            url += '?token=' + clientToken;
+            if (broadcastFeedAnswered !== undefined) url += '&answered=' + broadcastFeedAnswered;
+
+            try {
+                broadcastSource = new EventSource(url);
+
+                broadcastSource.onopen = function () {
+                    broadcastReconnectAttempts = 0;
+                };
+
+                broadcastSource.onmessage = function (event) {
+                    try {
+                        var data = JSON.parse(event.data);
+                        if (data.type === 'connected') {
+                            if (typeof window.onHotlineBroadcastConnected === 'function') {
+                                window.onHotlineBroadcastConnected(data);
+                            }
+                        } else if (data.type === 'broadcast') {
+                            if (typeof window.onHotlineBroadcast === 'function') {
+                                window.onHotlineBroadcast(data);
+                            }
+                        }
+                    } catch (e) { }
+                };
+
+                broadcastSource.onerror = function () {
+                    try { if (broadcastSource) { broadcastSource.close(); broadcastSource = null; } } catch (e) { }
+                    if (loggingOut || !accountData) return;
+                    broadcastReconnectAttempts++;
+                    var delay = Math.min(1000 * Math.pow(2, broadcastReconnectAttempts), 30000);
+                    setTimeout(function () { if (!loggingOut && accountData) connectBroadcastSSE(); }, delay);
+                };
+            } catch (e) {
+                broadcastReconnectAttempts++;
+                var delay = Math.min(1000 * Math.pow(2, broadcastReconnectAttempts), 30000);
+                setTimeout(function () { if (!loggingOut && accountData) connectBroadcastSSE(); }, delay);
+            }
+        }
+
+        function stopBroadcastFeed() {
+            try {
+                if (broadcastSource) { broadcastSource.close(); broadcastSource = null; }
+            } catch (e) { }
+        }
+
+        function getBroadcasts(room, options) {
+            if (!clientToken) return Promise.reject(new Error('Not logged in'));
+            options = options || {};
+            var url = apiBase + '/api/v1/client/broadcasts/list';
+            if (room) url += '/' + room;
+            var params = [];
+            if (options.page) params.push('page=' + options.page);
+            if (options.pageSize) params.push('pageSize=' + options.pageSize);
+            if (options.answered !== undefined) params.push('answered=' + options.answered);
+            if (options.dateFrom) params.push('dateFrom=' + options.dateFrom);
+            if (options.dateTo) params.push('dateTo=' + options.dateTo);
+            if (params.length) url += '?' + params.join('&');
+
+            return fetch(url, {
+                headers: { 'Authorization': 'Bearer ' + clientToken },
+            })
+            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); });
+        }
+
         // ── Public API ──
         window.hotlineClient = {
             login: doLogin,
@@ -1432,10 +1524,14 @@ import "./jssip.bundle.js";
             changeRoom: changeRoom,
             requestRoom: requestRoom,
             getAccount: function () { return accountData; },
+            getToken: function () { return clientToken; },
             getLocalData: getLocalStorageUserData,
             isConnected: function () { return !!currentSession; },
             isMuted: function () { return isMuted; },
             isListenOnly: function () { return listenOnly; },
+            startBroadcastFeed: startBroadcastFeed,
+            stopBroadcastFeed: stopBroadcastFeed,
+            getBroadcasts: getBroadcasts,
         };
 
         // ── Auto-login from localStorage or HOTLINE_CONFIG ──

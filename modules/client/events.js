@@ -116,6 +116,44 @@ function _removeFromMapSet(map, key, client) {
     if (clients.size === 0) map.delete(key);
 }
 
+// --- Broadcast SSE connection tracking ---
+
+const clientBroadcastSSE = new Set();
+
+function sendBroadcastEvent(broadcastData) {
+    if (clientBroadcastSSE.size === 0) return;
+    const answeredInt = broadcastData.answered ? 1 : 0;
+    const row = {
+        id: broadcastData.id || null,
+        room: broadcastData.room,
+        room_name: broadcastData.roomName,
+        user_name: broadcastData.userName,
+        display_name: broadcastData.displayName,
+        duration_ms: broadcastData.durationMs,
+        answered: answeredInt,
+        responded_by: broadcastData.respondedBy || null,
+        participants: broadcastData.participants ? JSON.stringify(broadcastData.participants) : null,
+        participant_count: broadcastData.participantCount || 0,
+        recording_path: broadcastData.recordingPath || null,
+        has_recording: !!broadcastData.recordingPath,
+        response_time_ms: broadcastData.responseTimeMs || null,
+        listener_count: broadcastData.listenerCount || 0,
+        share_token: null,
+        transcription: null,
+        transcription_status: null,
+        local_transcription: null,
+        has_parts_request: null,
+        part_details: null,
+        created_at: broadcastData.created_at,
+    };
+    const frame = `data: ${JSON.stringify({ type: 'broadcast', data: row, ts: Date.now() })}\n\n`;
+    for (const client of clientBroadcastSSE) {
+        if (client.room && client.room !== broadcastData.room) continue;
+        if (client.answered !== undefined && client.answered !== answeredInt) continue;
+        client.res.write(frame);
+    }
+}
+
 // --- Event listeners (lazy) ---
 
 let _listenerRegistered = false;
@@ -148,6 +186,9 @@ function _ensureListeners() {
     global.db.eventEmitter.on('CLIENT_EVENT', (eventData) => {
         if (!eventData.userName || !eventData.event) return;
         sendClientEventToUser(eventData.userName, eventData.event);
+    });
+    global.db.eventEmitter.on('BROADCAST_LOG', (broadcastData) => {
+        sendBroadcastEvent(broadcastData);
     });
 }
 
@@ -199,5 +240,54 @@ clientEventsRouter.get("/room/:room", requireClientSSEAuth, (req, res) => {
     req.on('close', () => {
         _removeFromMapSet(clientRoomSSE, room, client);
         _removeFromMapSet(clientUserSSE, userName, client);
+    });
+});
+
+function _enrichBroadcast(b) {
+    b.has_recording = !!b.recording_path;
+    if (b.participants) {
+        try {
+            const parsed = typeof b.participants === 'string' ? JSON.parse(b.participants) : b.participants;
+            b.participants = JSON.stringify(parsed.map(p => {
+                if (p.extension) return p;
+                const email = p.userName?.replace('sip:', '');
+                const acct = email ? global.db.getAccountByEmail(email) : null;
+                return acct?.extension ? { ...p, extension: acct.extension } : p;
+            }));
+        } catch {}
+    }
+    return b;
+}
+
+// --- SSE endpoint: broadcasts (optional room filter) ---
+
+clientEventsRouter.get("/broadcasts/:room?", requireClientSSEAuth, (req, res) => {
+    _ensureListeners();
+    const room = req.params.room ? parseInt(req.params.room) : undefined;
+    if (req.params.room && !room) return res.status(400).end();
+
+    const answered = req.query.answered !== undefined ? parseInt(req.query.answered) : undefined;
+
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    const initial = global.db.getPaginatedBroadcasts({ page: 1, pageSize: 50, room, answered });
+    initial.data = initial.data.map(_enrichBroadcast);
+    res.write(`data: ${JSON.stringify({ type: 'connected', ...initial })}\n\n`);
+
+    const client = {
+        res,
+        room,
+        answered,
+        email: req.client.email,
+    };
+
+    clientBroadcastSSE.add(client);
+
+    req.on('close', () => {
+        clientBroadcastSSE.delete(client);
     });
 });
