@@ -139,17 +139,53 @@ if (fs.existsSync(clientDistDir)) {
         .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
         .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
         .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
-    const clientIndexGz = zlib.gzipSync(clientIndexHtml);
-    const hotlineIndexGz = zlib.gzipSync(hotlineIndexHtml);
+
+    const assetFiles = fs.readdirSync(path.join(clientDistDir, "assets")).filter(f => f.endsWith('.js'));
+    const chunkMap = {};
+    for (const f of assetFiles) {
+        const name = f.replace(/-[A-Za-z0-9_-]+\.js$/, '');
+        chunkMap[name] = `/assets/${f}`;
+    }
+    const routeChunks = {
+        '/client/signup': [chunkMap['SignupPage']],
+        '/client/login': [chunkMap['LoginPage']],
+        '/b/': [chunkMap['PublicBroadcastPage'], chunkMap['site']],
+        '/': [chunkMap['Landing2Page'], chunkMap['site']],
+    };
+
+    const preloadCache = {};
+    function getPreloadedHtml(routeKey, isHotline) {
+        const cacheKey = `${routeKey}:${isHotline}`;
+        if (preloadCache[cacheKey]) return preloadCache[cacheKey];
+        const chunks = routeChunks[routeKey] || [];
+        const base = isHotline ? hotlineIndexHtml : clientIndexHtml;
+        if (!chunks.length) {
+            preloadCache[cacheKey] = { html: base, gz: zlib.gzipSync(base) };
+            return preloadCache[cacheKey];
+        }
+        const prefix = isHotline ? '/hotlinehq' : '';
+        const hints = chunks.filter(Boolean).map(c => `<link rel="modulepreload" href="${prefix}${c}">`).join('\n  ');
+        const html = base.replace('</head>', `  ${hints}\n</head>`);
+        preloadCache[cacheKey] = { html, gz: zlib.gzipSync(html) };
+        return preloadCache[cacheKey];
+    }
+
     const sendClientIndex = (req, res) => {
         setNoStoreHtml(res);
         const isHotline = req.path.startsWith('/hotlinehq');
+        const p = req.path;
+        const routeKey = p.startsWith('/b/') ? '/b/'
+            : p.startsWith('/client/signup') ? '/client/signup'
+            : p.startsWith('/client/login') ? '/client/login'
+            : (p === '/' || p === '') ? '/'
+            : null;
+        const { html, gz } = getPreloadedHtml(routeKey, isHotline);
         if (req.headers['accept-encoding']?.includes('gzip')) {
             res.set('Content-Encoding', 'gzip');
             res.set('Content-Type', 'text/html; charset=utf-8');
-            res.end(isHotline ? hotlineIndexGz : clientIndexGz);
+            res.end(gz);
         } else {
-            res.type("html").send(isHotline ? hotlineIndexHtml : clientIndexHtml);
+            res.type("html").send(html);
         }
     };
 

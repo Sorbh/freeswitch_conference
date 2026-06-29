@@ -671,7 +671,7 @@ export default function PublicBroadcastPage() {
 }
 
 const PAGE_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* fonts loaded via index.html (non-blocking) */
 
 .bp-wrap {
   --bg: #fbfaf8;
