@@ -72,7 +72,7 @@ export async function sendVerificationEmail({ email, token, displayName, roomNam
 
     let html;
     try {
-        let tpl = readFileSync(join(TEMPLATE_DIR, 'verify.html'), 'utf8');
+        let tpl = readFileSync(join(__dirname, '..', 'public', 'email_template', 'verify.html'), 'utf8');
         for (const [key, val] of Object.entries(vars)) {
             tpl = tpl.replaceAll(key, val);
         }
@@ -103,6 +103,60 @@ export async function sendVerificationEmail({ email, token, displayName, roomNam
     await sendMail({
         to: email,
         subject: `Verify your email — ${room} is waiting`,
+        text,
+        html,
+    });
+}
+
+export async function sendWelcomeEmail({ email, displayName, companyName, roomName }) {
+    const config = global.config || {};
+    const baseUrl = config.CLIENT_APP_URL || 'https://hotline.redlineusedautoparts.com';
+    const dashboardUrl = `${baseUrl}/client/dashboard`;
+    const name = displayName || companyName || 'there';
+    const room = roomName || 'your room';
+
+    const vars = {
+        '{{NAME}}': name,
+        '{{COMPANY}}': companyName || '-',
+        '{{ROOM}}': room,
+        '{{EMAIL}}': email,
+        '{{DASHBOARD_URL}}': dashboardUrl,
+        '{{UNSUBSCRIBE_URL}}': `${baseUrl}/client/dashboard/settings`,
+    };
+
+    let html;
+    try {
+        let tpl = readFileSync(join(__dirname, '..', 'public', 'email_template', 'welcome.html'), 'utf8');
+        for (const [key, val] of Object.entries(vars)) {
+            tpl = tpl.replaceAll(key, val);
+        }
+        html = tpl;
+    } catch (err) {
+        console.error('[EMAIL] Failed to load welcome template:', err.message);
+    }
+
+    const text = [
+        `Welcome, ${name}!`,
+        '',
+        'Your email is verified and your Hotline HQ account is active.',
+        '',
+        `Company: ${companyName || '-'}`,
+        `Room: ${room}`,
+        '',
+        'Open your dashboard: ' + dashboardUrl,
+        '',
+        'Getting started:',
+        '1. Log in — your browser connects to the room automatically',
+        '2. Need a part? Click the mic and say year, make, model, part',
+        '3. Got a part someone needs? Click the mic and answer back',
+        '4. Request a 3-digit extension for private yard-to-yard calls',
+        '',
+        '— Hotline HQ',
+    ].join('\n');
+
+    await sendMail({
+        to: email,
+        subject: `Welcome to Hotline HQ — you're in the ${room} room`,
         text,
         html,
     });

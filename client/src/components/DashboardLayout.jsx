@@ -673,7 +673,7 @@ export default function DashboardLayout() {
       </div>
 
       {/* ── Mute FAB — desktop only (fixed bottom-right) ── */}
-      {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} />}
+      {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} panelOpen={broadcastPanelOpen} />}
 
       {/* ── Mobile bottom stack: items stack above bottom nav naturally ── */}
       <div
@@ -1177,12 +1177,14 @@ function ListenOnlyMobileBanner() {
   );
 }
 
-function MuteFAB({ muted, onToggle }) {
+function MuteFAB({ muted, onToggle, panelOpen }) {
   return (
     <button
       onClick={onToggle}
-      className="hidden md:flex fixed z-50 w-14 h-14 rounded-full items-center justify-center right-6 bottom-6"
+      className="hidden md:flex fixed z-50 w-14 h-14 rounded-full items-center justify-center bottom-6"
       style={{
+        right: panelOpen ? 358 : 24,
+        transition: 'right 0.25s ease',
         background: muted ? 'var(--red)' : 'var(--green)',
         color: '#fff',
         boxShadow: muted
