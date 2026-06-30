@@ -8,7 +8,7 @@ import { JWT_SECRET } from "../../service/auth/middleware.js";
 import { acceptByUserName, declineByUserName, hangupDirectCallByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
 import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
-import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification } from "../../service/emailSender.js";
+import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification, sendWelcomeEmail } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
 import { clientEventsRouter, buildOnlineCounts } from "./events.js";
 
@@ -216,7 +216,17 @@ clientRouter.get("/verify", (req, res) => {
         });
 
         logSystem('CLIENT', `API /verify email=${account.email} verified=true`);
-        res.redirect('/client/login?verified=success');
+
+        const rooms = {};
+        for (const room of global.db.getAllRooms()) rooms[room.id] = room.name;
+        sendWelcomeEmail({
+            email: account.email,
+            displayName: account.display_name,
+            companyName: account.company_name,
+            roomName: rooms[account.room] || '',
+        }).catch(err => logSystem('CLIENT', `API /verify welcome email failed: ${err.message}`));
+
+        res.redirect(`/client/login?verified=success&email=${encodeURIComponent(account.email)}`);
     } catch (err) {
         logSystem('CLIENT', `API /verify error=${err.message}`);
         res.redirect('/client/login?verified=error&msg=Verification+failed');
@@ -812,10 +822,11 @@ clientRouter.get("/broadcasts/list/:room?", requireClientAuth, (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const pageSize = Math.min(parseInt(req.query.pageSize) || 25, 100);
         const answered = req.query.answered !== undefined ? parseInt(req.query.answered) : undefined;
+        const hasParts = req.query.hasParts !== undefined ? parseInt(req.query.hasParts) : undefined;
         const dateFrom = req.query.dateFrom ? Math.floor(new Date(req.query.dateFrom).getTime() / 1000) : undefined;
         const dateTo = req.query.dateTo ? Math.floor(new Date(req.query.dateTo + 'T23:59:59').getTime() / 1000) : undefined;
 
-        const result = global.db.getPaginatedBroadcasts({ page, pageSize, room, answered, dateFrom, dateTo });
+        const result = global.db.getPaginatedBroadcasts({ page, pageSize, room, answered, dateFrom, dateTo, hasParts });
         result.data = result.data.map(enrichBroadcast);
         res.json({ status: true, ...result });
     } catch (err) {

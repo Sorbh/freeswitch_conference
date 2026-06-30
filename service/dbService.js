@@ -704,11 +704,11 @@ function getDashboardStats() {
 }
 
 function logBroadcast({ room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, listenerCount }) {
-    sqlite.prepare(`
+    const result = sqlite.prepare(`
         INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath, responseTimeMs, listenerCount || 0);
-    eventEmitter.emit('BROADCAST_LOG', { room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, created_at: Math.floor(Date.now() / 1000) });
+    eventEmitter.emit('BROADCAST_LOG', { id: Number(result.lastInsertRowid), room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, listenerCount, created_at: Math.floor(Date.now() / 1000) });
     eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'broadcasts' });
     eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'dashboard' });
 }
@@ -774,7 +774,7 @@ function getRecentBroadcasts(limit = 10, type) {
     `).all(limit);
 }
 
-function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateFrom, dateTo } = {}) {
+function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateFrom, dateTo, hasParts } = {}) {
     const conditions = [];
     const params = [];
 
@@ -782,6 +782,8 @@ function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateF
     if (answered === 1 || answered === 0) { conditions.push('answered = ?'); params.push(answered); }
     if (dateFrom) { conditions.push('created_at >= ?'); params.push(dateFrom); }
     if (dateTo) { conditions.push('created_at <= ?'); params.push(dateTo); }
+    if (hasParts === 1) { conditions.push('has_parts_request = 1'); }
+    if (hasParts === 0) { conditions.push('(has_parts_request = 0 OR has_parts_request IS NULL)'); }
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const total = sqlite.prepare(`SELECT COUNT(*) as count FROM broadcast_log ${where}`).get(...params).count;

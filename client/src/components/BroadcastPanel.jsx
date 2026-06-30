@@ -81,7 +81,7 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
     if (!token || !currentRoom) return;
     if (sseRef.current) { sseRef.current.close(); sseRef.current = null; }
 
-    const url = '/api/v1/client/events/broadcasts/' + currentRoom + '?token=' + token;
+    const url = '/api/v1/client/events/broadcasts/' + currentRoom + '?token=' + token + '&hasParts=1';
     const sse = new EventSource(url);
     sse.onmessage = function (event) {
       try {
@@ -114,7 +114,7 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
     const nextPage = page + 1;
     setLoading(true);
     try {
-      const url = '/api/v1/client/broadcasts/list/' + currentRoom + '?page=' + nextPage + '&pageSize=50';
+      const url = '/api/v1/client/broadcasts/list/' + currentRoom + '?page=' + nextPage + '&pageSize=50&hasParts=1';
       const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
       const json = await res.json();
       if (json.status && json.data) {
@@ -199,8 +199,8 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
           <BroadcastRow
             key={b.id || b.created_at}
             b={b}
-            expanded={expandedId === b.id}
-            playing={playingId === b.id}
+            expanded={expandedId != null && expandedId === b.id}
+            playing={playingId != null && playingId === b.id}
             onToggle={() => setExpandedId(prev => prev === b.id ? null : b.id)}
             onPlay={e => playAudio(e, b)}
             onCall={callExtension}

@@ -71,14 +71,13 @@ export default function LoginPage() {
             <div className="mb-4">
               <label className="hq-label">Email</label>
               <input
-                type="text"
-                inputMode="email"
+                type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onBlur={() => setEmail(v => v.trim())}
                 required
                 autoFocus
-                autoComplete="off"
+                autoComplete="email"
                 className="hq-input"
                 placeholder="you@company.com"
               />
@@ -92,7 +91,7 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 onBlur={() => setPassword(v => v.trim())}
                 required
-                autoComplete="new-password"
+                autoComplete="current-password"
                 className="hq-input"
                 placeholder="Enter your password"
               />

@@ -193,14 +193,13 @@ export default function SignupPage() {
             <div className="mb-3">
               <label className="hq-label">Email</label>
               <input
-                type="text"
-                inputMode="email"
+                type="email"
                 value={form.email}
                 onChange={update('email')}
                 onBlur={trimField('email')}
                 required
                 autoFocus={!hasUrlCompany}
-                autoComplete="off"
+                autoComplete="email"
                 className="hq-input"
                 placeholder="you@company.com"
               />

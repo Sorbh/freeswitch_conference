@@ -150,6 +150,7 @@ function sendBroadcastEvent(broadcastData) {
     for (const client of clientBroadcastSSE) {
         if (client.room && client.room !== broadcastData.room) continue;
         if (client.answered !== undefined && client.answered !== answeredInt) continue;
+        if (client.hasParts === 1) continue;
         client.res.write(frame);
     }
 }
@@ -267,6 +268,7 @@ clientEventsRouter.get("/broadcasts/:room?", requireClientSSEAuth, (req, res) =>
     if (req.params.room && !room) return res.status(400).end();
 
     const answered = req.query.answered !== undefined ? parseInt(req.query.answered) : undefined;
+    const hasParts = req.query.hasParts !== undefined ? parseInt(req.query.hasParts) : undefined;
 
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -274,7 +276,7 @@ clientEventsRouter.get("/broadcasts/:room?", requireClientSSEAuth, (req, res) =>
         'Connection': 'keep-alive'
     });
 
-    const initial = global.db.getPaginatedBroadcasts({ page: 1, pageSize: 50, room, answered });
+    const initial = global.db.getPaginatedBroadcasts({ page: 1, pageSize: 50, room, answered, hasParts });
     initial.data = initial.data.map(_enrichBroadcast);
     res.write(`data: ${JSON.stringify({ type: 'connected', ...initial })}\n\n`);
 
@@ -282,6 +284,7 @@ clientEventsRouter.get("/broadcasts/:room?", requireClientSSEAuth, (req, res) =>
         res,
         room,
         answered,
+        hasParts,
         email: req.client.email,
     };
 
