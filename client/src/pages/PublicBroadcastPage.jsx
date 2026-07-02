@@ -74,6 +74,7 @@ function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
   const [duration, setDuration] = useState(knownDurationMs ? knownDurationMs / 1000 : 0);
   const [currentTime, setCurrentTime] = useState(0);
   const [waveform, setWaveform] = useState(null);
+  const [audioReady, setAudioReady] = useState(false);
 
   useEffect(() => {
     if (!src) return;
@@ -158,11 +159,12 @@ function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
     const a = audioRef.current;
     const el = trackRef.current;
     const dur = getDur();
-    if (!a || !dur || !el) return;
+    if (!a || !el) return;
+    if (!dur) { toggle(); return; }
     const r = el.getBoundingClientRect();
     a.currentTime =
       Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * dur;
-  }, [getDur]);
+  }, [getDur, toggle]);
 
   const ft = (s) => {
     if (!s || !isFinite(s) || s < 0) return "0:00";
@@ -192,10 +194,15 @@ function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
           setProgress(0);
           setCurrentTime(0);
         }}
+        onCanPlay={() => setAudioReady(true)}
       />
       <div className="bp-player-row">
-        <button className="bp-play-btn" onClick={toggle} aria-label={playing ? "Pause" : "Play"}>
-          {playing ? (
+        <button className="bp-play-btn" onClick={toggle} aria-label={playing ? "Pause" : "Play"} disabled={!audioReady} style={{ opacity: audioReady ? 1 : 0.5 }}>
+          {!audioReady ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}>
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          ) : playing ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <rect x="6" y="4" width="4" height="16" rx="1" />
               <rect x="14" y="4" width="4" height="16" rx="1" />
@@ -207,7 +214,7 @@ function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
           )}
         </button>
 
-        <span className="bp-time bp-time-current">{ft(currentTime)}</span>
+        <span className="bp-time bp-time-current" onClick={toggle} style={{ cursor: 'pointer' }}>{ft(currentTime)}</span>
 
         <div className="bp-track" ref={trackRef} onClick={seek}>
           {waveform ? (
@@ -227,16 +234,18 @@ function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
               })}
             </div>
           ) : (
-            <div className="bp-track-fallback">
-              <div className="bp-track-fill" style={{ width: `${progress * 100}%` }} />
+            <div className="bp-waveform">
+              {Array.from({ length: 80 }, (_, i) => (
+                <div key={i} className="bp-bar bp-shimmer" style={{ height: `${20 + (i % 5) * 12}%`, backgroundColor: '#e7e4dd' }} />
+              ))}
             </div>
           )}
         </div>
 
-        <span className="bp-time bp-time-total">{ft(duration)}</span>
+        <span className="bp-time bp-time-total" onClick={toggle} style={{ cursor: 'pointer' }}>{ft(duration)}</span>
       </div>
 
-      <span className="bp-time-combined">{ft(currentTime)} / {ft(duration)}</span>
+      <span className="bp-time-combined" onClick={toggle} style={{ cursor: 'pointer' }}>{ft(currentTime)} / {ft(duration)}</span>
     </div>
   );
 }
@@ -1568,6 +1577,10 @@ const PAGE_CSS = `
 @keyframes bp-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Tablet — stack split */

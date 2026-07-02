@@ -17,8 +17,46 @@ function clearProfilePromptSession() {
   } catch {}
 }
 
+// Set user_data + room for redline_sip_client.js compatibility
+function syncSipClientStorage(data) {
+  localStorage.setItem('user_data', JSON.stringify({
+    id: data.id,
+    email: data.email,
+    is_sip: 0,
+    user_type: 2,
+    name: data.display_name,
+    parent_id: null,
+    parent_city: '',
+    user_detail: {
+      company_name: data.company_name,
+      representative_name: data.display_name,
+      company_phone: data.company_phone || '',
+      city: data.city || '',
+      email: data.email,
+    },
+  }));
+  localStorage.setItem('room', String(data.current_room || data.room || ''));
+}
+
+// One-time login token handed off by GET /api/v1/client/verify via URL fragment
+// (/client/dashboard#vt=<jwt>). Stored exactly like the token login stores, then
+// stripped from the URL. hq_account is cleared so it is re-fetched fresh.
+function consumeVerifyLoginToken() {
+  try {
+    const match = window.location.hash.match(/[#&]vt=([^&]+)/);
+    if (!match) return null;
+    const token = decodeURIComponent(match[1]);
+    localStorage.setItem('hq_token', token);
+    localStorage.removeItem('hq_account');
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+    return token;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('hq_token'));
+  const [token, setToken] = useState(() => consumeVerifyLoginToken() || localStorage.getItem('hq_token'));
   const [account, setAccount] = useState(() => {
     try { return JSON.parse(localStorage.getItem('hq_account')); } catch { return null; }
   });
@@ -35,6 +73,8 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('hq_token');
       localStorage.removeItem('hq_account');
       clearProfilePromptSession();
+      window.location.replace('/client/login?session=expired');
+      return new Promise(() => {});
     }
     if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
     return json;
@@ -56,24 +96,7 @@ export function AuthProvider({ children }) {
         sessionStorage.setItem(PROFILE_PROMPT_LOGIN_KEY, getProfilePromptLoginId(json.data));
         sessionStorage.removeItem(PROFILE_PROMPT_HANDLED_KEY);
       } catch {};
-      // Also set user_data + room for redline_sip_client.js compatibility
-      localStorage.setItem('user_data', JSON.stringify({
-        id: json.data.id,
-        email: json.data.email,
-        is_sip: 0,
-        user_type: 2,
-        name: json.data.display_name,
-        parent_id: null,
-        parent_city: '',
-        user_detail: {
-          company_name: json.data.company_name,
-          representative_name: json.data.display_name,
-          company_phone: json.data.company_phone || '',
-          city: json.data.city || '',
-          email: json.data.email,
-        },
-      }));
-      localStorage.setItem('room', String(json.data.current_room || json.data.room || ''));
+      syncSipClientStorage(json.data);
       return json;
     } finally {
       setLoading(false);
@@ -97,6 +120,7 @@ export function AuthProvider({ children }) {
       const json = await apiFetch('/account');
       setAccount(json.data);
       localStorage.setItem('hq_account', JSON.stringify(json.data));
+      syncSipClientStorage(json.data);
       return json.data;
     } catch { return null; }
   }, [apiFetch]);

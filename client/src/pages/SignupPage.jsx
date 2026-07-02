@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Toaster, toast } from 'sonner';
 
 const PUBLIC_SIGNUP_ROOMS = [
   { id: 123456701, name: 'California', code: 'CA' },
@@ -24,6 +25,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [shake, setShake] = useState(false);
   const [showMoreRooms, setShowMoreRooms] = useState(false);
   const [orderedRooms, setOrderedRooms] = useState(PUBLIC_SIGNUP_ROOMS);
@@ -121,9 +123,28 @@ export default function SignupPage() {
     }
   }
 
+  async function handleResend() {
+    setResending(true);
+    try {
+      const res = await fetch('/api/v1/client/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      toast.success(json.message || 'Verification email sent.');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setResending(false);
+    }
+  }
+
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+        <Toaster richColors position="top-center" />
         <div className="w-full max-w-md animate-fadeIn text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(18,183,106,0.1)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -135,6 +156,25 @@ export default function SignupPage() {
           <Link to="/client/login" className="hq-btn inline-block px-6 py-3">
             Go to Login
           </Link>
+          <div className="mt-4">
+            <span className="text-sm" style={{ color: 'var(--muted)' }}>Didn't get it? </span>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="text-sm font-semibold"
+              style={{
+                color: 'var(--red)',
+                background: 'transparent',
+                border: 0,
+                padding: 0,
+                cursor: resending ? 'default' : 'pointer',
+                opacity: resending ? 0.6 : 1,
+              }}
+            >
+              {resending ? 'Sending...' : 'Resend verification email'}
+            </button>
+          </div>
         </div>
       </div>
     );

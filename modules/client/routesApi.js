@@ -43,6 +43,15 @@ function _rateLimit(key, maxPerMinute) {
     return true;
 }
 
+// Issue a client JWT — single source of truth shared by POST /login and GET /verify auto-login
+function _clientLoginToken(account) {
+    return jwt.sign(
+        { type: 'client', sub: account.id, email: account.email, room: account.room },
+        JWT_SECRET,
+        { expiresIn: CLIENT_TOKEN_EXPIRY }
+    );
+}
+
 export const clientRouter = express.Router();
 
 function _getClientIp(req) {
@@ -190,7 +199,7 @@ clientRouter.post("/signup", async (req, res) => {
     }
 });
 
-// GET /verify — verify email via token, redirect to client login
+// GET /verify — verify email via token, auto-login and redirect to dashboard
 clientRouter.get("/verify", (req, res) => {
     try {
         const { token } = req.query;
@@ -208,7 +217,7 @@ clientRouter.get("/verify", (req, res) => {
             return res.redirect('/client/login?verified=error&msg=Verification+link+has+expired');
         }
 
-        global.db.updateAccount(account.id, {
+        const updatedAccount = global.db.updateAccount(account.id, {
             email_verified: 1,
             verification_token: null,
             verification_token_expires: null,
@@ -226,7 +235,10 @@ clientRouter.get("/verify", (req, res) => {
             roomName: rooms[account.room] || '',
         }).catch(err => logSystem('CLIENT', `API /verify welcome email failed: ${err.message}`));
 
-        res.redirect(`/client/login?verified=success&email=${encodeURIComponent(account.email)}`);
+        // Auto-login: pass a client JWT (same as POST /login issues) in the URL fragment.
+        // The fragment never reaches server logs; AuthProvider consumes it on load.
+        const loginToken = _clientLoginToken(updatedAccount);
+        res.redirect(`/client/dashboard#vt=${encodeURIComponent(loginToken)}`);
     } catch (err) {
         logSystem('CLIENT', `API /verify error=${err.message}`);
         res.redirect('/client/login?verified=error&msg=Verification+failed');
@@ -369,11 +381,7 @@ clientRouter.post("/login", async (req, res) => {
             return res.status(401).json({ status: false, error: "Invalid password" });
         }
 
-        const token = jwt.sign(
-            { type: 'client', sub: account.id, email: account.email, room: account.room },
-            JWT_SECRET,
-            { expiresIn: CLIENT_TOKEN_EXPIRY }
-        );
+        const token = _clientLoginToken(account);
 
         const { password: _, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);

@@ -2,37 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 
-let THREE;
-const threeReady = import("three").then(m => { THREE = m; });
-
 /* ------------------------------------------------------------------ */
-/*  Landing 2 — Hotline HQ. Light B2B theme, Three.js throughout:     */
-/*  - Hero: live sell-call map (click a city to fire one yourself)    */
+/*  Landing 2 — Hotline HQ. Light B2B theme, no heavy 3D:             */
+/*  - Hero: static headline + real broadcast audio player             */
 /*  - "Try it" section: playable sell-call demo with a scoreboard     */
-/*  - CTA section: signal-wave particle background                    */
 /* ------------------------------------------------------------------ */
-
-/* Simplified continental-US outline, [lon, lat] pairs. */
-const US_OUTLINE = [
-  [-124.4, 48.4], [-123.2, 49.0], [-120.0, 49.0], [-116.0, 49.0],
-  [-110.0, 49.0], [-104.0, 49.0], [-97.2, 49.0], [-95.1, 49.4],
-  [-94.6, 48.7], [-92.0, 46.8], [-89.6, 47.9], [-88.4, 48.2],
-  [-84.8, 46.8], [-84.5, 45.9], [-82.5, 45.3], [-82.4, 43.0],
-  [-79.1, 42.9], [-76.8, 43.6], [-75.0, 44.8], [-71.5, 45.0],
-  [-69.2, 47.4], [-67.8, 47.1], [-66.9, 44.8], [-68.8, 44.3],
-  [-70.8, 42.7], [-70.0, 41.7], [-74.0, 40.6], [-75.5, 38.5],
-  [-76.0, 37.2], [-75.7, 35.5], [-76.5, 34.7], [-78.9, 33.8],
-  [-81.0, 31.9], [-81.4, 30.5], [-80.5, 28.5], [-80.0, 26.8],
-  [-80.4, 25.2], [-81.8, 24.6], [-81.7, 25.9], [-82.7, 27.5],
-  [-82.7, 29.0], [-84.0, 30.1], [-85.4, 29.7], [-86.5, 30.4],
-  [-89.2, 30.2], [-90.1, 29.1], [-91.8, 29.5], [-93.8, 29.7],
-  [-95.0, 29.0], [-97.1, 27.0], [-97.5, 25.9], [-99.1, 26.4],
-  [-100.0, 28.0], [-101.4, 29.8], [-102.8, 29.4], [-103.1, 29.0],
-  [-104.5, 29.6], [-105.0, 30.6], [-106.5, 31.8], [-108.2, 31.78],
-  [-108.2, 31.33], [-111.0, 31.33], [-114.8, 32.5], [-117.1, 32.5],
-  [-118.4, 34.0], [-120.6, 34.6], [-121.9, 36.6], [-122.5, 37.8],
-  [-124.0, 40.0], [-124.4, 40.4], [-124.1, 43.0], [-124.0, 44.0],
-];
 
 /* The 12 regional rooms (used by the coverage section). */
 const HUBS = [
@@ -40,43 +14,6 @@ const HUBS = [
   { name: "MEXICO" }, { name: "ENS" }, { name: "ARIZONA" },
   { name: "OHIO" }, { name: "NEW YORK" }, { name: "GEORGIA" },
   { name: "INDIANA" }, { name: "MICHIGAN" }, { name: "CAROLINAS" },
-];
-
-/* Cities in the core operating regions — CA, AZ, TX, FL. */
-const CITIES = [
-  { name: "Sacramento", st: "CA", lon: -121.49, lat: 38.58 },
-  { name: "San Jose", st: "CA", lon: -121.89, lat: 37.34 },
-  { name: "Fresno", st: "CA", lon: -119.77, lat: 36.75 },
-  { name: "Bakersfield", st: "CA", lon: -119.02, lat: 35.37 },
-  { name: "Los Angeles", st: "CA", lon: -118.24, lat: 34.05 },
-  { name: "Riverside", st: "CA", lon: -117.4, lat: 33.95 },
-  { name: "San Diego", st: "CA", lon: -117.16, lat: 32.72 },
-  { name: "Flagstaff", st: "AZ", lon: -111.65, lat: 35.2 },
-  { name: "Prescott", st: "AZ", lon: -112.47, lat: 34.54 },
-  { name: "Phoenix", st: "AZ", lon: -112.07, lat: 33.45 },
-  { name: "Tucson", st: "AZ", lon: -110.97, lat: 32.22 },
-  { name: "Yuma", st: "AZ", lon: -114.62, lat: 32.69 },
-  { name: "El Paso", st: "TX", lon: -106.49, lat: 31.76 },
-  { name: "Lubbock", st: "TX", lon: -101.86, lat: 33.58 },
-  { name: "Fort Worth", st: "TX", lon: -97.33, lat: 32.76 },
-  { name: "Dallas", st: "TX", lon: -96.8, lat: 32.78 },
-  { name: "Austin", st: "TX", lon: -97.74, lat: 30.27 },
-  { name: "San Antonio", st: "TX", lon: -98.49, lat: 29.42 },
-  { name: "Houston", st: "TX", lon: -95.37, lat: 29.76 },
-  { name: "Corpus Christi", st: "TX", lon: -97.4, lat: 27.8 },
-  { name: "Tallahassee", st: "FL", lon: -84.28, lat: 30.44 },
-  { name: "Jacksonville", st: "FL", lon: -81.66, lat: 30.33 },
-  { name: "Orlando", st: "FL", lon: -81.38, lat: 28.54 },
-  { name: "Tampa", st: "FL", lon: -82.46, lat: 27.95 },
-  { name: "Fort Myers", st: "FL", lon: -81.87, lat: 26.64 },
-  { name: "Miami", st: "FL", lon: -80.19, lat: 25.76 },
-];
-
-const STATE_LABELS = [
-  { name: "CALIFORNIA", lon: -120.6, lat: 37.6 },
-  { name: "ARIZONA", lon: -112.2, lat: 35.9 },
-  { name: "TEXAS", lon: -99.3, lat: 31.6 },
-  { name: "FLORIDA", lon: -82.0, lat: 29.3 },
 ];
 
 /* Sell-call scripts: [year, make, model, part]. */
@@ -96,1138 +33,19 @@ const PARTS = [
 const REPLY_LINES = ["I have it", "Got one", "In stock", "Pulling it now"];
 const PRICES = [35, 40, 45, 55, 60, 75, 85, 95, 110, 125];
 
-const RED = 0xd92d20;
-const GREEN = 0x12b76a;
-
-function project(lon, lat) {
-  return { x: (lon + 96) * 1.85, z: -(lat - 37) * 2.35 };
-}
-
-function pointInPolygon(lon, lat, poly) {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
-    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
-}
-
-function easeOutBack(t) {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
 function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-/* ---- canvas-texture sprites ---------------------------------------- */
-
-function spriteFromCanvas(canvas, worldScale) {
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.anisotropy = 4;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(canvas.width * worldScale, canvas.height * worldScale, 1);
-  return sprite;
-}
-
-/* Broadcast card: "FRESNO — SELL CALL / 2006 | CHEVROLET | SILVERADO / WINDOW SWITCH" */
-function makeBroadcastCard(callerName, part, worldScale = 0.026) {
-  const head = `${callerName.toUpperCase()} — SELL CALL`;
-  const line1 = `${part[0]} | ${part[1].toUpperCase()} | ${part[2].toUpperCase()}`;
-  const line2 = part[3].toUpperCase();
-  const canvas = document.createElement("canvas");
-  let ctx = canvas.getContext("2d");
-  ctx.font = "700 38px 'Instrument Sans', sans-serif";
-  const w1 = ctx.measureText(line1).width;
-  ctx.font = "800 40px 'Instrument Sans', sans-serif";
-  const w2 = ctx.measureText(line2).width;
-  ctx.font = "600 24px 'IBM Plex Mono', monospace";
-  const w0 = ctx.measureText(head).width;
-  const pad = 36;
-  const w = Math.ceil(Math.max(w0 + 70, w1, w2)) + pad * 2;
-  const h = 196;
-  canvas.width = w;
-  canvas.height = h;
-  ctx = canvas.getContext("2d");
-  ctx.shadowColor = "rgba(22,24,29,0.25)";
-  ctx.shadowBlur = 18;
-  ctx.shadowOffsetY = 8;
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.roundRect(8, 6, w - 16, h - 22, 18);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.fillStyle = "#d92d20";
-  ctx.beginPath();
-  ctx.roundRect(8, 6, 10, h - 22, { tl: 18, bl: 18, tr: 0, br: 0 });
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.moveTo(w / 2 - 14, h - 18);
-  ctx.lineTo(w / 2 + 14, h - 18);
-  ctx.lineTo(w / 2, h);
-  ctx.fill();
-  ctx.fillStyle = "#d92d20";
-  ctx.beginPath();
-  ctx.arc(pad + 10, 44, 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.font = "600 24px 'IBM Plex Mono', monospace";
-  ctx.fillStyle = "#98948a";
-  ctx.textBaseline = "middle";
-  ctx.fillText(head, pad + 32, 45);
-  ctx.font = "700 38px 'Instrument Sans', sans-serif";
-  ctx.fillStyle = "#16181d";
-  ctx.fillText(line1, pad, 96);
-  ctx.font = "800 40px 'Instrument Sans', sans-serif";
-  ctx.fillStyle = "#d92d20";
-  ctx.fillText(line2, pad, 146);
-  return spriteFromCanvas(canvas, worldScale);
-}
-
-/* Reply chip: "PHOENIX · I HAVE IT — $45" */
-function makeReplyChip(cityName, reply, price, worldScale = 0.024) {
-  const text = `${cityName.toUpperCase()}  ·  ${reply.toUpperCase()} — $${price}`;
-  const canvas = document.createElement("canvas");
-  let ctx = canvas.getContext("2d");
-  ctx.font = "700 30px 'Instrument Sans', sans-serif";
-  const tw = ctx.measureText(text).width;
-  const pad = 30;
-  const w = Math.ceil(tw) + pad * 2 + 44;
-  const h = 92;
-  canvas.width = w;
-  canvas.height = h;
-  ctx = canvas.getContext("2d");
-  ctx.shadowColor = "rgba(22,24,29,0.22)";
-  ctx.shadowBlur = 14;
-  ctx.shadowOffsetY = 6;
-  ctx.fillStyle = "#ecfdf3";
-  ctx.beginPath();
-  ctx.roundRect(6, 4, w - 12, h - 18, 34);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = "#abefc6";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.roundRect(6, 4, w - 12, h - 18, 34);
-  ctx.stroke();
-  ctx.fillStyle = "#12b76a";
-  ctx.beginPath();
-  ctx.arc(pad + 12, h / 2 - 7, 16, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 4.5;
-  ctx.beginPath();
-  ctx.moveTo(pad + 4, h / 2 - 7);
-  ctx.lineTo(pad + 10, h / 2 - 1);
-  ctx.lineTo(pad + 21, h / 2 - 14);
-  ctx.stroke();
-  ctx.font = "700 30px 'Instrument Sans', sans-serif";
-  ctx.fillStyle = "#085d3a";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, pad + 40, h / 2 - 6);
-  return spriteFromCanvas(canvas, worldScale);
-}
-
-/* "SALE SAVED — $45" celebration stamp */
-function makeSaleStamp(price) {
-  const text = `SALE SAVED — $${price}`;
-  const canvas = document.createElement("canvas");
-  let ctx = canvas.getContext("2d");
-  ctx.font = "800 52px 'Instrument Sans', sans-serif";
-  const tw = ctx.measureText(text).width;
-  const pad = 44;
-  const w = Math.ceil(tw) + pad * 2;
-  const h = 124;
-  canvas.width = w;
-  canvas.height = h;
-  ctx = canvas.getContext("2d");
-  ctx.shadowColor = "rgba(18,183,106,0.5)";
-  ctx.shadowBlur = 26;
-  ctx.fillStyle = "#12b76a";
-  ctx.beginPath();
-  ctx.roundRect(10, 10, w - 20, h - 20, 22);
-  ctx.fill();
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 5;
-  ctx.setLineDash([14, 10]);
-  ctx.beginPath();
-  ctx.roundRect(20, 20, w - 40, h - 40, 14);
-  ctx.stroke();
-  ctx.font = "800 52px 'Instrument Sans', sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, pad, h / 2 + 2);
-  const sprite = spriteFromCanvas(canvas, 0.03);
-  sprite.material.rotation = -0.06;
-  return sprite;
-}
-
-function makeTextLabel(text, { font = "600 30px 'IBM Plex Mono', monospace", color = "#a8a399", scale = 0.045, opacity = 0.55 } = {}) {
-  const canvas = document.createElement("canvas");
-  let ctx = canvas.getContext("2d");
-  ctx.font = font;
-  const tw = ctx.measureText(text).width;
-  canvas.width = Math.ceil(tw) + 20;
-  canvas.height = 48;
-  ctx = canvas.getContext("2d");
-  ctx.font = font;
-  ctx.fillStyle = color;
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, 10, 26);
-  const sprite = spriteFromCanvas(canvas, scale);
-  sprite.material.opacity = opacity;
-  return sprite;
-}
-
-/* ---- shared pools --------------------------------------------------- */
-
-function createRingPool(scene, count = 10) {
-  const ringGeo = new THREE.PlaneGeometry(34, 34);
-  const rings = [];
-  for (let i = 0; i < count; i++) {
-    const mat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      uniforms: {
-        uProgress: { value: 1 },
-        uColor: { value: new THREE.Color(RED) },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float uProgress;
-        uniform vec3 uColor;
-        varying vec2 vUv;
-        void main() {
-          float d = length(vUv - 0.5) * 2.0;
-          float band = smoothstep(0.085, 0.0, abs(d - uProgress * 0.94));
-          float trail = smoothstep(uProgress * 0.94, uProgress * 0.94 - 0.25, d) * 0.18;
-          float a = (band + trail) * (1.0 - uProgress);
-          if (a < 0.01) discard;
-          gl_FragColor = vec4(uColor, a);
-        }
-      `,
-    });
-    const mesh = new THREE.Mesh(ringGeo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.visible = false;
-    scene.add(mesh);
-    rings.push({ mesh, mat, active: false, start: 0, dur: 1.7 });
-  }
-  return {
-    fire(pos, now, color, scale = 1) {
-      const slot = rings.find((r) => !r.active);
-      if (!slot) return;
-      slot.mesh.position.set(pos.x, pos.y + 0.18, pos.z);
-      slot.mesh.scale.setScalar(scale);
-      slot.mat.uniforms.uColor.value.set(color);
-      slot.mat.uniforms.uProgress.value = 0;
-      slot.active = true;
-      slot.start = now;
-      slot.mesh.visible = true;
-    },
-    update(t) {
-      rings.forEach((r) => {
-        if (!r.active) return;
-        const p = (t - r.start) / r.dur;
-        if (p >= 1) {
-          r.active = false;
-          r.mesh.visible = false;
-        } else {
-          r.mat.uniforms.uProgress.value = p;
-        }
-      });
-    },
-    dispose() {
-      ringGeo.dispose();
-      rings.forEach((r) => r.mat.dispose());
-    },
-  };
-}
-
-function createArcPool(scene, count = 14) {
-  const arcs = [];
-  for (let i = 0; i < count; i++) {
-    const mat = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      uniforms: {
-        uDraw: { value: 0 },
-        uFade: { value: 1 },
-        uHead: { value: 0 },
-        uColor: { value: new THREE.Color(RED) },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float uDraw;
-        uniform float uFade;
-        uniform float uHead;
-        uniform vec3 uColor;
-        varying vec2 vUv;
-        void main() {
-          float vis = 1.0 - step(uDraw, vUv.x);
-          float head = smoothstep(0.07, 0.0, abs(vUv.x - uHead));
-          vec3 col = mix(uColor, vec3(1.0, 0.78, 0.35), head * 0.7);
-          float a = vis * uFade * (0.45 + head * 0.55);
-          if (a < 0.01) discard;
-          gl_FragColor = vec4(col, a);
-        }
-      `,
-    });
-    const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
-    mesh.visible = false;
-    scene.add(mesh);
-    arcs.push({ mesh, mat, active: false, start: 0, dur: 2.1 });
-  }
-  return {
-    fire(from, to, now, color, dur = 2.1, radius = 0.13) {
-      const slot = arcs.find((a) => !a.active);
-      if (!slot) return;
-      const dist = from.distanceTo(to);
-      const mid = from.clone().add(to).multiplyScalar(0.5);
-      mid.y = 2.0 + dist * 0.26;
-      const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
-      slot.mesh.geometry.dispose();
-      slot.mesh.geometry = new THREE.TubeGeometry(curve, 26, radius, 6, false);
-      slot.mat.uniforms.uColor.value.set(color);
-      slot.mat.uniforms.uDraw.value = 0;
-      slot.mat.uniforms.uFade.value = 1;
-      slot.active = true;
-      slot.start = now;
-      slot.dur = dur;
-      slot.mesh.visible = true;
-    },
-    update(t) {
-      arcs.forEach((a) => {
-        if (!a.active) return;
-        const age = t - a.start;
-        if (age >= a.dur) {
-          a.active = false;
-          a.mesh.visible = false;
-          return;
-        }
-        a.mat.uniforms.uDraw.value = Math.min(age / 0.5, 1);
-        a.mat.uniforms.uHead.value = (age / 0.7) % 1;
-        a.mat.uniforms.uFade.value = age < a.dur - 0.6 ? 1 : (a.dur - age) / 0.6;
-      });
-    },
-    dispose() {
-      arcs.forEach((a) => {
-        a.mesh.geometry.dispose();
-        a.mat.dispose();
-      });
-    },
-  };
-}
-
-function createFloatPool(scene) {
-  const floats = [];
-  function disposeFloat(f) {
-    scene.remove(f.sprite);
-    f.sprite.material.map.dispose();
-    f.sprite.material.dispose();
-  }
-  return {
-    spawn(sprite, pos, y, now, ttl, rise = 0.12) {
-      sprite.position.set(pos.x, y, pos.z);
-      floats.push({
-        sprite, born: now, ttl, rise,
-        baseY: y,
-        baseScaleX: sprite.scale.x,
-        baseScaleY: sprite.scale.y,
-      });
-      scene.add(sprite);
-    },
-    update(t) {
-      for (let i = floats.length - 1; i >= 0; i--) {
-        const f = floats[i];
-        const age = t - f.born;
-        if (age >= f.ttl) {
-          disposeFloat(f);
-          floats.splice(i, 1);
-          continue;
-        }
-        const popK = easeOutBack(Math.min(age / 0.45, 1));
-        f.sprite.scale.set(f.baseScaleX * popK, f.baseScaleY * popK, 1);
-        const fadeIn = Math.min(age / 0.3, 1);
-        const fadeOut = age > f.ttl - 0.55 ? (f.ttl - age) / 0.55 : 1;
-        f.sprite.material.opacity = fadeIn * fadeOut;
-        f.sprite.position.y = f.baseY + Math.sin(t * 1.6 + f.born) * 0.22 + age * f.rise;
-      }
-    },
-    dispose() {
-      floats.forEach(disposeFloat);
-      floats.length = 0;
-    },
-  };
-}
-
-/* Confetti-style spark burst inside a scene. */
-function createBurstPool(scene, count = 2) {
-  const bursts = [];
-  const N = 46;
-  for (let b = 0; b < count; b++) {
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N * 3), 3));
-    const mat = new THREE.PointsMaterial({
-      size: 0.42, color: 0x12b76a, transparent: true, opacity: 0,
-      depthWrite: false, sizeAttenuation: true,
-    });
-    const pts = new THREE.Points(geo, mat);
-    pts.visible = false;
-    scene.add(pts);
-    bursts.push({ pts, geo, mat, vels: new Float32Array(N * 3), origin: new THREE.Vector3(), active: false, start: 0 });
-  }
-  return {
-    fire(pos, now) {
-      const slot = bursts.find((s) => !s.active);
-      if (!slot) return;
-      slot.origin.copy(pos);
-      for (let i = 0; i < N; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const up = 4 + Math.random() * 7;
-        const out = 2 + Math.random() * 5;
-        slot.vels[i * 3] = Math.cos(a) * out;
-        slot.vels[i * 3 + 1] = up;
-        slot.vels[i * 3 + 2] = Math.sin(a) * out;
-      }
-      slot.active = true;
-      slot.start = now;
-      slot.pts.visible = true;
-    },
-    update(t) {
-      bursts.forEach((s) => {
-        if (!s.active) return;
-        const age = t - s.start;
-        if (age > 1.3) {
-          s.active = false;
-          s.pts.visible = false;
-          return;
-        }
-        const arr = s.geo.attributes.position.array;
-        for (let i = 0; i < N; i++) {
-          arr[i * 3] = s.origin.x + s.vels[i * 3] * age;
-          arr[i * 3 + 1] = s.origin.y + s.vels[i * 3 + 1] * age - 9.5 * age * age;
-          arr[i * 3 + 2] = s.origin.z + s.vels[i * 3 + 2] * age;
-        }
-        s.geo.attributes.position.needsUpdate = true;
-        s.mat.opacity = age < 0.15 ? age / 0.15 : 1 - (age - 0.15) / 1.15;
-      });
-    },
-    dispose() {
-      bursts.forEach((s) => {
-        s.geo.dispose();
-        s.mat.dispose();
-      });
-    },
-  };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Scene 1 — hero map                                                 */
-/* ------------------------------------------------------------------ */
-
-function buildNetworkScene(container, { reducedMotion, onReply }) {
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xfbfaf8, 95, 215);
-
-  const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 500);
-  const lookBase = new THREE.Vector3(0, 12, -6);
-  const camBase = new THREE.Vector3(0, 42, 88);
-  const camIntro = new THREE.Vector3(0, 95, 170);
-  const lookCur = lookBase.clone();
-  const lookTarget = lookBase.clone();
-  const camCur = camBase.clone();
-  const camTarget = camBase.clone();
-  camera.position.copy(reducedMotion ? camBase : camIntro);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-  renderer.setClearColor(0x000000, 0);
-  container.appendChild(renderer.domElement);
-
-  /* dot-matrix map */
-  const dots = [];
-  for (let lon = -125; lon <= -66.5; lon += 0.72) {
-    for (let lat = 24.5; lat <= 49.4; lat += 0.58) {
-      if (pointInPolygon(lon, lat, US_OUTLINE)) dots.push({ lon, lat });
-    }
-  }
-
-  const total = dots.length + CITIES.length;
-  const positions = new Float32Array(total * 3);
-  const sizes = new Float32Array(total);
-  const kinds = new Float32Array(total);
-  const flare = new Float32Array(total);
-  const hotSel = new Float32Array(total);
-
-  dots.forEach((p, i) => {
-    const { x, z } = project(p.lon, p.lat);
-    positions.set([x, 0, z], i * 3);
-    sizes[i] = 1.55;
-    kinds[i] = 0;
-  });
-  CITIES.forEach((c, i) => {
-    const idx = dots.length + i;
-    const { x, z } = project(c.lon, c.lat);
-    positions.set([x, 0.4, z], idx * 3);
-    sizes[idx] = 5.0;
-    kinds[idx] = 1;
-  });
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
-  geo.setAttribute("aKind", new THREE.BufferAttribute(kinds, 1));
-  geo.setAttribute("aFlare", new THREE.BufferAttribute(flare, 1));
-  geo.setAttribute("aHotSel", new THREE.BufferAttribute(hotSel, 1));
-
-  const pointsMat = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    uniforms: { uTime: { value: 0 } },
-    vertexShader: `
-      attribute float aSize;
-      attribute float aKind;
-      attribute float aFlare;
-      attribute float aHotSel;
-      uniform float uTime;
-      varying float vKind;
-      varying float vFlare;
-      varying float vHotSel;
-      varying float vSheen;
-      void main() {
-        vKind = aKind;
-        vFlare = aFlare;
-        vHotSel = aHotSel;
-        vSheen = 0.82 + 0.18 * sin(uTime * 0.5 + position.x * 0.09 + position.z * 0.05);
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        float s = aSize * (1.0 + aFlare * 1.6);
-        gl_PointSize = s * (250.0 / -mv.z);
-        gl_Position = projectionMatrix * mv;
-      }
-    `,
-    fragmentShader: `
-      varying float vKind;
-      varying float vFlare;
-      varying float vHotSel;
-      varying float vSheen;
-      void main() {
-        vec2 uv = gl_PointCoord - 0.5;
-        float d = length(uv);
-        float core = smoothstep(0.5, 0.12, d);
-        vec3 dotCol  = vec3(0.80, 0.78, 0.74) * vSheen;
-        vec3 cityCol = vec3(0.28, 0.30, 0.36);
-        vec3 base = mix(dotCol, cityCol, vKind);
-        vec3 hot = mix(vec3(0.85, 0.18, 0.13), vec3(0.07, 0.72, 0.42), vHotSel);
-        vec3 col = mix(base, hot, clamp(vFlare, 0.0, 1.0));
-        float a = core * (0.8 + vFlare * 0.2);
-        if (a < 0.02) discard;
-        gl_FragColor = vec4(col, a);
-      }
-    `,
-  });
-
-  scene.add(new THREE.Points(geo, pointsMat));
-
-  /* US border */
-  const borderPts = US_OUTLINE.map(([lon, lat]) => {
-    const { x, z } = project(lon, lat);
-    return new THREE.Vector3(x, 0.05, z);
-  });
-  const border = new THREE.LineLoop(
-    new THREE.BufferGeometry().setFromPoints(borderPts),
-    new THREE.LineBasicMaterial({ color: 0xc9c4ba, transparent: true, opacity: 0.8 })
-  );
-  scene.add(border);
-
-  /* state labels */
-  const stateSprites = STATE_LABELS.map((s) => {
-    const { x, z } = project(s.lon, s.lat);
-    const sprite = makeTextLabel(s.name);
-    sprite.position.set(x, 1.6, z);
-    scene.add(sprite);
-    return sprite;
-  });
-
-  const ringPool = createRingPool(scene, 10);
-  const arcPool = createArcPool(scene, 14);
-  const floatPool = createFloatPool(scene);
-
-  /* sell-call cycle */
-  const cityVecs = CITIES.map((c, i) => {
-    const { x, z } = project(c.lon, c.lat);
-    return { idx: dots.length + i, city: c, vec: new THREE.Vector3(x, 0.4, z) };
-  });
-
-  let nextCall = reducedMotion ? Infinity : 2.6;
-  let partIdx = 0;
-  const pending = [];
-
-  function startSellCall(now, callerOverride, partOverride, skipResponses) {
-    const caller = callerOverride || pick(cityVecs);
-    const part = partOverride || PARTS[partIdx % PARTS.length];
-    partIdx++;
-
-    lookTarget.set(caller.vec.x * 0.62, 9, caller.vec.z * 0.5 - 4);
-    camTarget.set(camBase.x + caller.vec.x * 0.34, camBase.y - 7, camBase.z - 10);
-
-    flare[caller.idx] = 1;
-    hotSel[caller.idx] = 0;
-    ringPool.fire(caller.vec, now, RED, 1);
-    floatPool.spawn(makeBroadcastCard(caller.city.name, part), caller.vec, 7.4, now, skipResponses ? 12.0 : 6.0);
-
-    const neighbors = cityVecs
-      .filter((n) => {
-        const d = n.vec.distanceTo(caller.vec);
-        return d > 0.5 && d < 24;
-      })
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 6);
-
-    neighbors.forEach((n, k) => {
-      pending.push({
-        at: now + 0.55 + k * 0.16,
-        fn: (t) => {
-          arcPool.fire(caller.vec.clone(), n.vec.clone(), t, RED, 1.9);
-          flare[n.idx] = 0.55;
-          hotSel[n.idx] = 0;
-        },
-      });
-    });
-
-    if (skipResponses) return;
-
-    const responders = neighbors.slice(0, 2 + Math.floor(Math.random() * 2));
-    responders.forEach((n, k) => {
-      const reply = pick(REPLY_LINES);
-      const price = pick(PRICES);
-      pending.push({
-        at: now + 2.0 + k * 0.55,
-        fn: (t) => {
-          flare[n.idx] = 1;
-          hotSel[n.idx] = 1;
-          ringPool.fire(n.vec, t, GREEN, 0.45);
-          arcPool.fire(n.vec.clone(), caller.vec.clone(), t, GREEN, 2.2);
-          floatPool.spawn(makeReplyChip(n.city.name, reply, price), n.vec, 4.6, t, 3.6);
-          onReply?.(price);
-        },
-      });
-    });
-  }
-
-  /* click a city to fire a sell call */
-  const raycaster = new THREE.Raycaster();
-  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  const hitPt = new THREE.Vector3();
-
-  function onClick(e) {
-    const rect = container.getBoundingClientRect();
-    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera({ x: nx, y: ny }, camera);
-    if (!raycaster.ray.intersectPlane(groundPlane, hitPt)) return;
-    let best = null;
-    let bd = Infinity;
-    cityVecs.forEach((c) => {
-      const d = c.vec.distanceTo(hitPt);
-      if (d < bd) {
-        bd = d;
-        best = c;
-      }
-    });
-    if (best && bd < 14) {
-      const t = clock.getElapsedTime();
-      startSellCall(t, best);
-      nextCall = t + 9;
-    }
-  }
-  container.addEventListener("pointerdown", onClick);
-
-  /* loop */
-  const clock = new THREE.Clock();
-  let mouseX = 0;
-  let mouseY = 0;
-  let raf = 0;
-  let running = true;
-  let autoPaused = false;
-
-  function onMouse(e) {
-    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-  }
-  window.addEventListener("pointermove", onMouse, { passive: true });
-
-  function frame() {
-    raf = requestAnimationFrame(frame);
-    if (!running) return;
-    const t = clock.getElapsedTime();
-    pointsMat.uniforms.uTime.value = t;
-
-    if (!reducedMotion) {
-      if (!autoPaused && t > nextCall) {
-        startSellCall(t);
-        nextCall = t + 7.5;
-      }
-      for (let i = pending.length - 1; i >= 0; i--) {
-        if (t >= pending[i].at) {
-          pending[i].fn(t);
-          pending.splice(i, 1);
-        }
-      }
-
-      for (let i = 0; i < total; i++) {
-        if (flare[i] > 0.001) flare[i] *= 0.975;
-        else flare[i] = 0;
-      }
-      geo.attributes.aFlare.needsUpdate = true;
-      geo.attributes.aHotSel.needsUpdate = true;
-
-      ringPool.update(t);
-      arcPool.update(t);
-      floatPool.update(t);
-
-      if (t < 2.2) {
-        const k = easeOutCubic(Math.min(t / 2.2, 1));
-        camera.position.lerpVectors(camIntro, camBase, k);
-        camCur.copy(camera.position);
-      } else {
-        camCur.lerp(camTarget, 0.018);
-        lookCur.lerp(lookTarget, 0.022);
-        camera.position.set(
-          camCur.x + Math.sin(t * 0.05) * 1.6 + mouseX * 2.2,
-          camCur.y + mouseY * -1.4,
-          camCur.z + Math.cos(t * 0.04) * 1.0
-        );
-      }
-    }
-
-    camera.lookAt(lookCur);
-    renderer.render(scene, camera);
-  }
-
-  function resize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    if (!w || !h) return;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  }
-  const ro = new ResizeObserver(resize);
-  ro.observe(container);
-  resize();
-  frame();
-
-  const io = new IntersectionObserver(
-    ([entry]) => {
-      running = entry.isIntersecting;
-    },
-    { threshold: 0.02 }
-  );
-  io.observe(container);
-
-  return {
-    dispose() {
-      cancelAnimationFrame(raf);
-      io.disconnect();
-      ro.disconnect();
-      window.removeEventListener("pointermove", onMouse);
-      container.removeEventListener("pointerdown", onClick);
-      geo.dispose();
-      pointsMat.dispose();
-      border.geometry.dispose();
-      border.material.dispose();
-      ringPool.dispose();
-      arcPool.dispose();
-      floatPool.dispose();
-      stateSprites.forEach((s) => {
-        s.material.map.dispose();
-        s.material.dispose();
-      });
-      renderer.dispose();
-      container.removeChild(renderer.domElement);
-    },
-    fireSellCall() {
-      const t = clock.getElapsedTime();
-      startSellCall(t);
-      nextCall = t + 12;
-    },
-    fireSellCallWithData(cityName, partData) {
-      const t = clock.getElapsedTime();
-      const match = cityVecs.find((c) => c.city.name === cityName);
-      startSellCall(t, match || null, partData || null, true);
-      nextCall = t + 20;
-    },
-    fireResponse(callerCityName, responderCityName, yardName, reply) {
-      const t = clock.getElapsedTime();
-      const caller = cityVecs.find((c) => c.city.name === callerCityName);
-      const responder = cityVecs.find((c) => c.city.name === responderCityName);
-      if (!caller || !responder) return;
-      flare[responder.idx] = 1;
-      hotSel[responder.idx] = 1;
-      ringPool.fire(responder.vec, t, GREEN, 0.45);
-      arcPool.fire(responder.vec.clone(), caller.vec.clone(), t, GREEN, 2.2);
-      floatPool.spawn(
-        makeReplyChip(yardName, reply, pick(PRICES)),
-        responder.vec, 4.6, t, 3.6
-      );
-      onReply?.(pick(PRICES));
-    },
-    pauseAuto() { autoPaused = true; },
-    resumeAuto() {
-      autoPaused = false;
-      nextCall = clock.getElapsedTime() + 4;
-    },
-    get _autoPaused() { return autoPaused; },
-  };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Scene 2 — playable sell-call demo                                  */
-/* ------------------------------------------------------------------ */
-
+/* Neighbor yards shown in the playable sell-call demo. */
 const DEMO_NEIGHBORS = [
   "Tucson", "Flagstaff", "Yuma", "Prescott",
   "San Diego", "Riverside", "El Paso", "Las Vegas",
 ];
-
-function buildDemoScene(container) {
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xfbfaf8, 42, 90);
-
-  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
-  camera.position.set(0, 24, 28);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-  renderer.setClearColor(0x000000, 0);
-  container.appendChild(renderer.domElement);
-
-  /* radar ground: dot grid + range rings */
-  const gPts = [];
-  for (let x = -18; x <= 18; x += 1.3) {
-    for (let z = -18; z <= 18; z += 1.3) {
-      if (Math.hypot(x, z) <= 17) gPts.push(x, 0, z);
-    }
-  }
-  const groundGeo = new THREE.BufferGeometry();
-  groundGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(gPts), 3));
-  const groundMat = new THREE.PointsMaterial({
-    color: 0xcdc8bf, size: 0.16, transparent: true, opacity: 0.8, sizeAttenuation: true,
-  });
-  scene.add(new THREE.Points(groundGeo, groundMat));
-
-  const rangeRings = [6.5, 13].map((r) => {
-    const pts = [];
-    for (let i = 0; i <= 80; i++) {
-      const a = (i / 80) * Math.PI * 2;
-      pts.push(new THREE.Vector3(Math.cos(a) * r, 0.02, Math.sin(a) * r));
-    }
-    const line = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(pts),
-      new THREE.LineBasicMaterial({ color: 0xddd8cf, transparent: true, opacity: 0.9 })
-    );
-    scene.add(line);
-    return line;
-  });
-
-  /* nodes: your yard center + neighbors in a ring */
-  const nodeGeo = new THREE.SphereGeometry(0.5, 20, 20);
-  const center = {
-    mesh: new THREE.Mesh(nodeGeo, new THREE.MeshBasicMaterial({ color: RED })),
-    vec: new THREE.Vector3(0, 0.5, 0),
-    flare: 0,
-  };
-  center.mesh.position.copy(center.vec);
-  scene.add(center.mesh);
-
-  const centerLabel = makeTextLabel("YOUR YARD — PHOENIX", {
-    color: "#d92d20", opacity: 0.95, scale: 0.034,
-    font: "700 30px 'IBM Plex Mono', monospace",
-  });
-  centerLabel.position.set(0, 2.1, 0);
-  scene.add(centerLabel);
-
-  const slate = new THREE.Color(0x474c57);
-  const greenC = new THREE.Color(GREEN);
-  const neighbors = DEMO_NEIGHBORS.map((name, i) => {
-    const a = (i / DEMO_NEIGHBORS.length) * Math.PI * 2 - Math.PI / 2 + 0.18;
-    const r = 11.5 + (i % 2) * 2.6;
-    const vec = new THREE.Vector3(Math.cos(a) * r, 0.45, Math.sin(a) * r * 0.82);
-    const mesh = new THREE.Mesh(nodeGeo, new THREE.MeshBasicMaterial({ color: slate.clone() }));
-    mesh.position.copy(vec);
-    mesh.scale.setScalar(0.82);
-    scene.add(mesh);
-    const label = makeTextLabel(name.toUpperCase(), {
-      color: "#6b6f7a", opacity: 0.85, scale: 0.028,
-    });
-    label.position.set(vec.x, 1.8, vec.z);
-    scene.add(label);
-    return { name, vec, mesh, label, flare: 0, hot: 0 };
-  });
-
-  const ringPool = createRingPool(scene, 8);
-  const arcPool = createArcPool(scene, 10);
-  const floatPool = createFloatPool(scene);
-  const burstPool = createBurstPool(scene, 2);
-
-  /* run a sell call */
-  const pending = [];
-  let busy = false;
-
-  function run(part, cbs = {}) {
-    if (busy) return;
-    busy = true;
-    const now = clock.getElapsedTime();
-
-    center.flare = 1;
-    ringPool.fire(center.vec, now, RED, 0.8);
-    floatPool.spawn(makeBroadcastCard("Your yard", part, 0.022), center.vec, 5.6, now, 5.4);
-
-    neighbors.forEach((n, k) => {
-      pending.push({
-        at: now + 0.45 + k * 0.1,
-        fn: (t) => {
-          arcPool.fire(center.vec.clone(), n.vec.clone(), t, RED, 1.7, 0.09);
-          n.flare = 0.6;
-          n.hot = 0;
-        },
-      });
-    });
-
-    const shuffled = [...neighbors].sort(() => Math.random() - 0.5);
-    const responders = shuffled.slice(0, 2 + Math.floor(Math.random() * 2));
-    const prices = responders.map(() => pick(PRICES));
-
-    responders.forEach((n, k) => {
-      pending.push({
-        at: now + 1.9 + k * 0.55,
-        fn: (t) => {
-          n.flare = 1;
-          n.hot = 1;
-          ringPool.fire(n.vec, t, GREEN, 0.4);
-          arcPool.fire(n.vec.clone(), center.vec.clone(), t, GREEN, 2.0, 0.09);
-          floatPool.spawn(makeReplyChip(n.name, pick(REPLY_LINES), prices[k], 0.02), n.vec, 3.4, t, 3.2);
-        },
-      });
-    });
-
-    const bestPrice = Math.min(...prices);
-    pending.push({
-      at: now + 4.1,
-      fn: (t) => {
-        floatPool.spawn(makeSaleStamp(bestPrice), center.vec, 6.4, t, 2.6, 0.35);
-        burstPool.fire(new THREE.Vector3(0, 1.5, 0), t);
-        cbs.onSale?.(bestPrice, responders.length);
-      },
-    });
-    pending.push({
-      at: now + 6.0,
-      fn: () => {
-        busy = false;
-        cbs.onDone?.();
-      },
-    });
-  }
-
-  /* loop */
-  const clock = new THREE.Clock();
-  let raf = 0;
-  let running = true;
-
-  function frame() {
-    raf = requestAnimationFrame(frame);
-    if (!running) return;
-    const t = clock.getElapsedTime();
-
-    for (let i = pending.length - 1; i >= 0; i--) {
-      if (t >= pending[i].at) {
-        pending[i].fn(t);
-        pending.splice(i, 1);
-      }
-    }
-
-    center.flare *= 0.97;
-    center.mesh.scale.setScalar(1 + center.flare * 0.7 + Math.sin(t * 2.4) * 0.05);
-    neighbors.forEach((n) => {
-      n.flare *= 0.97;
-      n.mesh.scale.setScalar(0.82 + n.flare * 0.6);
-      n.mesh.material.color.copy(slate).lerp(n.hot ? greenC : new THREE.Color(RED), Math.min(n.flare, 1));
-    });
-
-    ringPool.update(t);
-    arcPool.update(t);
-    floatPool.update(t);
-    burstPool.update(t);
-
-    camera.position.x = Math.sin(t * 0.12) * 2.2;
-    camera.position.y = 24 + Math.sin(t * 0.09) * 0.8;
-    camera.lookAt(0, 1.5, 0);
-    renderer.render(scene, camera);
-  }
-
-  function resize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    if (!w || !h) return;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  }
-  const ro = new ResizeObserver(resize);
-  ro.observe(container);
-  resize();
-  frame();
-
-  const io = new IntersectionObserver(
-    ([entry]) => {
-      running = entry.isIntersecting;
-    },
-    { threshold: 0.02 }
-  );
-  io.observe(container);
-
-  const dispose = () => {
-    cancelAnimationFrame(raf);
-    io.disconnect();
-    ro.disconnect();
-    groundGeo.dispose();
-    groundMat.dispose();
-    rangeRings.forEach((l) => {
-      l.geometry.dispose();
-      l.material.dispose();
-    });
-    nodeGeo.dispose();
-    center.mesh.material.dispose();
-    centerLabel.material.map.dispose();
-    centerLabel.material.dispose();
-    neighbors.forEach((n) => {
-      n.mesh.material.dispose();
-      n.label.material.map.dispose();
-      n.label.material.dispose();
-    });
-    ringPool.dispose();
-    arcPool.dispose();
-    floatPool.dispose();
-    burstPool.dispose();
-    renderer.dispose();
-    container.removeChild(renderer.domElement);
-  };
-
-  return { run, dispose };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Scene 3 — signal wave for the dark CTA band                        */
-/* ------------------------------------------------------------------ */
-
-function buildWaveScene(container) {
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.set(0, 7, 20);
-  camera.lookAt(0, 0, 0);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-  renderer.setClearColor(0x000000, 0);
-  container.appendChild(renderer.domElement);
-
-  const COLS = 90;
-  const ROWS = 16;
-  const N = COLS * ROWS;
-  const pos = new Float32Array(N * 3);
-  let p = 0;
-  for (let i = 0; i < COLS; i++) {
-    for (let j = 0; j < ROWS; j++) {
-      pos[p++] = (i / (COLS - 1) - 0.5) * 56;
-      pos[p++] = 0;
-      pos[p++] = (j / (ROWS - 1) - 0.5) * 12;
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  const mat = new THREE.PointsMaterial({
-    color: 0xff6f61, size: 0.13, transparent: true, opacity: 0.55,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-  });
-  scene.add(new THREE.Points(geo, mat));
-
-  const clock = new THREE.Clock();
-  let raf = 0;
-  let running = true;
-
-  function frame() {
-    raf = requestAnimationFrame(frame);
-    if (!running) return;
-    const t = clock.getElapsedTime();
-    const arr = geo.attributes.position.array;
-    for (let i = 0; i < N; i++) {
-      const x = arr[i * 3];
-      const z = arr[i * 3 + 2];
-      arr[i * 3 + 1] =
-        Math.sin(x * 0.32 + t * 1.1) * 0.9 +
-        Math.sin(x * 0.11 - t * 0.6 + z * 0.4) * 0.7;
-    }
-    geo.attributes.position.needsUpdate = true;
-    renderer.render(scene, camera);
-  }
-
-  function resize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    if (!w || !h) return;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  }
-  const ro = new ResizeObserver(resize);
-  ro.observe(container);
-  resize();
-  frame();
-
-  const io = new IntersectionObserver(
-    ([entry]) => {
-      running = entry.isIntersecting;
-    },
-    { threshold: 0.02 }
-  );
-  io.observe(container);
-
-  return () => {
-    cancelAnimationFrame(raf);
-    io.disconnect();
-    ro.disconnect();
-    geo.dispose();
-    mat.dispose();
-    renderer.dispose();
-    container.removeChild(renderer.domElement);
-  };
-}
 
 /* ------------------------------------------------------------------ */
 /*  Page content                                                       */
@@ -1415,14 +233,10 @@ const HERO_CLIPS = [
 ];
 
 export default function Landing2Page() {
-  const heroRef = useRef(null);
-  const demoRef = useRef(null);
-  const waveRef = useRef(null);
   const rootRef = useRef(null);
   const videoRef = useRef(null);
   const wireRef = useRef(null);
   const formRef = useRef(null);
-  const demoApi = useRef(null);
 
   const signupBase = "https://hotline.redlineusedautoparts.com/client/signup";
   const loginBase = "https://hotline.redlineusedautoparts.com/client/login";
@@ -1439,18 +253,19 @@ export default function Landing2Page() {
 
   const [sent, setSent] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [heroFeed, setHeroFeed] = useState({ deals: 0, revenue: 0 });
   const [demoPart, setDemoPart] = useState(0);
   const [demoBusy, setDemoBusy] = useState(false);
+  const [demoYards, setDemoYards] = useState({});
   const [score, setScore] = useState({ deals: 0, revenue: 0 });
+  const demoTimers = useRef([]);
 
-  /* hero audio — real broadcasts synced with map animation */
-  const heroSceneApi = useRef(null);
+  /* hero audio — real broadcasts with live reply captions */
   const heroAudioRef = useRef(null);
   const heroClipIdx = useRef(0);
   const heroTimers = useRef([]);
   const [heroAudioState, setHeroAudioState] = useState("idle");
   const [heroClipInfo, setHeroClipInfo] = useState(null);
+  const [heroReplies, setHeroReplies] = useState([]);
 
   const clearHeroTimers = () => {
     heroTimers.current.forEach(clearTimeout);
@@ -1459,7 +274,6 @@ export default function Landing2Page() {
 
   const playHeroBroadcast = () => {
     const audio = heroAudioRef.current;
-    const api = heroSceneApi.current;
     if (!audio) return;
 
     if (heroAudioState === "playing") {
@@ -1467,7 +281,7 @@ export default function Landing2Page() {
       clearHeroTimers();
       setHeroAudioState("idle");
       setHeroClipInfo(null);
-      api?.resumeAuto();
+      setHeroReplies([]);
       return;
     }
 
@@ -1478,15 +292,14 @@ export default function Landing2Page() {
     audio.src = clip.file;
     setHeroAudioState("playing");
     setHeroClipInfo(clip);
-    api?.pauseAuto();
+    setHeroReplies([]);
     clearHeroTimers();
 
     audio.play().then(() => {
-      api?.fireSellCallWithData(clip.city, clip.partData);
       if (clip.responses) {
         clip.responses.forEach((r) => {
           const timer = setTimeout(() => {
-            api?.fireResponse(clip.city, r.city, r.yard, r.reply);
+            setHeroReplies((rs) => [...rs, r]);
           }, r.at * 1000);
           heroTimers.current.push(timer);
         });
@@ -1498,60 +311,22 @@ export default function Landing2Page() {
     const audio = heroAudioRef.current;
     if (!audio) return;
     const onEnd = () => {
-      const api = heroSceneApi.current;
       clearHeroTimers();
       setHeroAudioState("idle");
       setHeroClipInfo(null);
-      api?.resumeAuto();
+      setHeroReplies([]);
     };
     audio.addEventListener("ended", onEnd);
     return () => audio.removeEventListener("ended", onEnd);
   }, []);
 
-  /* hero scene */
+  /* clear any pending demo timers on unmount */
   useEffect(() => {
-    let disposed = false;
-    threeReady.then(() => {
-      if (disposed || !heroRef.current) return;
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const api = buildNetworkScene(heroRef.current, {
-        reducedMotion,
-        onReply: (price) =>
-          setHeroFeed((f) => ({ deals: f.deals + 1, revenue: f.revenue + price })),
-      });
-      heroSceneApi.current = api;
-    });
     return () => {
-      disposed = true;
-      if (heroSceneApi.current) { heroSceneApi.current.dispose(); heroSceneApi.current = null; }
+      demoTimers.current.forEach(clearTimeout);
+      demoTimers.current = [];
+      clearHeroTimers();
     };
-  }, []);
-
-  /* playable demo scene */
-  useEffect(() => {
-    let disposed = false;
-    threeReady.then(() => {
-      if (disposed || !demoRef.current) return;
-      const api = buildDemoScene(demoRef.current);
-      demoApi.current = api;
-    });
-    return () => {
-      disposed = true;
-      if (demoApi.current) { demoApi.current.dispose(); demoApi.current = null; }
-    };
-  }, []);
-
-  /* CTA wave scene */
-  useEffect(() => {
-    let disposed = false;
-    threeReady.then(() => {
-      if (disposed) return;
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (!waveRef.current || reducedMotion) return;
-      const cleanup = buildWaveScene(waveRef.current);
-      if (disposed && cleanup) cleanup();
-    });
-    return () => { disposed = true; };
   }, []);
 
   /* scroll reveal */
@@ -1592,13 +367,29 @@ export default function Landing2Page() {
   }, []);
 
   function runDemo() {
-    if (demoBusy || !demoApi.current) return;
+    if (demoBusy) return;
     setDemoBusy(true);
-    demoApi.current.run(PARTS[demoPart], {
-      onSale: (price, bids) =>
-        setScore((s) => ({ deals: s.deals + 1, revenue: s.revenue + price, bids })),
-      onDone: () => setDemoBusy(false),
+    setDemoYards({});
+
+    const shuffled = [...DEMO_NEIGHBORS].sort(() => Math.random() - 0.5);
+    const responders = shuffled.slice(0, 2 + Math.floor(Math.random() * 2));
+    const prices = responders.map(() => pick(PRICES));
+    const bestPrice = Math.min(...prices);
+    const winner = responders[prices.indexOf(bestPrice)];
+    const timers = demoTimers.current;
+
+    responders.forEach((name, k) => {
+      timers.push(setTimeout(() => {
+        setDemoYards((y) => ({ ...y, [name]: { reply: pick(REPLY_LINES), price: prices[k] } }));
+      }, 1300 + k * 600));
     });
+
+    timers.push(setTimeout(() => {
+      setDemoYards((y) => ({ ...y, [winner]: { ...y[winner], won: true } }));
+      setScore((s) => ({ deals: s.deals + 1, revenue: s.revenue + bestPrice, bids: responders.length }));
+    }, 3800));
+
+    timers.push(setTimeout(() => setDemoBusy(false), 5200));
   }
 
   function confettiBurst() {
@@ -1683,15 +474,10 @@ export default function Landing2Page() {
 
       {/* ───────────────── hero ───────────────── */}
       <section className="l2-hero" id="top">
-        <div className="l2-hero-bg" ref={heroRef} aria-hidden="true" />
         <div className="l2-hero-scrim" aria-hidden="true" />
 
         <div className="l2-stage-chip l2-stage-tl">
           <span className="l2-live-dot" /> Live network · 12 regional rooms
-        </div>
-        <div className="l2-stage-chip l2-stage-tr">◉ Click any city to fire a sell call</div>
-        <div className="l2-stage-chip l2-stage-br" key={heroFeed.deals}>
-          ▲ ${heroFeed.revenue.toLocaleString()} matched · {heroFeed.deals} deals (demo feed)
         </div>
 
         <div className="l2-hero-copy">
@@ -1745,6 +531,16 @@ export default function Landing2Page() {
               )}
             </span>
           </button>
+
+          {heroAudioState === "playing" && heroReplies.length > 0 && (
+            <div className="l2-hero-replies" aria-live="polite">
+              {heroReplies.map((r, i) => (
+                <span className="l2-hero-reply" key={i}>
+                  <strong>{r.yard}</strong> · {r.city} — “{r.reply}”
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="l2-stats">
@@ -1945,7 +741,30 @@ export default function Landing2Page() {
           </div>
 
           <div className="l2-demo-stage">
-            <div className="l2-demo-canvas" ref={demoRef} aria-hidden="true" />
+            <div className="l2-demo-board">
+              <div className={`l2-demo-yard you ${demoBusy ? "onair" : ""}`}>
+                <span className="l2-demo-yard-name">Your yard</span>
+                <span className="l2-demo-yard-status">
+                  {demoBusy ? "Broadcasting…" : "Standing by"}
+                </span>
+              </div>
+              <div className="l2-demo-grid">
+                {DEMO_NEIGHBORS.map((name) => {
+                  const r = demoYards[name];
+                  return (
+                    <div
+                      className={`l2-demo-yard ${r ? "hot" : ""} ${r?.won ? "won" : ""}`}
+                      key={name}
+                    >
+                      <span className="l2-demo-yard-name">{name}</span>
+                      <span className="l2-demo-yard-status">
+                        {r ? (r.won ? `SOLD · $${r.price}` : `${r.reply} · $${r.price}`) : "Listening"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
             <div className="l2-stage-chip l2-demo-chip">
               <span className="l2-live-dot" /> AZ room · your yard + 8 neighbors
             </div>
@@ -2002,7 +821,6 @@ export default function Landing2Page() {
 
       {/* ───────────────── join ───────────────── */}
       <section className="l2-join" id="join">
-        <div className="l2-join-bg" ref={waveRef} aria-hidden="true" />
         <div className="l2-join-inner">
           <div className="l2-reveal">
             <p className="l2-kicker l2-kicker-light">Membership</p>
@@ -2142,14 +960,13 @@ const CSS = `
   display: flex; flex-direction: column; justify-content: space-between;
   overflow: hidden;
 }
-.l2-hero-bg { position: absolute; inset: 0; cursor: crosshair; }
-.l2-hero-bg canvas { display: block; width: 100%; height: 100%; }
 .l2-hero-scrim {
   position: absolute; inset: 0; pointer-events: none;
-  background:
+  background-image:
     radial-gradient(ellipse 62% 46% at 50% 30%, rgba(251,250,248,0.94) 36%, rgba(251,250,248,0.55) 68%, transparent 100%),
-    linear-gradient(180deg, rgba(251,250,248,0.9) 0%, transparent 26%),
-    linear-gradient(0deg, rgba(251,250,248,0.95) 0%, transparent 22%);
+    radial-gradient(ellipse 55% 40% at 50% 42%, rgba(217,45,32,0.05), transparent 70%),
+    radial-gradient(#dcd7cc 1px, transparent 1.4px);
+  background-size: 100% 100%, 100% 100%, 26px 26px;
 }
 .l2-hero-copy { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; text-align: center; pointer-events: none; }
 .l2-hero-copy a, .l2-hero-copy button { pointer-events: auto; }
@@ -2191,10 +1008,8 @@ const CSS = `
   pointer-events: none;
 }
 .l2-stage-tl { top: 86px; left: 24px; }
-.l2-stage-tr { top: 86px; right: 24px; color: var(--red); border-color: rgba(217,45,32,0.3); }
-.l2-stage-br { bottom: 130px; right: 24px; animation: l2chip-pop .4s ease; }
 @keyframes l2chip-pop { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
-@media (max-width: 760px) { .l2-stage-tl, .l2-stage-tr, .l2-stage-br { display: none; } }
+@media (max-width: 760px) { .l2-stage-tl { display: none; } }
 .l2-live-dot {
   width: 7px; height: 7px; border-radius: 50%; background: var(--red);
   box-shadow: 0 0 0 3px rgba(217,45,32,0.15);
@@ -2253,6 +1068,19 @@ const CSS = `
 .l2-listen-eq span:nth-child(3) { height: 20px; animation-delay: 0.3s; }
 .l2-listen-eq span:nth-child(4) { height: 10px; animation-delay: 0.45s; }
 .l2-listen-eq span:nth-child(5) { height: 16px; animation-delay: 0.6s; }
+
+/* replies that appear while a hero broadcast clip plays */
+.l2-hero-replies {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  margin-top: 14px; pointer-events: none;
+}
+.l2-hero-reply {
+  font-family: var(--mono); font-size: 12px; color: var(--ink);
+  background: #fff; border: 1px solid rgba(18,183,106,0.5);
+  border-radius: 999px; padding: 6px 14px;
+  animation: l2chip-pop .3s ease;
+}
+.l2-hero-reply strong { color: var(--green); font-weight: 700; }
 @keyframes l2eq {
   0% { height: 4px; }
   100% { height: 20px; }
@@ -2484,8 +1312,36 @@ const CSS = `
     linear-gradient(#fdfcfb, #f3f1ec);
   box-shadow: var(--shadow);
 }
-.l2-demo-canvas { position: absolute; inset: 0; }
-.l2-demo-canvas canvas { display: block; width: 100%; height: 100%; }
+.l2-demo-board {
+  position: absolute; inset: 0;
+  padding: 58px 18px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.l2-demo-yard {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  transition: border-color .25s, background .25s, box-shadow .25s;
+}
+.l2-demo-yard.you { border-color: rgba(217,45,32,0.35); }
+.l2-demo-yard.you.onair {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(217,45,32,0.14);
+}
+.l2-demo-yard.hot { border-color: rgba(18,183,106,0.55); }
+.l2-demo-yard.hot .l2-demo-yard-status { color: var(--green); }
+.l2-demo-yard.won { background: rgba(18,183,106,0.08); border-color: var(--green); }
+.l2-demo-yard-name { font-family: var(--display); font-weight: 700; font-size: 14.5px; }
+.l2-demo-yard-status {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  white-space: nowrap;
+}
+.l2-demo-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  flex: 1; align-content: start;
+}
+@media (max-width: 480px) { .l2-demo-grid { grid-template-columns: 1fr; } }
 .l2-demo-chip { top: 14px; left: 14px; }
 @media (max-width: 760px) { .l2-demo-chip { display: inline-flex; } }
 
@@ -2529,9 +1385,12 @@ const CSS = `
 .l2-own-list li::before { content: "▸"; position: absolute; left: 0; color: var(--red); }
 
 /* join */
-.l2-join { background: #16181d; color: #f4f2ee; position: relative; overflow: hidden; }
-.l2-join-bg { position: absolute; inset: 0; opacity: 0.8; }
-.l2-join-bg canvas { display: block; width: 100%; height: 100%; }
+.l2-join {
+  background:
+    radial-gradient(ellipse 70% 90% at 80% 0%, rgba(217,45,32,0.12), transparent 60%),
+    #16181d;
+  color: #f4f2ee; position: relative; overflow: hidden;
+}
 .l2-join-inner {
   position: relative; z-index: 1;
   max-width: 1280px; margin: 0 auto; padding: 110px 32px;
@@ -2606,7 +1465,6 @@ const CSS = `
   .l2-nav-login { padding: 8px 10px; font-size: 13px; }
   .l2-nav-cta { padding: 8px 14px; font-size: 13px; }
   .l2-hero { padding: 120px 16px 0; min-height: auto; }
-  .l2-hero-bg { display: none; }
   .l2-hero-scrim { display: none; }
   .l2-hero-copy { padding: 0; }
   .l2-hero-copy h1 { font-size: clamp(26px, 7vw, 38px); }
