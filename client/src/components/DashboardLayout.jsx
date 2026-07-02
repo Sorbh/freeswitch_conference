@@ -1048,6 +1048,18 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
 function ListenOnlySidebarCard() {
   const [micStatus, setMicStatus] = useState('idle'); // idle | requesting | blocked
 
+  useEffect(() => {
+    if (micStatus !== 'blocked') return;
+    let cancel = false;
+    navigator.permissions?.query({ name: 'microphone' }).then(perm => {
+      if (cancel) return;
+      const onChange = () => { if (perm.state === 'granted') window.location.reload(); };
+      perm.addEventListener('change', onChange);
+      return () => perm.removeEventListener('change', onChange);
+    }).catch(() => {});
+    return () => { cancel = true; };
+  }, [micStatus]);
+
   async function handleEnableMic() {
     setMicStatus('requesting');
     try {
@@ -1060,7 +1072,11 @@ function ListenOnlySidebarCard() {
   }
 
   return (
-    <div className="mx-3 mb-3 rounded-2xl p-4" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)' }}>
+    <div
+      className="mx-3 mb-3 rounded-2xl p-4"
+      style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', cursor: micStatus === 'idle' ? 'pointer' : undefined }}
+      onClick={micStatus === 'idle' ? handleEnableMic : undefined}
+    >
       <div className="flex items-center gap-2.5 mb-3">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.2)' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1075,7 +1091,7 @@ function ListenOnlySidebarCard() {
       </div>
 
       <button
-        onClick={handleEnableMic}
+        onClick={(e) => { e.stopPropagation(); handleEnableMic(); }}
         disabled={micStatus === 'requesting'}
         className="w-full py-2.5 rounded-xl text-xs font-bold transition-all"
         style={{
@@ -1110,11 +1126,14 @@ function ListenOnlySidebarCard() {
               <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>2.</span>
               <span>Find <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>Microphone</span> and change it to <span className="font-semibold" style={{ color: '#86efac' }}>Allow</span></span>
             </div>
-            <div className="flex items-start gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>3.</span>
-              <span>Refresh the page</span>
-            </div>
           </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleEnableMic(); }}
+            className="w-full mt-3 py-2 rounded-lg text-[11px] font-bold transition-all"
+            style={{ background: 'rgba(255,255,255,0.1)', color: '#93bbfd', border: '1px solid rgba(147,187,253,0.25)', cursor: 'pointer' }}
+          >
+            Try Again
+          </button>
         </div>
       )}
     </div>
@@ -1123,6 +1142,18 @@ function ListenOnlySidebarCard() {
 
 function ListenOnlyMobileBanner() {
   const [micStatus, setMicStatus] = useState('idle');
+
+  useEffect(() => {
+    if (micStatus !== 'blocked') return;
+    let cancel = false;
+    navigator.permissions?.query({ name: 'microphone' }).then(perm => {
+      if (cancel) return;
+      const onChange = () => { if (perm.state === 'granted') window.location.reload(); };
+      perm.addEventListener('change', onChange);
+      return () => perm.removeEventListener('change', onChange);
+    }).catch(() => {});
+    return () => { cancel = true; };
+  }, [micStatus]);
 
   async function handleEnableMic() {
     setMicStatus('requesting');
@@ -1137,7 +1168,11 @@ function ListenOnlyMobileBanner() {
 
   return (
     <div className="px-2 pb-1">
-      <div className="rounded-2xl p-3 flex items-center gap-3" style={{ background: '#1e3a5f', border: '1px solid rgba(37,99,235,0.35)' }}>
+      <div
+        className="rounded-2xl p-3 flex items-center gap-3"
+        style={{ background: '#1e3a5f', border: '1px solid rgba(37,99,235,0.35)', cursor: micStatus === 'idle' ? 'pointer' : undefined }}
+        onClick={micStatus === 'idle' ? handleEnableMic : undefined}
+      >
         <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(37,99,235,0.25)' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
@@ -1149,7 +1184,7 @@ function ListenOnlyMobileBanner() {
           <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Mic is off — tap to enable</div>
         </div>
         <button
-          onClick={handleEnableMic}
+          onClick={(e) => { e.stopPropagation(); handleEnableMic(); }}
           disabled={micStatus === 'requesting'}
           className="px-4 py-2 rounded-xl text-xs font-bold flex-shrink-0"
           style={{
@@ -1169,8 +1204,14 @@ function ListenOnlyMobileBanner() {
           <div className="text-[11px] space-y-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
             <div>1. Tap the <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>lock icon</span> in the address bar</div>
             <div>2. Set <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>Microphone</span> to <span style={{ color: '#86efac' }}>Allow</span></div>
-            <div>3. Refresh the page</div>
           </div>
+          <button
+            onClick={handleEnableMic}
+            className="w-full mt-2.5 py-2 rounded-lg text-[11px] font-bold transition-all"
+            style={{ background: 'rgba(255,255,255,0.1)', color: '#93bbfd', border: '1px solid rgba(147,187,253,0.25)', cursor: 'pointer' }}
+          >
+            Try Again
+          </button>
         </div>
       )}
     </div>
