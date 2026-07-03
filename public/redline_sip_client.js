@@ -50,6 +50,8 @@
 //     baseUrl: '',               // origin serving the shared helper scripts (redline_push.js,
 //                                // redline_extensions.js); default: https://hotline.redlineusedautoparts.com
 //     defaultPassword: '12345678', // SIP password (also used for /client/login)
+//     extensionWidget: true,     // set false to disable the floating extension directory (default: true)
+//     pushNotifications: false,   // set true to enable loading push notification module (default: false)
 //     directCallAnswerButton: false // set true to show Answer button for incoming direct calls
 //   };
 //
@@ -238,6 +240,7 @@ import "./jssip.bundle.js";
             });
             if (config.extensionWidget === false) {
                 console.log('[SIP] Extension directory widget disabled via config');
+                window.RedlineExtensionDirectory.configure({ disabled: true });
             } else window.RedlineExtensionDirectory.configure({
                 apiBase: apiBase,
                 getToken: function () { return clientToken; },
@@ -488,12 +491,15 @@ import "./jssip.bundle.js";
 
         // ── Push notifications (shared module: redline_push.js) ──
         function initPushNotifications(getToken) {
-            if ((window.HOTLINE_CONFIG || {}).push === false) return;
+            if (config.pushNotifications !== true) {
+                console.log('[SIP] Push notifications disabled (set pushNotifications: true to enable)');
+                return;
+            }
             function start() {
                 window.RedlinePush.init({
                     apiBase: apiBase,
                     getToken: getToken,
-                    prompt: (window.HOTLINE_CONFIG || {}).pushPrompt !== false,
+                    prompt: config.pushPrompt !== false,
                 });
             }
             if (window.RedlinePush) return start();

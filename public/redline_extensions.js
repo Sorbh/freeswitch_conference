@@ -41,6 +41,7 @@
         message: '',
         open: false,
         visible: false,
+        disabled: false,
         requestOpen: false,
         requestExtension: '',
         requestLoading: false,
@@ -441,7 +442,8 @@
             if (opts.getOwnExtension) state.getOwnExtension = opts.getOwnExtension;
             if (opts.getUserEmail) state.getUserEmail = opts.getUserEmail;
             if (opts.callExtension !== undefined) state.callExtension = opts.callExtension;
-            if (opts.visible !== undefined) state.visible = !!opts.visible;
+            if (opts.disabled !== undefined) state.disabled = !!opts.disabled;
+            if (opts.visible !== undefined) state.visible = !state.disabled && !!opts.visible;
             clearExtensionRequestIfAssigned();
             render();
         },
@@ -453,7 +455,7 @@
         },
         setMessage: setMessage,
         setVisible: function (visible) {
-            state.visible = !!visible;
+            state.visible = !state.disabled && !!visible;
             render();
         },
         refresh: function () {

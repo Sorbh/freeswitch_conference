@@ -47,7 +47,8 @@
 //     email: '',                // email for client login (default: reads localStorage user_data)
 //     password: '12345678',     // SIP password (default: 12345678)
 //     token: '',                // pre-fetched client JWT (skips login if set)
-//     extensionWidget: true,    // set false to disable floating extension directory
+//     extensionWidget: true,    // set false to disable floating extension directory (default: true)
+//     pushNotifications: false,  // set true to enable loading push notification module (default: false)
 //     directCallAnswerButton: false, // set true to show Answer button in incoming direct-call notifications
 //   };
 //
@@ -142,6 +143,7 @@
         });
         if (config.extensionWidget === false) {
             console.log('[CallerID] Extension directory widget disabled via config');
+            window.RedlineExtensionDirectory.configure({ disabled: true });
         } else window.RedlineExtensionDirectory.configure({
             apiBase: apiBase,
             getToken: function () { return clientToken; },
@@ -188,12 +190,15 @@
 
     // ── Push notifications (shared module: redline_push.js) ──
     function initPushNotifications(getToken) {
-        if ((window.HOTLINE_CONFIG || {}).push === false) return;
+        if (config.pushNotifications !== true) {
+            console.log('[CallerID] Push notifications disabled (set pushNotifications: true to enable)');
+            return;
+        }
         function start() {
             window.RedlinePush.init({
                 apiBase: apiBase,
                 getToken: getToken,
-                prompt: (window.HOTLINE_CONFIG || {}).pushPrompt !== false,
+                prompt: config.pushPrompt !== false,
             });
         }
         if (window.RedlinePush) return start();
