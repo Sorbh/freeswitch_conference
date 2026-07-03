@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run build          # Vite build frontend
-npm run deploy         # vite build + pm2 restart 10 (frontend+backend)
-pm2 restart 10         # backend-only restart
+npm run deploy         # vite build + pm2 restart 8 (frontend+backend)
+pm2 restart 8         # backend-only restart
 ```
 
 Dev server runs on port 5175 (Vite), production on 4007 (HTTPS) + 4070 (internal HTTP).

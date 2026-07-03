@@ -199,6 +199,16 @@ if (fs.existsSync(clientDistDir)) {
 
     app.use("/assets", clientAssets);
     app.get("/assets/*", (req, res) => sendAssetNotFound(res));
+    // Service worker + manifest must never be cached long-term (browser re-checks them for updates)
+    app.get("/sw.js", (req, res) => {
+        res.set("Cache-Control", "no-cache");
+        res.sendFile(path.join(clientDistDir, "sw.js"));
+    });
+    app.get("/manifest.webmanifest", (req, res) => {
+        res.set("Cache-Control", "no-cache");
+        res.type("application/manifest+json");
+        res.sendFile(path.join(clientDistDir, "manifest.webmanifest"));
+    });
     app.use(express.static(clientDistDir, { index: false }));
     // SPA fallback for client app — skip API, admin, and static file paths
     app.get("*", (req, res, next) => {

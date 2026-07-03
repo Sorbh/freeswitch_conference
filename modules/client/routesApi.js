@@ -11,6 +11,7 @@ import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification, sendWelcomeEmail } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
 import { clientEventsRouter, buildOnlineCounts } from "./events.js";
+import { getVapidPublicKey, sendToAccount } from "../../service/webPush.js";
 
 function enrichBroadcast(b) {
     b.has_recording = !!b.recording_path;
@@ -541,6 +542,90 @@ clientRouter.get("/referral", requireClientAuth, (req, res) => {
                 })),
             }
         });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// ── Web push ──
+
+// GET /push/public-key — VAPID public key (public; the key is not a secret)
+clientRouter.get("/push/public-key", (req, res) => {
+    const key = getVapidPublicKey();
+    if (!key) return res.status(503).json({ status: false, error: "Push not configured" });
+    res.json({ status: true, key });
+});
+
+// POST /push/subscribe — register this browser's push subscription
+clientRouter.post("/push/subscribe", requireClientAuth, (req, res) => {
+    try {
+        const { endpoint, keys } = req.body || {};
+        if (!endpoint || typeof endpoint !== 'string' || !endpoint.startsWith('https://') || !keys?.p256dh || !keys?.auth) {
+            return res.status(400).json({ status: false, error: "Invalid subscription" });
+        }
+        global.db.upsertPushSubscription({
+            accountId: req.client.sub,
+            endpoint,
+            p256dh: keys.p256dh,
+            auth: keys.auth,
+            userAgent: req.headers['user-agent'] || null,
+        });
+        res.json({ status: true });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /push/unsubscribe — remove this browser's push subscription
+clientRouter.post("/push/unsubscribe", requireClientAuth, (req, res) => {
+    try {
+        const { endpoint } = req.body || {};
+        if (!endpoint) return res.status(400).json({ status: false, error: "endpoint required" });
+        global.db.deletePushSubscriptionByEndpoint(endpoint);
+        res.json({ status: true });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /push/prefs — notification preference toggles + device count
+clientRouter.get("/push/prefs", requireClientAuth, (req, res) => {
+    try {
+        const account = global.db.getAccountById(req.client.sub);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        res.json({
+            status: true,
+            data: {
+                parts_requests: !!account.push_parts_requests,
+                direct_calls: !!account.push_direct_calls,
+                devices: global.db.getPushSubscriptionsByAccount(account.id).length,
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// PUT /push/prefs — update notification preference toggles
+clientRouter.put("/push/prefs", requireClientAuth, (req, res) => {
+    try {
+        const { parts_requests, direct_calls } = req.body || {};
+        global.db.setAccountPushPrefs(req.client.sub, { parts_requests, direct_calls });
+        res.json({ status: true });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /push/test — send yourself a test notification
+clientRouter.post("/push/test", requireClientAuth, async (req, res) => {
+    try {
+        const sent = await sendToAccount(req.client.sub, {
+            title: 'Hotline HQ',
+            body: 'Test notification — you are all set.',
+            url: '/client/dashboard',
+        });
+        res.json({ status: true, sent });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

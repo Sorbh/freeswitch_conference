@@ -8,6 +8,13 @@ const basename = window.location.pathname === '/hotlinehq' || window.location.pa
   ? '/hotlinehq'
   : undefined;
 
+// PWA service worker (push notifications) — root mount only
+if ('serviceWorker' in navigator && !basename) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter basename={basename}>

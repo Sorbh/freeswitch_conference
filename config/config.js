@@ -31,4 +31,8 @@ config.RECORDING_DIR = process.env.RECORDING_DIR || '/root/sorbh/freeswitch_conf
 config.WHISPER_CLI = process.env.WHISPER_CLI || '/root/sorbh/freeswitch_conference/whisper_build/build/bin/whisper-cli';
 config.WHISPER_MODEL = process.env.WHISPER_MODEL || '/root/sorbh/freeswitch_conference/whisper_build/models/ggml-small.en.bin';
 
+config.VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+config.VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+config.VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:er.sorbh@gmail.com';
+
 export default config;

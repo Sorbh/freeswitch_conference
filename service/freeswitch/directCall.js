@@ -102,6 +102,7 @@ import path from 'path';
 import { logSystem } from '../logger.js';
 import { getConnection, getConnectionHandlers, onCustomEvent, onDtmfEvent, onHangupEvent } from './connection.js';
 import { playTone, showMessage, showMessageWithSoftKeys, speak, stopTone } from './notifications.js';
+import { notifyDirectCallPush } from '../webPush.js';
 
 // Conference DTMF events (from <control action="event"> in conference.conf.xml)
 onCustomEvent((event) => {
@@ -558,6 +559,7 @@ export async function initiateDirectCall(callerUuid, calleeExtension) {
     _clientEvent(callee.userName, _directCallPayload('direct_call_incoming', callId, 'callee', caller, {
         timeoutMs: ACCEPT_TIMEOUT_MS,
     }));
+    notifyDirectCallPush(callee, caller, callId).catch(err => logSystem('PUSH', `direct-call push failed: ${err.message}`));
 
     logSystem('DIRECT', `│  waiting for ${callee.displayName} to accept (${ACCEPT_TIMEOUT_MS / 1000}s timeout)`);
     logSystem('DIRECT', `└───────────────────────────────────────────────────────`);

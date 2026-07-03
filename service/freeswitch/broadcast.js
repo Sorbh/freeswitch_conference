@@ -13,6 +13,7 @@ import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem, logBroadcast } from '../logger.js';
 import { isPlaying, stopAd } from '../announcements.js';
 import { notifyBroadcast } from '../notifier.js';
+import { notifyBroadcastPush } from '../webPush.js';
 import { processBroadcastTranscription } from '../transcription.js';
 import { isInDirectCall } from './directCall.js';
 
@@ -290,6 +291,7 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         .catch(err => logSystem('BCAST', `Transcription pipeline failed: ${err.message}`))
         .finally(() => {
             notifyBroadcast(broadcastNotifyData).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
+            notifyBroadcastPush(broadcastNotifyData).catch(err => logSystem('PUSH', `Failed: ${err.message}`));
         });
 
 }

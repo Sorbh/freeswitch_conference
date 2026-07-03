@@ -1,5 +1,113 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+
+function PrefToggle({ label, checked, onChange }) {
+  return (
+    <label className="flex items-center justify-between py-2" style={{ cursor: 'pointer' }}>
+      <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>{label}</span>
+      <span
+        role="switch"
+        aria-checked={checked}
+        onClick={e => { e.preventDefault(); onChange(!checked); }}
+        style={{
+          width: 40, height: 22, borderRadius: 11, position: 'relative', flexShrink: 0,
+          background: checked ? 'var(--green)' : 'var(--line)', transition: 'background 0.15s',
+        }}
+      >
+        <span style={{
+          position: 'absolute', top: 2, left: checked ? 20 : 2, width: 18, height: 18,
+          borderRadius: '50%', background: '#fff', transition: 'left 0.15s',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+        }} />
+      </span>
+    </label>
+  );
+}
+
+function NotificationsCard() {
+  const { supported, needsInstallHint, permission, subscribed, busy, prefs, enable, disable, updatePrefs, sendTest } = usePushNotifications();
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  async function handleEnable() {
+    setError(''); setMessage('');
+    try {
+      await enable();
+      setMessage('Notifications enabled on this device.');
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleDisable() {
+    setError(''); setMessage('');
+    try {
+      await disable();
+      setMessage('Notifications disabled on this device.');
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleTest() {
+    setError(''); setMessage('');
+    try {
+      const sent = await sendTest();
+      setMessage(sent > 0 ? 'Test notification sent.' : 'No devices registered — enable notifications first.');
+    } catch (err) { setError(err.message); }
+  }
+
+  return (
+    <div className="hq-card p-6 mt-6">
+      <h3 className="hq-label mb-1">Notifications</h3>
+      <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+        Get notified about parts requests you missed and incoming calls — even when Hotline HQ is closed.
+      </p>
+      {message && <div className="hq-alert-success">{message}</div>}
+      {error && <div className="hq-alert-error">{error}</div>}
+
+      {needsInstallHint ? (
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          On iPhone/iPad, first add Hotline HQ to your Home Screen (Share <span aria-hidden>→</span> "Add to Home Screen"),
+          then open it from there to enable notifications.
+        </p>
+      ) : !supported ? (
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>This browser does not support push notifications.</p>
+      ) : permission === 'denied' ? (
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          Notifications are blocked. Allow them for this site in your browser settings, then reload.
+        </p>
+      ) : !subscribed ? (
+        <button onClick={handleEnable} disabled={busy} className="hq-btn px-6 py-2.5">
+          {busy ? 'Enabling...' : 'Enable notifications on this device'}
+        </button>
+      ) : (
+        <div>
+          <div className="mb-3" style={{ borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+            <PrefToggle
+              label="Parts requests in my room"
+              checked={!!prefs?.parts_requests}
+              onChange={v => updatePrefs({ parts_requests: v })}
+            />
+            <PrefToggle
+              label="Incoming direct calls"
+              checked={!!prefs?.direct_calls}
+              onChange={v => updatePrefs({ direct_calls: v })}
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <button onClick={handleTest} className="hq-btn px-4 py-2">Send test</button>
+            <button
+              onClick={handleDisable}
+              disabled={busy}
+              className="text-sm font-semibold"
+              style={{ color: 'var(--muted)', background: 'transparent', border: 0, cursor: 'pointer' }}
+            >
+              Disable on this device
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AccountSettingsPage() {
   const { account, apiFetch, refreshAccount } = useAuth();
@@ -127,6 +235,8 @@ export default function AccountSettingsPage() {
           <button type="submit" disabled={pwLoading} className="hq-btn px-6 py-2.5">{pwLoading ? 'Updating...' : 'Update Password'}</button>
         </form>
       </div>
+
+      <NotificationsCard />
 
       <div className="hq-card p-6 mt-6">
         <h3 className="hq-label mb-1">Request New Room</h3>
