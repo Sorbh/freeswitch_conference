@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 
 /* ------------------------------------------------------------------ */
@@ -7,94 +8,67 @@ import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from 
 /*  used auto parts hotline, start a hotline business.                 */
 /* ------------------------------------------------------------------ */
 
-const MODEL = [
-  {
-    n: "1",
-    title: "You bring the community",
-    copy: "You know your trade — the dealers, yards, or wholesalers who call each other all day looking for inventory. They're your members.",
-  },
-  {
-    n: "2",
-    title: "We run the network",
-    copy: "Hotline HQ runs the lines, the regional rooms, the recordings, the preconfigured phones, and the 24/7 monitoring. No telecom knowledge needed on your side.",
-  },
-  {
-    n: "3",
-    title: "You own the revenue",
-    copy: "Members pay a flat monthly fee for their line. It's your network and your brand — the membership revenue is yours, month after month.",
-  },
-];
-
-const TRADES = [
-  ["Used auto parts", "Live today — 500+ salvage yards across 12 regional rooms"],
-  ["Heavy truck & trailer parts", "Same hunt, bigger inventory, fewer players per region"],
-  ["Equipment & machinery dealers", "Attachments, parts, and whole units traded dealer to dealer"],
-  ["Building material suppliers", "Sourcing odd-lot and discontinued stock across a region"],
-  ["Wholesale & surplus dealers", "Any trade where 'who has one?' is asked out loud every day"],
-];
-
-const INCLUDED = [
-  "Regional voice rooms with always-on member lines",
-  "Preconfigured desk phones and a browser client for members",
-  "Every broadcast logged and recorded automatically",
-  "Auto-reconnect and 24/7 line monitoring with alerts",
-  "Answer-rate and activity reporting for you and your members",
-  "Member onboarding — a new line is live the day the phone arrives",
-];
-
-const FAQS = [
-  {
-    q: "What is an auto parts hotline?",
-    a: "An auto parts hotline is a live voice network where salvage yards and auto recyclers stay connected to the same regional room. A member broadcasts a part request once, and yards that have the part answer immediately.",
-  },
-  {
-    q: "Can I own the auto parts hotline while Hotline HQ runs the technology?",
-    a: "Yes. You own the member relationships, local brand, and recurring revenue. Hotline HQ runs the phones, browser lines, recordings, monitoring, and day-to-day network operations behind the scenes.",
-  },
-  {
-    q: "Is this built for used auto parts yards first?",
-    a: "Yes. The model is already proven with a live used auto parts hotline spanning 500+ salvage yards across 12 regional rooms, and that operating playbook can be launched in additional markets or adapted to similar dealer networks.",
-  },
-];
-
-function ownJsonLd() {
-  const homepageUrl = buildSiteUrl("/");
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Service",
-        name: "Auto parts hotline network by Hotline HQ",
-        serviceType: "Turnkey used auto parts hotline network",
-        provider: { "@type": "Organization", name: "Hotline HQ", url: homepageUrl, email: CONTACT_EMAIL },
-        areaServed: "US",
-        description:
-          "Launch and own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, recordings, and equipment while the network owner earns monthly membership revenue.",
-      },
-      {
-        "@type": "FAQPage",
-        mainEntity: FAQS.map((item) => ({
-          "@type": "Question",
-          name: item.q,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: item.a,
-          },
-        })),
-      },
-    ],
-  };
-}
-
 export function OwnHotlinePage() {
+  const { t } = useTranslation("own");
+
+  const MODEL = [
+    { n: "1", title: t("model.step1.title"), copy: t("model.step1.copy") },
+    { n: "2", title: t("model.step2.title"), copy: t("model.step2.copy") },
+    { n: "3", title: t("model.step3.title"), copy: t("model.step3.copy") },
+  ];
+
+  const TRADES = [
+    [t("trades.usedAuto"), t("trades.usedAutoNote")],
+    [t("trades.heavyTruck"), t("trades.heavyTruckNote")],
+    [t("trades.equipment"), t("trades.equipmentNote")],
+    [t("trades.building"), t("trades.buildingNote")],
+    [t("trades.wholesale"), t("trades.wholesaleNote")],
+  ];
+
+  const INCLUDED = t("included.items", { returnObjects: true });
+
+  const FAQS = [
+    { q: t("faq.q1"), a: t("faq.a1") },
+    { q: t("faq.q2"), a: t("faq.a2") },
+    { q: t("faq.q3"), a: t("faq.a3") },
+  ];
+
+  function ownJsonLd() {
+    const homepageUrl = buildSiteUrl("/");
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Service",
+          name: t("jsonLd.serviceName"),
+          serviceType: t("jsonLd.serviceType"),
+          provider: { "@type": "Organization", name: "Hotline HQ", url: homepageUrl, email: CONTACT_EMAIL },
+          areaServed: "US",
+          description: t("jsonLd.serviceDescription"),
+        },
+        {
+          "@type": "FAQPage",
+          mainEntity: FAQS.map((item) => ({
+            "@type": "Question",
+            name: item.q,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: item.a,
+            },
+          })),
+        },
+      ],
+    };
+  }
+
   return (
     <div className="l2">
       <style>{SITE_CSS}</style>
       <style>{OWN_CSS}</style>
       <Seo
-        title="Auto Parts Hotline — Own a Used Auto Parts Hotline Network | Hotline HQ"
-        description="Own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, phones, recordings, and monitoring while you own the member revenue."
-        keywords="auto parts hotline, used auto parts hotline, own an auto parts hotline, salvage yard hotline, auto recycler hotline, used auto parts network, hotline for salvage yards, parts locating hotline, own a hotline, start a hotline business"
+        title={t("seo.title")}
+        description={t("seo.description")}
+        keywords={t("seo.keywords")}
         canonicalUrl="https://hotline.redlineusedautoparts.com/own-a-hotline"
         path="/own-a-hotline"
         jsonLd={ownJsonLd()}
@@ -104,22 +78,12 @@ export function OwnHotlinePage() {
       <main className="l2-ownpage">
         {/* hero */}
         <section className="l2-own-hero">
-          <p className="l2-doc-kicker">Auto parts hotline</p>
-          <h1>
-            Own the used auto parts hotline
-            <br />
-            for <em>your market.</em>
-          </h1>
-          <p className="l2-own-lede">
-            If you want to build an auto parts hotline for salvage yards and
-            auto recyclers, this is the operating model. Hotline HQ replaces
-            the phone tree with one always-on regional voice room where members
-            broadcast a part request once and somebody who has it answers in
-            seconds. You own the network and revenue. We run the system.
-          </p>
+          <p className="l2-doc-kicker">{t("hero.kicker")}</p>
+          <h1 dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
+          <p className="l2-own-lede">{t("hero.lede")}</p>
           <div className="l2-own-ctas">
             <Link className="l2-btn l2-btn-hot" to="/">
-              See the live network →
+              {t("hero.seeNetwork")}
             </Link>
             <a
               className="l2-btn l2-btn-ghost"
@@ -127,34 +91,24 @@ export function OwnHotlinePage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Talk to us about launching
+              {t("hero.talkToUs")}
             </a>
           </div>
         </section>
 
         {/* proof bar */}
         <section className="l2-own-proof">
-          <p>
-            Proven in production: our used auto parts hotline runs{" "}
-            <strong>500+ salvage yards</strong> across{" "}
-            <strong>12 regional rooms</strong> with a typical answer time of{" "}
-            <strong>2 seconds</strong> — monitored 24/7.
-          </p>
+          <p dangerouslySetInnerHTML={{ __html: t("proof") }} />
         </section>
 
         {/* the model */}
         <section className="l2-own-section">
-          <h2>Why an auto parts hotline still wins.</h2>
-          <p className="l2-own-sub">
-            Used auto parts yards need a live answer, not another stale
-            database. When a counterperson can say the request once and reach a
-            whole region instantly, more customer jobs stay alive and more
-            member yards close sales they would have missed.
-          </p>
+          <h2>{t("whyWins.heading")}</h2>
+          <p className="l2-own-sub">{t("whyWins.sub")}</p>
         </section>
 
         <section className="l2-own-section">
-          <h2>The model is simple.</h2>
+          <h2>{t("model.heading")}</h2>
           <div className="l2-own-grid3">
             {MODEL.map((m) => (
               <div className="l2-own-card" key={m.n}>
@@ -168,18 +122,14 @@ export function OwnHotlinePage() {
 
         {/* trades */}
         <section className="l2-own-section">
-          <h2>Built first for used auto parts, adaptable to other trades.</h2>
-          <p className="l2-own-sub">
-            The playbook starts with the used auto parts hotline already live
-            today. If businesses in your industry already call each other
-            asking "who has one?", the same network model can be adapted.
-          </p>
+          <h2>{t("trades.heading")}</h2>
+          <p className="l2-own-sub">{t("trades.sub")}</p>
           <div className="l2-own-trades">
             {TRADES.map(([name, note], i) => (
               <div className="l2-own-trade" key={name}>
                 <span className="l2-own-trade-name">
                   {name}
-                  {i === 0 && <span className="l2-own-live">● LIVE</span>}
+                  {i === 0 && <span className="l2-own-live">{t("trades.live")}</span>}
                 </span>
                 <span className="l2-own-trade-note">{note}</span>
               </div>
@@ -189,7 +139,7 @@ export function OwnHotlinePage() {
 
         {/* included */}
         <section className="l2-own-section">
-          <h2>What we run for you.</h2>
+          <h2>{t("included.heading")}</h2>
           <ul className="l2-own-included">
             {INCLUDED.map((item) => (
               <li key={item}>{item}</li>
@@ -198,7 +148,7 @@ export function OwnHotlinePage() {
         </section>
 
         <section className="l2-own-section">
-          <h2>Auto parts hotline FAQ.</h2>
+          <h2>{t("faq.heading")}</h2>
           <div className="l2-own-faqs">
             {FAQS.map((item) => (
               <article className="l2-own-faq" key={item.q}>
@@ -211,12 +161,8 @@ export function OwnHotlinePage() {
 
         {/* CTA */}
         <section className="l2-own-final">
-          <h2>Your market. Your auto parts hotline. Your revenue.</h2>
-          <p>
-            Tell us about your region and member base. We'll walk you through
-            what an auto parts hotline launch looks like and what the live
-            network model earns.
-          </p>
+          <h2>{t("final.heading")}</h2>
+          <p>{t("final.sub")}</p>
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
               className="l2-btn l2-btn-hot"
@@ -224,7 +170,7 @@ export function OwnHotlinePage() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Start the conversation
+              {t("final.startConversation")}
             </a>
             <a
               className="l2-btn l2-btn-ghost"
@@ -308,7 +254,7 @@ const OWN_CSS = `
   color: var(--muted); font-size: 15.5px; line-height: 1.55;
   padding-left: 28px; position: relative;
 }
-.l2-own-included li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+.l2-own-included li::before { content: "\\2713"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
 
 .l2-own-faqs { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 24px; }
 @media (max-width: 820px) { .l2-own-faqs { grid-template-columns: 1fr; } }

@@ -1,0 +1,165 @@
+{
+  "seo": {
+    "title": "Hotline HQ — Find Any Used Auto Part in 2 Seconds | Salvage Yard Parts Locator",
+    "description": "Stop losing sales when you don't have the part. Broadcast once to 500+ salvage yards — get an answer in 2 seconds. The fastest way to locate and sell used auto parts.",
+    "keywords": "find used auto parts fast, used auto parts locator, salvage yard parts finder, locate used car parts, sell used auto parts to yards, junkyard parts sourcing, used OEM parts supplier, auto parts interchange, salvage yard parts network, used car parts wholesale, auto recycler parts locator, find junkyard parts near me"
+  },
+  "hero": {
+    "chip": "Live network · 12 regional rooms",
+    "eyebrow": "The parts-locating voice network for auto recyclers",
+    "heading": "Every “we don’t have it” is a customer walking out. <em>It doesn’t have to be.</em>",
+    "subheading": "The part you don’t have is sitting in somebody’s yard. Hotline HQ is the always-on voice network connecting 500+ salvage yards — broadcast once, get an answer in seconds, and keep the sale.",
+    "listenNowPlaying": "Now playing",
+    "listenCta": "Listen to a real sell call",
+    "listenSub": "Hear a live broadcast from the network"
+  },
+  "stats": {
+    "memberYards": "member yards",
+    "regionalRooms": "regional rooms",
+    "typicalAnswer": "typical answer",
+    "lineMonitoring": "line monitoring"
+  },
+  "listenLive": {
+    "kicker": "Live right now",
+    "heading": "Put your ear to the network.",
+    "subheading": "These are real yards moving real parts, right now. Pick a room and listen in — no signup, no mic, just the hotline as it happens.",
+    "connecting": "Connecting…",
+    "listening": "Listening — tap to stop",
+    "yardsOnLine": "{{count}} yard on the line",
+    "yardsOnLine_other": "{{count}} yards on the line",
+    "onTheLine": "{{count}} on the line",
+    "onAir": "on air:",
+    "standingBy": "standing by",
+    "ctaText": "Like what you hear? Your yard could be answering these calls.",
+    "ctaButton": "Get on the hotline"
+  },
+  "video": {
+    "kicker": "See it run",
+    "heading": "Watch a part get located.",
+    "subheading": "This is the actual hotline — a real broadcast going out, and a yard answering back. No demo environment, no mockups.",
+    "playLabel": "Watch the hotline in action · 1 min"
+  },
+  "problem": {
+    "kicker": "The problem",
+    "heading": "How long does it take you to find a part? 30 minutes? An hour?",
+    "networkAvg": "Our network average is <strong>2 seconds.</strong>",
+    "compareBadge": "This is Hotline HQ",
+    "avgResponse": "Avg response"
+  },
+  "compares": {
+    "inventoryDb": {
+      "label": "Inventory databases",
+      "time": "30–60 min",
+      "flaw": "Stale listings, and you're result #38 of 40. The part shows in stock — until you drive out and it's already gone."
+    },
+    "callingAround": {
+      "label": "Calling around",
+      "time": "40+ min",
+      "flaw": "Forty minutes of hold music to check five yards. Your customer already bought the part somewhere else."
+    },
+    "facebook": {
+      "label": "Facebook groups",
+      "time": "Hours — if ever",
+      "flaw": "Your post is buried within the hour, and nobody who can actually sell the part is watching the feed."
+    },
+    "hotline": {
+      "label": "The Hotline HQ network",
+      "time": "2 seconds",
+      "flaw": "One voice broadcast. Every counter in your region hears it right now, and the yard that has it answers you back in seconds."
+    }
+  },
+  "midCta": {
+    "heading": "Ready to stop losing sales?",
+    "subheading": "Join 500+ yards already on the network. Set up takes 30 seconds."
+  },
+  "how": {
+    "kicker": "How it works",
+    "heading": "One broadcast. One answer. One sale saved.",
+    "footnote": "Unanswered? The request is logged, escalated to neighboring rooms, and sent to the entire network as a message — a miss in your region isn’t a miss on the network."
+  },
+  "steps": {
+    "step1": {
+      "title": "Broadcast the request",
+      "copy": "A customer asks for a part you don't have. Pick up the handset and say it once — every yard in your region hears it instantly."
+    },
+    "step2": {
+      "title": "A yard answers",
+      "copy": "Members monitor the room hands-free. The yard sitting on your part unmutes and replies. Typical answer time is about two seconds."
+    },
+    "step3": {
+      "title": "Close the sale",
+      "copy": "Talk it through live or take it private. Your customer gets the part, both yards get paid — and the call is logged and recorded."
+    }
+  },
+  "demo": {
+    "kicker": "Try it yourself",
+    "heading": "Run a sell call. Watch the yards bid.",
+    "subheading": "Pick a part and put it on the air. This is exactly what your counter person does — minus the mouse.",
+    "partRequest": "Part request",
+    "broadcastIt": "Broadcast it",
+    "broadcastAnother": "Broadcast another",
+    "onAir": "ON AIR…",
+    "dealsClosed": "deals closed",
+    "revenueRecovered": "revenue recovered",
+    "simNote": "Simulated replies. On the real network this takes one spoken sentence.",
+    "yourYard": "Your yard",
+    "broadcasting": "Broadcasting…",
+    "standingBy": "Standing by",
+    "listening": "Listening",
+    "roomChip": "AZ room · your yard + 8 neighbors"
+  },
+  "rooms": {
+    "kicker": "Coverage",
+    "heading": "Twelve rooms. Every major market.",
+    "subheading": "Your yard lives in its home room and is profiled into nearby regions — and you can switch rooms straight from the phone when the hunt goes wide.",
+    "live": "● Live",
+    "signupPickRoom": "Sign Up Free — pick your room"
+  },
+  "system": {
+    "kicker": "The system",
+    "heading": "Built like shop equipment, not software.",
+    "subheading": "No apps to update, no passwords on sticky notes. It's a piece of counter equipment that pays its membership back on one saved sale."
+  },
+  "features": {
+    "f1": {
+      "title": "Always on",
+      "copy": "If the line ever drops, it reconnects on its own. Your phone stays in the room day and night without anyone touching it."
+    },
+    "f2": {
+      "title": "Hands-free listening",
+      "copy": "The room plays quietly at your counter. Pick up the handset to talk, put it down to go quiet. No apps, no logins, no screens."
+    },
+    "f3": {
+      "title": "Phone or computer",
+      "copy": "We ship you a desk phone that's ready to go — plug it in and you're on the air. Prefer the computer? It works in your browser too."
+    },
+    "f4": {
+      "title": "Every call on record",
+      "copy": "Every request is saved and recorded, along with who answered it. You can always go back and hear exactly what was said."
+    },
+    "f5": {
+      "title": "Reach beyond your region",
+      "copy": "You're not boxed into your own area. Your yard also reaches nearby regions, and you can switch rooms right from the phone."
+    },
+    "f6": {
+      "title": "We watch your line 24/7",
+      "copy": "If your line goes quiet, our team is alerted within minutes and gets you back on the air — usually before you even notice."
+    }
+  },
+  "join": {
+    "kicker": "Membership",
+    "heading": "One flat membership. Your whole region on the line.",
+    "list": [
+      "Flat monthly fee per yard — no per-call charges",
+      "Preconfigured desk phone or browser client included",
+      "Live in your regional room the day the phone arrives",
+      "Call recordings and answer-rate reporting included"
+    ],
+    "formTitle": "Get started in 30 seconds",
+    "alreadyHaveAccount": "Already have an account?",
+    "noCreditCard": "No credit card required. Set up your yard in minutes."
+  },
+  "toast": {
+    "requestReceived": "Request received — we'll call your yard within one business day."
+  }
+}

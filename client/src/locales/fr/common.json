@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "howItWorks": "Comment ca marche",
+    "tryIt": "Essayer",
+    "coverage": "Couverture",
+    "ownHotline": "Avoir une hotline",
+    "login": "Connexion",
+    "signUpFree": "Inscription gratuite"
+  },
+  "footer": {
+    "brandDescription": "Le reseau vocal de localisation de pieces pour les recycleurs automobiles. Une diffusion, toute votre region en ligne, une vente sauvee.",
+    "product": "Produit",
+    "rooms": "Salles",
+    "company": "Entreprise",
+    "watchItWork": "Voir en action",
+    "howItWorks": "Comment ca marche",
+    "tryASellCall": "Essayer un appel de vente",
+    "coverageLink": "Couverture",
+    "theSystem": "Le systeme",
+    "getALine": "Obtenir une ligne",
+    "ownAutoPartsHotline": "Posseder une hotline de pieces auto",
+    "allRooms": "Les 12 salles →",
+    "aboutUs": "A propos",
+    "privacyPolicy": "Politique de confidentialite",
+    "termsConditions": "Conditions generales",
+    "disclaimer": "Avertissement",
+    "contact": "Contact",
+    "admin": "Admin",
+    "notice": "Hotline HQ est un reseau prive reserve aux recycleurs automobiles et aux casses. La disponibilite des pieces, les prix et les delais de reponse dependent de la participation des membres et ne sont pas garantis. Les appels sur le reseau sont enregistres a des fins de qualite et de resolution de litiges.",
+    "copyright": "© 2026 Hotline HQ · Tous droits reserves.",
+    "privacy": "Confidentialite",
+    "terms": "Conditions",
+    "hearItLive": "Écoutez en direct"
+  },
+  "notFound": {
+    "seoTitle": "Page introuvable | Hotline HQ",
+    "seoDescription": "La page Hotline HQ demandee est introuvable.",
+    "title": "Page introuvable.",
+    "description": "La page que vous avez demandee n'existe pas ou a ete deplacee. Utilisez la page d'accueil pour decouvrir le reseau hotline et demander une ligne.",
+    "goHome": "Aller a l'accueil",
+    "viewOwn": "Voir la page posseder une hotline"
+  },
+  "lastUpdated": "Derniere mise a jour : {{date}}"
+}

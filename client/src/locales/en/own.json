@@ -1,0 +1,79 @@
+{
+  "seo": {
+    "title": "Auto Parts Hotline — Own a Used Auto Parts Hotline Network | Hotline HQ",
+    "description": "Own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, phones, recordings, and monitoring while you own the member revenue.",
+    "keywords": "auto parts hotline, used auto parts hotline, own an auto parts hotline, salvage yard hotline, auto recycler hotline, used auto parts network, hotline for salvage yards, parts locating hotline, own a hotline, start a hotline business"
+  },
+  "hero": {
+    "kicker": "Auto parts hotline",
+    "heading": "Own the used auto parts hotline for <em>your market.</em>",
+    "lede": "If you want to build an auto parts hotline for salvage yards and auto recyclers, this is the operating model. Hotline HQ replaces the phone tree with one always-on regional voice room where members broadcast a part request once and somebody who has it answers in seconds. You own the network and revenue. We run the system.",
+    "seeNetwork": "See the live network →",
+    "talkToUs": "Talk to us about launching"
+  },
+  "proof": "Proven in production: our used auto parts hotline runs <strong>500+ salvage yards</strong> across <strong>12 regional rooms</strong> with a typical answer time of <strong>2 seconds</strong> — monitored 24/7.",
+  "whyWins": {
+    "heading": "Why an auto parts hotline still wins.",
+    "sub": "Used auto parts yards need a live answer, not another stale database. When a counterperson can say the request once and reach a whole region instantly, more customer jobs stay alive and more member yards close sales they would have missed."
+  },
+  "model": {
+    "heading": "The model is simple.",
+    "step1": {
+      "title": "You bring the community",
+      "copy": "You know your trade — the dealers, yards, or wholesalers who call each other all day looking for inventory. They're your members."
+    },
+    "step2": {
+      "title": "We run the network",
+      "copy": "Hotline HQ runs the lines, the regional rooms, the recordings, the preconfigured phones, and the 24/7 monitoring. No telecom knowledge needed on your side."
+    },
+    "step3": {
+      "title": "You own the revenue",
+      "copy": "Members pay a flat monthly fee for their line. It's your network and your brand — the membership revenue is yours, month after month."
+    }
+  },
+  "trades": {
+    "heading": "Built first for used auto parts, adaptable to other trades.",
+    "sub": "The playbook starts with the used auto parts hotline already live today. If businesses in your industry already call each other asking \"who has one?\", the same network model can be adapted.",
+    "usedAuto": "Used auto parts",
+    "usedAutoNote": "Live today — 500+ salvage yards across 12 regional rooms",
+    "heavyTruck": "Heavy truck & trailer parts",
+    "heavyTruckNote": "Same hunt, bigger inventory, fewer players per region",
+    "equipment": "Equipment & machinery dealers",
+    "equipmentNote": "Attachments, parts, and whole units traded dealer to dealer",
+    "building": "Building material suppliers",
+    "buildingNote": "Sourcing odd-lot and discontinued stock across a region",
+    "wholesale": "Wholesale & surplus dealers",
+    "wholesaleNote": "Any trade where 'who has one?' is asked out loud every day",
+    "live": "● LIVE"
+  },
+  "included": {
+    "heading": "What we run for you.",
+    "items": [
+      "Regional voice rooms with always-on member lines",
+      "Preconfigured desk phones and a browser client for members",
+      "Every broadcast logged and recorded automatically",
+      "Auto-reconnect and 24/7 line monitoring with alerts",
+      "Answer-rate and activity reporting for you and your members",
+      "Member onboarding — a new line is live the day the phone arrives"
+    ]
+  },
+  "faq": {
+    "heading": "Auto parts hotline FAQ.",
+    "q1": "What is an auto parts hotline?",
+    "a1": "An auto parts hotline is a live voice network where salvage yards and auto recyclers stay connected to the same regional room. A member broadcasts a part request once, and yards that have the part answer immediately.",
+    "q2": "Can I own the auto parts hotline while Hotline HQ runs the technology?",
+    "a2": "Yes. You own the member relationships, local brand, and recurring revenue. Hotline HQ runs the phones, browser lines, recordings, monitoring, and day-to-day network operations behind the scenes.",
+    "q3": "Is this built for used auto parts yards first?",
+    "a3": "Yes. The model is already proven with a live used auto parts hotline spanning 500+ salvage yards across 12 regional rooms, and that operating playbook can be launched in additional markets or adapted to similar dealer networks."
+  },
+  "final": {
+    "heading": "Your market. Your auto parts hotline. Your revenue.",
+    "sub": "Tell us about your region and member base. We'll walk you through what an auto parts hotline launch looks like and what the live network model earns.",
+    "startConversation": "Start the conversation"
+  },
+  "jsonLd": {
+    "serviceName": "Auto parts hotline network by Hotline HQ",
+    "serviceType": "Turnkey used auto parts hotline network",
+    "serviceDescription": "Launch and own a used auto parts hotline for salvage yards and auto recyclers. Hotline HQ runs the lines, regional rooms, recordings, and equipment while the network owner earns monthly membership revenue."
+  }
+}

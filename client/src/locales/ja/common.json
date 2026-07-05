@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "ホーム",
+    "howItWorks": "仕組み",
+    "tryIt": "体験する",
+    "coverage": "対応エリア",
+    "ownHotline": "ホットラインを運営",
+    "login": "ログイン",
+    "signUpFree": "無料で登録"
+  },
+  "footer": {
+    "brandDescription": "自動車リサイクル業者のための部品検索音声ネットワーク。一度のブロードキャストで地域全体につながり、販売機会を逃しません。",
+    "product": "サービス",
+    "rooms": "ルーム",
+    "company": "会社情報",
+    "watchItWork": "動作を見る",
+    "howItWorks": "仕組み",
+    "tryASellCall": "販売コールを試す",
+    "coverageLink": "対応エリア",
+    "theSystem": "システム紹介",
+    "getALine": "回線を取得",
+    "ownAutoPartsHotline": "自動車部品ホットラインを運営",
+    "allRooms": "全12ルームを見る →",
+    "aboutUs": "会社概要",
+    "privacyPolicy": "プライバシーポリシー",
+    "termsConditions": "利用規約",
+    "disclaimer": "免責事項",
+    "contact": "お問い合わせ",
+    "admin": "管理者",
+    "notice": "Hotline HQ は自動車リサイクル業者および解体業者向けの会員制ネットワークです。部品の在庫状況、価格、応答時間は会員の参加状況に依存し、保証されるものではありません。ネットワーク上の通話は品質管理および紛争解決のために録音されます。",
+    "copyright": "© 2026 Hotline HQ · All rights reserved.",
+    "privacy": "プライバシー",
+    "terms": "利用規約",
+    "hearItLive": "ライブで聞く"
+  },
+  "notFound": {
+    "seoTitle": "ページが見つかりません | Hotline HQ",
+    "seoDescription": "お探しの Hotline HQ のページが見つかりませんでした。",
+    "title": "ページが見つかりません。",
+    "description": "お探しのページは存在しないか、移動された可能性があります。メインページからホットラインネットワークの詳細をご覧いただくか、回線のリクエストをお送りください。",
+    "goHome": "ホームページへ",
+    "viewOwn": "ホットライン運営ページを見る"
+  },
+  "lastUpdated": "最終更新日: {{date}}"
+}

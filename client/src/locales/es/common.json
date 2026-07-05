@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "howItWorks": "Como funciona",
+    "tryIt": "Pruebalo",
+    "coverage": "Cobertura",
+    "ownHotline": "Tu propia linea",
+    "login": "Iniciar sesion",
+    "signUpFree": "Registrate gratis"
+  },
+  "footer": {
+    "brandDescription": "La red de voz para localizar autopartes usadas para recicladores de autos. Una transmision, toda tu region en linea, una venta salvada.",
+    "product": "Producto",
+    "rooms": "Salas",
+    "company": "Empresa",
+    "watchItWork": "Mira como funciona",
+    "howItWorks": "Como funciona",
+    "tryASellCall": "Prueba una llamada de venta",
+    "coverageLink": "Cobertura",
+    "theSystem": "El sistema",
+    "getALine": "Obten una linea",
+    "ownAutoPartsHotline": "Tu propia linea de autopartes",
+    "allRooms": "Las 12 salas →",
+    "aboutUs": "Sobre nosotros",
+    "privacyPolicy": "Politica de privacidad",
+    "termsConditions": "Terminos y condiciones",
+    "disclaimer": "Aviso legal",
+    "contact": "Contacto",
+    "admin": "Admin",
+    "notice": "Hotline HQ es una red privada de membresia para recicladores de autos y yonkes. La disponibilidad de partes, precios y tiempos de respuesta dependen de la participacion de los miembros y no estan garantizados. Las llamadas en la red se graban para control de calidad y resolucion de disputas.",
+    "copyright": "© 2026 Hotline HQ · Todos los derechos reservados.",
+    "privacy": "Privacidad",
+    "terms": "Terminos",
+    "hearItLive": "Escúchalo en vivo"
+  },
+  "notFound": {
+    "seoTitle": "Pagina no encontrada | Hotline HQ",
+    "seoDescription": "La pagina solicitada de Hotline HQ no fue encontrada.",
+    "title": "Pagina no encontrada.",
+    "description": "La pagina que solicitaste no existe o puede haber sido movida. Usa la pagina principal para explorar la red y solicitar una linea.",
+    "goHome": "Ir al inicio",
+    "viewOwn": "Ver pagina de tu propia linea"
+  },
+  "lastUpdated": "Ultima actualizacion: {{date}}"
+}

@@ -1,0 +1,165 @@
+{
+  "seo": {
+    "title": "Hotline HQ — Trouvez n'importe quelle piece auto d'occasion en 2 secondes | Localisateur de pieces pour casses",
+    "description": "Arretez de perdre des ventes quand vous n'avez pas la piece. Diffusez une seule fois a plus de 500 casses — obtenez une reponse en 2 secondes. Le moyen le plus rapide de localiser et vendre des pieces auto d'occasion.",
+    "keywords": "trouver pieces auto occasion, localisateur pieces auto occasion, recherche pieces casse automobile, localiser pieces voiture occasion, vendre pieces auto occasion, approvisionnement pieces casse, fournisseur pieces OEM occasion, interchange pieces auto, reseau pieces casse automobile, pieces auto occasion en gros, localisateur pieces recycleur auto, trouver pieces casse pres de moi"
+  },
+  "hero": {
+    "chip": "Reseau en direct · 12 salles regionales",
+    "eyebrow": "Le reseau vocal de localisation de pieces pour les recycleurs automobiles",
+    "heading": "Chaque \"on ne l'a pas\" c'est un client qui s'en va. <em>Ca n'a pas a etre comme ca.</em>",
+    "subheading": "La piece que vous n'avez pas se trouve dans la cour de quelqu'un d'autre. Hotline HQ est le reseau vocal permanent qui connecte plus de 500 casses — diffusez une seule fois, obtenez une reponse en quelques secondes et gardez la vente.",
+    "listenNowPlaying": "En cours",
+    "listenCta": "Ecoutez un vrai appel de vente",
+    "listenSub": "Ecoutez une diffusion en direct du reseau"
+  },
+  "stats": {
+    "memberYards": "casses membres",
+    "regionalRooms": "salles regionales",
+    "typicalAnswer": "reponse type",
+    "lineMonitoring": "surveillance des lignes"
+  },
+  "listenLive": {
+    "kicker": "En direct maintenant",
+    "heading": "Tendez l'oreille sur le reseau.",
+    "subheading": "Ce sont de vraies casses qui echangent de vraies pieces, en ce moment. Choisissez une salle et ecoutez — pas d'inscription, pas de micro, juste la hotline en direct.",
+    "connecting": "Connexion en cours...",
+    "listening": "Ecoute en cours — appuyez pour arreter",
+    "yardsOnLine": "{{count}} casse en ligne",
+    "yardsOnLine_other": "{{count}} casses en ligne",
+    "onTheLine": "{{count}} en ligne",
+    "onAir": "a l'antenne :",
+    "standingBy": "en attente",
+    "ctaText": "Vous aimez ce que vous entendez ? Votre casse pourrait repondre a ces appels.",
+    "ctaButton": "Rejoindre la hotline"
+  },
+  "video": {
+    "kicker": "Voir en action",
+    "heading": "Regardez une piece etre localisee.",
+    "subheading": "C'est la vraie hotline — une vraie diffusion en cours, et une casse qui repond. Pas d'environnement de demo, pas de maquettes.",
+    "playLabel": "Voir la hotline en action · 1 min"
+  },
+  "problem": {
+    "kicker": "Le probleme",
+    "heading": "Combien de temps vous faut-il pour trouver une piece ? 30 minutes ? Une heure ?",
+    "networkAvg": "La moyenne de notre reseau est de <strong>2 secondes.</strong>",
+    "compareBadge": "C'est Hotline HQ",
+    "avgResponse": "Reponse moy."
+  },
+  "compares": {
+    "inventoryDb": {
+      "label": "Bases de donnees d'inventaire",
+      "time": "30 a 60 min",
+      "flaw": "Annonces obsoletes, et vous etes le resultat n°38 sur 40. La piece apparait en stock — jusqu'a ce que vous vous deplaciez et qu'elle soit deja partie."
+    },
+    "callingAround": {
+      "label": "Appeler a droite et a gauche",
+      "time": "40+ min",
+      "flaw": "Quarante minutes de musique d'attente pour verifier cinq casses. Votre client a deja achete la piece ailleurs."
+    },
+    "facebook": {
+      "label": "Groupes Facebook",
+      "time": "Des heures — si jamais",
+      "flaw": "Votre publication est enterree en une heure, et personne capable de vendre la piece ne surveille le fil."
+    },
+    "hotline": {
+      "label": "Le reseau Hotline HQ",
+      "time": "2 secondes",
+      "flaw": "Une seule diffusion vocale. Chaque comptoir de votre region l'entend immediatement, et la casse qui a la piece vous repond en quelques secondes."
+    }
+  },
+  "midCta": {
+    "heading": "Pret a arreter de perdre des ventes ?",
+    "subheading": "Rejoignez plus de 500 casses deja sur le reseau. L'installation prend 30 secondes."
+  },
+  "how": {
+    "kicker": "Comment ca marche",
+    "heading": "Une diffusion. Une reponse. Une vente sauvee.",
+    "footnote": "Sans reponse ? La demande est enregistree, transmise aux salles voisines, puis envoyee a l'ensemble du reseau sous forme de message — un echec dans votre region n'est pas un echec sur le reseau."
+  },
+  "steps": {
+    "step1": {
+      "title": "Diffusez la demande",
+      "copy": "Un client demande une piece que vous n'avez pas. Decrochez le combine et dites-le une seule fois — chaque casse de votre region l'entend instantanement."
+    },
+    "step2": {
+      "title": "Une casse repond",
+      "copy": "Les membres ecoutent la salle en mains libres. La casse qui a votre piece se desactive du mode muet et repond. Le delai de reponse typique est d'environ deux secondes."
+    },
+    "step3": {
+      "title": "Concluez la vente",
+      "copy": "Discutez en direct ou passez en prive. Votre client obtient la piece, les deux casses sont payees — et l'appel est enregistre et consigne."
+    }
+  },
+  "demo": {
+    "kicker": "Essayez vous-meme",
+    "heading": "Lancez un appel de vente. Regardez les casses encherir.",
+    "subheading": "Choisissez une piece et mettez-la a l'antenne. C'est exactement ce que fait votre vendeur au comptoir — sans la souris.",
+    "partRequest": "Demande de piece",
+    "broadcastIt": "Diffuser",
+    "broadcastAnother": "Diffuser une autre",
+    "onAir": "A L'ANTENNE...",
+    "dealsClosed": "ventes conclues",
+    "revenueRecovered": "chiffre d'affaires recupere",
+    "simNote": "Reponses simulees. Sur le vrai reseau, cela prend une seule phrase a voix haute.",
+    "yourYard": "Votre casse",
+    "broadcasting": "Diffusion en cours...",
+    "standingBy": "En attente",
+    "listening": "Ecoute",
+    "roomChip": "Salle AZ · votre casse + 8 voisins"
+  },
+  "rooms": {
+    "kicker": "Couverture",
+    "heading": "Douze salles. Chaque grand marche.",
+    "subheading": "Votre casse est rattachee a sa salle d'origine et profilee dans les regions voisines — et vous pouvez changer de salle directement depuis le telephone quand la recherche s'elargit.",
+    "live": "● En direct",
+    "signupPickRoom": "Inscription gratuite — choisissez votre salle"
+  },
+  "system": {
+    "kicker": "Le systeme",
+    "heading": "Concu comme un equipement d'atelier, pas comme un logiciel.",
+    "subheading": "Pas d'application a mettre a jour, pas de mots de passe sur des post-it. C'est un equipement de comptoir qui rembourse son abonnement des la premiere vente sauvee."
+  },
+  "features": {
+    "f1": {
+      "title": "Toujours connecte",
+      "copy": "Si la ligne tombe, elle se reconnecte automatiquement. Votre telephone reste dans la salle jour et nuit sans que personne n'y touche."
+    },
+    "f2": {
+      "title": "Ecoute mains libres",
+      "copy": "La salle joue discretement a votre comptoir. Decrochez le combine pour parler, reposez-le pour couper le son. Pas d'application, pas de connexion, pas d'ecran."
+    },
+    "f3": {
+      "title": "Telephone ou ordinateur",
+      "copy": "Nous vous envoyons un telephone de bureau pret a l'emploi — branchez-le et vous etes a l'antenne. Vous preferez l'ordinateur ? Ca marche aussi dans votre navigateur."
+    },
+    "f4": {
+      "title": "Chaque appel archive",
+      "copy": "Chaque demande est enregistree et consignee, avec l'identite de celui qui a repondu. Vous pouvez toujours revenir en arriere et reecouter exactement ce qui a ete dit."
+    },
+    "f5": {
+      "title": "Portee au-dela de votre region",
+      "copy": "Vous n'etes pas limite a votre propre zone. Votre casse atteint aussi les regions voisines, et vous pouvez changer de salle directement depuis le telephone."
+    },
+    "f6": {
+      "title": "Nous surveillons votre ligne 24h/24",
+      "copy": "Si votre ligne devient silencieuse, notre equipe est alertee en quelques minutes et vous remet a l'antenne — generalement avant meme que vous ne le remarquiez."
+    }
+  },
+  "join": {
+    "kicker": "Adhesion",
+    "heading": "Un abonnement fixe. Toute votre region en ligne.",
+    "list": [
+      "Tarif mensuel fixe par casse — pas de frais par appel",
+      "Telephone de bureau preconfigure ou client navigateur inclus",
+      "Actif dans votre salle regionale des l'arrivee du telephone",
+      "Enregistrements d'appels et rapports de taux de reponse inclus"
+    ],
+    "formTitle": "Commencez en 30 secondes",
+    "alreadyHaveAccount": "Vous avez deja un compte ?",
+    "noCreditCard": "Pas de carte bancaire requise. Configurez votre casse en quelques minutes."
+  },
+  "toast": {
+    "requestReceived": "Demande recue — nous appellerons votre casse dans un jour ouvrable."
+  }
+}

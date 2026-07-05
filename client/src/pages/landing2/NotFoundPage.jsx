@@ -1,14 +1,16 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { SiteNav, SiteFooter, Seo, SITE_CSS } from "./site";
 
 export function NotFoundPage() {
+  const { t } = useTranslation("common");
   return (
     <div className="l2">
       <style>{SITE_CSS}</style>
       <style>{NOT_FOUND_CSS}</style>
       <Seo
-        title="Page Not Found | Hotline HQ"
-        description="The requested Hotline HQ page could not be found."
+        title={t("notFound.seoTitle")}
+        description={t("notFound.seoDescription")}
         path="/404"
         robots="noindex, follow"
       />
@@ -16,17 +18,14 @@ export function NotFoundPage() {
 
       <main className="l2-404">
         <p className="l2-doc-kicker">404</p>
-        <h1>Page not found.</h1>
-        <p>
-          The page you requested does not exist or may have moved. Use the
-          main landing page to explore the hotline network and request a line.
-        </p>
+        <h1>{t("notFound.title")}</h1>
+        <p>{t("notFound.description")}</p>
         <div className="l2-404-actions">
           <Link className="l2-btn l2-btn-hot" to="/">
-            Go to homepage
+            {t("notFound.goHome")}
           </Link>
           <Link className="l2-btn l2-btn-ghost" to="/own-a-hotline">
-            View own-a-hotline page
+            {t("notFound.viewOwn")}
           </Link>
         </div>
       </main>

@@ -1,0 +1,79 @@
+{
+  "seo": {
+    "title": "Linea de autopartes — Ten tu propia red de autopartes usadas | Hotline HQ",
+    "description": "Ten tu propia linea de autopartes usadas para yonkes y recicladores de autos. Hotline HQ opera las lineas, salas regionales, telefonos, grabaciones y monitoreo mientras tu eres dueno de los ingresos por membresia.",
+    "keywords": "linea de autopartes, linea de autopartes usadas, tener una linea de autopartes, linea para yonkes, linea para recicladores de autos, red de autopartes usadas, linea para yardas de salvamento, linea de localizacion de partes, tener una linea, iniciar un negocio de linea"
+  },
+  "hero": {
+    "kicker": "Linea de autopartes",
+    "heading": "Se dueno de la linea de autopartes usadas para <em>tu mercado.</em>",
+    "lede": "Si quieres construir una linea de autopartes para yonkes y recicladores de autos, este es el modelo operativo. Hotline HQ reemplaza la cadena de llamadas con una sala de voz regional siempre activa donde los miembros transmiten una solicitud de parte una vez y alguien que la tiene responde en segundos. Tu eres dueno de la red y los ingresos. Nosotros operamos el sistema.",
+    "seeNetwork": "Ver la red en vivo →",
+    "talkToUs": "Habla con nosotros sobre el lanzamiento"
+  },
+  "proof": "Probado en produccion: nuestra linea de autopartes usadas opera <strong>mas de 500 yonkes</strong> en <strong>12 salas regionales</strong> con un tiempo de respuesta tipico de <strong>2 segundos</strong> — monitoreada 24/7.",
+  "whyWins": {
+    "heading": "Por que una linea de autopartes sigue ganando.",
+    "sub": "Los yonkes de autopartes usadas necesitan una respuesta en vivo, no otra base de datos desactualizada. Cuando una persona de mostrador puede decir la solicitud una vez y alcanzar toda una region al instante, mas trabajos de clientes se mantienen vivos y mas yonkes miembros cierran ventas que hubieran perdido."
+  },
+  "model": {
+    "heading": "El modelo es simple.",
+    "step1": {
+      "title": "Tu traes la comunidad",
+      "copy": "Tu conoces tu industria — los distribuidores, yonkes o mayoristas que se llaman entre si todo el dia buscando inventario. Ellos son tus miembros."
+    },
+    "step2": {
+      "title": "Nosotros operamos la red",
+      "copy": "Hotline HQ opera las lineas, las salas regionales, las grabaciones, los telefonos preconfigurados y el monitoreo 24/7. No se necesita conocimiento de telecomunicaciones de tu parte."
+    },
+    "step3": {
+      "title": "Tu eres dueno de los ingresos",
+      "copy": "Los miembros pagan una tarifa mensual fija por su linea. Es tu red y tu marca — los ingresos de membresia son tuyos, mes tras mes."
+    }
+  },
+  "trades": {
+    "heading": "Creado primero para autopartes usadas, adaptable a otros giros.",
+    "sub": "El modelo comienza con la linea de autopartes usadas que ya esta en vivo hoy. Si los negocios en tu industria ya se llaman entre si preguntando \"quien tiene uno?\", el mismo modelo de red se puede adaptar.",
+    "usedAuto": "Autopartes usadas",
+    "usedAutoNote": "En vivo hoy — mas de 500 yonkes en 12 salas regionales",
+    "heavyTruck": "Partes de camion pesado y remolque",
+    "heavyTruckNote": "La misma busqueda, inventario mas grande, menos participantes por region",
+    "equipment": "Distribuidores de equipo y maquinaria",
+    "equipmentNote": "Accesorios, partes y unidades completas comerciadas entre distribuidores",
+    "building": "Proveedores de materiales de construccion",
+    "buildingNote": "Busqueda de lotes sueltos y material descontinuado en una region",
+    "wholesale": "Distribuidores mayoristas y de excedentes",
+    "wholesaleNote": "Cualquier giro donde '\"quien tiene uno?\" se pregunta en voz alta todos los dias",
+    "live": "● EN VIVO"
+  },
+  "included": {
+    "heading": "Lo que operamos por ti.",
+    "items": [
+      "Salas de voz regionales con lineas de miembros siempre activas",
+      "Telefonos de escritorio preconfigurados y un cliente de navegador para miembros",
+      "Cada transmision registrada y grabada automaticamente",
+      "Reconexion automatica y monitoreo de lineas 24/7 con alertas",
+      "Reportes de tasa de respuesta y actividad para ti y tus miembros",
+      "Incorporacion de miembros — una nueva linea esta en vivo el dia que llega el telefono"
+    ]
+  },
+  "faq": {
+    "heading": "Preguntas frecuentes sobre la linea de autopartes.",
+    "q1": "Que es una linea de autopartes?",
+    "a1": "Una linea de autopartes es una red de voz en vivo donde los yonkes y recicladores de autos permanecen conectados a la misma sala regional. Un miembro transmite una solicitud de parte una vez, y los yonkes que tienen la parte responden de inmediato.",
+    "q2": "Puedo ser dueno de la linea de autopartes mientras Hotline HQ opera la tecnologia?",
+    "a2": "Si. Tu eres dueno de las relaciones con los miembros, la marca local y los ingresos recurrentes. Hotline HQ opera los telefonos, lineas de navegador, grabaciones, monitoreo y las operaciones diarias de la red detras de escena.",
+    "q3": "Esta construido para yonkes de autopartes usadas primero?",
+    "a3": "Si. El modelo ya esta probado con una linea de autopartes usadas en vivo con mas de 500 yonkes en 12 salas regionales, y ese modelo operativo puede lanzarse en mercados adicionales o adaptarse a redes de distribuidores similares."
+  },
+  "final": {
+    "heading": "Tu mercado. Tu linea de autopartes. Tus ingresos.",
+    "sub": "Cuentanos sobre tu region y base de miembros. Te explicaremos como es el lanzamiento de una linea de autopartes y lo que el modelo de red en vivo genera.",
+    "startConversation": "Iniciar la conversacion"
+  },
+  "jsonLd": {
+    "serviceName": "Red de linea de autopartes por Hotline HQ",
+    "serviceType": "Red llave en mano de linea de autopartes usadas",
+    "serviceDescription": "Lanza y se dueno de una linea de autopartes usadas para yonkes y recicladores de autos. Hotline HQ opera las lineas, salas regionales, grabaciones y equipo mientras el dueno de la red gana ingresos mensuales por membresia."
+  }
+}

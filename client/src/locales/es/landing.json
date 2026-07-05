@@ -1,0 +1,165 @@
+{
+  "seo": {
+    "title": "Hotline HQ — Encuentra cualquier autoparte usada en 2 segundos | Localizador de partes de yonke",
+    "description": "Deja de perder ventas cuando no tienes la parte. Transmite una vez a mas de 500 yonkes — recibe respuesta en 2 segundos. La forma mas rapida de localizar y vender autopartes usadas.",
+    "keywords": "encontrar autopartes usadas rapido, localizador de autopartes usadas, buscador de partes de yonke, localizar partes de carro usadas, vender autopartes usadas a yonkes, abastecimiento de partes de yonke, proveedor de partes OEM usadas, intercambio de autopartes, red de partes de yonke, autopartes usadas al mayoreo, localizador de partes para recicladores, encontrar partes de yonke cerca de mi"
+  },
+  "hero": {
+    "chip": "Red en vivo · 12 salas regionales",
+    "eyebrow": "La red de voz para localizar autopartes para recicladores de autos",
+    "heading": "Cada \"no lo tenemos\" es un cliente que se va. <em>No tiene que ser asi.</em>",
+    "subheading": "La parte que no tienes esta en el patio de alguien mas. Hotline HQ es la red de voz siempre activa que conecta a mas de 500 yonkes — transmite una vez, recibe respuesta en segundos y salva la venta.",
+    "listenNowPlaying": "Reproduciendo ahora",
+    "listenCta": "Escucha una llamada de venta real",
+    "listenSub": "Escucha una transmision en vivo de la red"
+  },
+  "stats": {
+    "memberYards": "yonkes miembros",
+    "regionalRooms": "salas regionales",
+    "typicalAnswer": "respuesta tipica",
+    "lineMonitoring": "monitoreo de lineas"
+  },
+  "listenLive": {
+    "kicker": "En vivo ahora",
+    "heading": "Escucha la red en accion.",
+    "subheading": "Estos son yonkes reales moviendo partes reales, ahora mismo. Elige una sala y escucha — sin registro, sin microfono, solo la linea tal como sucede.",
+    "connecting": "Conectando…",
+    "listening": "Escuchando — toca para detener",
+    "yardsOnLine": "{{count}} yonke en linea",
+    "yardsOnLine_other": "{{count}} yonkes en linea",
+    "onTheLine": "{{count}} en linea",
+    "onAir": "al aire:",
+    "standingBy": "en espera",
+    "ctaText": "Te gusta lo que escuchas? Tu yonke podria estar respondiendo estas llamadas.",
+    "ctaButton": "Entra a la linea"
+  },
+  "video": {
+    "kicker": "Miralo funcionar",
+    "heading": "Mira como se localiza una parte.",
+    "subheading": "Esta es la linea real — una transmision en vivo saliendo al aire y un yonke respondiendo. Sin ambiente de prueba, sin maquetas.",
+    "playLabel": "Mira la linea en accion · 1 min"
+  },
+  "problem": {
+    "kicker": "El problema",
+    "heading": "Cuanto te tardas en encontrar una parte? 30 minutos? Una hora?",
+    "networkAvg": "Nuestro promedio en la red es de <strong>2 segundos.</strong>",
+    "compareBadge": "Esto es Hotline HQ",
+    "avgResponse": "Resp. promedio"
+  },
+  "compares": {
+    "inventoryDb": {
+      "label": "Bases de datos de inventario",
+      "time": "30–60 min",
+      "flaw": "Listados desactualizados, y eres el resultado #38 de 40. La parte aparece en existencia — hasta que llegas y ya se vendio."
+    },
+    "callingAround": {
+      "label": "Llamar yonke por yonke",
+      "time": "40+ min",
+      "flaw": "Cuarenta minutos de musica en espera para revisar cinco yonkes. Tu cliente ya compro la parte en otro lado."
+    },
+    "facebook": {
+      "label": "Grupos de Facebook",
+      "time": "Horas — si acaso",
+      "flaw": "Tu publicacion queda enterrada en una hora, y nadie que pueda vender la parte esta viendo el feed."
+    },
+    "hotline": {
+      "label": "La red Hotline HQ",
+      "time": "2 segundos",
+      "flaw": "Una transmision de voz. Cada mostrador en tu region la escucha ahora mismo, y el yonke que tiene la parte te responde en segundos."
+    }
+  },
+  "midCta": {
+    "heading": "Listo para dejar de perder ventas?",
+    "subheading": "Unete a mas de 500 yonkes que ya estan en la red. Configurarte toma 30 segundos."
+  },
+  "how": {
+    "kicker": "Como funciona",
+    "heading": "Una transmision. Una respuesta. Una venta salvada.",
+    "footnote": "Sin respuesta? La solicitud se registra, se escala a salas vecinas y se envia a toda la red como mensaje — un fallo en tu region no es un fallo en la red."
+  },
+  "steps": {
+    "step1": {
+      "title": "Transmite la solicitud",
+      "copy": "Un cliente pide una parte que no tienes. Levanta la bocina y dilo una vez — cada yonke en tu region lo escucha al instante."
+    },
+    "step2": {
+      "title": "Un yonke responde",
+      "copy": "Los miembros monitorean la sala en manos libres. El yonke que tiene tu parte se activa y responde. El tiempo tipico de respuesta es de unos dos segundos."
+    },
+    "step3": {
+      "title": "Cierra la venta",
+      "copy": "Hablenlo en vivo o llevenlo a privado. Tu cliente obtiene la parte, ambos yonkes cobran — y la llamada queda registrada y grabada."
+    }
+  },
+  "demo": {
+    "kicker": "Pruebalo tu mismo",
+    "heading": "Haz una llamada de venta. Mira como responden los yonkes.",
+    "subheading": "Elige una parte y ponla al aire. Esto es exactamente lo que hace tu persona de mostrador — sin el raton.",
+    "partRequest": "Solicitud de parte",
+    "broadcastIt": "Transmitir",
+    "broadcastAnother": "Transmitir otra",
+    "onAir": "AL AIRE…",
+    "dealsClosed": "tratos cerrados",
+    "revenueRecovered": "ingresos recuperados",
+    "simNote": "Respuestas simuladas. En la red real esto toma una oracion hablada.",
+    "yourYard": "Tu yonke",
+    "broadcasting": "Transmitiendo…",
+    "standingBy": "En espera",
+    "listening": "Escuchando",
+    "roomChip": "Sala AZ · tu yonke + 8 vecinos"
+  },
+  "rooms": {
+    "kicker": "Cobertura",
+    "heading": "Doce salas. Cada mercado principal.",
+    "subheading": "Tu yonke vive en su sala principal y esta conectado a regiones cercanas — y puedes cambiar de sala directamente desde el telefono cuando la busqueda se amplia.",
+    "live": "● En vivo",
+    "signupPickRoom": "Registrate gratis — elige tu sala"
+  },
+  "system": {
+    "kicker": "El sistema",
+    "heading": "Construido como equipo de taller, no como software.",
+    "subheading": "Sin apps que actualizar, sin contrasenas en notas adhesivas. Es un equipo de mostrador que se paga solo con una venta salvada."
+  },
+  "features": {
+    "f1": {
+      "title": "Siempre encendido",
+      "copy": "Si la linea se cae, se reconecta sola. Tu telefono permanece en la sala dia y noche sin que nadie lo toque."
+    },
+    "f2": {
+      "title": "Escucha en manos libres",
+      "copy": "La sala suena suavemente en tu mostrador. Levanta la bocina para hablar, cuelga para silenciar. Sin apps, sin inicios de sesion, sin pantallas."
+    },
+    "f3": {
+      "title": "Telefono o computadora",
+      "copy": "Te enviamos un telefono de escritorio listo para usar — conectalo y estas al aire. Prefieres la computadora? Tambien funciona en tu navegador."
+    },
+    "f4": {
+      "title": "Cada llamada registrada",
+      "copy": "Cada solicitud se guarda y graba, junto con quien la respondio. Siempre puedes regresar y escuchar exactamente lo que se dijo."
+    },
+    "f5": {
+      "title": "Alcance mas alla de tu region",
+      "copy": "No estas limitado a tu propia zona. Tu yonke tambien alcanza regiones cercanas, y puedes cambiar de sala directamente desde el telefono."
+    },
+    "f6": {
+      "title": "Vigilamos tu linea 24/7",
+      "copy": "Si tu linea se cae, nuestro equipo recibe una alerta en minutos y te pone de vuelta al aire — generalmente antes de que te des cuenta."
+    }
+  },
+  "join": {
+    "kicker": "Membresia",
+    "heading": "Una membresia fija. Toda tu region en linea.",
+    "list": [
+      "Tarifa mensual fija por yonke — sin cargos por llamada",
+      "Telefono de escritorio preconfigurado o cliente de navegador incluido",
+      "En vivo en tu sala regional el dia que llega el telefono",
+      "Grabaciones de llamadas y reportes de tasa de respuesta incluidos"
+    ],
+    "formTitle": "Empieza en 30 segundos",
+    "alreadyHaveAccount": "Ya tienes una cuenta?",
+    "noCreditCard": "No se requiere tarjeta de credito. Configura tu yonke en minutos."
+  },
+  "toast": {
+    "requestReceived": "Solicitud recibida — llamaremos a tu yonke dentro de un dia habil."
+  }
+}

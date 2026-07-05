@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "../../components/LanguageSwitcher";
 
 /* ------------------------------------------------------------------ */
 /*  Hotline HQ — shared site chrome: SVG logo, nav, footer, doc shell  */
@@ -174,30 +176,32 @@ export function landingJsonLd() {
 
 /* Slim nav for the about/legal pages. */
 export function SiteNav() {
+  const { t } = useTranslation("common");
   return (
     <header className="l2-nav">
       <Link className="l2-logo" to="/">
         <HQLogo />
       </Link>
       <nav className="l2-nav-links">
-        <Link to="/">Home</Link>
-        <Link to="/#how">How it works</Link>
-        <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">Login</a>
+        <Link to="/">{t("nav.home")}</Link>
+        <Link to="/#how">{t("nav.howItWorks")}</Link>
+        <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">{t("nav.login")}</a>
         <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
-          Sign Up Free
+          {t("nav.signUpFree")}
         </a>
+        <LanguageSwitcher />
       </nav>
     </header>
   );
 }
 
-const PRODUCT_LINKS = [
-  ["Hear it live", "/#listen-live"],
-  ["How it works", "/#how"],
-  ["Coverage", "/#rooms"],
-  ["The system", "/#system"],
-  ["Get a line", "/#join"],
-  ["Own an auto parts hotline", "/own-a-hotline"],
+const PRODUCT_LINK_KEYS = [
+  ["footer.hearItLive", "/#listen-live"],
+  ["footer.howItWorks", "/#how"],
+  ["footer.coverageLink", "/#rooms"],
+  ["footer.theSystem", "/#system"],
+  ["footer.getALine", "/#join"],
+  ["footer.ownAutoPartsHotline", "/own-a-hotline"],
 ];
 
 const ROOM_LINKS = [
@@ -206,6 +210,7 @@ const ROOM_LINKS = [
 ];
 
 export function SiteFooter() {
+  const { t } = useTranslation("common");
   return (
     <footer className="l2f">
       <div className="l2f-inner">
@@ -213,10 +218,7 @@ export function SiteFooter() {
           <Link to="/" className="l2f-logolink">
             <HQLogo light />
           </Link>
-          <p>
-            The parts-locating voice network for auto recyclers. One broadcast,
-            your whole region on the line, a sale saved.
-          </p>
+          <p>{t("footer.brandDescription")}</p>
           <a
             className="l2f-mail"
             href={`mailto:${CONTACT_EMAIL}`}
@@ -228,53 +230,50 @@ export function SiteFooter() {
         </div>
 
         <div className="l2f-col">
-          <p className="l2f-head">Product</p>
-          {PRODUCT_LINKS.map(([label, href]) => (
-            <Link key={label} to={href}>
-              {label}
+          <p className="l2f-head">{t("footer.product")}</p>
+          {PRODUCT_LINK_KEYS.map(([key, href]) => (
+            <Link key={key} to={href}>
+              {t(key)}
             </Link>
           ))}
         </div>
 
         <div className="l2f-col">
-          <p className="l2f-head">Rooms</p>
+          <p className="l2f-head">{t("footer.rooms")}</p>
           {ROOM_LINKS.map((r) => (
             <Link key={r} to="/#rooms">
               {r}
             </Link>
           ))}
           <Link to="/#rooms" className="l2f-more">
-            All 12 rooms →
+            {t("footer.allRooms")}
           </Link>
         </div>
 
         <div className="l2f-col">
-          <p className="l2f-head">Company</p>
-          <Link to="/about">About us</Link>
-          <Link to="/privacy-policy">Privacy policy</Link>
-          <Link to="/terms-and-conditions">Terms &amp; conditions</Link>
-          <Link to="/disclaimer">Disclaimer</Link>
+          <p className="l2f-head">{t("footer.company")}</p>
+          <Link to="/about">{t("footer.aboutUs")}</Link>
+          <Link to="/privacy-policy">{t("footer.privacyPolicy")}</Link>
+          <Link to="/terms-and-conditions">{t("footer.termsConditions")}</Link>
+          <Link to="/disclaimer">{t("footer.disclaimer")}</Link>
           <a href={`mailto:${CONTACT_EMAIL}`} target="_blank" rel="noopener noreferrer">
-            Contact
+            {t("footer.contact")}
           </a>
-          <a href={HOTLINE_ADMIN_URL}>Admin</a>
+          <a href={HOTLINE_ADMIN_URL}>{t("footer.admin")}</a>
         </div>
       </div>
 
       <div className="l2f-note">
-        Hotline HQ is a private membership network for auto recyclers and
-        salvage yards. Part availability, prices, and response times depend on
-        member participation and are not guaranteed. Calls on the network are
-        recorded for quality and dispute resolution.
+        {t("footer.notice")}
       </div>
 
       <div className="l2f-bottom">
-        <span>© 2026 Hotline HQ · All rights reserved.</span>
+        <span>{t("footer.copyright")}</span>
         <span className="l2f-bottom-links">
-          <Link to="/privacy-policy">Privacy</Link>
-          <Link to="/terms-and-conditions">Terms</Link>
-          <Link to="/disclaimer">Disclaimer</Link>
-          <Link to="/about">About</Link>
+          <Link to="/privacy-policy">{t("footer.privacy")}</Link>
+          <Link to="/terms-and-conditions">{t("footer.terms")}</Link>
+          <Link to="/disclaimer">{t("footer.disclaimer")}</Link>
+          <Link to="/about">{t("footer.aboutUs")}</Link>
         </span>
       </div>
     </footer>
@@ -283,6 +282,7 @@ export function SiteFooter() {
 
 /* Shell for the about/legal pages. */
 export function PageShell({ kicker, title, updated, children, seo }) {
+  const { t } = useTranslation("common");
   return (
     <div className="l2">
       <style>{SITE_CSS}</style>
@@ -291,7 +291,7 @@ export function PageShell({ kicker, title, updated, children, seo }) {
       <main className="l2-doc">
         <p className="l2-doc-kicker">{kicker}</p>
         <h1>{title}</h1>
-        {updated && <p className="l2-doc-updated">Last updated: {updated}</p>}
+        {updated && <p className="l2-doc-updated">{t("lastUpdated", { date: updated })}</p>}
         {children}
       </main>
       <SiteFooter />

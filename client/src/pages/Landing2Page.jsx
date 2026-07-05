@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 import ListenLive from "../components/ListenLive";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 
 /* ------------------------------------------------------------------ */
 /*  Landing 2 — Hotline HQ. Light B2B theme, no heavy 3D:             */
@@ -36,66 +38,7 @@ const TICKER = [
   ["11:01:19", "NY ROOM", "’13 Rogue transfer case AWD", "Answered · 3s"],
 ];
 
-const COMPARES = [
-  {
-    label: "Inventory databases",
-    viz: "db",
-    time: "30–60 min",
-    flaw: "Stale listings, and you're result #38 of 40. The part shows in stock — until you drive out and it's already gone.",
-  },
-  {
-    label: "Calling around",
-    viz: "hold",
-    time: "40+ min",
-    flaw: "Forty minutes of hold music to check five yards. Your customer already bought the part somewhere else.",
-  },
-  {
-    label: "Facebook groups",
-    viz: "fb",
-    time: "Hours — if ever",
-    flaw: "Your post is buried within the hour, and nobody who can actually sell the part is watching the feed.",
-  },
-  {
-    label: "The Hotline HQ network",
-    viz: "hot",
-    time: "2 seconds",
-    flaw: "One voice broadcast. Every counter in your region hears it right now, and the yard that has it answers you back in seconds.",
-    hot: true,
-  },
-];
-
-const FEATURES = [
-  {
-    code: "1",
-    title: "Always on",
-    copy: "If the line ever drops, it reconnects on its own. Your phone stays in the room day and night without anyone touching it.",
-  },
-  {
-    code: "2",
-    title: "Hands-free listening",
-    copy: "The room plays quietly at your counter. Pick up the handset to talk, put it down to go quiet. No apps, no logins, no screens.",
-  },
-  {
-    code: "3",
-    title: "Phone or computer",
-    copy: "We ship you a desk phone that's ready to go — plug it in and you're on the air. Prefer the computer? It works in your browser too.",
-  },
-  {
-    code: "4",
-    title: "Every call on record",
-    copy: "Every request is saved and recorded, along with who answered it. You can always go back and hear exactly what was said.",
-  },
-  {
-    code: "5",
-    title: "Reach beyond your region",
-    copy: "You're not boxed into your own area. Your yard also reaches nearby regions, and you can switch rooms right from the phone.",
-  },
-  {
-    code: "6",
-    title: "We watch your line 24/7",
-    copy: "If your line goes quiet, our team is alerted within minutes and gets you back on the air — usually before you even notice.",
-  },
-];
+/* STEPS, COMPARES, FEATURES — now built inside the component with t() */
 
 /* Count-up stat that animates when scrolled into view. */
 function Stat({ to, suffix = "", label }) {
@@ -189,9 +132,31 @@ const HERO_CLIPS = [
 ];
 
 export default function Landing2Page() {
+  const { t } = useTranslation("landing");
   const rootRef = useRef(null);
   const wireRef = useRef(null);
   const formRef = useRef(null);
+
+  const STEPS = [
+    { n: "1", title: t("steps.step1.title"), copy: t("steps.step1.copy") },
+    { n: "2", title: t("steps.step2.title"), copy: t("steps.step2.copy") },
+    { n: "3", title: t("steps.step3.title"), copy: t("steps.step3.copy") },
+  ];
+  const COMPARES = [
+    { label: t("compares.inventoryDb.label"), viz: "db", time: t("compares.inventoryDb.time"), flaw: t("compares.inventoryDb.flaw") },
+    { label: t("compares.callingAround.label"), viz: "hold", time: t("compares.callingAround.time"), flaw: t("compares.callingAround.flaw") },
+    { label: t("compares.facebook.label"), viz: "fb", time: t("compares.facebook.time"), flaw: t("compares.facebook.flaw") },
+    { label: t("compares.hotline.label"), viz: "hot", time: t("compares.hotline.time"), flaw: t("compares.hotline.flaw"), hot: true },
+  ];
+  const FEATURES = [
+    { code: "1", title: t("features.f1.title"), copy: t("features.f1.copy") },
+    { code: "2", title: t("features.f2.title"), copy: t("features.f2.copy") },
+    { code: "3", title: t("features.f3.title"), copy: t("features.f3.copy") },
+    { code: "4", title: t("features.f4.title"), copy: t("features.f4.copy") },
+    { code: "5", title: t("features.f5.title"), copy: t("features.f5.copy") },
+    { code: "6", title: t("features.f6.title"), copy: t("features.f6.copy") },
+  ];
+  const JOIN_LIST = t("join.list", { returnObjects: true });
 
   const signupBase = "https://hotline.redlineusedautoparts.com/client/signup";
   const loginBase = "https://hotline.redlineusedautoparts.com/client/login";
@@ -339,7 +304,7 @@ export default function Landing2Page() {
 
     setSent(true);
     confettiBurst();
-    toast.success("Request received — we'll call your yard within one business day.");
+    toast.success(t("toast.requestReceived"));
 
     try {
       const payload = JSON.stringify({
@@ -362,9 +327,9 @@ export default function Landing2Page() {
       <style>{SITE_CSS}</style>
       <style>{CSS}</style>
       <Seo
-        title="Hotline HQ — Find Any Used Auto Part in 2 Seconds | Salvage Yard Parts Locator"
-        description="Stop losing sales when you don't have the part. Broadcast once to 500+ salvage yards — get an answer in 2 seconds. The fastest way to locate and sell used auto parts."
-        keywords="find used auto parts fast, used auto parts locator, salvage yard parts finder, locate used car parts, sell used auto parts to yards, junkyard parts sourcing, used OEM parts supplier, auto parts interchange, salvage yard parts network, used car parts wholesale, auto recycler parts locator, find junkyard parts near me"
+        title={t("seo.title")}
+        description={t("seo.description")}
+        keywords={t("seo.keywords")}
         canonicalUrl="https://hotline.redlineusedautoparts.com/"
         path="/"
         jsonLd={landingJsonLd()}
@@ -381,14 +346,15 @@ export default function Landing2Page() {
           <HQLogo />
         </a>
         <nav className="l2-nav-links">
-          <a href="#how">How it works</a>
-          <a href="#try">Try it</a>
-          <a href="#rooms">Coverage</a>
-          <a href="./own-a-hotline">Own a hotline</a>
-          <a href={loginUrl} className="l2-nav-login">Login</a>
+          <a href="#how">{t("common:nav.howItWorks")}</a>
+          <a href="#try">{t("common:nav.tryIt")}</a>
+          <a href="#rooms">{t("common:nav.coverage")}</a>
+          <a href="./own-a-hotline">{t("common:nav.ownHotline")}</a>
+          <a href={loginUrl} className="l2-nav-login">{t("common:nav.login")}</a>
           <a href={signupUrl} className="l2-nav-cta">
-            Sign Up Free
+            {t("common:nav.signUpFree")}
           </a>
+          <LanguageSwitcher />
         </nav>
       </header>
 
@@ -397,26 +363,19 @@ export default function Landing2Page() {
         <div className="l2-hero-scrim" aria-hidden="true" />
 
         <div className="l2-stage-chip l2-stage-tl">
-          <span className="l2-live-dot" /> Live network · 12 regional rooms
+          <span className="l2-live-dot" /> {t("hero.chip")}
         </div>
 
         <div className="l2-hero-copy">
-          <p className="l2-eyebrow">The parts-locating voice network for auto recyclers</p>
-          <h1>
-            Every &ldquo;we don&rsquo;t have it&rdquo; is a customer walking
-            out. <em>It doesn&rsquo;t have to be.</em>
-          </h1>
-          <p className="l2-sub">
-            The part you don&rsquo;t have is sitting in somebody&rsquo;s yard.
-            Hotline HQ is the always-on voice network connecting 500+ salvage
-            yards — broadcast once, get an answer in seconds, and keep the sale.
-          </p>
+          <p className="l2-eyebrow">{t("hero.eyebrow")}</p>
+          <h1 dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
+          <p className="l2-sub">{t("hero.subheading")}</p>
           <div className="l2-hero-ctas">
             <a className="l2-btn l2-btn-hot" href={signupUrl}>
-              Sign Up Free
+              {t("common:nav.signUpFree")}
             </a>
             <a className="l2-btn l2-btn-ghost" href={loginUrl}>
-              Login
+              {t("common:nav.login")}
             </a>
           </div>
 
@@ -440,13 +399,13 @@ export default function Landing2Page() {
             <span className="l2-listen-text">
               {heroAudioState === "playing" ? (
                 <>
-                  <strong>Now playing</strong>
+                  <strong>{t("hero.listenNowPlaying")}</strong>
                   <span>{heroClipInfo?.part}</span>
                 </>
               ) : (
                 <>
-                  <strong>Listen to a real sell call</strong>
-                  <span>Hear a live broadcast from the network</span>
+                  <strong>{t("hero.listenCta")}</strong>
+                  <span>{t("hero.listenSub")}</span>
                 </>
               )}
             </span>
@@ -464,10 +423,10 @@ export default function Landing2Page() {
         </div>
 
         <div className="l2-stats">
-          <Stat to={500} suffix="+" label="member yards" />
-          <Stat to={12} label="regional rooms" />
-          <Stat to={2} suffix="s" label="typical answer" />
-          <Stat to={24} suffix="/7" label="line monitoring" />
+          <Stat to={500} suffix="+" label={t("stats.memberYards")} />
+          <Stat to={12} label={t("stats.regionalRooms")} />
+          <Stat to={2} suffix="s" label={t("stats.typicalAnswer")} />
+          <Stat to={24} suffix="/7" label={t("stats.lineMonitoring")} />
         </div>
       </section>
 
@@ -493,14 +452,9 @@ export default function Landing2Page() {
       {/* ───────────────── problem ───────────────── */}
       <section className="l2-section l2-band">
         <div className="l2-section-head l2-reveal">
-          <p className="l2-kicker">The problem</p>
-          <h2>
-            How long does it take you to find a part? 30&nbsp;minutes?
-            An&nbsp;hour?
-          </h2>
-          <p className="l2-lede l2-lede-wide l2-two-sec">
-            Our network average is <strong>2&nbsp;seconds.</strong>
-          </p>
+          <p className="l2-kicker">{t("problem.kicker")}</p>
+          <h2>{t("problem.heading")}</h2>
+          <p className="l2-lede l2-lede-wide l2-two-sec" dangerouslySetInnerHTML={{ __html: t("problem.networkAvg") }} />
         </div>
         <div className="l2-compare">
           {COMPARES.map((c, i) => (
@@ -511,11 +465,11 @@ export default function Landing2Page() {
             >
               <p className="l2-compare-label">{c.label}</p>
               <div className={`l2-compare-time ${c.hot ? "good" : ""}`}>
-                <span>Avg response</span>
+                <span>{t("problem.avgResponse")}</span>
                 <strong>{c.time}</strong>
               </div>
               <p className="l2-compare-copy">{c.flaw}</p>
-              {c.hot && <span className="l2-compare-badge">This is Hotline HQ</span>}
+              {c.hot && <span className="l2-compare-badge">{t("problem.compareBadge")}</span>}
             </div>
           ))}
         </div>
@@ -524,11 +478,131 @@ export default function Landing2Page() {
       {/* ───────────────── mid-page CTA ───────────────── */}
       <section className="l2-mid-cta-band" id="get-started">
         <div className="l2-mid-cta-inner l2-reveal">
-          <h2>Ready to stop losing sales?</h2>
-          <p>Join 500+ yards already on the network. Set up takes 30 seconds.</p>
+          <h2>{t("midCta.heading")}</h2>
+          <p>{t("midCta.subheading")}</p>
           <div style={{display:'flex',gap:'14px',justifyContent:'center',marginBottom:'28px',flexWrap:'wrap'}}>
-            <a className="l2-btn l2-btn-hot" href={signupUrl} style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
-            <a className="l2-btn l2-btn-ghost" href={loginUrl} style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
+            <a className="l2-btn l2-btn-hot" href={signupUrl} style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>{t("common:nav.signUpFree")}</a>
+            <a className="l2-btn l2-btn-ghost" href={loginUrl} style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>{t("common:nav.login")}</a>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── how it works ───────────────── */}
+      <section className="l2-section" id="how">
+        <div className="l2-section-head l2-center l2-reveal">
+          <p className="l2-kicker">{t("how.kicker")}</p>
+          <h2>{t("how.heading")}</h2>
+        </div>
+        <div className="l2-steps">
+          {STEPS.map((s, i) => (
+            <div className="l2-step l2-reveal" key={s.n} style={{ transitionDelay: `${i * 110}ms` }}>
+              <span className="l2-step-n">{s.n}</span>
+              <h3>{s.title}</h3>
+              <p>{s.copy}</p>
+            </div>
+          ))}
+        </div>
+        <p className="l2-footnote l2-reveal">
+          {t("how.footnote")}
+        </p>
+      </section>
+
+      {/* ───────────────── playable demo ───────────────── */}
+      <section className="l2-section l2-band" id="try">
+        <div className="l2-section-head l2-center l2-reveal">
+          <p className="l2-kicker">{t("demo.kicker")}</p>
+          <h2>{t("demo.heading")}</h2>
+          <p className="l2-lede">{t("demo.subheading")}</p>
+        </div>
+
+        <div className="l2-demo l2-reveal">
+          <div className="l2-demo-panel">
+            <p className="l2-demo-label">{t("demo.partRequest")}</p>
+            <div className="l2-part-picker">
+              <button
+                type="button"
+                aria-label="Previous part"
+                onClick={() => setDemoPart((i) => (i + PARTS.length - 1) % PARTS.length)}
+                disabled={demoBusy}
+              >
+                ‹
+              </button>
+              <div className="l2-part-display">
+                <span className="l2-part-line">
+                  {part[0]} | {part[1]} | {part[2]}
+                </span>
+                <span className="l2-part-name">{part[3]}</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Next part"
+                onClick={() => setDemoPart((i) => (i + 1) % PARTS.length)}
+                disabled={demoBusy}
+              >
+                ›
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className={`l2-broadcast-btn ${demoBusy ? "onair" : ""}`}
+              onClick={runDemo}
+              disabled={demoBusy}
+            >
+              {demoBusy ? (
+                <>
+                  <span className="l2-onair-dot" /> {t("demo.onAir")}
+                </>
+              ) : score.deals > 0 ? (
+                t("demo.broadcastAnother")
+              ) : (
+                t("demo.broadcastIt")
+              )}
+            </button>
+
+            <div className="l2-scoreboard">
+              <div>
+                <strong>{score.deals}</strong>
+                <span>{t("demo.dealsClosed")}</span>
+              </div>
+              <div>
+                <strong>${score.revenue.toLocaleString()}</strong>
+                <span>{t("demo.revenueRecovered")}</span>
+              </div>
+            </div>
+            <p className="l2-demo-fine">
+              {t("demo.simNote")}
+            </p>
+          </div>
+
+          <div className="l2-demo-stage">
+            <div className="l2-demo-board">
+              <div className={`l2-demo-yard you ${demoBusy ? "onair" : ""}`}>
+                <span className="l2-demo-yard-name">{t("demo.yourYard")}</span>
+                <span className="l2-demo-yard-status">
+                  {demoBusy ? t("demo.broadcasting") : t("demo.standingBy")}
+                </span>
+              </div>
+              <div className="l2-demo-grid">
+                {DEMO_NEIGHBORS.map((name) => {
+                  const r = demoYards[name];
+                  return (
+                    <div
+                      className={`l2-demo-yard ${r ? "hot" : ""} ${r?.won ? "won" : ""}`}
+                      key={name}
+                    >
+                      <span className="l2-demo-yard-name">{name}</span>
+                      <span className="l2-demo-yard-status">
+                        {r ? (r.won ? `SOLD · $${r.price}` : `${r.reply} · $${r.price}`) : t("demo.listening")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="l2-stage-chip l2-demo-chip">
+              <span className="l2-live-dot" /> {t("demo.roomChip")}
+            </div>
           </div>
         </div>
       </section>
@@ -536,13 +610,9 @@ export default function Landing2Page() {
       {/* ───────────────── rooms ───────────────── */}
       <section className="l2-section" id="rooms">
         <div className="l2-section-head l2-reveal">
-          <p className="l2-kicker">Coverage</p>
-          <h2>Twelve rooms. Every major market.</h2>
-          <p className="l2-lede">
-            Your yard lives in its home room and is profiled into nearby regions
-            — and you can switch rooms straight from the phone when the hunt
-            goes wide.
-          </p>
+          <p className="l2-kicker">{t("rooms.kicker")}</p>
+          <h2>{t("rooms.heading")}</h2>
+          <p className="l2-lede">{t("rooms.subheading")}</p>
         </div>
         <div className="l2-rooms">
           {HUBS.map((h, i) => (
@@ -550,24 +620,21 @@ export default function Landing2Page() {
               href={signupWithRoom(h.name.charAt(0) + h.name.slice(1).toLowerCase())}>
               <span className="l2-room-code">RM-{String(i + 1).padStart(2, "0")}</span>
               <span className="l2-room-name">{h.name.charAt(0) + h.name.slice(1).toLowerCase()}</span>
-              <span className="l2-room-live">● Live</span>
+              <span className="l2-room-live">{t("rooms.live")}</span>
             </a>
           ))}
         </div>
         <div className="l2-reveal" style={{textAlign:'center',marginTop:'40px'}}>
-          <a className="l2-btn l2-btn-hot" href={signupUrl}>Sign Up Free — pick your room</a>
+          <a className="l2-btn l2-btn-hot" href={signupUrl}>{t("rooms.signupPickRoom")}</a>
         </div>
       </section>
 
       {/* ───────────────── system ───────────────── */}
       <section className="l2-section l2-band" id="system">
         <div className="l2-section-head l2-center l2-reveal">
-          <p className="l2-kicker">The system</p>
-          <h2>Built like shop equipment, not software.</h2>
-          <p className="l2-lede">
-            No apps to update, no passwords on sticky notes. It's a piece of
-            counter equipment that pays its membership back on one saved sale.
-          </p>
+          <p className="l2-kicker">{t("system.kicker")}</p>
+          <h2>{t("system.heading")}</h2>
+          <p className="l2-lede">{t("system.subheading")}</p>
         </div>
         <div className="l2-features">
           {FEATURES.map((f, i) => (
@@ -584,27 +651,22 @@ export default function Landing2Page() {
       <section className="l2-join" id="join">
         <div className="l2-join-inner">
           <div className="l2-reveal">
-            <p className="l2-kicker l2-kicker-light">Membership</p>
-            <h2>
-              One flat membership. Your whole region on the line.
-            </h2>
+            <p className="l2-kicker l2-kicker-light">{t("join.kicker")}</p>
+            <h2>{t("join.heading")}</h2>
             <ul className="l2-join-list">
-              <li>Flat monthly fee per yard — no per-call charges</li>
-              <li>Preconfigured desk phone or browser client included</li>
-              <li>Live in your regional room the day the phone arrives</li>
-              <li>Call recordings and answer-rate reporting included</li>
+              {JOIN_LIST.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
           </div>
           <div className="l2-form l2-reveal" style={{textAlign:'center'}}>
-            <p className="l2-form-title">Get started in 30 seconds</p>
+            <p className="l2-form-title">{t("join.formTitle")}</p>
             <a className="l2-btn l2-btn-hot" href={signupUrl} style={{width:'100%',display:'block',textAlign:'center',marginBottom:'14px'}}>
-              Sign Up Free
+              {t("common:nav.signUpFree")}
             </a>
             <p style={{color:'rgba(255,255,255,0.6)',fontSize:'14px',marginBottom:'14px'}}>
-              Already have an account? <a href={loginUrl} style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>Login</a>
+              {t("join.alreadyHaveAccount")} <a href={loginUrl} style={{color:'#fff',fontWeight:600,textDecoration:'underline'}}>{t("common:nav.login")}</a>
             </p>
             <p className="l2-form-fine">
-              No credit card required. Set up your yard in minutes.
+              {t("join.noCreditCard")}
             </p>
           </div>
         </div>
@@ -615,7 +677,7 @@ export default function Landing2Page() {
 
       {/* sticky mobile CTA */}
       <a className="l2-sticky-cta" href={signupUrl}>
-        Sign Up Free
+        {t("common:nav.signUpFree")}
       </a>
     </div>
   );

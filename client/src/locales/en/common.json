@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "Home",
+    "howItWorks": "How it works",
+    "tryIt": "Try it",
+    "coverage": "Coverage",
+    "ownHotline": "Own a hotline",
+    "login": "Login",
+    "signUpFree": "Sign Up Free"
+  },
+  "footer": {
+    "brandDescription": "The parts-locating voice network for auto recyclers. One broadcast, your whole region on the line, a sale saved.",
+    "product": "Product",
+    "rooms": "Rooms",
+    "company": "Company",
+    "hearItLive": "Hear it live",
+    "watchItWork": "Watch it work",
+    "howItWorks": "How it works",
+    "tryASellCall": "Try a sell call",
+    "coverageLink": "Coverage",
+    "theSystem": "The system",
+    "getALine": "Get a line",
+    "ownAutoPartsHotline": "Own an auto parts hotline",
+    "allRooms": "All 12 rooms →",
+    "aboutUs": "About us",
+    "privacyPolicy": "Privacy policy",
+    "termsConditions": "Terms & conditions",
+    "disclaimer": "Disclaimer",
+    "contact": "Contact",
+    "admin": "Admin",
+    "notice": "Hotline HQ is a private membership network for auto recyclers and salvage yards. Part availability, prices, and response times depend on member participation and are not guaranteed. Calls on the network are recorded for quality and dispute resolution.",
+    "copyright": "© 2026 Hotline HQ · All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "notFound": {
+    "seoTitle": "Page Not Found | Hotline HQ",
+    "seoDescription": "The requested Hotline HQ page could not be found.",
+    "title": "Page not found.",
+    "description": "The page you requested does not exist or may have moved. Use the main landing page to explore the hotline network and request a line.",
+    "goHome": "Go to homepage",
+    "viewOwn": "View own-a-hotline page"
+  },
+  "lastUpdated": "Last updated: {{date}}"
+}

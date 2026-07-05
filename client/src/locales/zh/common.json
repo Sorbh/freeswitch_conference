@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "首页",
+    "howItWorks": "工作原理",
+    "tryIt": "立即体验",
+    "coverage": "覆盖范围",
+    "ownHotline": "拥有热线",
+    "login": "登录",
+    "signUpFree": "免费注册"
+  },
+  "footer": {
+    "brandDescription": "专为汽车拆解回收商打造的配件寻件语音网络。一次广播，全区域上线，挽回一笔交易。",
+    "product": "产品",
+    "rooms": "房间",
+    "company": "公司",
+    "watchItWork": "观看演示",
+    "howItWorks": "工作原理",
+    "tryASellCall": "体验报价通话",
+    "coverageLink": "覆盖范围",
+    "theSystem": "系统介绍",
+    "getALine": "获取线路",
+    "ownAutoPartsHotline": "拥有汽车配件热线",
+    "allRooms": "全部 12 个房间 →",
+    "aboutUs": "关于我们",
+    "privacyPolicy": "隐私政策",
+    "termsConditions": "条款与条件",
+    "disclaimer": "免责声明",
+    "contact": "联系我们",
+    "admin": "管理后台",
+    "notice": "Hotline HQ 是面向汽车拆解回收商和报废车场的私有会员网络。配件供应情况、价格和响应时间取决于会员参与度，不作任何保证。网络中的通话会被录音，用于质量保障和争议解决。",
+    "copyright": "© 2026 Hotline HQ · 保留所有权利。",
+    "privacy": "隐私",
+    "terms": "条款",
+    "hearItLive": "实时收听"
+  },
+  "notFound": {
+    "seoTitle": "页面未找到 | Hotline HQ",
+    "seoDescription": "未找到请求的 Hotline HQ 页面。",
+    "title": "页面未找到。",
+    "description": "您请求的页面不存在或已被移动。请前往主页了解热线网络并申请线路。",
+    "goHome": "返回首页",
+    "viewOwn": "查看“拥有热线”页面"
+  },
+  "lastUpdated": "最后更新：{{date}}"
+}
