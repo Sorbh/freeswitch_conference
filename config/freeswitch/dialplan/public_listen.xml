@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  public_listen — isolated context for ephemeral landing-page listeners.
+
+  Users minted by service/listenerSessions.js (listener-<nonce>) get
+  user_context=public_listen from the directory endpoint, so this is the
+  ONLY dialplan they can reach: force-muted conference join, no DTMF
+  controls, everything else rejected. See docs/LISTEN_LIVE.md.
+-->
+<include>
+  <context name="public_listen">
+    <extension name="listen_only_conference">
+      <condition field="destination_number" expression="^listen-(1234567\d+)$">
+        <action application="set" data="conference_controls=none"/>
+        <action application="answer"/>
+        <action application="conference" data="$1@redline-hotline++flags{mute}"/>
+      </condition>
+    </extension>
+
+    <!-- anything else dialed from this context is rejected -->
+    <extension name="deny_all">
+      <condition field="destination_number" expression=".*">
+        <action application="hangup" data="CALL_REJECTED"/>
+      </condition>
+    </extension>
+  </context>
+</include>

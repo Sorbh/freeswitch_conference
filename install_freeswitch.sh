@@ -60,6 +60,7 @@ sync_configs() {
     rm -f $FS_CONF/dialplan/default/*.xml 2>/dev/null || true
     mkdir -p $FS_CONF/dialplan/default
     cp -f $CONFIG_SRC/dialplan/redline.xml $FS_CONF/dialplan/default/01_redline.xml
+    cp -f $CONFIG_SRC/dialplan/public_listen.xml $FS_CONF/dialplan/public_listen.xml
 
     # Chatplan (if exists)
     if [ -d "$CONFIG_SRC/chatplan" ]; then

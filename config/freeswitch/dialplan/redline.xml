@@ -7,6 +7,18 @@
     </condition>
   </extension>
 
+  <!-- Listen-only leg for landing-page listeners (and anything else that
+       should only ever hear the room): force-muted, no DTMF controls.
+       Also defined in the public_listen context, which takes over once
+       auth-calls is enabled on the internal profile (see docs/LISTEN_LIVE.md). -->
+  <extension name="listen-only-conference">
+    <condition field="destination_number" expression="^listen-(1234567\d+)$">
+      <action application="set" data="conference_controls=none"/>
+      <action application="answer"/>
+      <action application="conference" data="$1@redline-hotline++flags{mute}"/>
+    </condition>
+  </extension>
+
   <extension name="redline-conference">
     <condition field="destination_number" expression="^(1234567\d+)$">
       <action application="answer"/>

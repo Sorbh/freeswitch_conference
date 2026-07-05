@@ -1,6 +1,7 @@
 import express from "express";
 import { createHash } from "crypto";
 import { logBlocked } from "../../service/logger.js";
+import { lookupSession } from "../../service/listenerSessions.js";
 
 export let freeswitchRouter = express.Router();
 
@@ -29,10 +30,10 @@ freeswitchRouter.post("/directory", async (req, res) => {
     if (action === 'sip_auth' && sip_auth_realm && sip_auth_username) {
         const a1 = _md5(`${sip_auth_username}:${sip_auth_realm}:${account.password}`);
 
-        return res.type('xml').send(_userXml(account.resolvedUser, domain, { a1Hash: a1 }));
+        return res.type('xml').send(_userXml(account.resolvedUser, domain, { a1Hash: a1, context: account.userContext }));
     }
 
-    return res.type('xml').send(_userXml(account.resolvedUser, domain, { password: account.password }));
+    return res.type('xml').send(_userXml(account.resolvedUser, domain, { password: account.password, context: account.userContext }));
 });
 
 function _isAllowedRequest(body) {
@@ -46,10 +47,18 @@ function _isAllowedRequest(body) {
 function _findAccount(user, authUsername, domain) {
     const candidates = [user, authUsername].filter(Boolean);
 
-    // Admin listen user — virtual account for conference monitoring
+    // Ephemeral listen sessions (public landing listeners + admin monitoring).
+    // Public listeners get an isolated dialplan context so the only route
+    // available to them is the muted listen-<room> conference leg.
     for (const candidate of candidates) {
-        if (candidate === 'admin-listen') {
-            return { password: global.config.SIP_DEFAULT_PASSWORD, active: true, resolvedUser: candidate };
+        const session = lookupSession(candidate);
+        if (session) {
+            return {
+                password: session.password,
+                active: true,
+                resolvedUser: candidate,
+                userContext: session.type === 'public' ? 'public_listen' : 'default',
+            };
         }
     }
 
@@ -87,7 +96,7 @@ function _userXml(user, domain, creds) {
           ${credParam}
         </params>
         <variables>
-          <variable name="user_context" value="default"/>
+          <variable name="user_context" value="${creds.context || 'default'}"/>
         </variables>
       </user>
     </domain>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
+import ListenLive from "../components/ListenLive";
 
 /* ------------------------------------------------------------------ */
 /*  Landing 2 — Hotline HQ. Light B2B theme, no heavy 3D:             */
@@ -16,36 +17,9 @@ const HUBS = [
   { name: "INDIANA" }, { name: "MICHIGAN" }, { name: "CAROLINAS" },
 ];
 
-/* Sell-call scripts: [year, make, model, part]. */
-const PARTS = [
-  ["2006", "Chevrolet", "Silverado", "Window switch"],
-  ["2014", "Honda", "Accord", "Passenger fender"],
-  ["2011", "Toyota", "Camry", "Alternator"],
-  ["2017", "Ford", "F-150", "Tail light"],
-  ["2009", "Nissan", "Altima", "Radiator"],
-  ["2013", "Jeep", "Wrangler", "Door mirror"],
-  ["2008", "GMC", "Sierra", "Tailgate"],
-  ["2015", "Dodge", "Ram 1500", "Headlight"],
-  ["2012", "Volkswagen", "Jetta", "Turbocharger"],
-  ["2010", "Subaru", "Outback", "A/C compressor"],
-];
-
-const REPLY_LINES = ["I have it", "Got one", "In stock", "Pulling it now"];
-const PRICES = [35, 40, 45, 55, 60, 75, 85, 95, 110, 125];
-
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
-
-function pick(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-/* Neighbor yards shown in the playable sell-call demo. */
-const DEMO_NEIGHBORS = [
-  "Tucson", "Flagstaff", "Yuma", "Prescott",
-  "San Diego", "Riverside", "El Paso", "Las Vegas",
-];
 
 /* ------------------------------------------------------------------ */
 /*  Page content                                                       */
@@ -60,24 +34,6 @@ const TICKER = [
   ["10:55:27", "GA ROOM", "’15 Altima CVT, 62k", "Answered · 2s"],
   ["10:58:44", "MI ROOM", "’08 Sierra tailgate, black", "Answered · 4s"],
   ["11:01:19", "NY ROOM", "’13 Rogue transfer case AWD", "Answered · 3s"],
-];
-
-const STEPS = [
-  {
-    n: "1",
-    title: "Broadcast the request",
-    copy: "A customer asks for a part you don't have. Pick up the handset and say it once — every yard in your region hears it instantly.",
-  },
-  {
-    n: "2",
-    title: "A yard answers",
-    copy: "Members monitor the room hands-free. The yard sitting on your part unmutes and replies. Typical answer time is about two seconds.",
-  },
-  {
-    n: "3",
-    title: "Close the sale",
-    copy: "Talk it through live or take it private. Your customer gets the part, both yards get paid — and the call is logged and recorded.",
-  },
 ];
 
 const COMPARES = [
@@ -234,7 +190,6 @@ const HERO_CLIPS = [
 
 export default function Landing2Page() {
   const rootRef = useRef(null);
-  const videoRef = useRef(null);
   const wireRef = useRef(null);
   const formRef = useRef(null);
 
@@ -252,12 +207,6 @@ export default function Landing2Page() {
   }
 
   const [sent, setSent] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [demoPart, setDemoPart] = useState(0);
-  const [demoBusy, setDemoBusy] = useState(false);
-  const [demoYards, setDemoYards] = useState({});
-  const [score, setScore] = useState({ deals: 0, revenue: 0 });
-  const demoTimers = useRef([]);
 
   /* hero audio — real broadcasts with live reply captions */
   const heroAudioRef = useRef(null);
@@ -323,8 +272,6 @@ export default function Landing2Page() {
   /* clear any pending demo timers on unmount */
   useEffect(() => {
     return () => {
-      demoTimers.current.forEach(clearTimeout);
-      demoTimers.current = [];
       clearHeroTimers();
     };
   }, []);
@@ -365,32 +312,6 @@ export default function Landing2Page() {
       cancelAnimationFrame(raf);
     };
   }, []);
-
-  function runDemo() {
-    if (demoBusy) return;
-    setDemoBusy(true);
-    setDemoYards({});
-
-    const shuffled = [...DEMO_NEIGHBORS].sort(() => Math.random() - 0.5);
-    const responders = shuffled.slice(0, 2 + Math.floor(Math.random() * 2));
-    const prices = responders.map(() => pick(PRICES));
-    const bestPrice = Math.min(...prices);
-    const winner = responders[prices.indexOf(bestPrice)];
-    const timers = demoTimers.current;
-
-    responders.forEach((name, k) => {
-      timers.push(setTimeout(() => {
-        setDemoYards((y) => ({ ...y, [name]: { reply: pick(REPLY_LINES), price: prices[k] } }));
-      }, 1300 + k * 600));
-    });
-
-    timers.push(setTimeout(() => {
-      setDemoYards((y) => ({ ...y, [winner]: { ...y[winner], won: true } }));
-      setScore((s) => ({ deals: s.deals + 1, revenue: s.revenue + bestPrice, bids: responders.length }));
-    }, 3800));
-
-    timers.push(setTimeout(() => setDemoBusy(false), 5200));
-  }
 
   function confettiBurst() {
     const host = formRef.current;
@@ -435,7 +356,6 @@ export default function Landing2Page() {
     } catch (_) {}
   }
 
-  const part = PARTS[demoPart];
 
   return (
     <div className="l2" ref={rootRef}>
@@ -567,41 +487,8 @@ export default function Landing2Page() {
         </div>
       </div>
 
-      {/* ───────────────── video demo ───────────────── */}
-      <section className="l2-section l2-video-section" id="demo">
-        <div className="l2-section-head l2-center l2-reveal">
-          <p className="l2-kicker">See it run</p>
-          <h2>Watch a part get located.</h2>
-          <p className="l2-lede">
-            This is the actual hotline — a real broadcast going out, and a yard
-            answering back. No demo environment, no mockups.
-          </p>
-        </div>
-        <div className="l2-video-frame l2-reveal">
-          <video
-            ref={videoRef}
-            src="./hotlinehq.mp4"
-            controls={playing}
-            preload="none"
-            poster=""
-            playsInline
-            onEnded={() => setPlaying(false)}
-          />
-          {!playing && (
-            <button
-              className="l2-video-overlay"
-              onClick={() => {
-                setPlaying(true);
-                videoRef.current?.play();
-              }}
-              aria-label="Play video"
-            >
-              <span className="l2-play-btn" aria-hidden="true" />
-              <span className="l2-play-label">Watch the hotline in action · 1 min</span>
-            </button>
-          )}
-        </div>
-      </section>
+      {/* ───────────────── listen live ───────────────── */}
+      <ListenLive signupUrl={signupUrl} />
 
       {/* ───────────────── problem ───────────────── */}
       <section className="l2-section l2-band">
@@ -642,132 +529,6 @@ export default function Landing2Page() {
           <div style={{display:'flex',gap:'14px',justifyContent:'center',marginBottom:'28px',flexWrap:'wrap'}}>
             <a className="l2-btn l2-btn-hot" href={signupUrl} style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>Sign Up Free</a>
             <a className="l2-btn l2-btn-ghost" href={loginUrl} style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>Login</a>
-          </div>
-        </div>
-      </section>
-
-      {/* ───────────────── how it works ───────────────── */}
-      <section className="l2-section" id="how">
-        <div className="l2-section-head l2-center l2-reveal">
-          <p className="l2-kicker">How it works</p>
-          <h2>One broadcast. One answer. One sale saved.</h2>
-        </div>
-        <div className="l2-steps">
-          {STEPS.map((s, i) => (
-            <div className="l2-step l2-reveal" key={s.n} style={{ transitionDelay: `${i * 110}ms` }}>
-              <span className="l2-step-n">{s.n}</span>
-              <h3>{s.title}</h3>
-              <p>{s.copy}</p>
-            </div>
-          ))}
-        </div>
-        <p className="l2-footnote l2-reveal">
-          Unanswered? The request is logged, escalated to neighboring rooms, and
-          sent to the entire network as a message — a miss in your region
-          isn&rsquo;t a miss on the network.
-        </p>
-      </section>
-
-      {/* ───────────────── playable demo ───────────────── */}
-      <section className="l2-section l2-band" id="try">
-        <div className="l2-section-head l2-center l2-reveal">
-          <p className="l2-kicker">Try it yourself</p>
-          <h2>Run a sell call. Watch the yards bid.</h2>
-          <p className="l2-lede">
-            Pick a part and put it on the air. This is exactly what your counter
-            person does — minus the mouse.
-          </p>
-        </div>
-
-        <div className="l2-demo l2-reveal">
-          <div className="l2-demo-panel">
-            <p className="l2-demo-label">Part request</p>
-            <div className="l2-part-picker">
-              <button
-                type="button"
-                aria-label="Previous part"
-                onClick={() => setDemoPart((i) => (i + PARTS.length - 1) % PARTS.length)}
-                disabled={demoBusy}
-              >
-                ‹
-              </button>
-              <div className="l2-part-display">
-                <span className="l2-part-line">
-                  {part[0]} | {part[1]} | {part[2]}
-                </span>
-                <span className="l2-part-name">{part[3]}</span>
-              </div>
-              <button
-                type="button"
-                aria-label="Next part"
-                onClick={() => setDemoPart((i) => (i + 1) % PARTS.length)}
-                disabled={demoBusy}
-              >
-                ›
-              </button>
-            </div>
-
-            <button
-              type="button"
-              className={`l2-broadcast-btn ${demoBusy ? "onair" : ""}`}
-              onClick={runDemo}
-              disabled={demoBusy}
-            >
-              {demoBusy ? (
-                <>
-                  <span className="l2-onair-dot" /> ON AIR…
-                </>
-              ) : score.deals > 0 ? (
-                "Broadcast another"
-              ) : (
-                "Broadcast it"
-              )}
-            </button>
-
-            <div className="l2-scoreboard">
-              <div>
-                <strong>{score.deals}</strong>
-                <span>deals closed</span>
-              </div>
-              <div>
-                <strong>${score.revenue.toLocaleString()}</strong>
-                <span>revenue recovered</span>
-              </div>
-            </div>
-            <p className="l2-demo-fine">
-              Simulated replies. On the real network this takes one spoken
-              sentence.
-            </p>
-          </div>
-
-          <div className="l2-demo-stage">
-            <div className="l2-demo-board">
-              <div className={`l2-demo-yard you ${demoBusy ? "onair" : ""}`}>
-                <span className="l2-demo-yard-name">Your yard</span>
-                <span className="l2-demo-yard-status">
-                  {demoBusy ? "Broadcasting…" : "Standing by"}
-                </span>
-              </div>
-              <div className="l2-demo-grid">
-                {DEMO_NEIGHBORS.map((name) => {
-                  const r = demoYards[name];
-                  return (
-                    <div
-                      className={`l2-demo-yard ${r ? "hot" : ""} ${r?.won ? "won" : ""}`}
-                      key={name}
-                    >
-                      <span className="l2-demo-yard-name">{name}</span>
-                      <span className="l2-demo-yard-status">
-                        {r ? (r.won ? `SOLD · $${r.price}` : `${r.reply} · $${r.price}`) : "Listening"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="l2-stage-chip l2-demo-chip">
-              <span className="l2-live-dot" /> AZ room · your yard + 8 neighbors
-            </div>
           </div>
         </div>
       </section>

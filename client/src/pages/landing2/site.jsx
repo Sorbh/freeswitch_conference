@@ -192,9 +192,8 @@ export function SiteNav() {
 }
 
 const PRODUCT_LINKS = [
-  ["Watch it work", "/#demo"],
+  ["Hear it live", "/#listen-live"],
   ["How it works", "/#how"],
-  ["Try a sell call", "/#try"],
   ["Coverage", "/#rooms"],
   ["The system", "/#system"],
   ["Get a line", "/#join"],

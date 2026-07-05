@@ -1,4 +1,5 @@
 import express from "express";
+import { mintAdminSession } from "../../service/listenerSessions.js";
 
 // Sub-routers
 import usersRouter from "./users.js";
@@ -38,6 +39,24 @@ export async function allEndCall() {
     for (const userInfo of usersInfo) { await endCall(userInfo.userName); }
     return global.db.getAllUserInfo();
 }
+
+// POST /listen/session — ephemeral SIP creds for admin room monitoring
+// (replaces the hardcoded admin-listen password that used to ship in the bundle)
+adminRouter.post("/listen/session", (req, res) => {
+    const roomId = parseInt(req.body?.room);
+    if (!roomId) return res.status(400).json({ status: false, error: 'Invalid room' });
+    const session = mintAdminSession(roomId, req.user?.email);
+    res.json({
+        status: true,
+        data: {
+            user: session.user,
+            password: session.password,
+            domain: global.config.FREESWITCH_PUBLIC_IP,
+            wsUrl: global.config.PUBLIC_WSS_URL,
+            expiresIn: 60,
+        },
+    });
+});
 
 // GET /dashboard — returns dashboard stats
 adminRouter.get("/dashboard", (req, res) => {

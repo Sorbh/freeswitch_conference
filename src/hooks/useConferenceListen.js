@@ -1,10 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import JsSIP from "jssip";
-
-const SIP_DOMAIN = "50.28.84.57";
-const WS_URL = "wss://hotline.redlineusedautoparts.com/fs_wss/";
-const SIP_PASSWORD = "12345678";
-const LISTEN_USER = "admin-listen";
+import { apiFetch } from "@/lib/api";
 
 function createSilentStream() {
   const ctx = new AudioContext();
@@ -61,16 +57,26 @@ export function useConferenceListen() {
     console.log("[LISTEN] Starting listen for room:", roomId);
 
     try {
+      // Ephemeral one-time SIP credentials — nothing static in the bundle
+      const credsRes = await apiFetch("/api/v1/admin/listen/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room: roomId }),
+      });
+      const credsJson = await credsRes.json();
+      if (!credsJson.status) throw new Error(credsJson.error || "Failed to get listen session");
+      const creds = credsJson.data;
+
       const { stream: silentStream, ctx } = createSilentStream();
       audioCtxRef.current = ctx;
       console.log("[LISTEN] Silent stream created, tracks:", silentStream.getTracks().length);
 
-      const socket = new JsSIP.WebSocketInterface(WS_URL);
+      const socket = new JsSIP.WebSocketInterface(creds.wsUrl);
 
       const ua = new JsSIP.UA({
         sockets: [socket],
-        uri: `sip:${LISTEN_USER}@${SIP_DOMAIN}`,
-        password: SIP_PASSWORD,
+        uri: `sip:${creds.user}@${creds.domain}`,
+        password: creds.password,
         display_name: "Admin-Listen",
         register: false,
         session_timers: false,
@@ -82,7 +88,7 @@ export function useConferenceListen() {
       ua.on("connected", () => {
         console.log("[LISTEN] WebSocket connected, placing call to room", roomId);
         setListenState("ringing");
-        const confUri = `sip:${roomId}@${SIP_DOMAIN}`;
+        const confUri = `sip:${roomId}@${creds.domain}`;
 
         const session = ua.call(confUri, {
           mediaStream: silentStream,
@@ -164,7 +170,7 @@ export function useConferenceListen() {
       });
 
       ua.on("connecting", () => {
-        console.log("[LISTEN] WebSocket connecting to", WS_URL);
+        console.log("[LISTEN] WebSocket connecting to", creds.wsUrl);
       });
 
       ua.start();
