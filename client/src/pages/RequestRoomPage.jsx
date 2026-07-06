@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 
 export default function RequestRoomPage() {
+  const { t } = useTranslation('dashboard');
   const { apiFetch } = useAuth();
   const [form, setForm] = useState({ city: '', state: '', message: '' });
   const [error, setError] = useState('');
@@ -17,7 +19,7 @@ export default function RequestRoomPage() {
     setError(''); setSuccess(''); setLoading(true);
     try {
       const json = await apiFetch('/room-request', { method: 'POST', body: JSON.stringify(form) });
-      setSuccess(json.message || 'Request submitted!');
+      setSuccess(json.message || t('requestRoom.submitted'));
       setForm({ city: '', state: '', message: '' });
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -25,9 +27,9 @@ export default function RequestRoomPage() {
 
   return (
     <div className="max-w-lg">
-      <h2 className="text-xl font-bold mb-2">Request a New Room</h2>
+      <h2 className="text-xl font-bold mb-2">{t('requestRoom.title')}</h2>
       <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-        Want to add a new city or market? Submit a request and we'll set it up.
+        {t('requestRoom.subtitle')}
       </p>
 
       <div className="hq-card p-6">
@@ -36,14 +38,14 @@ export default function RequestRoomPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <div><label className="hq-label">City / Market</label><input type="text" value={form.city} onChange={update('city')} required className="hq-input" placeholder="e.g. Dallas" /></div>
-            <div><label className="hq-label">State</label><input type="text" value={form.state} onChange={update('state')} className="hq-input" placeholder="e.g. TX" /></div>
+            <div><label className="hq-label">{t('requestRoom.cityMarket')}</label><input type="text" value={form.city} onChange={update('city')} required className="hq-input" placeholder={t('requestRoom.cityPlaceholder')} /></div>
+            <div><label className="hq-label">{t('requestRoom.state')}</label><input type="text" value={form.state} onChange={update('state')} className="hq-input" placeholder={t('requestRoom.statePlaceholder')} /></div>
           </div>
           <div className="mb-4">
-            <label className="hq-label">Message (optional)</label>
-            <textarea value={form.message} onChange={update('message')} rows={3} className="hq-input resize-none" placeholder="Any additional details..." />
+            <label className="hq-label">{t('requestRoom.messageOptional')}</label>
+            <textarea value={form.message} onChange={update('message')} rows={3} className="hq-input resize-none" placeholder={t('requestRoom.messagePlaceholder')} />
           </div>
-          <button type="submit" disabled={loading} className="hq-btn w-full py-3">{loading ? 'Submitting...' : 'Submit Request'}</button>
+          <button type="submit" disabled={loading} className="hq-btn w-full py-3">{loading ? t('requestRoom.submitting') : t('requestRoom.submitRequest')}</button>
         </form>
       </div>
     </div>

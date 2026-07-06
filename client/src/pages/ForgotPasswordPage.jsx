@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation("auth");
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
@@ -36,11 +38,11 @@ export default function ForgotPasswordPage() {
               <rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2">Check Your Email</h2>
+          <h2 className="text-xl font-bold mb-2">{t("forgot.checkEmail")}</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-            If an account exists with <strong>{email}</strong>, we've sent a password reset link.
+            {t("forgot.sentBefore")} <strong>{email}</strong>{t("forgot.sentAfter")}
           </p>
-          <Link to="/client/login" className="hq-btn inline-block px-6 py-3">Back to Login</Link>
+          <Link to="/client/login" className="hq-btn inline-block px-6 py-3">{t("forgot.backToLogin")}</Link>
         </div>
       </div>
     );
@@ -51,25 +53,25 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md animate-fadeIn">
         <div className="flex flex-col items-center mb-8">
           <img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} />
-          <h1 className="text-2xl font-bold">Forgot Password</h1>
-          <p className="text-sm mt-2 text-center" style={{ color: 'var(--muted)' }}>Enter your email and we'll send a reset link</p>
+          <h1 className="text-2xl font-bold">{t("forgot.title")}</h1>
+          <p className="text-sm mt-2 text-center" style={{ color: 'var(--muted)' }}>{t("forgot.subtitle")}</p>
         </div>
 
         <div className="hq-card p-6">
           {error && <div className="hq-alert-error">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
-              <label className="hq-label">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus className="hq-input" placeholder="you@company.com" />
+              <label className="hq-label">{t("forgot.email")}</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus className="hq-input" placeholder={t("forgot.emailPlaceholder")} />
             </div>
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              {loading ? t("forgot.sending") : t("forgot.sendResetLink")}
             </button>
           </form>
         </div>
 
         <div className="mt-6 text-center">
-          <Link to="/client/login" className="text-sm font-medium" style={{ color: 'var(--red)' }}>Back to login</Link>
+          <Link to="/client/login" className="text-sm font-medium" style={{ color: 'var(--red)' }}>{t("forgot.backToLoginLink")}</Link>
         </div>
       </div>
     </div>

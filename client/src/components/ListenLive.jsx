@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useListenLive } from "../hooks/useListenLive";
 
 /* ------------------------------------------------------------------ */
@@ -98,7 +99,8 @@ function PauseIcon() {
   );
 }
 
-export default function ListenLive({ signupUrl }) {
+export default function ListenLive({ signupUrl, steps, footnote }) {
+  const { t } = useTranslation("landing");
   const { room, state, error, stream, start, stop } = useListenLive();
   const [rooms, setRooms] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -210,37 +212,36 @@ export default function ListenLive({ signupUrl }) {
   };
 
   const statusTitle =
-    connecting ? "Connecting…"
-    : liveHere ? `Listening to ${selectedRoom.name}`
-    : `Hear the ${selectedRoom?.name ?? ""} room live`;
+    connecting ? t("listenLive.connecting")
+    : liveHere ? t("listenLive.listeningTo", { room: selectedRoom.name })
+    : t("listenLive.hearRoomLive", { room: selectedRoom?.name ?? "" });
 
   const statusSub =
-    state === "error" ? (error || "Something went wrong — press play to try again")
-    : liveHere && speakers.length === 0 ? "You're live — the line can be quiet for a few minutes between calls"
-    : liveHere ? "Live audio · listen-only"
-    : "Free to listen — no signup, your mic stays off";
+    state === "error" ? (error || t("listenLive.errorFallback"))
+    : liveHere && speakers.length === 0 ? t("listenLive.liveQuietSub")
+    : liveHere ? t("listenLive.liveSub")
+    : t("listenLive.idleSub");
 
   return (
     <section className="l2-section llv" id="listen-live">
       <style>{CSS}</style>
       <div className="l2-section-head l2-center">
-        <p className="l2-kicker">Live right now</p>
-        <h2>This is what a saved sale sounds like.</h2>
+        <p className="l2-kicker">{t("listenLive.kicker")}</p>
+        <h2>{t("listenLive.heading")}</h2>
         <p className="l2-lede" style={{ marginLeft: "auto", marginRight: "auto" }}>
-          One sentence into a handset, a two-second answer, and a customer who
-          didn&rsquo;t walk. Press play — the {""}
-          {rooms.find((r) => r.shortCode === FEATURED_SHORT_CODE)?.name || "California"} room
-          is on the air right now.
+          {t("listenLive.lede", {
+            room: rooms.find((r) => r.shortCode === FEATURED_SHORT_CODE)?.name || "California",
+          })}
         </p>
       </div>
 
       <div className="llv-merge">
         <div className="llv-steps" id="how">
           <div className="llv-steps-head">
-            <span className="llv-steps-title">How a sale happens</span>
-            <span className="llv-steps-stat">avg answer · 2s</span>
+            <span className="llv-steps-title">{t("listenLive.stepsTitle")}</span>
+            <span className="llv-steps-stat">{t("listenLive.stepsStat")}</span>
           </div>
-          {STEPS.map((s) => (
+          {(steps?.length ? steps : STEPS).map((s) => (
             <div className="llv-step" key={s.n}>
               <span className="llv-step-n">{s.n}</span>
               <div>
@@ -250,11 +251,13 @@ export default function ListenLive({ signupUrl }) {
             </div>
           ))}
           <div className="llv-footnote">
-            <p className="llv-label">If no one answers</p>
+            <p className="llv-label">{t("listenLive.footnoteLabel")}</p>
             <p>
-              The request is logged, escalated to neighboring rooms, and sent to
-              the entire network as a message — a miss in your region
-              isn&rsquo;t a miss on the network.
+              {footnote || (
+                <>The request is logged, escalated to neighboring rooms, and sent to
+                the entire network as a message — a miss in your region
+                isn&rsquo;t a miss on the network.</>
+              )}
             </p>
           </div>
         </div>
@@ -263,9 +266,9 @@ export default function ListenLive({ signupUrl }) {
       <div className="llv-card">
         <div className="llv-head">
           <span className="llv-roomtag">
-            <span className="llv-dot" /> {selectedRoom?.name} room
+            <span className="llv-dot" /> {t("listenLive.roomTag", { room: selectedRoom?.name ?? "" })}
           </span>
-          <span className="llv-count">{yardCount} yards on the line</span>
+          <span className="llv-count">{t("listenLive.yardsOnLine", { count: yardCount })}</span>
         </div>
 
         <div className="llv-body">
@@ -280,17 +283,17 @@ export default function ListenLive({ signupUrl }) {
             >
               {liveHere || connecting ? <PauseIcon /> : <PlayIcon />}
               <span>
-                {connecting ? "Connecting…"
-                  : liveHere ? "Click Here to Stop"
-                  : "Click Here to Listen"}
+                {connecting ? t("listenLive.connecting")
+                  : liveHere ? t("listenLive.stopButton")
+                  : t("listenLive.listenButton")}
               </span>
             </button>
             <VuMeter stream={stream} active={liveHere} />
-            <p className="llv-note">Listen-only. Your microphone is never used.</p>
+            <p className="llv-note">{t("listenLive.micNote")}</p>
           </div>
 
           <div className="llv-panel-feed">
-            <p className="llv-label">On the air now</p>
+            <p className="llv-label">{t("listenLive.onAirNow")}</p>
             {speakers.length > 0 ? (
               <div className="llv-chips" aria-live="polite">
                 {speakers.map((s, i) => (
@@ -302,12 +305,11 @@ export default function ListenLive({ signupUrl }) {
               </div>
             ) : (
               <p className="llv-quiet">
-                Standing by — broadcasts come in bursts, and the line can sit quiet
-                for a few minutes between calls. Stay tuned.
+                {t("listenLive.quietStandby")}
               </p>
             )}
 
-            <p className="llv-label llv-label-recent">Earlier on the line</p>
+            <p className="llv-label llv-label-recent">{t("listenLive.earlierOnLine")}</p>
             {recent.length > 0 ? (
               <div className="llv-recent">
                 {recent.map((s, i) => (
@@ -318,7 +320,7 @@ export default function ListenLive({ signupUrl }) {
                 ))}
               </div>
             ) : (
-              <p className="llv-quiet">Activity shows up here as yards key their mics.</p>
+              <p className="llv-quiet">{t("listenLive.quietRecent")}</p>
             )}
           </div>
         </div>
@@ -326,8 +328,8 @@ export default function ListenLive({ signupUrl }) {
 
           {showCta && state === "live" && (
             <div className="llv-cta">
-              <p>Like what you hear? Your yard can be on this line too.</p>
-              <a className="l2-btn l2-btn-hot" href={signupUrl}>Click Here to Sign Up — It&rsquo;s Free</a>
+              <p>{t("listenLive.ctaText")}</p>
+              <a className="l2-btn l2-btn-hot" href={signupUrl}>{t("listenLive.ctaButton")}</a>
             </div>
           )}
         </div>

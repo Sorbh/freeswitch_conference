@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 
 const EXT_REQUEST_KEY_PREFIX = 'hq_ext_request_';
@@ -27,6 +28,7 @@ function clearRequestCache(email) {
 }
 
 export default function ExtensionsPage() {
+  const { t } = useTranslation('dashboard');
   const { account, apiFetch } = useAuth();
   const [extensions, setExtensions] = useState([]);
   const [query, setQuery] = useState('');
@@ -52,9 +54,9 @@ export default function ExtensionsPage() {
     try {
       const json = await apiFetch('/extensions');
       setExtensions(json.data || []);
-    } catch (err) { setMessage('Failed to load: ' + err.message); }
+    } catch (err) { setMessage(t('extensions.failedToLoad', { error: err.message })); }
     finally { setLoading(false); }
-  }, [apiFetch]);
+  }, [apiFetch, t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -78,7 +80,7 @@ export default function ExtensionsPage() {
   async function submitRequest() {
     const ext = parseInt(requestExt, 10);
     if (!ext || ext < 100 || ext > 999) {
-      setRequestError('Enter a number between 100 and 999');
+      setRequestError(t('extensions.rangeError'));
       return;
     }
     setRequestLoading(true);
@@ -111,21 +113,21 @@ export default function ExtensionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-xl font-bold">Extensions</h2>
+          <h2 className="text-xl font-bold">{t('extensions.title')}</h2>
           {hasExtension && (
             <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-              Your extension: <span className="font-bold font-mono" style={{ color: 'var(--red)' }}>*{account.extension}</span>
+              {t('extensions.yourExtension')} <span className="font-bold font-mono" style={{ color: 'var(--red)' }}>*{account.extension}</span>
             </p>
           )}
           {!hasExtension && !hasPendingRequest && (
             <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-              Get a 3-digit extension to call other yards directly
+              {t('extensions.getExtensionHint')}
             </p>
           )}
         </div>
         {hasExtension && (
           <button onClick={load} className="hq-label px-3 py-1.5 rounded-lg" style={{ border: '1px solid var(--line)', marginBottom: 0, cursor: 'pointer', background: 'var(--surface)' }}>
-            Refresh
+            {t('extensions.refresh')}
           </button>
         )}
       </div>
@@ -138,9 +140,9 @@ export default function ExtensionsPage() {
               <span className="text-lg font-bold font-mono" style={{ color: 'var(--red)' }}>*{cached.extension}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold" style={{ color: 'var(--ink)' }}>Extension request received</div>
+              <div className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{t('extensions.requestReceivedTitle')}</div>
               <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-                We're reviewing your request for <span className="font-mono font-semibold" style={{ color: 'var(--ink)' }}>*{cached.extension}</span>. You'll get access to the directory once it's assigned.
+                <Trans t={t} i18nKey="extensions.requestReceivedBody" values={{ ext: cached.extension }} components={{ mono: <span className="font-mono font-semibold" style={{ color: 'var(--ink)' }} /> }} />
               </p>
             </div>
           </div>
@@ -150,10 +152,10 @@ export default function ExtensionsPage() {
               className="text-xs font-semibold px-4 py-2 rounded-lg"
               style={{ color: 'var(--red)', background: 'var(--red-soft)', border: 'none', cursor: 'pointer' }}
             >
-              Change extension
+              {t('extensions.changeExtension')}
             </button>
             <span className="text-[10px]" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>
-              Requested {cached.requestedAt ? new Date(cached.requestedAt).toLocaleDateString() : ''}
+              {t('extensions.requestedOn', { date: cached.requestedAt ? new Date(cached.requestedAt).toLocaleDateString() : '' })}
             </span>
           </div>
         </div>
@@ -167,15 +169,15 @@ export default function ExtensionsPage() {
               <PhoneIcon />
             </div>
             <div className="flex-1">
-              <div className="text-sm font-bold" style={{ color: 'var(--ink)' }}>Get your direct extension</div>
+              <div className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{t('extensions.ctaTitle')}</div>
               <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-                Pick a 3-digit number and call any yard in the network directly — no more waiting on the broadcast line.
+                {t('extensions.ctaBody')}
               </p>
               <button
                 onClick={() => { setRequestOpen(true); setRequestError(''); setRequestExt(''); }}
                 className="hq-btn px-5 py-2.5 text-sm mt-3"
               >
-                Request extension
+                {t('extensions.requestExtension')}
               </button>
             </div>
           </div>
@@ -191,17 +193,17 @@ export default function ExtensionsPage() {
 
             <div className="p-5">
               <h3 className="text-base font-bold" style={{ color: 'var(--ink)' }}>
-                {hasPendingRequest ? 'Change your extension' : 'Pick your extension'}
+                {hasPendingRequest ? t('extensions.dialogTitleChange') : t('extensions.dialogTitlePick')}
               </h3>
               <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                Choose a 3-digit number. Other yards will dial this to call you privately.
+                {t('extensions.dialogBody')}
               </p>
 
               {requestError && <div className="hq-alert-error mt-3">{requestError}</div>}
 
               {/* Extension input — admin style grouped input */}
               <div className="mt-4">
-                <label className="hq-label">Direct Call Extension</label>
+                <label className="hq-label">{t('extensions.extensionLabel')}</label>
                 <div className="flex items-center">
                   <span className="inline-flex items-center justify-center h-11 px-3 rounded-l-xl text-sm font-bold font-mono select-none" style={{ background: 'var(--band)', border: '1px solid var(--line)', borderRight: 'none', color: 'var(--red)' }}>*</span>
                   <input
@@ -217,14 +219,14 @@ export default function ExtensionsPage() {
                   />
                 </div>
                 <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted)' }}>
-                  Any number from 100 to 999
+                  {t('extensions.rangeHint')}
                 </p>
               </div>
 
               {/* Live preview */}
               {requestExt.length > 0 && (
                 <div className="mt-4 px-4 py-3 rounded-xl text-center" style={{ background: 'var(--red-soft)' }}>
-                  <div className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>Your extension</div>
+                  <div className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>{t('extensions.previewLabel')}</div>
                   <div className="text-2xl font-bold mt-1" style={{ fontFamily: 'var(--mono)', color: requestExt.length === 3 ? 'var(--red)' : 'var(--line)' }}>
                     *{requestExt}{requestExt.length < 3 && <span style={{ color: 'var(--line)' }}>{'_'.repeat(3 - requestExt.length)}</span>}
                   </div>
@@ -238,14 +240,14 @@ export default function ExtensionsPage() {
                   disabled={requestLoading || requestExt.length < 3}
                   className="hq-btn flex-1 py-3 text-sm"
                 >
-                  {requestLoading ? 'Sending...' : 'Request Extension'}
+                  {requestLoading ? t('extensions.sending') : t('extensions.requestExtensionButton')}
                 </button>
                 <button
                   onClick={() => setRequestOpen(false)}
                   className="px-5 py-3 rounded-xl text-sm font-semibold"
                   style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)', cursor: 'pointer' }}
                 >
-                  Cancel
+                  {t('extensions.cancel')}
                 </button>
               </div>
             </div>
@@ -259,7 +261,7 @@ export default function ExtensionsPage() {
           <div className="absolute inset-0 z-10 rounded-2xl" style={{ background: 'rgba(255,255,255,0.35)', backdropFilter: 'blur(3px)' }}>
             {!hasPendingRequest && !requestOpen && (
               <div className="flex items-center justify-center h-full">
-                <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>Request an extension to unlock the directory</p>
+                <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{t('extensions.lockedHint')}</p>
               </div>
             )}
           </div>
@@ -268,7 +270,7 @@ export default function ExtensionsPage() {
         <div style={isLocked && !loading ? { opacity: 0.4, pointerEvents: 'none' } : {}}>
           {hasExtension && (
             <div className="mb-4">
-              <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search company, name, extension..." className="hq-input" />
+              <input type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder={t('extensions.searchPlaceholder')} className="hq-input" />
             </div>
           )}
 
@@ -276,29 +278,29 @@ export default function ExtensionsPage() {
 
           <div className="hq-card overflow-hidden">
             {loading ? (
-              <div className="p-8 text-center text-sm" style={{ color: 'var(--muted)' }}>Loading extensions...</div>
+              <div className="p-8 text-center text-sm" style={{ color: 'var(--muted)' }}>{t('extensions.loading')}</div>
             ) : filtered.length === 0 ? (
-              <div className="p-8 text-center text-sm" style={{ color: 'var(--muted)' }}>No extensions found</div>
+              <div className="p-8 text-center text-sm" style={{ color: 'var(--muted)' }}>{t('extensions.noneFound')}</div>
             ) : (
               filtered.map(item => {
                 const isConnected = item.connected === true;
                 return (
                   <div key={item.id} className="flex items-center justify-between gap-4 px-5 py-4" style={{ borderBottom: '1px solid var(--line)' }}>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate">{item.companyName || 'Unknown'} / {item.displayName || item.email}</div>
+                      <div className="text-sm font-semibold truncate">{item.companyName || t('extensions.unknown')} / {item.displayName || item.email}</div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs" style={{ color: 'var(--muted)' }}>{item.roomName || ''}</span>
                         <span className="text-xs font-bold font-mono">*{item.extension}</span>
                         <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ color: isConnected ? 'var(--green)' : 'var(--muted)' }}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ background: isConnected ? 'var(--green)' : 'var(--muted)' }} />
-                          {isConnected ? 'Available' : 'Offline'}
+                          {isConnected ? t('extensions.available') : t('extensions.offline')}
                         </span>
                       </div>
                     </div>
                     <button onClick={() => handleCall(item)} disabled={!isConnected || callLoading === item.id}
                       className="hq-btn flex-shrink-0 px-4 py-2 rounded-full text-xs"
                       style={isConnected ? {} : { background: '#e5e7eb', color: '#94a3b8', boxShadow: 'none', cursor: 'not-allowed' }}>
-                      {callLoading === item.id ? '...' : isConnected ? 'Call' : 'Offline'}
+                      {callLoading === item.id ? '...' : isConnected ? t('extensions.call') : t('extensions.offline')}
                     </button>
                   </div>
                 );

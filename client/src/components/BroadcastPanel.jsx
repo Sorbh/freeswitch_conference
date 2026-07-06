@@ -1,18 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 
-function formatTimeAgo(unixTs) {
+function formatTimeAgo(unixTs, t) {
   const diff = Math.floor(Date.now() / 1000) - unixTs;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-  return Math.floor(diff / 86400) + 'd ago';
+  if (diff < 60) return t('broadcastPanel.justNow');
+  if (diff < 3600) return t('broadcastPanel.minutesAgo', { n: Math.floor(diff / 60) });
+  if (diff < 86400) return t('broadcastPanel.hoursAgo', { n: Math.floor(diff / 3600) });
+  return t('broadcastPanel.daysAgo', { n: Math.floor(diff / 86400) });
 }
 
-function formatDuration(ms) {
+function formatDuration(ms, t) {
   if (!ms) return '--';
   const s = Math.round(ms / 1000);
-  return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  return s < 60 ? t('broadcastPanel.durationSeconds', { n: s }) : t('broadcastPanel.durationMinutes', { m: Math.floor(s / 60), s: s % 60 });
 }
 
 function parseParticipants(raw) {
@@ -35,16 +36,16 @@ function parsePartDetails(raw) {
   } catch { return null; }
 }
 
-function parsePartDetailsExpanded(raw) {
+function parsePartDetailsExpanded(raw, t) {
   if (!raw) return null;
   try {
     const d = typeof raw === 'string' ? JSON.parse(raw) : raw;
     const rows = {};
-    if (d.year && d.year !== 'null') rows.Year = d.year;
-    if (d.make && d.make !== 'null') rows.Make = d.make;
-    if (d.model && d.model !== 'null') rows.Model = d.model;
-    if (d.part && d.part !== 'null') rows.Part = d.part;
-    if (d.specification && d.specification !== 'null') rows.Spec = d.specification;
+    if (d.year && d.year !== 'null') rows[t('broadcastPanel.year')] = d.year;
+    if (d.make && d.make !== 'null') rows[t('broadcastPanel.make')] = d.make;
+    if (d.model && d.model !== 'null') rows[t('broadcastPanel.model')] = d.model;
+    if (d.part && d.part !== 'null') rows[t('broadcastPanel.part')] = d.part;
+    if (d.specification && d.specification !== 'null') rows[t('broadcastPanel.spec')] = d.specification;
     return Object.keys(rows).length ? rows : null;
   } catch { return null; }
 }
@@ -52,20 +53,22 @@ function parsePartDetailsExpanded(raw) {
 const PHONE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>';
 
 function CallButton({ extension, onClick }) {
+  const { t } = useTranslation('dashboard');
   if (!extension) return null;
   return (
     <button
       onClick={e => { e.stopPropagation(); onClick(extension); }}
-      title="Call this yard"
+      title={t('broadcastPanel.callThisYard')}
       style={{ fontFamily: 'var(--mono)', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer', flexShrink: 0, background: 'var(--red)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 3 }}
     >
       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
-      Call
+      {t('broadcastPanel.call')}
     </button>
   );
 }
 
 export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHeader = false }) {
+  const { t } = useTranslation('dashboard');
   const { token, account } = useAuth();
   const currentRoom = account?.current_room || account?.room;
   const [broadcasts, setBroadcasts] = useState([]);
@@ -168,7 +171,7 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
         onClick={onToggle}
         className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-8 rounded-l-xl"
         style={{ height: 80, background: 'var(--ink)', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '-4px 0 16px rgba(22,24,29,0.15)' }}
-        title="Show broadcasts"
+        title={t('broadcastPanel.showBroadcasts')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
       </button>
@@ -179,8 +182,8 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)', borderLeft: '1px solid var(--line)' }}>
       {!hideHeader && (
         <div className="flex items-center justify-between px-4 flex-shrink-0" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', height: 64 }}>
-          <h3 className="hq-label" style={{ marginBottom: 0 }} title="Total broadcasts from your room">Broadcasts ({total})</h3>
-          <button onClick={onToggle} className="p-1.5 rounded-lg" style={{ color: 'var(--muted)', background: 'transparent', border: 'none', cursor: 'pointer' }} title="Hide panel">
+          <h3 className="hq-label" style={{ marginBottom: 0 }} title={t('broadcastPanel.totalTitle')}>{t('broadcastPanel.titleWithCount', { count: total })}</h3>
+          <button onClick={onToggle} className="p-1.5 rounded-lg" style={{ color: 'var(--muted)', background: 'transparent', border: 'none', cursor: 'pointer' }} title={t('broadcastPanel.hidePanel')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
         </div>
@@ -189,8 +192,8 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
       <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {broadcasts.length === 0 && (
           <div className="text-center py-12 px-4">
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>No broadcasts</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--line)' }}>Broadcasts from your room will appear here</p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>{t('broadcastPanel.noBroadcasts')}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--line)' }}>{t('broadcastPanel.noBroadcastsHint')}</p>
           </div>
         )}
 
@@ -215,9 +218,9 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
               disabled={loading}
               className="text-xs font-semibold px-4 py-2 rounded-xl"
               style={{ background: 'var(--band)', color: 'var(--muted)', border: '1px solid var(--line)', cursor: loading ? 'wait' : 'pointer' }}
-              title="Load older broadcasts"
+              title={t('broadcastPanel.loadOlderTitle')}
             >
-              {loading ? 'Loading...' : 'Load more'}
+              {loading ? t('broadcastPanel.loading') : t('broadcastPanel.loadMore')}
             </button>
           </div>
         )}
@@ -227,14 +230,15 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
 }
 
 function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
+  const { t } = useTranslation('dashboard');
   const participants = parseParticipants(b.participants);
   const broadcaster = participants[0];
   const responders = participants.slice(1);
-  const speaker = b.display_name || b.user_name || 'Unknown';
+  const speaker = b.display_name || b.user_name || t('broadcastPanel.unknown');
   const transcript = b.transcription || b.local_transcription;
   const hasRecording = b.has_recording || !!b.recording_path;
   const partsPipe = parsePartDetails(b.part_details);
-  const partsExpanded = parsePartDetailsExpanded(b.part_details);
+  const partsExpanded = parsePartDetailsExpanded(b.part_details, t);
   const isAnswered = b.answered === 1;
 
   const responderNames = responders.map(p => (p.displayName || p.userName || '').split(' / ').pop()).filter(Boolean);
@@ -243,7 +247,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
     <div
       className="hq-card"
       onClick={onToggle}
-      title="Click to expand details"
+      title={t('broadcastPanel.expandTitle')}
       style={{
         padding: '14px 16px',
         cursor: 'pointer',
@@ -255,7 +259,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
     >
       {/* Status badge — top left */}
       <span
-        title={isAnswered ? 'Another yard responded to this broadcast' : 'Nobody responded to this broadcast'}
+        title={isAnswered ? t('broadcastPanel.answeredTitle') : t('broadcastPanel.unansweredTitle')}
         style={{
           fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
           padding: '3px 10px', borderRadius: 999, display: 'inline-block', marginBottom: 8,
@@ -263,7 +267,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
           color: isAnswered ? 'var(--green)' : 'var(--red)',
         }}
       >
-        {isAnswered ? 'Answered' : 'Unanswered'}
+        {isAnswered ? t('broadcastPanel.answered') : t('broadcastPanel.unanswered')}
       </span>
 
       {/* Play + speaker + time */}
@@ -271,7 +275,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
         {hasRecording ? (
           <button
             onClick={onPlay}
-            title={playing ? 'Playing — click to stop' : 'Play recording'}
+            title={playing ? t('broadcastPanel.playingTitle') : t('broadcastPanel.playTitle')}
             style={{
               width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, color: '#fff', border: 'none', cursor: 'pointer',
@@ -282,7 +286,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
           </button>
         ) : (
           <div
-            title="No recording available"
+            title={t('broadcastPanel.noRecordingTitle')}
             style={{
               width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, color: '#fff',
@@ -296,24 +300,24 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
-              <span className="marquee-name" title={'Broadcaster — ' + speaker} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+              <span className="marquee-name" title={t('broadcastPanel.broadcasterTitle', { name: speaker })} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                 <span className="marquee-inner">{speaker}</span>
               </span>
               {broadcaster?.extension && <CallButton extension={broadcaster.extension} onClick={onCall} />}
             </div>
-            <span title="Time since broadcast" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-              {formatTimeAgo(b.created_at)}
+            <span title={t('broadcastPanel.timeSinceTitle')} style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+              {formatTimeAgo(b.created_at, t)}
             </span>
           </div>
 
           <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
-            <span title="Broadcast duration">{formatDuration(b.duration_ms)}</span>
-            {b.listener_count > 0 && <span title="Yards connected to the room during broadcast"> · {b.listener_count} listening</span>}
+            <span title={t('broadcastPanel.durationTitle')}>{formatDuration(b.duration_ms, t)}</span>
+            {b.listener_count > 0 && <span title={t('broadcastPanel.listeningTitle')}> · {t('broadcastPanel.listening', { count: b.listener_count })}</span>}
           </div>
 
           {/* Part details pipe — collapsed */}
           {partsPipe && !expanded && (
-            <div title="Part request — Year | Make | Model | Part | Specification" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div title={t('broadcastPanel.partPipeTitle')} style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {partsPipe.map((v, i) => (
                 <span key={i}>
                   {i > 0 && <span style={{ color: 'var(--line)', margin: '0 3px' }}>|</span>}
@@ -327,8 +331,8 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
 
       {/* Responders — collapsed */}
       {!expanded && isAnswered && responderNames.length > 0 && (
-        <div title="Yards that unmuted to respond" style={{ fontSize: 11, color: 'var(--green)', marginTop: 6, paddingLeft: 48, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <span style={{ color: 'var(--muted)' }}>Responded By</span> — {responderNames.join(', ')}
+        <div title={t('broadcastPanel.respondersTitle')} style={{ fontSize: 11, color: 'var(--green)', marginTop: 6, paddingLeft: 48, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ color: 'var(--muted)' }}>{t('broadcastPanel.respondedBy')}</span> — {responderNames.join(', ')}
         </div>
       )}
 
@@ -337,7 +341,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
         <div className="animate-fadeIn" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
           {/* Part details table */}
           {partsExpanded && (
-            <table title="Extracted part request from the broadcast" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, fontSize: 11 }}>
+            <table title={t('broadcastPanel.partTableTitle')} style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, fontSize: 11 }}>
               <thead>
                 <tr>
                   {Object.keys(partsExpanded).map(k => (
@@ -357,8 +361,8 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
 
           {/* Transcript */}
           {transcript && (
-            <div title="AI-generated transcript of the broadcast audio" style={{ background: 'var(--band)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>Transcript</div>
+            <div title={t('broadcastPanel.transcriptTitle')} style={{ background: 'var(--band)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>{t('broadcastPanel.transcript')}</div>
               <p style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--ink)', margin: 0 }}>{transcript}</p>
             </div>
           )}
@@ -366,23 +370,23 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
           {/* Participants */}
           {isAnswered && participants.length > 0 && (
             <div>
-              <div title="Yards that were part of this broadcast conversation" style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
-                Participants ({participants.length})
+              <div title={t('broadcastPanel.participantsTitle')} style={{ fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>
+                {t('broadcastPanel.participantsCount', { count: participants.length })}
               </div>
               {participants.map((p, i) => {
                 const isBroadcaster = i === 0;
                 return (
                   <div
                     key={i}
-                    title={isBroadcaster ? 'Broadcaster — the yard that initiated the request' : 'Responder — unmuted to answer the request'}
+                    title={isBroadcaster ? t('broadcastPanel.broadcasterRoleTitle') : t('broadcastPanel.responderRoleTitle')}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', overflow: 'hidden' }}
                   >
-                    <span title={isBroadcaster ? 'Speaker' : 'Responder'} style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: isBroadcaster ? 'var(--red)' : 'var(--green)' }} />
+                    <span title={isBroadcaster ? t('broadcastPanel.speaker') : t('broadcastPanel.responder')} style={{ width: 5, height: 5, borderRadius: '50%', flexShrink: 0, background: isBroadcaster ? 'var(--red)' : 'var(--green)' }} />
                     <span className="marquee-name" style={{ fontSize: 12, color: 'var(--ink)', flex: 1, minWidth: 0 }}>
                       <span className="marquee-inner">{p.displayName || p.userName}</span>
                     </span>
                     <CallButton extension={p.extension} onClick={onCall} />
-                    {!p.extension && <span title="No extension assigned" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', flexShrink: 0 }}>—</span>}
+                    {!p.extension && <span title={t('broadcastPanel.noExtensionTitle')} style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', flexShrink: 0 }}>—</span>}
                   </div>
                 );
               })}
@@ -392,7 +396,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
           {/* Response time */}
           {isAnswered && b.response_time_ms !== null && b.response_time_ms !== undefined && (
             <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)', marginTop: 10 }}>
-              <span title="How fast the first yard responded">responded {b.response_time_ms === 0 ? 'instantly' : 'in ' + (b.response_time_ms / 1000).toFixed(1) + 's'}</span>
+              <span title={t('broadcastPanel.responseTimeTitle')}>{b.response_time_ms === 0 ? t('broadcastPanel.respondedInstantly') : t('broadcastPanel.respondedIn', { seconds: (b.response_time_ms / 1000).toFixed(1) })}</span>
             </div>
           )}
         </div>

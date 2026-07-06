@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Toaster, toast } from 'sonner';
 
 const PUBLIC_SIGNUP_ROOMS = [
@@ -21,6 +22,7 @@ const PUBLIC_SIGNUP_ROOMS = [
 ];
 
 export default function SignupPage() {
+  const { t } = useTranslation("auth");
   const [form, setForm] = useState({ email: '', password: '', company_name: '', room: '', referral_code: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -113,7 +115,7 @@ export default function SignupPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-      setSuccess(json.message || 'Account created! Check your email to verify.');
+      setSuccess(json.message || t("signup.accountCreated"));
     } catch (err) {
       setError(err.message);
       setShake(true);
@@ -133,7 +135,7 @@ export default function SignupPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
-      toast.success(json.message || 'Verification email sent.');
+      toast.success(json.message || t("signup.verificationSent"));
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -151,13 +153,13 @@ export default function SignupPage() {
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2">Check Your Email</h2>
+          <h2 className="text-xl font-bold mb-2">{t("signup.checkEmail")}</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>{success}</p>
           <Link to="/client/login" className="hq-btn inline-block px-6 py-3">
-            Go to Login
+            {t("signup.goToLogin")}
           </Link>
           <div className="mt-4">
-            <span className="text-sm" style={{ color: 'var(--muted)' }}>Didn't get it? </span>
+            <span className="text-sm" style={{ color: 'var(--muted)' }}>{t("signup.didntGetIt")}{' '}</span>
             <button
               type="button"
               onClick={handleResend}
@@ -172,7 +174,7 @@ export default function SignupPage() {
                 opacity: resending ? 0.6 : 1,
               }}
             >
-              {resending ? 'Sending...' : 'Resend verification email'}
+              {resending ? t("signup.sending") : t("signup.resendVerification")}
             </button>
           </div>
         </div>
@@ -188,22 +190,22 @@ export default function SignupPage() {
           {hasUrlCompany ? (
             <>
               <h1 className="text-2xl font-bold text-center" style={{ lineHeight: 1.3 }}>
-                Welcome, {companyFromUrl}
+                {t("signup.welcomeCompany", { company: companyFromUrl })}
               </h1>
               <p className="mt-2 text-sm text-center" style={{ color: 'var(--muted)', maxWidth: '340px', lineHeight: 1.5 }}>
-                Join 500+ yards on the live parts-locating network. Takes 30 seconds.
+                {t("signup.welcomeSubtitle")}
               </p>
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-bold">Join Hotline HQ</h1>
+              <h1 className="text-2xl font-bold">{t("signup.title")}</h1>
               <p className="mt-2 text-sm text-center" style={{ color: 'var(--muted)', maxWidth: '340px', lineHeight: 1.5 }}>
-                The live parts-locating network for auto recyclers. Free to join.
+                {t("signup.subtitle")}
               </p>
             </>
           )}
           <div className="flex flex-wrap justify-center mt-3" style={{ gap: '6px' }}>
-            {['Free Signup', '2 sec response', '+500 yards'].map(label => (
+            {t("signup.badges", { returnObjects: true }).map(label => (
               <span key={label} style={{
                 fontSize: '11px',
                 fontWeight: 600,
@@ -225,13 +227,13 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit}>
             {!hasUrlCompany && (
               <div className="mb-3">
-                <label className="hq-label">Company Name</label>
-                <input type="text" value={form.company_name} onChange={update('company_name')} onBlur={trimField('company_name')} required className="hq-input" placeholder="Acme Auto Parts" />
+                <label className="hq-label">{t("signup.companyName")}</label>
+                <input type="text" value={form.company_name} onChange={update('company_name')} onBlur={trimField('company_name')} required className="hq-input" placeholder={t("signup.companyPlaceholder")} />
               </div>
             )}
 
             <div className="mb-3">
-              <label className="hq-label">Email</label>
+              <label className="hq-label">{t("signup.email")}</label>
               <input
                 type="email"
                 value={form.email}
@@ -241,12 +243,12 @@ export default function SignupPage() {
                 autoFocus={!hasUrlCompany}
                 autoComplete="email"
                 className="hq-input"
-                placeholder="you@company.com"
+                placeholder={t("signup.emailPlaceholder")}
               />
             </div>
 
             <div className="mb-4">
-              <label className="hq-label">Password</label>
+              <label className="hq-label">{t("signup.password")}</label>
               <input
                 ref={passwordRef}
                 type="password"
@@ -256,13 +258,13 @@ export default function SignupPage() {
                 minLength={6}
                 autoComplete="new-password"
                 className="hq-input"
-                placeholder="At least 6 characters"
+                placeholder={t("signup.passwordPlaceholder")}
               />
             </div>
 
             {!hasUrlCompany && !hasUrlRoom && (
               <div className="mb-4">
-                <label className="hq-label">Starting Room <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
+                <label className="hq-label">{t("signup.startingRoom")} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>{t("signup.optional")}</span></label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {visibleRooms.map(room => {
                     const selected = String(form.room) === String(room.id);
@@ -297,14 +299,14 @@ export default function SignupPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    {showMoreRooms ? 'Show fewer rooms' : `Show ${hiddenRoomCount} more rooms`}
+                    {showMoreRooms ? t("signup.showFewerRooms") : t("signup.showMoreRooms", { count: hiddenRoomCount })}
                   </button>
                 )}
               </div>
             )}
 
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">
-              {loading ? 'Creating account...' : 'Create Free Account'}
+              {loading ? t("signup.creatingAccount") : t("signup.createFreeAccount")}
             </button>
 
             <div className="mt-4 rounded-lg px-4 py-2.5 flex items-center justify-center gap-3" style={{
@@ -317,18 +319,18 @@ export default function SignupPage() {
                 color: '#fff',
                 letterSpacing: '0.08em',
                 flexShrink: 0,
-              }}>Offer</span>
+              }}>{t("signup.offer")}</span>
               <span className="text-base" style={{ color: 'var(--ink)' }}>
-                Signup and get a <span className="font-semibold" style={{ color: 'var(--red)' }}>free website</span> <span style={{ color: 'var(--muted)', fontSize: '0.65rem', verticalAlign: 'super' }}>*</span>
+                {t("signup.offerText")} <span className="font-semibold" style={{ color: 'var(--red)' }}>{t("signup.offerHighlight")}</span> <span style={{ color: 'var(--muted)', fontSize: '0.65rem', verticalAlign: 'super' }}>*</span>
               </span>
             </div>
           </form>
         </div>
 
         <div className="mt-6 text-center">
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>Already have an account? </span>
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>{t("signup.alreadyHaveAccount")}{' '}</span>
           <Link to="/client/login" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>
-            Sign in
+            {t("signup.signIn")}
           </Link>
         </div>
       </div>

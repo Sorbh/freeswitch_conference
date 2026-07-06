@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { HQMark } from "./landing2/site";
 
 const PUBLIC_LOGIN_URL = "https://hotline.redlineusedautoparts.com/client/login";
@@ -66,6 +67,7 @@ function buildSignupUrl(roomName) {
 }
 
 function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
+  const { t } = useTranslation("landing");
   const audioRef = useRef(null);
   const trackRef = useRef(null);
   const animRef = useRef(null);
@@ -197,7 +199,7 @@ function AudioPlayer({ src, knownDurationMs, onPlayStart }) {
         onCanPlay={() => setAudioReady(true)}
       />
       <div className="bp-player-row">
-        <button className="bp-play-btn" onClick={toggle} aria-label={playing ? "Pause" : "Play"} disabled={!audioReady} style={{ opacity: audioReady ? 1 : 0.5 }}>
+        <button className="bp-play-btn" onClick={toggle} aria-label={playing ? t("publicBroadcast.pause") : t("publicBroadcast.play")} disabled={!audioReady} style={{ opacity: audioReady ? 1 : 0.5 }}>
           {!audioReady ? (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}>
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -291,6 +293,7 @@ function LoadingState() {
 }
 
 function ErrorState({ message }) {
+  const { t } = useTranslation("landing");
   return (
     <div className="bp-wrap">
       <div className="bp-header">
@@ -309,12 +312,12 @@ function ErrorState({ message }) {
               <path d="M15 9l-6 6M9 9l6 6" />
             </svg>
           </div>
-          <h2 className="bp-error-title">Broadcast Not Found</h2>
+          <h2 className="bp-error-title">{t("publicBroadcast.errorTitle")}</h2>
           <p className="bp-error-msg">
-            {message || "This broadcast link may have been revoked or is no longer available."}
+            {message || t("publicBroadcast.errorMessage")}
           </p>
           <Link to="/" className="bp-error-link">
-            Go to Hotline HQ &rarr;
+            {t("publicBroadcast.errorLink")}
           </Link>
         </div>
       </main>
@@ -323,6 +326,7 @@ function ErrorState({ message }) {
 }
 
 export default function PublicBroadcastPage() {
+  const { t } = useTranslation("landing");
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -357,7 +361,7 @@ export default function PublicBroadcastPage() {
 
   useEffect(() => {
     if (data) {
-      document.title = `Broadcast by ${data.display_name || "Unknown"} — Hotline HQ`;
+      document.title = t("publicBroadcast.docTitle", { name: data.display_name || t("publicBroadcast.unknown") });
       setClarityTags({
         public_broadcast_id: data.id,
         public_broadcast_room: data.room_name || "unknown",
@@ -367,7 +371,7 @@ export default function PublicBroadcastPage() {
       });
       trackClarityEvent("public_broadcast_loaded");
     } else {
-      document.title = "Broadcast — Hotline HQ";
+      document.title = t("publicBroadcast.docTitleFallback");
     }
   }, [data]);
 
@@ -420,7 +424,7 @@ export default function PublicBroadcastPage() {
           </span>
         </Link>
         <div className="bp-header-side">
-          <span className="bp-header-label">Shared Broadcast</span>
+          <span className="bp-header-label">{t("publicBroadcast.sharedBroadcast")}</span>
         </div>
       </div>
 
@@ -433,47 +437,42 @@ export default function PublicBroadcastPage() {
             <div className="bp-hero-inner">
               <div className="bp-hero-chip">
                 <span className="bp-hero-live-dot" />
-                Live network · 12 regional rooms
+                {t("hero.chip")}
               </div>
 
-              <p className="bp-hero-eyebrow">The parts-locating voice network for auto recyclers</p>
+              <p className="bp-hero-eyebrow">{t("hero.eyebrow")}</p>
 
-              <h1 className="bp-hero-headline">
-                Every &ldquo;we don&rsquo;t have it&rdquo; is a customer walking out.{" "}
-                <em>It doesn&rsquo;t have to be.</em>
-              </h1>
+              <h1 className="bp-hero-headline" dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
 
               <p className="bp-hero-sub">
-                The part you don&rsquo;t have is sitting in somebody&rsquo;s yard.
-                Hotline HQ connects 500+ salvage yards — broadcast once, get an answer
-                in seconds, and keep the sale.
+                {t("publicBroadcast.heroSub")}
               </p>
 
               <div className="bp-hero-ctas">
                 <a href={signupUrl} className="bp-hero-btn-hot" onClick={handleSignupClick}>
-                  Sign Up Free
+                  {t("common:nav.signUpFree")}
                 </a>
                 <a href={PUBLIC_LOGIN_URL} className="bp-hero-btn-ghost" onClick={handleLoginClick}>
-                  Login
+                  {t("common:nav.login")}
                 </a>
               </div>
 
               <div className="bp-hero-stats-row">
                 <div className="bp-hero-stat-item">
                   <strong>500+</strong>
-                  <span>member yards</span>
+                  <span>{t("stats.memberYards")}</span>
                 </div>
                 <div className="bp-hero-stat-item">
                   <strong>12</strong>
-                  <span>regional rooms</span>
+                  <span>{t("stats.regionalRooms")}</span>
                 </div>
                 <div className="bp-hero-stat-item">
                   <strong>2s</strong>
-                  <span>typical answer</span>
+                  <span>{t("stats.typicalAnswer")}</span>
                 </div>
                 <div className="bp-hero-stat-item">
                   <strong>24/7</strong>
-                  <span>line monitoring</span>
+                  <span>{t("stats.lineMonitoring")}</span>
                 </div>
               </div>
             </div>
@@ -488,19 +487,20 @@ export default function PublicBroadcastPage() {
                 {(data.display_name || "H")[0].toUpperCase()}
               </span>
               <div className="bp-head-copy">
-                <p className="bp-kicker">Live broadcast</p>
-                <h1 className="bp-speaker">{data.display_name || "Unknown Speaker"}</h1>
+                <p className="bp-kicker">{t("publicBroadcast.kicker")}</p>
+                <h1 className="bp-speaker">{data.display_name || t("publicBroadcast.unknownSpeaker")}</h1>
                 <p className="bp-timestamp">
-                  {formatTimestamp(data.created_at)}
-                  {" at "}
-                  {formatTime(data.created_at)}
+                  {t("publicBroadcast.dateAtTime", {
+                    date: formatTimestamp(data.created_at),
+                    time: formatTime(data.created_at),
+                  })}
                 </p>
               </div>
             </div>
 
             <span className={`bp-badge ${data.answered ? "bp-badge-ok" : "bp-badge-miss"}`}>
               <span className="bp-badge-dot" />
-              {data.answered ? "Answered" : "Unanswered"}
+              {data.answered ? t("publicBroadcast.answered") : t("publicBroadcast.unanswered")}
             </span>
           </div>
 
@@ -508,22 +508,22 @@ export default function PublicBroadcastPage() {
             <div className="bp-stat-pill">
               <span className="bp-stat-dot" style={{ background: "var(--red)" }} />
               <div>
-                <span className="bp-stat-value">{data.room_name || "Room"}</span>
-                <span className="bp-stat-label">Room</span>
+                <span className="bp-stat-value">{data.room_name || t("publicBroadcast.roomFallback")}</span>
+                <span className="bp-stat-label">{t("publicBroadcast.roomLabel")}</span>
               </div>
             </div>
             <div className="bp-stat-pill">
               <span className="bp-stat-dot" style={{ background: "var(--green)" }} />
               <div>
                 <span className="bp-stat-value">{data.listener_count || 0}</span>
-                <span className="bp-stat-label">Listeners</span>
+                <span className="bp-stat-label">{t("publicBroadcast.listenersLabel")}</span>
               </div>
             </div>
             <div className="bp-stat-pill">
               <span className="bp-stat-dot" style={{ background: "#f59e0b" }} />
               <div>
                 <span className="bp-stat-value">{data.participant_count || 1}</span>
-                <span className="bp-stat-label">Participants</span>
+                <span className="bp-stat-label">{t("publicBroadcast.participantsLabel")}</span>
               </div>
             </div>
             <div className="bp-stat-pill">
@@ -532,13 +532,13 @@ export default function PublicBroadcastPage() {
                 <span className="bp-stat-value">
                   {data.answered
                     ? data.response_time_ms === 0
-                      ? "Instant"
+                      ? t("publicBroadcast.instant")
                       : data.response_time_ms == null
-                        ? "Answered"
+                        ? t("publicBroadcast.answered")
                         : formatDuration(data.response_time_ms)
-                    : "No reply"}
+                    : t("publicBroadcast.noReply")}
                 </span>
-                <span className="bp-stat-label">Response</span>
+                <span className="bp-stat-label">{t("publicBroadcast.responseLabel")}</span>
               </div>
             </div>
           </div>
@@ -553,7 +553,7 @@ export default function PublicBroadcastPage() {
                   <line x1="12" y1="19" x2="12" y2="23" />
                   <line x1="8" y1="23" x2="16" y2="23" />
                 </svg>
-                Recording
+                {t("publicBroadcast.recording")}
               </div>
               <AudioPlayer
                 src={`/api/v1/public/broadcast/${token}/audio`}
@@ -562,9 +562,11 @@ export default function PublicBroadcastPage() {
               />
               {showAudioNudge && (
                 <p className="bp-audio-nudge">
-                  Hear calls like this live —{" "}
+                  {t("publicBroadcast.nudgeLead")}{" "}
                   <a href={signupUrl} target="_blank" rel="noopener noreferrer" onClick={handleSignupClick}>
-                    {data.room_name ? `${data.room_name} room` : "12 rooms"} running right now
+                    {data.room_name
+                      ? t("publicBroadcast.nudgeRoomLive", { room: data.room_name })
+                      : t("publicBroadcast.nudgeRoomsLive")}
                   </a>
                 </p>
               )}
@@ -581,7 +583,7 @@ export default function PublicBroadcastPage() {
                   <line x1="12" y1="19" x2="12" y2="23" />
                   <line x1="8" y1="23" x2="16" y2="23" />
                 </svg>
-                Broadcaster
+                {t("publicBroadcast.broadcaster")}
               </div>
               <div className="bp-participant-list">
                 <div className="bp-participant bp-broadcaster">
@@ -606,7 +608,7 @@ export default function PublicBroadcastPage() {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                Responders
+                {t("publicBroadcast.responders")}
               </div>
               <div className="bp-participant-list">
                 {data.participants.filter(p => p.displayName !== data.display_name).map((p, i) => (
@@ -615,7 +617,7 @@ export default function PublicBroadcastPage() {
                       {(p.displayName || "?")[0].toUpperCase()}
                     </span>
                     <span className="bp-participant-name">
-                      {p.displayName || "Unknown"}
+                      {p.displayName || t("publicBroadcast.unknown")}
                     </span>
                   </div>
                 ))}
@@ -634,7 +636,7 @@ export default function PublicBroadcastPage() {
                   <line x1="16" y1="17" x2="8" y2="17" />
                   <polyline points="10 9 9 9 8 9" />
                 </svg>
-                Transcript
+                {t("publicBroadcast.transcript")}
               </div>
               <div className="bp-transcript-text">{data.transcription}</div>
             </div>
@@ -647,15 +649,15 @@ export default function PublicBroadcastPage() {
 
       <footer className="bp-footer">
         <HQMark size={20} />
-        <span>Powered by Hotline HQ</span>
+        <span>{t("publicBroadcast.poweredBy")}</span>
       </footer>
 
       {/* Sticky bottom CTA bar */}
       <div className="bp-sticky-cta">
         <div className="bp-sticky-cta-inner">
           <div className="bp-sticky-cta-copy">
-            <strong>Join the hotline</strong>
-            <span>Free signup · No card required</span>
+            <strong>{t("publicBroadcast.stickyTitle")}</strong>
+            <span>{t("publicBroadcast.stickySub")}</span>
           </div>
           <a
             href={signupUrl}
@@ -664,7 +666,7 @@ export default function PublicBroadcastPage() {
             className="bp-sticky-cta-btn"
             onClick={handleSignupClick}
           >
-            Sign up free
+            {t("publicBroadcast.stickyButton")}
           </a>
         </div>
       </div>

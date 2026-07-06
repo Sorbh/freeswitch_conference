@@ -23,10 +23,7 @@ export default function LanguageSwitcher({ light = false }) {
   }, []);
 
   function change(code) {
-    const lang = LANGUAGES.find((l) => l.code === code);
     i18n.changeLanguage(code);
-    document.documentElement.dir = lang?.dir || "ltr";
-    document.documentElement.lang = code;
     setOpen(false);
   }
 

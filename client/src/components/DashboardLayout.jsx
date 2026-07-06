@@ -1,18 +1,20 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const BroadcastPanel = lazy(() => import('./BroadcastPanel'));
 
 const BOTTOM_NAV_ITEMS = [
-  { to: '/client/dashboard', label: 'Conference', icon: PhoneIcon, end: true },
-  { to: '/client/dashboard/extensions', label: 'Extensions', icon: GridIcon },
-  { to: '/client/dashboard/settings', label: 'Account', icon: UserIcon },
+  { to: '/client/dashboard', labelKey: 'layout.nav.conference', icon: PhoneIcon, end: true },
+  { to: '/client/dashboard/extensions', labelKey: 'layout.nav.extensions', icon: GridIcon },
+  { to: '/client/dashboard/settings', labelKey: 'layout.nav.account', icon: UserIcon },
 ];
 
 const SIDEBAR_NAV_ITEMS = [
   ...BOTTOM_NAV_ITEMS,
-  { to: '/client/dashboard/request-room', label: 'Request Room', icon: PlusIcon },
+  { to: '/client/dashboard/request-room', labelKey: 'layout.nav.requestRoom', icon: PlusIcon },
 ];
 
 const CONN_COLORS = {
@@ -76,6 +78,7 @@ function getMissingProfileFields(account) {
 }
 
 export default function DashboardLayout() {
+  const { t } = useTranslation('dashboard');
   const { account, token, logout, apiFetch, refreshAccount } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -249,7 +252,7 @@ export default function DashboardLayout() {
     }
     function handleLoginFailed(msg) {
       setConnState('error');
-      setConnError(msg || 'Login failed');
+      setConnError(msg || t('layout.loginFailed'));
     }
     window.onHotlineReady = function () {
       if (window.hotlineClient?.isConnected()) {
@@ -335,12 +338,12 @@ export default function DashboardLayout() {
       const target = dashboardRef.current || document.documentElement;
       const requestFullscreen = target.requestFullscreen || target.webkitRequestFullscreen;
       if (!requestFullscreen) {
-        showFullscreenMessage('Fullscreen is not supported in this browser. Use Add to Home Screen for the best mobile view.');
+        showFullscreenMessage(t('layout.fullscreenUnsupported'));
         return;
       }
       await requestFullscreen.call(target);
     } catch (err) {
-      showFullscreenMessage(err?.message || 'Fullscreen request failed. Tap the button again.');
+      showFullscreenMessage(err?.message || t('layout.fullscreenFailed'));
     }
   }
 
@@ -362,7 +365,7 @@ export default function DashboardLayout() {
     if (location.pathname === '/client/dashboard') {
       setRoomDropdownOpen(false);
       setRoomChangeHelpOpen(false);
-      setPendingRoomChange(nextRoom || { id: newRoomId, name: `Room ${newRoomId}` });
+      setPendingRoomChange(nextRoom || { id: newRoomId, name: t('layout.roomFallback', { id: newRoomId }) });
       return;
     }
     await performRoomChange(newRoomId);
@@ -435,18 +438,6 @@ export default function DashboardLayout() {
     }
   }
 
-  function openBroadcastHelp() {
-    if (location.pathname.endsWith('/extensions')) {
-      setExtensionHelpOpen(true);
-      setBroadcastHelpOpen(false);
-      setRoomChangeHelpOpen(false);
-      return;
-    }
-    setBroadcastHelpOpen(true);
-    setExtensionHelpOpen(false);
-    setRoomChangeHelpOpen(false);
-  }
-
   function openRoomChangeHelp() {
     setRoomDropdownOpen(false);
     setRoomChangeHelpOpen(true);
@@ -469,10 +460,9 @@ export default function DashboardLayout() {
 
   const currentRoomId = account?.current_room || account?.room;
   const currentRoom = rooms.find(r => r.id === currentRoomId);
-  const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? `Room ${currentRoomId}` : '');
+  const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? t('layout.roomFallback', { id: currentRoomId }) : '');
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
-  const onExtensionsPage = location.pathname.endsWith('/extensions');
 
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
@@ -484,7 +474,7 @@ export default function DashboardLayout() {
           </div>
           <div>
             <div className="text-sm font-bold tracking-tight" style={{ fontFamily: 'var(--display)' }}>Hotline HQ</div>
-            <div className="text-[10px] font-medium tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.4)' }}>Client</div>
+            <div className="text-[10px] font-medium tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.4)' }}>{t('layout.client')}</div>
           </div>
         </div>
 
@@ -503,7 +493,7 @@ export default function DashboardLayout() {
               style={({ isActive }) => isActive ? { background: 'var(--red)' } : {}}
             >
               <item.icon />
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
@@ -547,13 +537,13 @@ export default function DashboardLayout() {
                         className="flex items-center gap-1 text-[10px] font-semibold tracking-widest uppercase hover:opacity-80 transition-opacity"
                         style={{ fontFamily: 'var(--mono)', color: 'var(--red)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                       >
-                        {changingRoom ? 'Switching...' : roomLabel}
+                        {changingRoom ? t('layout.switching') : roomLabel}
                         <ChevronDownIcon />
                       </button>
                       <button
                         type="button"
                         onClick={openRoomChangeHelp}
-                        title="How room change works"
+                        title={t('layout.roomChangeHelpTitle')}
                         className="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-red-50"
                         style={{ color: 'var(--muted)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
                       >
@@ -585,7 +575,7 @@ export default function DashboardLayout() {
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               {r.id === currentRoomId && (
-                                <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--red)' }}>Current</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--red)' }}>{t('layout.current')}</span>
                               )}
                               <span className="w-2 h-2 rounded-full" style={{ background: r.online > 0 ? 'var(--green)' : 'var(--line)' }} />
                               <span className="text-[10px] font-mono font-semibold" style={{ color: 'var(--muted)' }}>{r.online}</span>
@@ -603,7 +593,7 @@ export default function DashboardLayout() {
               {/* Mobile broadcast panel toggle */}
               <button
                 onClick={() => setMobileBroadcastOpen(true)}
-                title="Broadcasts"
+                title={t('layout.broadcasts')}
                 className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
                 style={{ color: 'var(--muted)' }}
               >
@@ -612,31 +602,24 @@ export default function DashboardLayout() {
               {/* Desktop broadcast panel toggle */}
               <button
                 onClick={toggleBroadcastPanel}
-                title={broadcastPanelOpen ? 'Hide broadcasts' : 'Show broadcasts'}
+                title={broadcastPanelOpen ? t('layout.hideBroadcasts') : t('layout.showBroadcasts')}
                 className="hidden md:flex w-8 h-8 rounded-lg items-center justify-center transition-colors hover:bg-red-50"
                 style={{ color: broadcastPanelOpen ? 'var(--red)' : 'var(--muted)' }}
               >
                 <BroadcastNavIcon />
               </button>
               <button
-                onClick={openBroadcastHelp}
-                title={onExtensionsPage ? 'What are extensions?' : 'How to broadcast'}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
-                style={{ color: 'var(--muted)' }}
-              >
-                <InfoIcon />
-              </button>
-              <button
                 onClick={toggleFullscreen}
-                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                title={isFullscreen ? t('layout.exitFullscreen') : t('layout.enterFullscreen')}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
                 style={{ color: isFullscreen ? 'var(--red)' : 'var(--muted)' }}
               >
                 {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
               </button>
+              <LanguageSwitcher />
               <button
                 onClick={handleLogout}
-                title="Logout"
+                title={t('layout.logout')}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
                 style={{ color: 'var(--muted)' }}
               >
@@ -703,7 +686,7 @@ export default function DashboardLayout() {
           >
             <item.icon size={20} />
             <span className="text-[10px] font-semibold tracking-wide" style={{ fontFamily: 'var(--mono)' }}>
-              {item.label}
+              {t(item.labelKey)}
             </span>
           </NavLink>
         ))}
@@ -760,7 +743,7 @@ export default function DashboardLayout() {
             style={{ top: 56, background: 'var(--surface)', borderTopLeftRadius: 20, borderTopRightRadius: 20, boxShadow: '0 -8px 40px rgba(17,24,39,0.18)' }}
           >
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--line)' }}>
-              <div className="text-sm font-bold" style={{ fontFamily: 'var(--display)', color: 'var(--ink)' }}>Broadcasts</div>
+              <div className="text-sm font-bold" style={{ fontFamily: 'var(--display)', color: 'var(--ink)' }}>{t('layout.broadcasts')}</div>
               <button
                 onClick={() => setMobileBroadcastOpen(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -784,8 +767,9 @@ export default function DashboardLayout() {
 }
 
 function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changing, onCancel, onConfirm }) {
-  const currentLabel = currentRoom?.name || (currentRoomId ? `Room ${currentRoomId}` : 'Current room');
-  const nextLabel = nextRoom?.name || `Room ${nextRoom?.id || ''}`;
+  const { t } = useTranslation('dashboard');
+  const currentLabel = currentRoom?.name || (currentRoomId ? t('layout.roomFallback', { id: currentRoomId }) : t('layout.currentRoomFallback'));
+  const nextLabel = nextRoom?.name || t('layout.roomFallback', { id: nextRoom?.id || '' });
 
   return (
     <div
@@ -802,23 +786,23 @@ function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changin
             <SwitchRoomIcon />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Switch room?</h2>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.roomChangeConfirm.title')}</h2>
             <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-              Move your line from <span className="font-semibold" style={{ color: 'var(--ink)' }}>{currentLabel}</span> to <span className="font-semibold" style={{ color: 'var(--ink)' }}>{nextLabel}</span>.
+              <Trans t={t} i18nKey="layout.roomChangeConfirm.body" values={{ from: currentLabel, to: nextLabel }} components={{ b: <span className="font-semibold" style={{ color: 'var(--ink)' }} /> }} />
             </p>
           </div>
         </div>
 
         <div className="mt-5 rounded-xl px-4 py-3" style={{ background: 'var(--band)', border: '1px solid var(--line)' }}>
-          <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Before you switch</div>
+          <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{t('layout.roomChangeConfirm.beforeTitle')}</div>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)', lineHeight: 1.45 }}>
-            The conference will reconnect in the selected room. Finish any active broadcast first.
+            {t('layout.roomChangeConfirm.beforeBody')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-5">
           <button type="button" onClick={onConfirm} disabled={changing} className="hq-btn py-3">
-            {changing ? 'Switching...' : 'Switch Room'}
+            {changing ? t('layout.switching') : t('layout.roomChangeConfirm.confirm')}
           </button>
           <button
             type="button"
@@ -827,7 +811,7 @@ function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changin
             className="px-5 py-3 rounded-xl text-sm font-semibold"
             style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
           >
-            Cancel
+            {t('layout.cancel')}
           </button>
         </div>
       </div>
@@ -836,7 +820,8 @@ function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changin
 }
 
 function RoomChangeHelpOverlay({ currentRoom, currentRoomId, onClose }) {
-  const currentLabel = currentRoom?.name || (currentRoomId ? `Room ${currentRoomId}` : 'Current room');
+  const { t } = useTranslation('dashboard');
+  const currentLabel = currentRoom?.name || (currentRoomId ? t('layout.roomFallback', { id: currentRoomId }) : t('layout.currentRoomFallback'));
 
   return (
     <div className="fixed inset-0 z-[120] pointer-events-none">
@@ -859,21 +844,21 @@ function RoomChangeHelpOverlay({ currentRoom, currentRoomId, onClose }) {
             <SwitchRoomIcon />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Room change</h2>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.roomChangeHelp.title')}</h2>
             <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-              You are currently in <span className="font-semibold" style={{ color: 'var(--ink)' }}>{currentLabel}</span>. The room controls which group hears your broadcast and which yards you hear.
+              <Trans t={t} i18nKey="layout.roomChangeHelp.body" values={{ room: currentLabel }} components={{ b: <span className="font-semibold" style={{ color: 'var(--ink)' }} /> }} />
             </p>
           </div>
         </div>
 
         <div className="mt-5 space-y-3">
-          <HelpPoint title="Pick the right market" text="Use the room name under your company to move between available Hotline HQ rooms." />
-          <HelpPoint title="Switching reconnects the line" text="After you choose a room, the conference reloads and reconnects in that room." />
-          <HelpPoint title="Broadcasts stay local to the room" text="A parts request is heard by the yards in the room you are connected to." />
+          <HelpPoint title={t('layout.roomChangeHelp.point1Title')} text={t('layout.roomChangeHelp.point1Text')} />
+          <HelpPoint title={t('layout.roomChangeHelp.point2Title')} text={t('layout.roomChangeHelp.point2Text')} />
+          <HelpPoint title={t('layout.roomChangeHelp.point3Title')} text={t('layout.roomChangeHelp.point3Text')} />
         </div>
 
         <button type="button" onClick={onClose} className="hq-btn w-full py-3 mt-5">
-          Got it
+          {t('layout.gotIt')}
         </button>
         </div>
       </div>
@@ -882,6 +867,7 @@ function RoomChangeHelpOverlay({ currentRoom, currentRoomId, onClose }) {
 }
 
 function ExtensionHelpModal({ onClose }) {
+  const { t } = useTranslation('dashboard');
   return (
     <div
       className="fixed inset-0 z-[110] flex items-center justify-center px-4 py-6"
@@ -893,21 +879,21 @@ function ExtensionHelpModal({ onClose }) {
             <GridIcon size={19} />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Extensions</h2>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.extensionHelp.title')}</h2>
             <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-              Extensions are short 3-digit numbers for direct yard-to-yard calls inside Hotline HQ.
+              {t('layout.extensionHelp.body')}
             </p>
           </div>
         </div>
 
         <div className="mt-5 space-y-3">
-          <HelpPoint title="Get your number" text="Request an extension first. Once approved, the directory unlocks for your account." />
-          <HelpPoint title="Call another yard" text="Search by company, person, room, or extension, then press Call when they are available." />
-          <HelpPoint title="Stay on the line" text="Your extension works while you are logged in and connected to the Hotline HQ line." />
+          <HelpPoint title={t('layout.extensionHelp.point1Title')} text={t('layout.extensionHelp.point1Text')} />
+          <HelpPoint title={t('layout.extensionHelp.point2Title')} text={t('layout.extensionHelp.point2Text')} />
+          <HelpPoint title={t('layout.extensionHelp.point3Title')} text={t('layout.extensionHelp.point3Text')} />
         </div>
 
         <button type="button" onClick={onClose} className="hq-btn w-full py-3 mt-5">
-          Got it
+          {t('layout.gotIt')}
         </button>
       </div>
     </div>
@@ -927,6 +913,7 @@ function HelpPoint({ title, text }) {
 }
 
 function BroadcastHelpOverlay({ connected, muted, onClose }) {
+  const { t } = useTranslation('dashboard');
   return (
     <div className="fixed inset-0 z-[110] pointer-events-none">
       <div
@@ -954,24 +941,24 @@ function BroadcastHelpOverlay({ connected, muted, onClose }) {
               <MicOnIcon size={18} />
             </div>
             <div>
-              <h2 className="text-base font-bold" style={{ color: 'var(--ink)' }}>Need a part?</h2>
+              <h2 className="text-base font-bold" style={{ color: 'var(--ink)' }}>{t('layout.broadcastHelp.title')}</h2>
               <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-                Unmute, speak your request to the room, then mute again. Other yards in this room can answer live.
+                {t('layout.broadcastHelp.body')}
               </p>
               {!connected && (
                 <p className="text-xs mt-2" style={{ color: 'var(--red)' }}>
-                  The broadcast button appears after the line connects.
+                  {t('layout.broadcastHelp.notConnected')}
                 </p>
               )}
               {connected && (
                 <p className="text-xs mt-2" style={{ color: muted ? 'var(--muted)' : 'var(--green)' }}>
-                  Current mic state: {muted ? 'muted' : 'live'}
+                  {muted ? t('layout.broadcastHelp.micStateMuted') : t('layout.broadcastHelp.micStateLive')}
                 </p>
               )}
             </div>
           </div>
           <button type="button" onClick={onClose} className="hq-btn w-full py-2.5 mt-4">
-            Got it
+            {t('layout.gotIt')}
           </button>
         </div>
       </div>
@@ -980,11 +967,12 @@ function BroadcastHelpOverlay({ connected, muted, onClose }) {
 }
 
 function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave, onSkip }) {
+  const { t } = useTranslation('dashboard');
   const fieldMeta = {
-    display_name: { label: 'Owner Name', placeholder: 'John Smith', type: 'text', autoComplete: 'name' },
-    company_phone: { label: 'Phone Number', placeholder: '(555) 555-5555', type: 'tel', autoComplete: 'tel' },
-    city: { label: 'City', placeholder: 'Phoenix', type: 'text', autoComplete: 'address-level2' },
-    zip: { label: 'Zip Code', placeholder: '85001', type: 'text', autoComplete: 'postal-code' },
+    display_name: { label: t('layout.profileModal.ownerNameLabel'), placeholder: t('layout.profileModal.ownerNamePlaceholder'), type: 'text', autoComplete: 'name' },
+    company_phone: { label: t('layout.profileModal.phoneLabel'), placeholder: t('layout.profileModal.phonePlaceholder'), type: 'tel', autoComplete: 'tel' },
+    city: { label: t('layout.profileModal.cityLabel'), placeholder: t('layout.profileModal.cityPlaceholder'), type: 'text', autoComplete: 'address-level2' },
+    zip: { label: t('layout.profileModal.zipLabel'), placeholder: t('layout.profileModal.zipPlaceholder'), type: 'text', autoComplete: 'postal-code' },
   };
 
   return (
@@ -994,9 +982,9 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
     >
       <div className="hq-card w-full max-w-md p-6 animate-fadeIn" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.22)' }}>
         <div className="mb-5">
-          <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>Complete your profile</h2>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.profileModal.title')}</h2>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            Add any details you want. You can skip this and update it later in Account Settings.
+            {t('layout.profileModal.body')}
           </p>
         </div>
 
@@ -1010,7 +998,7 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
               return (
                 <div key={field}>
                   <label className="hq-label">
-                    {meta.label} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span>
+                    {meta.label} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>{t('layout.profileModal.optional')}</span>
                   </label>
                   <input
                     type={meta.type}
@@ -1027,7 +1015,7 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
 
           <div className="flex items-center gap-3 mt-5">
             <button type="submit" disabled={saving} className="hq-btn flex-1 py-3">
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? t('layout.profileModal.saving') : t('layout.profileModal.save')}
             </button>
             <button
               type="button"
@@ -1036,7 +1024,7 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
               className="px-5 py-3 rounded-xl text-sm font-semibold"
               style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
             >
-              Skip
+              {t('layout.profileModal.skip')}
             </button>
           </div>
         </form>
@@ -1046,6 +1034,7 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
 }
 
 function ListenOnlySidebarCard() {
+  const { t } = useTranslation('dashboard');
   const [micStatus, setMicStatus] = useState('idle'); // idle | requesting | blocked
 
   useEffect(() => {
@@ -1085,8 +1074,8 @@ function ListenOnlySidebarCard() {
           </svg>
         </div>
         <div>
-          <div className="text-xs font-bold" style={{ color: '#93bbfd' }}>Listen Only Mode</div>
-          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Mic is off — you can hear but not talk</div>
+          <div className="text-xs font-bold" style={{ color: '#93bbfd' }}>{t('layout.listenOnly.title')}</div>
+          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{t('layout.listenOnly.subtitle')}</div>
         </div>
       </div>
 
@@ -1108,23 +1097,23 @@ function ListenOnlySidebarCard() {
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" />
           </svg>
-          {micStatus === 'requesting' ? 'Requesting...' : 'Enable Microphone'}
+          {micStatus === 'requesting' ? t('layout.listenOnly.requesting') : t('layout.listenOnly.enableMic')}
         </span>
       </button>
 
       {micStatus === 'blocked' && (
         <div className="mt-3 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
           <div className="text-[11px] font-semibold mb-2" style={{ color: '#fca5a5' }}>
-            Mic was blocked. To fix:
+            {t('layout.listenOnly.blockedTitle')}
           </div>
           <div className="space-y-1.5">
             <div className="flex items-start gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
               <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>1.</span>
-              <span>Click the <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>lock icon</span> in your browser's address bar (top left)</span>
+              <span><Trans t={t} i18nKey="layout.listenOnly.step1" components={{ b: <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }} /> }} /></span>
             </div>
             <div className="flex items-start gap-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
               <span className="font-bold flex-shrink-0" style={{ color: 'rgba(255,255,255,0.7)' }}>2.</span>
-              <span>Find <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>Microphone</span> and change it to <span className="font-semibold" style={{ color: '#86efac' }}>Allow</span></span>
+              <span><Trans t={t} i18nKey="layout.listenOnly.step2" components={{ b: <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }} />, allow: <span className="font-semibold" style={{ color: '#86efac' }} /> }} /></span>
             </div>
           </div>
           <button
@@ -1132,7 +1121,7 @@ function ListenOnlySidebarCard() {
             className="w-full mt-3 py-2 rounded-lg text-[11px] font-bold transition-all"
             style={{ background: 'rgba(255,255,255,0.1)', color: '#93bbfd', border: '1px solid rgba(147,187,253,0.25)', cursor: 'pointer' }}
           >
-            Try Again
+            {t('layout.listenOnly.tryAgain')}
           </button>
         </div>
       )}
@@ -1141,6 +1130,7 @@ function ListenOnlySidebarCard() {
 }
 
 function ListenOnlyMobileBanner() {
+  const { t } = useTranslation('dashboard');
   const [micStatus, setMicStatus] = useState('idle');
 
   useEffect(() => {
@@ -1180,8 +1170,8 @@ function ListenOnlyMobileBanner() {
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-bold" style={{ color: '#93bbfd' }}>Listen Only</div>
-          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>Mic is off — tap to enable</div>
+          <div className="text-xs font-bold" style={{ color: '#93bbfd' }}>{t('layout.listenOnly.titleShort')}</div>
+          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{t('layout.listenOnly.subtitleShort')}</div>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); handleEnableMic(); }}
@@ -1195,22 +1185,22 @@ function ListenOnlyMobileBanner() {
             boxShadow: '0 4px 12px rgba(37,99,235,0.35)',
           }}
         >
-          {micStatus === 'requesting' ? 'Requesting...' : 'Enable Mic'}
+          {micStatus === 'requesting' ? t('layout.listenOnly.requesting') : t('layout.listenOnly.enableMicShort')}
         </button>
       </div>
       {micStatus === 'blocked' && (
         <div className="mx-0 mt-1 rounded-xl p-3" style={{ background: '#1e3a5f', border: '1px solid rgba(37,99,235,0.25)' }}>
-          <div className="text-[11px] font-semibold mb-1.5" style={{ color: '#fca5a5' }}>Mic blocked. To fix:</div>
+          <div className="text-[11px] font-semibold mb-1.5" style={{ color: '#fca5a5' }}>{t('layout.listenOnly.blockedTitleShort')}</div>
           <div className="text-[11px] space-y-0.5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            <div>1. Tap the <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>lock icon</span> in the address bar</div>
-            <div>2. Set <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }}>Microphone</span> to <span style={{ color: '#86efac' }}>Allow</span></div>
+            <div><Trans t={t} i18nKey="layout.listenOnly.step1Short" components={{ b: <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }} /> }} /></div>
+            <div><Trans t={t} i18nKey="layout.listenOnly.step2Short" components={{ b: <span className="font-semibold" style={{ color: 'rgba(255,255,255,0.8)' }} />, allow: <span style={{ color: '#86efac' }} /> }} /></div>
           </div>
           <button
             onClick={handleEnableMic}
             className="w-full mt-2.5 py-2 rounded-lg text-[11px] font-bold transition-all"
             style={{ background: 'rgba(255,255,255,0.1)', color: '#93bbfd', border: '1px solid rgba(147,187,253,0.25)', cursor: 'pointer' }}
           >
-            Try Again
+            {t('layout.listenOnly.tryAgain')}
           </button>
         </div>
       )}
@@ -1272,6 +1262,7 @@ function useOfferDismissed() {
 }
 
 function FreeWebsiteOffer() {
+  const { t } = useTranslation('dashboard');
   const [dismissed, dismiss] = useOfferDismissed();
   if (dismissed) return null;
 
@@ -1283,7 +1274,7 @@ function FreeWebsiteOffer() {
         style={{ color: 'rgba(255,255,255,0.35)', background: 'transparent', border: 'none', cursor: 'pointer' }}
         onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
         onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
-        title="Dismiss"
+        title={t('layout.offer.dismiss')}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -1291,10 +1282,10 @@ function FreeWebsiteOffer() {
       </button>
       <div className="flex items-center gap-2 mb-2">
         <div className="offer-pulse" aria-hidden="true" />
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--red, #d92d20)' }}>Offer</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--red, #d92d20)' }}>{t('layout.offer.badge')}</span>
       </div>
       <div className="text-sm font-medium mb-3" style={{ color: 'rgba(255,255,255,0.7)' }}>
-        Get a <span className="font-bold" style={{ color: '#fff' }}>free website</span> for your yard
+        <Trans t={t} i18nKey="layout.offer.text" components={{ b: <span className="font-bold" style={{ color: '#fff' }} /> }} />
       </div>
       <a
         href="mailto:er.sorbh@gmail.com?subject=Free%20Website%20Request%20-%20Hotline%20HQ&body=I%27d%20like%20to%20request%20my%20free%20website."
@@ -1307,13 +1298,14 @@ function FreeWebsiteOffer() {
           boxShadow: '0 6px 16px rgba(217,45,32,0.35)',
         }}
       >
-        Request
+        {t('layout.offer.request')}
       </a>
     </div>
   );
 }
 
 function FreeWebsiteOfferMobile() {
+  const { t } = useTranslation('dashboard');
   const [dismissed, dismiss] = useOfferDismissed();
   if (dismissed) return null;
 
@@ -1328,7 +1320,7 @@ function FreeWebsiteOfferMobile() {
       <div className="flex items-center gap-2 min-w-0">
         <div className="offer-pulse" aria-hidden="true" />
         <span className="text-sm" style={{ color: 'var(--ink)' }}>
-          Get a <span className="font-semibold" style={{ color: 'var(--red)' }}>free website</span>
+          <Trans t={t} i18nKey="layout.offer.textShort" components={{ b: <span className="font-semibold" style={{ color: 'var(--red)' }} /> }} />
         </span>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -1342,13 +1334,13 @@ function FreeWebsiteOfferMobile() {
             boxShadow: '0 4px 12px rgba(217,45,32,0.3)',
           }}
         >
-          Request
+          {t('layout.offer.request')}
         </a>
         <button
           onClick={dismiss}
           className="w-7 h-7 rounded-lg flex items-center justify-center"
           style={{ color: 'var(--muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}
-          title="Dismiss"
+          title={t('layout.offer.dismiss')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />

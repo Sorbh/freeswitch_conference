@@ -132,7 +132,7 @@ const HERO_CLIPS = [
 ];
 
 export default function Landing2Page() {
-  const { t } = useTranslation("landing");
+  const { t, i18n } = useTranslation("landing");
   const rootRef = useRef(null);
   const wireRef = useRef(null);
   const formRef = useRef(null);
@@ -241,7 +241,7 @@ export default function Landing2Page() {
     };
   }, []);
 
-  /* scroll reveal */
+  /* scroll reveal — re-runs on language change so remounted elements get re-observed */
   useEffect(() => {
     const els = rootRef.current?.querySelectorAll(".l2-reveal") ?? [];
     const io = new IntersectionObserver(
@@ -256,7 +256,7 @@ export default function Landing2Page() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [i18n.language]);
 
   /* scroll progress wire */
   useEffect(() => {
@@ -447,7 +447,7 @@ export default function Landing2Page() {
       </div>
 
       {/* ───────────────── listen live ───────────────── */}
-      <ListenLive signupUrl={signupUrl} />
+      <ListenLive signupUrl={signupUrl} steps={STEPS} footnote={t("how.footnote")} />
 
       {/* ───────────────── problem ───────────────── */}
       <section className="l2-section l2-band">
@@ -460,7 +460,7 @@ export default function Landing2Page() {
           {COMPARES.map((c, i) => (
             <div
               className={`l2-compare-card l2-reveal ${c.hot ? "hot" : ""}`}
-              key={c.label}
+              key={c.viz}
               style={{ transitionDelay: `${i * 90}ms` }}
             >
               <p className="l2-compare-label">{c.label}</p>
@@ -483,126 +483,6 @@ export default function Landing2Page() {
           <div style={{display:'flex',gap:'14px',justifyContent:'center',marginBottom:'28px',flexWrap:'wrap'}}>
             <a className="l2-btn l2-btn-hot" href={signupUrl} style={{background:'#fff',color:'var(--red)',boxShadow:'0 8px 24px -8px rgba(0,0,0,0.2)',fontSize:'15.5px',padding:'14px 32px'}}>{t("common:nav.signUpFree")}</a>
             <a className="l2-btn l2-btn-ghost" href={loginUrl} style={{border:'2px solid rgba(255,255,255,0.4)',color:'#fff',background:'transparent',fontSize:'15.5px',padding:'14px 32px'}}>{t("common:nav.login")}</a>
-          </div>
-        </div>
-      </section>
-
-      {/* ───────────────── how it works ───────────────── */}
-      <section className="l2-section" id="how">
-        <div className="l2-section-head l2-center l2-reveal">
-          <p className="l2-kicker">{t("how.kicker")}</p>
-          <h2>{t("how.heading")}</h2>
-        </div>
-        <div className="l2-steps">
-          {STEPS.map((s, i) => (
-            <div className="l2-step l2-reveal" key={s.n} style={{ transitionDelay: `${i * 110}ms` }}>
-              <span className="l2-step-n">{s.n}</span>
-              <h3>{s.title}</h3>
-              <p>{s.copy}</p>
-            </div>
-          ))}
-        </div>
-        <p className="l2-footnote l2-reveal">
-          {t("how.footnote")}
-        </p>
-      </section>
-
-      {/* ───────────────── playable demo ───────────────── */}
-      <section className="l2-section l2-band" id="try">
-        <div className="l2-section-head l2-center l2-reveal">
-          <p className="l2-kicker">{t("demo.kicker")}</p>
-          <h2>{t("demo.heading")}</h2>
-          <p className="l2-lede">{t("demo.subheading")}</p>
-        </div>
-
-        <div className="l2-demo l2-reveal">
-          <div className="l2-demo-panel">
-            <p className="l2-demo-label">{t("demo.partRequest")}</p>
-            <div className="l2-part-picker">
-              <button
-                type="button"
-                aria-label="Previous part"
-                onClick={() => setDemoPart((i) => (i + PARTS.length - 1) % PARTS.length)}
-                disabled={demoBusy}
-              >
-                ‹
-              </button>
-              <div className="l2-part-display">
-                <span className="l2-part-line">
-                  {part[0]} | {part[1]} | {part[2]}
-                </span>
-                <span className="l2-part-name">{part[3]}</span>
-              </div>
-              <button
-                type="button"
-                aria-label="Next part"
-                onClick={() => setDemoPart((i) => (i + 1) % PARTS.length)}
-                disabled={demoBusy}
-              >
-                ›
-              </button>
-            </div>
-
-            <button
-              type="button"
-              className={`l2-broadcast-btn ${demoBusy ? "onair" : ""}`}
-              onClick={runDemo}
-              disabled={demoBusy}
-            >
-              {demoBusy ? (
-                <>
-                  <span className="l2-onair-dot" /> {t("demo.onAir")}
-                </>
-              ) : score.deals > 0 ? (
-                t("demo.broadcastAnother")
-              ) : (
-                t("demo.broadcastIt")
-              )}
-            </button>
-
-            <div className="l2-scoreboard">
-              <div>
-                <strong>{score.deals}</strong>
-                <span>{t("demo.dealsClosed")}</span>
-              </div>
-              <div>
-                <strong>${score.revenue.toLocaleString()}</strong>
-                <span>{t("demo.revenueRecovered")}</span>
-              </div>
-            </div>
-            <p className="l2-demo-fine">
-              {t("demo.simNote")}
-            </p>
-          </div>
-
-          <div className="l2-demo-stage">
-            <div className="l2-demo-board">
-              <div className={`l2-demo-yard you ${demoBusy ? "onair" : ""}`}>
-                <span className="l2-demo-yard-name">{t("demo.yourYard")}</span>
-                <span className="l2-demo-yard-status">
-                  {demoBusy ? t("demo.broadcasting") : t("demo.standingBy")}
-                </span>
-              </div>
-              <div className="l2-demo-grid">
-                {DEMO_NEIGHBORS.map((name) => {
-                  const r = demoYards[name];
-                  return (
-                    <div
-                      className={`l2-demo-yard ${r ? "hot" : ""} ${r?.won ? "won" : ""}`}
-                      key={name}
-                    >
-                      <span className="l2-demo-yard-name">{name}</span>
-                      <span className="l2-demo-yard-status">
-                        {r ? (r.won ? `SOLD · $${r.price}` : `${r.reply} · $${r.price}`) : t("demo.listening")}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="l2-stage-chip l2-demo-chip">
-              <span className="l2-live-dot" /> {t("demo.roomChip")}
-            </div>
           </div>
         </div>
       </section>

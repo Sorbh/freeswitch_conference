@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
+  const { t } = useTranslation("auth");
   const { login } = useAuth();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
@@ -21,9 +23,9 @@ export default function LoginPage() {
     if (queryEmail) setEmail(queryEmail.trim());
     if (queryPassword) setPassword(queryPassword.trim());
 
-    if (verified === 'success') setMessage('Email verified successfully! You can now log in.');
-    else if (verified === 'error') setError(msg ? decodeURIComponent(msg.replace(/\+/g, ' ')) : 'Verification failed');
-    else if (searchParams.get('session') === 'expired') setMessage('Your session has expired. Please log in again.');
+    if (verified === 'success') setMessage(t("login.emailVerified"));
+    else if (verified === 'error') setError(msg ? decodeURIComponent(msg.replace(/\+/g, ' ')) : t("login.verificationFailed"));
+    else if (searchParams.get('session') === 'expired') setMessage(t("login.sessionExpired"));
 
     if (queryEmail || queryPassword) {
       const nextParams = new URLSearchParams(searchParams);
@@ -60,7 +62,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           <Link to="/"><img src="/hotlinehq/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} /></Link>
           <h1 className="text-2xl font-bold">Hotline HQ</h1>
-          <p className="hq-label mt-1">Client Login</p>
+          <p className="hq-label mt-1">{t("login.subtitle")}</p>
         </div>
 
         {/* Card */}
@@ -70,7 +72,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="hq-label">Email</label>
+              <label className="hq-label">{t("login.email")}</label>
               <input
                 type="email"
                 value={email}
@@ -80,12 +82,12 @@ export default function LoginPage() {
                 autoFocus
                 autoComplete="email"
                 className="hq-input"
-                placeholder="you@company.com"
+                placeholder={t("login.emailPlaceholder")}
               />
             </div>
 
             <div className="mb-4">
-              <label className="hq-label">Password</label>
+              <label className="hq-label">{t("login.password")}</label>
               <input
                 type="password"
                 value={password}
@@ -94,31 +96,31 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
                 className="hq-input"
-                placeholder="Enter your password"
+                placeholder={t("login.passwordPlaceholder")}
               />
             </div>
 
             <div className="flex items-center justify-center gap-2 mb-4 text-xs" style={{ color: 'var(--muted)' }}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--green)' }} />
-              <span>Secure client access. No card required.</span>
+              <span>{t("login.secureAccess")}</span>
             </div>
 
             <button type="submit" disabled={loading} className="hq-btn w-full py-3">
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t("login.signingIn") : t("login.signIn")}
             </button>
           </form>
 
           <div className="mt-4 text-center">
             <Link to="/client/forgot-password" className="text-xs font-medium" style={{ color: 'var(--red)' }}>
-              Forgot password?
+              {t("login.forgotPassword")}
             </Link>
           </div>
         </div>
 
         <div className="mt-6 text-center">
-          <span className="text-sm" style={{ color: 'var(--muted)' }}>Don't have an account? </span>
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>{t("login.noAccount")}{' '}</span>
           <Link to="/client/signup" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>
-            Sign up
+            {t("login.signUp")}
           </Link>
         </div>
       </div>
