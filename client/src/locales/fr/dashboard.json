@@ -4,7 +4,8 @@
       "conference": "Conference",
       "extensions": "Extensions",
       "account": "Compte",
-      "requestRoom": "Demander une salle"
+      "requestRoom": "Demander une salle",
+      "members": "Membres"
     },
     "client": "Client",
     "roomFallback": "Salle {{id}}",
@@ -271,5 +272,16 @@
     "respondedInstantly": "a repondu instantanement",
     "respondedIn": "a repondu en {{seconds}} s",
     "responseTimeTitle": "Rapidite de reponse de la premiere casse"
+  },
+  "members": {
+    "title": "Annuaire des membres",
+    "subtitle": "Toutes les casses du reseau et comment les joindre",
+    "searchPlaceholder": "Rechercher entreprise, ville, telephone, extension...",
+    "withExtension": "Avec extension",
+    "loading": "Chargement des membres...",
+    "noneFound": "Aucun membre trouve",
+    "failedToLoad": "Echec du chargement : {{error}}",
+    "share": "Partager",
+    "copyFailed": "Impossible de copier dans le presse-papiers"
   }
 }

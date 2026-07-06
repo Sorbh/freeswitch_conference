@@ -4,7 +4,8 @@
       "conference": "Conferencia",
       "extensions": "Extensiones",
       "account": "Cuenta",
-      "requestRoom": "Solicitar sala"
+      "requestRoom": "Solicitar sala",
+      "members": "Miembros"
     },
     "client": "Cliente",
     "roomFallback": "Sala {{id}}",
@@ -271,5 +272,16 @@
     "respondedInstantly": "respondió al instante",
     "respondedIn": "respondió en {{seconds}}s",
     "responseTimeTitle": "Qué tan rápido respondió el primer yonke"
+  },
+  "members": {
+    "title": "Directorio de miembros",
+    "subtitle": "Todos los yonkes de la red y cómo contactarlos",
+    "searchPlaceholder": "Buscar empresa, ciudad, teléfono, extensión...",
+    "withExtension": "Con extensión",
+    "loading": "Cargando miembros...",
+    "noneFound": "No se encontraron miembros",
+    "failedToLoad": "Error al cargar: {{error}}",
+    "share": "Compartir",
+    "copyFailed": "No se pudo copiar al portapapeles"
   }
 }

@@ -8,7 +8,7 @@ const BroadcastPanel = lazy(() => import('./BroadcastPanel'));
 
 const BOTTOM_NAV_ITEMS = [
   { to: '/client/dashboard', labelKey: 'layout.nav.conference', icon: PhoneIcon, end: true },
-  { to: '/client/dashboard/extensions', labelKey: 'layout.nav.extensions', icon: GridIcon },
+  { to: '/client/dashboard/members', labelKey: 'layout.nav.members', icon: GridIcon },
   { to: '/client/dashboard/settings', labelKey: 'layout.nav.account', icon: UserIcon },
 ];
 

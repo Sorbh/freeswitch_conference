@@ -8,7 +8,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
 const ConferencePage = lazy(() => import('./pages/ConferencePage'));
-const ExtensionsPage = lazy(() => import('./pages/ExtensionsPage'));
+const MembersPage = lazy(() => import('./pages/MembersPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
 const RequestRoomPage = lazy(() => import('./pages/RequestRoomPage'));
 const Landing2Page = lazy(() => import('./pages/Landing2Page'));
@@ -61,7 +61,8 @@ export default function App() {
         {/* Client dashboard (authenticated) */}
         <Route path="/client/dashboard" element={<ProtectedRoute><Lazy><DashboardLayout /></Lazy></ProtectedRoute>}>
           <Route index element={<Lazy><ConferencePage /></Lazy>} />
-          <Route path="extensions" element={<Lazy><ExtensionsPage /></Lazy>} />
+          <Route path="members" element={<Lazy><MembersPage /></Lazy>} />
+          <Route path="extensions" element={<Navigate to="/client/dashboard/members" replace />} />
           <Route path="settings" element={<Lazy><AccountSettingsPage /></Lazy>} />
           <Route path="request-room" element={<Lazy><RequestRoomPage /></Lazy>} />
         </Route>

@@ -4,7 +4,8 @@
       "conference": "会议",
       "extensions": "分机",
       "account": "账户",
-      "requestRoom": "申请房间"
+      "requestRoom": "申请房间",
+      "members": "成员"
     },
     "client": "客户",
     "roomFallback": "房间 {{id}}",
@@ -271,5 +272,16 @@
     "respondedInstantly": "即时回应",
     "respondedIn": "{{seconds}} 秒内回应",
     "responseTimeTitle": "首家车场的响应速度"
+  },
+  "members": {
+    "title": "成员名录",
+    "subtitle": "网络中所有车场及其联系方式",
+    "searchPlaceholder": "搜索公司、城市、电话、分机…",
+    "withExtension": "有分机",
+    "loading": "正在加载成员…",
+    "noneFound": "未找到成员",
+    "failedToLoad": "加载失败：{{error}}",
+    "share": "分享",
+    "copyFailed": "无法复制到剪贴板"
   }
 }

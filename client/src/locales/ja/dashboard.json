@@ -4,7 +4,8 @@
       "conference": "カンファレンス",
       "extensions": "内線",
       "account": "アカウント",
-      "requestRoom": "ルームをリクエスト"
+      "requestRoom": "ルームをリクエスト",
+      "members": "メンバー"
     },
     "client": "クライアント",
     "roomFallback": "ルーム {{id}}",
@@ -271,5 +272,16 @@
     "respondedInstantly": "即座に応答",
     "respondedIn": "{{seconds}}秒で応答",
     "responseTimeTitle": "最初のヤードが応答するまでの速さ"
+  },
+  "members": {
+    "title": "メンバー名簿",
+    "subtitle": "ネットワーク内のすべてのヤードと連絡先",
+    "searchPlaceholder": "会社名、都市、電話、内線番号で検索...",
+    "withExtension": "内線あり",
+    "loading": "メンバーを読み込み中...",
+    "noneFound": "メンバーが見つかりません",
+    "failedToLoad": "読み込みに失敗しました: {{error}}",
+    "share": "共有",
+    "copyFailed": "クリップボードにコピーできませんでした"
   }
 }

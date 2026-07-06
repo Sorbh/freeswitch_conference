@@ -4,7 +4,8 @@
       "conference": "Conference",
       "extensions": "Extensions",
       "account": "Account",
-      "requestRoom": "Request Room"
+      "requestRoom": "Request Room",
+      "members": "Members"
     },
     "client": "Client",
     "roomFallback": "Room {{id}}",
@@ -271,5 +272,16 @@
     "respondedInstantly": "responded instantly",
     "respondedIn": "responded in {{seconds}}s",
     "responseTimeTitle": "How fast the first yard responded"
+  },
+  "members": {
+    "title": "Members Directory",
+    "subtitle": "Every yard in the network and how to reach them",
+    "searchPlaceholder": "Search company, city, phone, extension...",
+    "withExtension": "With extension",
+    "loading": "Loading members...",
+    "noneFound": "No members found",
+    "failedToLoad": "Failed to load: {{error}}",
+    "share": "Share",
+    "copyFailed": "Could not copy to clipboard"
   }
 }

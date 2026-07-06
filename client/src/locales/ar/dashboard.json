@@ -4,7 +4,8 @@
       "conference": "المؤتمر",
       "extensions": "التحويلات",
       "account": "الحساب",
-      "requestRoom": "طلب غرفة"
+      "requestRoom": "طلب غرفة",
+      "members": "الأعضاء"
     },
     "client": "عميل",
     "roomFallback": "غرفة {{id}}",
@@ -271,5 +272,16 @@
     "respondedInstantly": "أجاب فوراً",
     "respondedIn": "أجاب خلال {{seconds}} ث",
     "responseTimeTitle": "سرعة استجابة أول ساحة"
+  },
+  "members": {
+    "title": "دليل الأعضاء",
+    "subtitle": "جميع الساحات في الشبكة وكيفية التواصل معها",
+    "searchPlaceholder": "ابحث بالشركة أو المدينة أو الهاتف أو التحويلة...",
+    "withExtension": "لديه تحويلة",
+    "loading": "جارٍ تحميل الأعضاء...",
+    "noneFound": "لم يتم العثور على أعضاء",
+    "failedToLoad": "فشل التحميل: {{error}}",
+    "share": "مشاركة",
+    "copyFailed": "تعذر النسخ إلى الحافظة"
   }
 }

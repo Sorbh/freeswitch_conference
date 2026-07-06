@@ -440,6 +440,56 @@ clientRouter.get("/extensions", requireClientAuth, (req, res) => {
     }
 });
 
+// GET /members — authenticated directory of all active members with company info
+clientRouter.get("/members", requireClientAuth, (req, res) => {
+    try {
+        res.set('Cache-Control', 'no-store');
+        const rooms = {};
+        for (const room of global.db.getAllRooms()) {
+            rooms[room.id] = room.name;
+        }
+
+        const data = global.db.getAllAccounts()
+            .filter(account => account.active)
+            .map(account => {
+                const userInfo = global.db.getUserInfo(`sip:${account.email}`);
+                const connected = Boolean(
+                    userInfo &&
+                    userInfo.connectionState === 'connected' &&
+                    userInfo.fsChannelUUID &&
+                    userInfo.fsMemberId
+                );
+                return {
+                    id: account.id,
+                    email: account.email,
+                    companyName: account.company_name || '',
+                    displayName: account.display_name || account.email,
+                    address: account.company_address || '',
+                    city: account.city || '',
+                    state: account.state || '',
+                    zip: account.zip || '',
+                    phone: account.company_phone || '',
+                    extension: account.extension || null,
+                    room: account.room,
+                    roomName: rooms[account.room] || String(account.room || ''),
+                    connectionState: userInfo?.connectionState || 'offline',
+                    connected,
+                };
+            })
+            .sort((a, b) => {
+                const left = `${a.companyName} ${a.displayName}`.toLowerCase();
+                const right = `${b.companyName} ${b.displayName}`.toLowerCase();
+                if (left < right) return -1;
+                if (left > right) return 1;
+                return Number(a.extension || 0) - Number(b.extension || 0);
+            });
+
+        res.json({ status: true, data });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // GET /conference-status — whether authenticated user is currently in conference
 clientRouter.get("/conference-status", requireClientAuth, (req, res) => {
     try {
