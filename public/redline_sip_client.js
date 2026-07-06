@@ -73,6 +73,7 @@
 //   window.onHotlineMuteState = function(muted) { ... }                // true when muted, false when unmuted
 //   window.onHotlineDirectCallState = function(state, data) { ... }    // 'incoming', 'outgoing', 'connected', 'ending', 'ended', 'declined', 'missed', 'cancelled', 'busy', 'unavailable'
 //   window.onHotlineRoomChange = function(data) { ... }                // { source, room, roomName } — called on room change (API or SSE)
+//   window.onHotlineUserRefresh = function(data) { ... }               // { email, reason } — admin requested refresh; default (no callback): full page reload
 //   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
 //   window.onHotlineBroadcast = function(data) { ... }                 // { type:'broadcast', data:{...broadcast row...}, ts }
 //   window.updateOnlineCounts = function(onlineMap) { ... }            // { roomId: count, ... }
@@ -103,6 +104,7 @@
 //   callerid      — caller ID HTML + online counts
 //   online_update — online/offline count changes
 //   room_change   — user changed room (auto-reloads if current user)
+//   user_refresh  — admin requested browser refresh (reloads page unless onHotlineUserRefresh is set)
 //   direct_call_* — incoming/outgoing direct call notifications
 //
 // ═══════════════════════════════════════════════════════════════════════════
@@ -395,6 +397,20 @@ import "./jssip.bundle.js";
                     try {
                         var data = JSON.parse(event.data);
                         if (handleDirectCallEvent(data)) return;
+                        if (data.type === 'user_refresh') {
+                            // Server already targets frames per-user; if we don't know our
+                            // own email (token-mode), trust the targeting and refresh anyway.
+                            var refreshEmail = accountData && accountData.email;
+                            if (!data.email || !refreshEmail || data.email === refreshEmail) {
+                                console.log('[Hotline] User refresh requested:', data.reason || '');
+                                if (typeof window.onHotlineUserRefresh === 'function') {
+                                    window.onHotlineUserRefresh(data);
+                                } else {
+                                    window.location.reload();
+                                }
+                            }
+                            return;
+                        }
                         if (data.type === 'room_change') {
                             var myEmail = accountData && accountData.email;
                             if (myEmail && data.email === myEmail) {
@@ -486,6 +502,40 @@ import "./jssip.bundle.js";
                         sender.track.enabled = !mute;
                     }
                 });
+            } catch (e) { }
+        }
+
+        // ── Mic stream ownership ──
+        // We acquire the mic ourselves and pass it to session.answer() so we can
+        // deterministically stop it on every teardown path. If JsSIP acquires it
+        // internally and the session dies mid-answer, the stream leaks and the
+        // browser keeps the recording indicator until the tab closes.
+        var micStream = null;
+
+        function stopMicStream() {
+            try {
+                if (micStream) {
+                    micStream.getTracks().forEach(function (t) { t.stop(); });
+                    micStream = null;
+                }
+            } catch (e) { }
+        }
+
+        function releaseSessionMedia(session) {
+            stopMicStream();
+            // Don't stop senders in listen-only mode: the silent oscillator track
+            // is reused across sessions and is not a capture device anyway.
+            if (!listenOnly) {
+                try {
+                    if (session && session.connection) {
+                        session.connection.getSenders().forEach(function (s) {
+                            if (s.track) s.track.stop();
+                        });
+                    }
+                } catch (e) { }
+            }
+            try {
+                if (audioElement) { audioElement.pause(); audioElement.srcObject = null; }
             } catch (e) { }
         }
 
@@ -679,11 +729,13 @@ import "./jssip.bundle.js";
                                 } catch (e) { }
                             });
                             session.on('failed', function (e) {
+                                releaseSessionMedia(session);
                                 currentSession = null;
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
                                 notifyCallState('disconnected');
                             });
                             session.on('ended', function (e) {
+                                releaseSessionMedia(session);
                                 currentSession = null;
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
                                 notifyCallState('disconnected');
@@ -695,9 +747,22 @@ import "./jssip.bundle.js";
                                     pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
                                 });
                             } else {
-                                session.answer({
-                                    mediaConstraints: { audio: true, video: false },
-                                    pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
+                                navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+                                    if (session.isEnded()) {
+                                        // Session died while the mic was being acquired —
+                                        // stop the stream now or it leaks (recording dot stays on)
+                                        stream.getTracks().forEach(function (t) { t.stop(); });
+                                        return;
+                                    }
+                                    stopMicStream();
+                                    micStream = stream;
+                                    session.answer({
+                                        mediaStream: stream,
+                                        pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
+                                    });
+                                }).catch(function (err) {
+                                    console.error('[SIP] getUserMedia failed:', err.message);
+                                    try { session.terminate({ status_code: 480 }); } catch (e2) { }
                                 });
                             }
                         }
@@ -794,6 +859,7 @@ import "./jssip.bundle.js";
                 if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
                 if (currentSession) { try { currentSession.terminate(); } catch (e) { } currentSession = null; }
                 if (ua) { try { ua.unregister(); ua.stop(); } catch (e) { } ua = null; }
+                stopMicStream();
                 accountData = null;
                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
                 loggingOut = false;

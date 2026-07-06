@@ -3,7 +3,7 @@ import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { handleHttpHookEvent, getActiveMacs } from "../../service/phoneEvents.js";
 import { logUser, logSystem } from "../../service/logger.js";
 import { emitStateChange, endCall, allEndCall } from "./routesApi.js";
-import { getClientSSEUsers, sendClientEventToRoom, buildRoomSnapshot, buildOnlineCounts } from "../client/events.js";
+import { getClientSSEUsers, sendClientEventToRoom, sendClientEventToUser, buildRoomSnapshot, buildOnlineCounts } from "../client/events.js";
 
 const router = express.Router();
 
@@ -364,6 +364,47 @@ router.post("/users/:userName/unmute", (req, res) => {
         const result = handleHttpHookEvent(userName, 'off_hook');
         if (!result) return res.status(400).json({ status: false, error: "Failed to unmute" });
         res.json({ status: true, message: `Unmute command sent for ${userName}` });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/:userName/refresh-client — push a user_refresh frame over the client SSE.
+// The user's browser reloads itself (or handles it via window.onHotlineUserRefresh).
+router.post("/users/:userName/refresh-client", (req, res) => {
+    try {
+        const userName = req.params.userName;
+        logUser(userName, 'API', 'REFRESH_CLIENT');
+        const delivered = sendClientEventToUser(userName, {
+            type: 'user_refresh',
+            email: userName.replace('sip:', ''),
+            reason: req.body?.reason || 'admin_request',
+        });
+        res.json({
+            status: true,
+            delivered,
+            message: delivered > 0
+                ? `Refresh sent to ${delivered} browser session(s)`
+                : 'User has no connected browser sessions',
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /users/refresh-client-all — refresh every browser connected to a room's SSE
+router.post("/users/refresh-client-all", (req, res) => {
+    try {
+        const room = parseInt(req.body?.room);
+        if (!room) return res.status(400).json({ status: false, error: 'room is required' });
+        logSystem('API', `REFRESH_CLIENT_ALL room=${room}`);
+        const delivered = sendClientEventToRoom(room, {
+            type: 'user_refresh',
+            email: null,
+            room,
+            reason: req.body?.reason || 'admin_request',
+        });
+        res.json({ status: true, delivered });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

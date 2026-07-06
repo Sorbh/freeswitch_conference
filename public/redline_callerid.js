@@ -54,6 +54,7 @@
 //
 // OPTIONAL CALLBACKS:
 //   window.onHotlineRoomChange = function(data) { ... }      // { source, room, roomName } — called on room change (API or SSE)
+//   window.onHotlineUserRefresh = function(data) { ... }     // { email, reason } — admin requested refresh; default (no callback): full page reload
 //   window.updateOnlineCounts = function(onlineMap) { ... }  // { roomId: count, ... }
 //   window.onCallerIdUpdate = function(callerIdHtml) { ... } // raw caller ID HTML array
 //
@@ -73,6 +74,7 @@
 //   callerid      — caller ID HTML + online counts
 //   online_update — online/offline count changes
 //   room_change   — user changed room (auto-reloads if current user)
+//   user_refresh  — admin requested browser refresh (reloads page unless onHotlineUserRefresh is set)
 //   direct_call_* — incoming/outgoing direct-call notification banners only
 //
 // ═══════════════════════════════════════════════════════════════════════════
@@ -286,6 +288,20 @@
                     console.log("[CallerID] SSE message received:", event.data.substring(0, 200));
                     var data = JSON.parse(event.data);
                     if (handleDirectCallEvent(data)) return;
+                    if (data.type === 'user_refresh') {
+                        // Server already targets frames per-user; if we don't know our
+                        // own email (token-mode), trust the targeting and refresh anyway.
+                        var refreshEmail = accountData && accountData.email;
+                        if (!data.email || !refreshEmail || data.email === refreshEmail) {
+                            console.log('[Hotline] User refresh requested:', data.reason || '');
+                            if (typeof window.onHotlineUserRefresh === 'function') {
+                                window.onHotlineUserRefresh(data);
+                            } else {
+                                window.location.reload();
+                            }
+                        }
+                        return;
+                    }
                     if (data.type === 'room_change') {
                         var myEmail = accountData && accountData.email;
                         if (myEmail && data.email === myEmail) {

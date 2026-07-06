@@ -41,6 +41,7 @@ import { useFetch } from "@/hooks/useFetch";
 import { timeAgo } from "@/lib/constants";
 import { useRooms } from "@/hooks/useRooms";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 import {
   MicIcon,
   MicOffIcon,
@@ -576,6 +577,20 @@ export default function UsersPage() {
       console.error("YMCS config push failed:", e);
     } finally {
       setYmcsAction(null);
+    }
+  }
+
+  async function refreshClient(userName) {
+    try {
+      const res = await apiFetch(`/api/v1/admin/users/${userName}/refresh-client`, { method: "POST" });
+      const json = await res.json();
+      if (json.delivered > 0) {
+        toast.success(`Refresh sent to ${json.delivered} browser session${json.delivered > 1 ? "s" : ""}`);
+      } else {
+        toast.warning("User has no connected browser sessions");
+      }
+    } catch (e) {
+      toast.error("Refresh failed: " + e.message);
     }
   }
 
@@ -1215,6 +1230,15 @@ export default function UsersPage() {
                         </div>
                       )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 shrink-0 text-muted-foreground/60 hover:text-foreground"
+                      title="Edit user"
+                      onClick={() => { openEdit(selectedUser); setSheetOpen(false); }}
+                    >
+                      <PencilIcon className="size-4" />
+                    </Button>
                   </div>
 
                   {selectedUser.connectionState === "connected" && selectedUser.lastConnectionStateUpdate && (
@@ -1270,10 +1294,11 @@ export default function UsersPage() {
                       variant="outline"
                       size="sm"
                       className="flex-1 h-9"
-                      onClick={() => { openEdit(selectedUser); setSheetOpen(false); }}
+                      title="Reload this user's browser page (web client)"
+                      onClick={() => refreshClient(selectedUser.userName)}
                     >
-                      <PencilIcon className="size-3.5 mr-1.5" />
-                      Edit
+                      <GlobeIcon className="size-3.5 mr-1.5" />
+                      Reload
                     </Button>
                     {!selectedUser.accountOnly && (
                       <>
