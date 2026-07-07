@@ -185,6 +185,7 @@ export function SiteNav() {
       <nav className="l2-nav-links">
         <Link to="/">{t("nav.home")}</Link>
         <Link to="/#how">{t("nav.howItWorks")}</Link>
+        <Link to="/marketplace">Marketplace</Link>
         <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">{t("nav.login")}</a>
         <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
           {t("nav.signUpFree")}
@@ -202,6 +203,7 @@ const PRODUCT_LINK_KEYS = [
   ["footer.theSystem", "/#system"],
   ["footer.getALine", "/#join"],
   ["footer.ownAutoPartsHotline", "/own-a-hotline"],
+  ["footer.marketplace", "/marketplace"],
 ];
 
 const ROOM_LINKS = [

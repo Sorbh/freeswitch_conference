@@ -1,7 +1,7 @@
 # Hotline HQ
 User-agent: *
 Allow: /
-# Internal admin/console routes — keep out of search indexes
+# Internal admin/console routes
 Disallow: /dashboard
 Disallow: /users
 Disallow: /rooms
@@ -12,8 +12,10 @@ Disallow: /notifications
 Disallow: /dev/
 Disallow: /recordings/
 Disallow: /api/
+Disallow: /client/
 # Old landing page (duplicate content)
 Disallow: /classic
 Disallow: /landing_2
 
-Sitemap: https://redlineusedautoparts.com/hotlinehq/sitemap.xml
+Sitemap: https://hotline.redlineusedautoparts.com/sitemap.xml
+Sitemap: https://hotline.redlineusedautoparts.com/sitemap-marketplace.xml

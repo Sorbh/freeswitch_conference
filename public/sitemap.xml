@@ -1,21 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://redlineusedautoparts.com/hotlinehq/</loc>
-    <lastmod>2026-06-19</lastmod>
+    <loc>https://hotline.redlineusedautoparts.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://redlineusedautoparts.com/hotlinehq/own-a-hotline</loc>
-    <lastmod>2026-06-19</lastmod>
-    <changefreq>monthly</changefreq>
+    <loc>https://hotline.redlineusedautoparts.com/marketplace</loc>
+    <changefreq>hourly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://redlineusedautoparts.com/hotlinehq/about</loc>
-    <lastmod>2026-06-19</lastmod>
+    <loc>https://hotline.redlineusedautoparts.com/own-a-hotline</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/privacy-policy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/terms-and-conditions</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/disclaimer</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>

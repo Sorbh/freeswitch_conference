@@ -48,6 +48,12 @@ import {
     generateShortCode, createShortUrl, getShortUrlByCode, getAllShortUrls,
     updateShortUrl, deleteShortUrl, incrementShortUrlClicks,
 } from './db/shortUrls.js';
+import {
+    getMarketplaceListings, getMarketplaceListingById,
+    getMarketplaceResponseCount, getIpResponseCount,
+    createMarketplaceResponse, getMarketplaceResponsesForBroadcast,
+    getMarketplaceResponseCountForBroadcast, getMarketplaceStats,
+} from './db/marketplace.js';
 
 const db = {};
 
@@ -164,5 +170,14 @@ db.getAllShortUrls = getAllShortUrls;
 db.updateShortUrl = updateShortUrl;
 db.deleteShortUrl = deleteShortUrl;
 db.incrementShortUrlClicks = incrementShortUrlClicks;
+
+db.getMarketplaceListings = getMarketplaceListings;
+db.getMarketplaceListingById = getMarketplaceListingById;
+db.getMarketplaceResponseCount = getMarketplaceResponseCount;
+db.getIpResponseCount = getIpResponseCount;
+db.createMarketplaceResponse = createMarketplaceResponse;
+db.getMarketplaceResponsesForBroadcast = getMarketplaceResponsesForBroadcast;
+db.getMarketplaceResponseCountForBroadcast = getMarketplaceResponseCountForBroadcast;
+db.getMarketplaceStats = getMarketplaceStats;
 
 export default { db };

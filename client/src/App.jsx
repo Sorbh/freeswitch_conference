@@ -15,6 +15,8 @@ const Landing2Page = lazy(() => import('./pages/Landing2Page'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const PublicBroadcastPage = lazy(() => import('./pages/PublicBroadcastPage'));
 const OwnHotlinePage = lazy(() => import('./pages/landing2/OwnHotlinePage').then(m => ({ default: m.OwnHotlinePage })));
+const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
+const PartsListingPage = lazy(() => import('./pages/PartsListingPage'));
 const NotFoundPage = lazy(() => import('./pages/landing2/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const AboutPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.PrivacyPage })));
@@ -45,6 +47,8 @@ export default function App() {
         <Route path="/" element={<Lazy><Landing2Page /></Lazy>} />
         <Route path="/classic" element={<Lazy><LandingPage /></Lazy>} />
         <Route path="/b/:token" element={<Lazy><PublicBroadcastPage /></Lazy>} />
+        <Route path="/marketplace" element={<Lazy><MarketplacePage /></Lazy>} />
+        <Route path="/parts/:slug" element={<Lazy><PartsListingPage /></Lazy>} />
         <Route path="/own-a-hotline" element={<Lazy><OwnHotlinePage /></Lazy>} />
         <Route path="/about" element={<Lazy><AboutPage /></Lazy>} />
         <Route path="/privacy-policy" element={<Lazy><PrivacyPage /></Lazy>} />

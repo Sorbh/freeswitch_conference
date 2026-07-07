@@ -210,6 +210,172 @@ if (fs.existsSync(clientDistDir)) {
         res.sendFile(path.join(clientDistDir, "manifest.webmanifest"));
     });
     app.use(express.static(clientDistDir, { index: false }));
+
+    // Dynamic marketplace sitemap — all individual part listing URLs
+    app.get("/sitemap-marketplace.xml", (req, res) => {
+        try {
+            const result = global.db.getMarketplaceListings({ page: 1, pageSize: 5000 });
+            const baseUrl = 'https://hotline.redlineusedautoparts.com';
+
+            const generateSlug = (row) => {
+                const pd = JSON.parse(row.part_details || '{}');
+                const segments = [pd.year, pd.make, pd.model, pd.part]
+                    .filter(v => v && v !== 'null')
+                    .map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+                const room = global.db.getRoom(row.room);
+                if (room?.short_code) segments.push(room.short_code.toLowerCase());
+                segments.push(String(row.id));
+                return segments.join('-');
+            };
+
+            const urls = result.data.map(row => {
+                const slug = generateSlug(row);
+                const lastmod = new Date(row.created_at * 1000).toISOString().split('T')[0];
+                return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>`;
+            });
+
+            const xml = [
+                '<?xml version="1.0" encoding="UTF-8"?>',
+                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+                `  <url>\n    <loc>${baseUrl}/marketplace</loc>\n    <changefreq>hourly</changefreq>\n    <priority>0.9</priority>\n  </url>`,
+                ...urls,
+                '</urlset>',
+            ].join('\n');
+
+            res.set('Content-Type', 'application/xml');
+            res.set('Cache-Control', 'public, max-age=3600');
+            res.send(xml);
+        } catch (err) {
+            console.error('[SEO] marketplace sitemap error:', err.message);
+            res.status(500).set('Content-Type', 'application/xml').send(
+                '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>'
+            );
+        }
+    });
+
+    // Marketplace SEO — inject meta tags for /marketplace before SPA fallback
+    app.get("/marketplace", (req, res) => {
+        const isHotline = req.path.startsWith('/hotlinehq');
+        const base = isHotline ? hotlineIndexHtml : clientIndexHtml;
+        const url = 'https://hotline.redlineusedautoparts.com/marketplace';
+        const title = 'Used Auto Parts Wanted — Parts Marketplace | Hotline HQ';
+        const description = 'Browse unanswered used auto parts requests from 500+ dismantler yards across the US. Have the part they need? Respond and get connected directly.';
+        const jsonLd = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": "Parts Marketplace",
+            "description": description,
+            "url": url,
+            "isPartOf": { "@type": "WebSite", "name": "Hotline HQ", "url": "https://hotline.redlineusedautoparts.com/" },
+            "provider": { "@type": "Organization", "name": "Hotline HQ" }
+        });
+        const metaTags = `
+    <title>${title}</title>
+    <meta name="description" content="${description}">
+    <meta name="keywords" content="used auto parts, auto parts marketplace, car parts wanted, dismantler parts, junkyard parts, salvage auto parts, used car parts near me">
+    <link rel="canonical" href="${url}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${url}">
+    <meta property="og:site_name" content="Hotline HQ">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <script type="application/ld+json">${jsonLd}</script>`;
+        const html = base.replace('</head>', `${metaTags}\n</head>`);
+        setNoStoreHtml(res);
+        if (req.headers['accept-encoding']?.includes('gzip')) {
+            res.set('Content-Encoding', 'gzip');
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.end(zlib.gzipSync(html));
+        } else {
+            res.type("html").send(html);
+        }
+    });
+
+    // Marketplace SEO — inject meta tags for /parts/:slug before SPA fallback
+    app.get("/parts/:slug", (req, res) => {
+        try {
+            const slug = req.params.slug;
+            const lastHyphen = slug.lastIndexOf('-');
+            const id = parseInt(lastHyphen >= 0 ? slug.substring(lastHyphen + 1) : slug, 10);
+            if (!id) return sendClientIndex(req, res);
+
+            const broadcast = global.db.getMarketplaceListingById(id);
+            if (!broadcast) return sendClientIndex(req, res);
+
+            const pd = JSON.parse(broadcast.part_details || '{}');
+            const isReal = v => v && v !== 'null' && String(v).trim() !== '';
+            const year = isReal(pd.year) ? pd.year : '';
+            const make = isReal(pd.make) ? pd.make : '';
+            const model = isReal(pd.model) ? pd.model : '';
+            const part = isReal(pd.part) ? pd.part : '';
+            const spec = isReal(pd.specification) ? pd.specification : '';
+            const vehicle = [year, make, model].filter(Boolean).join(' ');
+            const partDesc = [vehicle, part].filter(Boolean).join(' ');
+            const room = global.db.getRoom(broadcast.room);
+            const region = room?.name || '';
+            const url = `https://hotline.redlineusedautoparts.com/parts/${slug}`;
+
+            const title = `${partDesc || 'Part'} Needed in ${region} | Used Auto Parts | Hotline HQ`;
+            const description = `${region} dismantler needs a used ${partDesc}${spec ? ` (${spec})` : ''}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
+            const keywords = [make, model, part, 'used auto parts', 'salvage parts', region, 'car parts', 'dismantler', year].filter(Boolean).join(', ');
+
+            const jsonLd = JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Product",
+                "name": `${vehicle} ${part}`.trim() || 'Auto Part',
+                "description": description,
+                "url": url,
+                "category": "Used Auto Parts",
+                "brand": make ? { "@type": "Brand", "name": make } : undefined,
+                "offers": {
+                    "@type": "Demand",
+                    "areaServed": region,
+                    "availability": "https://schema.org/InStock",
+                    "itemCondition": "https://schema.org/UsedCondition"
+                },
+                "isRelatedTo": {
+                    "@type": "Vehicle",
+                    "name": vehicle,
+                    "manufacturer": make || undefined,
+                    "model": model || undefined,
+                    "vehicleModelDate": year || undefined
+                }
+            });
+
+            const isHotline = req.path.startsWith('/hotlinehq');
+            const base = isHotline ? hotlineIndexHtml : clientIndexHtml;
+            const metaTags = `
+    <title>${title}</title>
+    <meta name="description" content="${description}">
+    <meta name="keywords" content="${keywords}">
+    <link rel="canonical" href="${url}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:type" content="product">
+    <meta property="og:url" content="${url}">
+    <meta property="og:site_name" content="Hotline HQ">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <script type="application/ld+json">${jsonLd}</script>`;
+
+            const html = base.replace('</head>', `${metaTags}\n</head>`);
+            setNoStoreHtml(res);
+            if (req.headers['accept-encoding']?.includes('gzip')) {
+                res.set('Content-Encoding', 'gzip');
+                res.set('Content-Type', 'text/html; charset=utf-8');
+                res.end(zlib.gzipSync(html));
+            } else {
+                res.type("html").send(html);
+            }
+        } catch {
+            sendClientIndex(req, res);
+        }
+    });
+
     // SPA fallback for client app — skip API, admin, and static file paths
     app.get("*", (req, res, next) => {
         if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/recordings/')) return next();

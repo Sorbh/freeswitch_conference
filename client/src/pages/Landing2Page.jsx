@@ -350,6 +350,7 @@ export default function Landing2Page() {
           <a href="#try">{t("common:nav.tryIt")}</a>
           <a href="#rooms">{t("common:nav.coverage")}</a>
           <a href="./own-a-hotline">{t("common:nav.ownHotline")}</a>
+          <a href="./marketplace">Marketplace</a>
           <a href={loginUrl} className="l2-nav-login">{t("common:nav.login")}</a>
           <a href={signupUrl} className="l2-nav-cta">
             {t("common:nav.signUpFree")}

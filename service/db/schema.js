@@ -332,6 +332,25 @@ export function init() {
         );
     `);
 
+    // ── Marketplace responses table ──
+
+    sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS marketplace_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            broadcast_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            company TEXT,
+            phone TEXT NOT NULL,
+            email TEXT NOT NULL,
+            message TEXT,
+            ip TEXT,
+            notified INTEGER DEFAULT 0,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_marketplace_responses_broadcast ON marketplace_responses(broadcast_id);
+        CREATE INDEX IF NOT EXISTS idx_marketplace_responses_ip ON marketplace_responses(ip, created_at);
+    `);
+
     // ── Broadcast transcription columns ──
     const bcastMigCols = sqlite.prepare("PRAGMA table_info(broadcast_log)").all().map(c => c.name);
     const bcastTransMigrations = [
