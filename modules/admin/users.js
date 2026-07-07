@@ -1,6 +1,6 @@
 import express from "express";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
-import { handleHttpHookEvent, getActiveMacs } from "../../service/phoneEvents.js";
+import { handleHttpHookEvent, isSyslogActive, isSyslogWarning } from "../../service/phoneEvents.js";
 import { logUser, logSystem } from "../../service/logger.js";
 import { emitStateChange, endCall, allEndCall } from "./routesApi.js";
 import { getClientSSEUsers, sendClientEventToRoom, sendClientEventToUser, buildRoomSnapshot, buildOnlineCounts } from "../client/events.js";
@@ -21,7 +21,6 @@ router.get("/users", (req, res) => {
         const matchedEmails = new Set();
 
         const talkingUsers = global.freeswitch?.getTalkingUsers?.() || new Set();
-        const activeMacs = getActiveMacs();
         const sseUsers = getClientSSEUsers();
 
         const enriched = users.map(u => {
@@ -36,7 +35,8 @@ router.get("/users", (req, res) => {
                     : 0,
                 last_seen: u.lastSeen || u.updatedAt || u.createdAt,
                 talking: talkingUsers.has(u.userName),
-                syslogActive: u.mac ? activeMacs.has(u.mac) : false,
+                syslogActive: u.mac ? isSyslogActive(u.mac) : false,
+                syslogWarning: u.connectionState === 'connected' && u.clientType !== 'web' && u.mac ? isSyslogWarning(u.mac) : false,
                 sseConnected: sseUsers.has(u.userName),
                 account: account ? safeAccount : null,
             };

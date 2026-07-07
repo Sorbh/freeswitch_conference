@@ -209,6 +209,10 @@ function getUserSuggestions(user) {
     suggestions.push({ level: "warn", text: "All retry fallbacks exhausted — manual reconnect needed" });
   }
 
+  if (user.syslogWarning) {
+    suggestions.push({ level: "warn", text: "No syslog for 5+ minutes — on-hook/off-hook detection is not working. Mute/unmute from the phone handset will not function." });
+  }
+
   return suggestions;
 }
 
@@ -352,7 +356,7 @@ export default function UsersPage() {
       if (filters.notInCall && u.connectionState === "connected") return false;
       if (filters.talking && !u.talking) return false;
       if (filters.error && u.connectionState !== "error") return false;
-      if (filters.noSyslog && u.syslogActive) return false;
+      if (filters.noSyslog && (u.syslogActive || u.clientType === 'web' || u.accountOnly || u.connectionState !== 'connected')) return false;
       if (filters.noSSE && u.sseConnected) return false;
       if (filters.crossRoom) {
         const defaultRoom = u.account?.room ?? u.room;
@@ -820,6 +824,7 @@ export default function UsersPage() {
                     {user.clientType === "web" && <GlobeIcon className="size-2.5 shrink-0" />}
                     {user.sseConnected && <RadioIcon className="size-2.5 text-blue-400 shrink-0" />}
                     {user.syslogActive && <LogsIcon className="size-2.5 text-emerald-500 shrink-0" />}
+                    {user.syslogWarning && <TriangleAlertIcon className="size-2.5 text-amber-500 animate-pulse shrink-0" />}
                     <span className="truncate max-w-[80px]">{company || name}</span>
                   </button>
                 </TooltipTrigger>
@@ -936,6 +941,7 @@ export default function UsersPage() {
                     {user.clientType === "web" ? <Badge variant="outline" className="gap-1 text-[10px]"><GlobeIcon className="size-3" />Web</Badge> : null}
                     {user.sseConnected ? <Badge variant="outline" className="gap-1 text-[10px] text-blue-400 border-blue-400/20"><RadioIcon className="size-3" />SSE</Badge> : null}
                     {user.syslogActive ? <Badge variant="outline" className="gap-1 text-[10px] text-emerald-400 border-emerald-400/20"><LogsIcon className="size-3" />Syslog</Badge> : null}
+                    {user.syslogWarning ? <Badge variant="outline" className="gap-1 text-[10px] text-amber-500 border-amber-500/20 animate-pulse"><TriangleAlertIcon className="size-3" />No Syslog</Badge> : null}
                     {user.account?.signup_source === 'client' ? <Badge variant="outline" className="gap-1 text-[10px] text-violet-400 border-violet-400/20"><UserPlusIcon className="size-3" />Signup</Badge> : null}
                   </div>
                 </div>
@@ -1055,6 +1061,11 @@ export default function UsersPage() {
                         {user.account?.signup_source === 'client' && (
                           <Tip label={`Self-signup${user.account.email_verified ? '' : ' · Unverified'}`}>
                             <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 gap-0.5 text-violet-400 border-violet-400/30"><UserPlusIcon className="size-2.5" />Signup</Badge>
+                          </Tip>
+                        )}
+                        {user.syslogWarning && (
+                          <Tip label="No syslog for 5+ min — mute/unmute not working">
+                            <TriangleAlertIcon className="size-3.5 text-amber-500 animate-pulse shrink-0" />
                           </Tip>
                         )}
                       </div>

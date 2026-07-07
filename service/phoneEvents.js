@@ -70,7 +70,11 @@ const sipBlocks = new Map();
 const SIP_BLOCK_TIMEOUT = 3000;
 const macByIp = new Map();
 const activeMac = new Map();
-const SYSLOG_STALE_MS = 30000;
+const SYSLOG_STALE_MS = 60000;
+const SYSLOG_WARNING_MS = 300000;
+const syslogStaleEmitted = new Set();
+const syslogWarned = new Set();
+let syslogCheckCounter = 0;
 
 export function getMacByIp(ip) {
     return macByIp.get(ip) || null;
@@ -80,17 +84,52 @@ export function getActiveMacs() {
     return activeMac;
 }
 
+export function isSyslogActive(mac) {
+    if (!mac || !activeMac.has(mac)) return false;
+    return Date.now() - activeMac.get(mac) < SYSLOG_STALE_MS;
+}
+
+export function isSyslogWarning(mac) {
+    return syslogWarned.has(mac);
+}
+
 setInterval(() => {
     const now = Date.now();
+    syslogCheckCounter++;
+
     for (const [mac, lastSeen] of activeMac.entries()) {
-        if (now - lastSeen > SYSLOG_STALE_MS) {
-            activeMac.delete(mac);
+        const age = now - lastSeen;
+
+        if (age > SYSLOG_STALE_MS && !syslogStaleEmitted.has(mac)) {
+            syslogStaleEmitted.add(mac);
             const userInfo = global.db.findUserInfo('mac', mac);
             if (userInfo.userName) {
                 logUser(userInfo.userName, 'PHONE', `Syslog stale (${mac})`);
                 global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: userInfo.userName });
             }
         }
+
+        if (age > SYSLOG_WARNING_MS && !syslogWarned.has(mac)) {
+            const userInfo = global.db.findUserInfo('mac', mac);
+            if (userInfo.userName && userInfo.connectionState === 'connected' && userInfo.clientType !== 'web') {
+                syslogWarned.add(mac);
+                logUser(userInfo.userName, 'PHONE', `Syslog warning: no messages for 5+ minutes (${mac})`);
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: userInfo.userName });
+            }
+        }
+    }
+
+    if (syslogCheckCounter % 12 === 0) {
+        try {
+            const users = global.db.getAllUserInfo();
+            for (const u of users) {
+                if (u.connectionState === 'connected' && u.clientType !== 'web' && u.mac && !activeMac.has(u.mac) && !syslogWarned.has(u.mac)) {
+                    syslogWarned.add(u.mac);
+                    logUser(u.userName, 'PHONE', `Syslog warning: never received syslog from ${u.mac}`);
+                    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: u.userName });
+                }
+            }
+        } catch (_) {}
     }
 }, 5000);
 
@@ -154,6 +193,15 @@ export function startSyslogServer(port = 515) {
 
         if (macAddress) {
             activeMac.set(macAddress, Date.now());
+            syslogStaleEmitted.delete(macAddress);
+            if (syslogWarned.has(macAddress)) {
+                syslogWarned.delete(macAddress);
+                const warnUser = global.db.findUserInfo('mac', macAddress);
+                if (warnUser.userName) {
+                    logUser(warnUser.userName, 'PHONE', `Syslog warning cleared (${macAddress})`);
+                    global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: warnUser.userName });
+                }
+            }
             const ip = value.address || value.host;
             if (ip) macByIp.set(ip, macAddress);
         }
