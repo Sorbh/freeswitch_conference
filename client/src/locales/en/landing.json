@@ -79,7 +79,10 @@
     "docTitle": "Broadcast by {{name}} — Hotline HQ",
     "docTitleFallback": "Broadcast — Hotline HQ",
     "play": "Play",
-    "pause": "Pause"
+    "pause": "Pause",
+    "ctaTitle": "Get on the hotline",
+    "ctaText": "This is a real broadcast from the network. 500+ yards are already finding parts for each other — your yard should be on this line too.",
+    "ctaFootnote": "Free to join · No card required · Start hearing calls in under 2 minutes"
   },
   "video": {
     "kicker": "See it run",

@@ -79,7 +79,10 @@
     "docTitle": "Diffusion de {{name}} — Hotline HQ",
     "docTitleFallback": "Diffusion — Hotline HQ",
     "play": "Lecture",
-    "pause": "Pause"
+    "pause": "Pause",
+    "ctaTitle": "Rejoignez la ligne",
+    "ctaText": "Ceci est une diffusion en direct du réseau. Plus de 500 parcs trouvent déjà des pièces les uns pour les autres — votre parc devrait aussi être sur cette ligne.",
+    "ctaFootnote": "Inscription gratuite · Aucune carte requise · Commencez à entendre les appels en moins de 2 minutes"
   },
   "video": {
     "kicker": "Voir en action",

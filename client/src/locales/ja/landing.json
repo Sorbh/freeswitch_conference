@@ -79,7 +79,10 @@
     "docTitle": "{{name}}の放送 — Hotline HQ",
     "docTitleFallback": "放送 — Hotline HQ",
     "play": "再生",
-    "pause": "一時停止"
+    "pause": "一時停止",
+    "ctaTitle": "ホットラインに参加する",
+    "ctaText": "これはネットワークからのリアルな放送です。500以上のヤードがすでにお互いの部品を探し合っています。あなたのヤードもこのラインに参加しましょう。",
+    "ctaFootnote": "参加無料 · カード不要 · 2分以内に通話を聞き始められます"
   },
   "video": {
     "kicker": "実際の動作を見る",

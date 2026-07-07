@@ -227,14 +227,15 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit}>
             {!hasUrlCompany && (
               <div className="mb-3">
-                <label className="hq-label">{t("signup.companyName")}</label>
-                <input type="text" value={form.company_name} onChange={update('company_name')} onBlur={trimField('company_name')} required className="hq-input" placeholder={t("signup.companyPlaceholder")} />
+                <label htmlFor="signup-company" className="hq-label">{t("signup.companyName")}</label>
+                <input id="signup-company" type="text" value={form.company_name} onChange={update('company_name')} onBlur={trimField('company_name')} required className="hq-input" placeholder={t("signup.companyPlaceholder")} />
               </div>
             )}
 
             <div className="mb-3">
-              <label className="hq-label">{t("signup.email")}</label>
+              <label htmlFor="signup-email" className="hq-label">{t("signup.email")}</label>
               <input
+                id="signup-email"
                 type="email"
                 value={form.email}
                 onChange={update('email')}
@@ -248,8 +249,9 @@ export default function SignupPage() {
             </div>
 
             <div className="mb-4">
-              <label className="hq-label">{t("signup.password")}</label>
+              <label htmlFor="signup-password" className="hq-label">{t("signup.password")}</label>
               <input
+                id="signup-password"
                 ref={passwordRef}
                 type="password"
                 value={form.password}

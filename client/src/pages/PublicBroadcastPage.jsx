@@ -642,6 +642,35 @@ export default function PublicBroadcastPage() {
             </div>
           )}
 
+          {/* In-card CTA */}
+          <div className="bp-cta-section">
+            <h2 className="bp-cta-title">{t("publicBroadcast.ctaTitle")}</h2>
+            <p className="bp-cta-text">{t("publicBroadcast.ctaText")}</p>
+            <div className="bp-cta-trust-grid">
+              <div className="bp-cta-trust">
+                <span className="bp-cta-trust-value">500+</span>
+                <span className="bp-cta-trust-label">{t("stats.memberYards")}</span>
+              </div>
+              <div className="bp-cta-trust">
+                <span className="bp-cta-trust-value">2s</span>
+                <span className="bp-cta-trust-label">{t("stats.typicalAnswer")}</span>
+              </div>
+              <div className="bp-cta-trust">
+                <span className="bp-cta-trust-value">24/7</span>
+                <span className="bp-cta-trust-label">{t("stats.lineMonitoring")}</span>
+              </div>
+            </div>
+            <div className="bp-cta-actions">
+              <a href={signupUrl} className="bp-cta-btn bp-cta-btn-primary" onClick={handleSignupClick}>
+                {t("common:nav.signUpFree")}
+              </a>
+              <a href={PUBLIC_LOGIN_URL} className="bp-cta-btn bp-cta-btn-secondary" onClick={handleLoginClick}>
+                {t("common:nav.login")}
+              </a>
+            </div>
+            <p className="bp-cta-footnote">{t("publicBroadcast.ctaFootnote")}</p>
+          </div>
+
         </div>
           </div>
         </div>

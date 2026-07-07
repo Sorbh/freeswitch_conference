@@ -79,7 +79,10 @@
     "docTitle": "{{name}} 的广播 — Hotline HQ",
     "docTitleFallback": "广播 — Hotline HQ",
     "play": "播放",
-    "pause": "暂停"
+    "pause": "暂停",
+    "ctaTitle": "加入热线",
+    "ctaText": "这是来自网络的真实广播。已有500多家拆车场在互相寻找配件——你的拆车场也应该加入这条线路。",
+    "ctaFootnote": "免费加入 · 无需信用卡 · 不到2分钟即可开始接听电话"
   },
   "video": {
     "kicker": "观看演示",

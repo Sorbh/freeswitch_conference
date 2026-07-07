@@ -79,7 +79,10 @@
     "docTitle": "Transmision de {{name}} — Hotline HQ",
     "docTitleFallback": "Transmision — Hotline HQ",
     "play": "Reproducir",
-    "pause": "Pausar"
+    "pause": "Pausar",
+    "ctaTitle": "Conéctate a la línea",
+    "ctaText": "Esta es una transmisión real de la red. Más de 500 yardas ya están encontrando piezas entre sí — tu yarda también debería estar en esta línea.",
+    "ctaFootnote": "Unirse es gratis · No se requiere tarjeta · Empieza a escuchar llamadas en menos de 2 minutos"
   },
   "video": {
     "kicker": "Miralo funcionar",
