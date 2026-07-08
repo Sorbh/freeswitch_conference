@@ -76,7 +76,11 @@ export function AuthProvider({ children }) {
       window.location.replace('/client/login?session=expired');
       return new Promise(() => {});
     }
-    if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    if (!res.ok) {
+      const err = new Error(json.error || `HTTP ${res.status}`);
+      err.code = json.code;
+      throw err;
+    }
     return json;
   }, [token]);
 

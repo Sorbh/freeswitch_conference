@@ -359,13 +359,16 @@ clientRouter.post("/login", async (req, res) => {
         if (!email) return res.status(400).json({ status: false, error: "Email is required" });
 
         const account = global.db.getAccountByEmail(email.toLowerCase().trim());
-        if (!account || !account.active) {
+        if (!account) {
             return res.status(401).json({ status: false, error: "Account not found or inactive" });
         }
 
-        // Check email verification for self-signup accounts
         if (account.signup_source === 'client' && !account.email_verified) {
             return res.status(403).json({ status: false, error: "Please verify your email before logging in", code: 'EMAIL_NOT_VERIFIED' });
+        }
+
+        if (!account.active) {
+            return res.status(401).json({ status: false, error: "Account not found or inactive" });
         }
 
         const sipPassword = password || '';
