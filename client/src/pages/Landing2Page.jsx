@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 import ListenLive from "../components/ListenLive";
 import LanguageSwitcher from "../components/LanguageSwitcher";
@@ -130,6 +131,83 @@ const HERO_CLIPS = [
     ],
   },
 ];
+
+function isRealValue(v) {
+  return v && v !== 'null' && v !== 'undefined' && String(v).trim() !== '';
+}
+
+function formatRelativeTime(ts) {
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function parseDisplayName(dn) {
+  if (!dn) return { yard: null };
+  const p = dn.split('/');
+  return { yard: p[0].trim() };
+}
+
+function MarketplacePreview() {
+  const [listings, setListings] = useState([]);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/v1/marketplace/listings?page=1&pageSize=6')
+      .then(r => r.json())
+      .then(json => {
+        if (json.status && json.data) {
+          setListings(json.data);
+          setTotal(json.total || 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!listings.length) return null;
+
+  return (
+    <section className="l2-section" id="marketplace">
+      <div className="l2-section-head l2-reveal">
+        <p className="l2-kicker">PARTS MARKETPLACE</p>
+        <h2>Unanswered requests,<br />waiting for your yard</h2>
+        <p className="l2-lede">
+          When a broadcast goes unanswered on the network, it lands here.
+          {total > 0 && <> There are <strong style={{color:'var(--red)'}}>{total}</strong> open right now.</>}
+        </p>
+      </div>
+
+      <div className="l2-mp-grid l2-reveal">
+        {listings.slice(0, 6).map(listing => {
+          const pd = typeof listing.part_details === 'object' ? listing.part_details : {};
+          const makeModel = [pd.make, pd.model].filter(isRealValue).join(' ');
+          const part = isRealValue(pd.part) ? pd.part : null;
+          const { yard } = parseDisplayName(listing.display_name);
+          return (
+            <Link to={`/parts/${listing.slug}`} className="l2-mp-card" key={listing.id}>
+              <div className="l2-mp-card-origin">
+                <span className="l2-mp-card-yard">{yard || 'Yard'}</span>
+                <span className="l2-mp-card-meta">{listing.room_name} · {formatRelativeTime(listing.created_at)}</span>
+              </div>
+              <div className="l2-mp-card-body">
+                {isRealValue(pd.year) && <span className="l2-mp-card-year">{pd.year}</span>}
+                <span className="l2-mp-card-vehicle">{makeModel || 'Vehicle'}</span>
+                {part && <span className="l2-mp-card-part">{part}</span>}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="l2-reveal" style={{textAlign:'center', marginTop:'40px'}}>
+        <Link to="/marketplace" className="l2-btn l2-btn-hot">
+          Browse All {total} Requests
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 export default function Landing2Page() {
   const { t, i18n } = useTranslation("landing");
@@ -527,6 +605,9 @@ export default function Landing2Page() {
           ))}
         </div>
       </section>
+
+      {/* ───────────────── marketplace ───────────────── */}
+      <MarketplacePreview />
 
       {/* ───────────────── join ───────────────── */}
       <section className="l2-join" id="join">
@@ -1161,6 +1242,94 @@ const CSS = `
 }
 .l2-sticky-cta:hover { background: var(--red-deep); }
 @media (max-width: 860px) { .l2-sticky-cta { display: block; } }
+
+/* ── marketplace preview ── */
+.l2-mp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.l2-mp-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid rgba(22,24,29,0.1);
+  border-top: none;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(22,24,29,0.06), 0 8px 24px -8px rgba(22,24,29,0.12);
+  transition: box-shadow 0.3s, transform 0.2s;
+  cursor: pointer;
+}
+.l2-mp-card:hover {
+  box-shadow: 0 4px 8px rgba(22,24,29,0.08), 0 24px 56px -16px rgba(22,24,29,0.22);
+  transform: translateY(-3px);
+}
+.l2-mp-card-origin {
+  background: var(--ink);
+  padding: 14px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.l2-mp-card-yard {
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.l2-mp-card-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.02em;
+}
+.l2-mp-card-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: linear-gradient(180deg, #faf9f7 0%, var(--surface) 40%);
+}
+.l2-mp-card-year {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.l2-mp-card-vehicle {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.l2-mp-card-part {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--red);
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: #fef3f2;
+  border-radius: 5px;
+  text-transform: capitalize;
+}
+@media (max-width: 1024px) {
+  .l2-mp-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .l2-mp-grid { grid-template-columns: 1fr; gap: 14px; }
+  .l2-mp-card-vehicle { font-size: 17px; }
+}
 
 /* ── mobile responsive ── */
 @media (max-width: 640px) {

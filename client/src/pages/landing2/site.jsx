@@ -204,11 +204,21 @@ const PRODUCT_LINK_KEYS = [
   ["footer.getALine", "/#join"],
   ["footer.ownAutoPartsHotline", "/own-a-hotline"],
   ["footer.marketplace", "/marketplace"],
+  ["footer.findParts", "/find-used-auto-parts"],
+  ["footer.sellParts", "/sell-used-auto-parts"],
 ];
 
 const ROOM_LINKS = [
-  "California", "Texas", "Florida", "Arizona", "Michigan", "Georgia",
-  "Ohio", "New York", "Indiana", "Carolinas",
+  ["California", "/used-auto-parts/california"],
+  ["Texas", "/used-auto-parts/texas"],
+  ["Florida", "/used-auto-parts/florida"],
+  ["Arizona", "/used-auto-parts/arizona"],
+  ["Michigan", "/used-auto-parts/michigan"],
+  ["Georgia", "/used-auto-parts/georgia"],
+  ["Ohio", "/used-auto-parts/ohio"],
+  ["New York", "/used-auto-parts/new-york"],
+  ["Indiana", "/used-auto-parts/indiana"],
+  ["Carolinas", "/used-auto-parts/carolinas"],
 ];
 
 export function SiteFooter() {
@@ -242,9 +252,9 @@ export function SiteFooter() {
 
         <div className="l2f-col">
           <p className="l2f-head">{t("footer.rooms")}</p>
-          {ROOM_LINKS.map((r) => (
-            <Link key={r} to="/#rooms">
-              {r}
+          {ROOM_LINKS.map(([name, href]) => (
+            <Link key={name} to={href}>
+              {name}
             </Link>
           ))}
           <Link to="/#rooms" className="l2f-more">

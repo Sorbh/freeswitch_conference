@@ -11,8 +11,68 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://hotline.redlineusedautoparts.com/find-used-auto-parts</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/sell-used-auto-parts</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://hotline.redlineusedautoparts.com/own-a-hotline</loc>
     <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/california</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/texas</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/florida</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/arizona</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/ohio</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/new-york</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/georgia</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/indiana</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/michigan</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotline.redlineusedautoparts.com/used-auto-parts/carolinas</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
