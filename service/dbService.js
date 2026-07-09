@@ -53,6 +53,7 @@ import {
     getMarketplaceResponseCount, getIpResponseCount,
     createMarketplaceResponse, getMarketplaceResponsesForBroadcast,
     getMarketplaceResponseCountForBroadcast, getMarketplaceStats,
+    getMarketplaceRoomStats, getRelatedListings, getAllRoomStats,
 } from './db/marketplace.js';
 
 const db = {};
@@ -179,5 +180,8 @@ db.createMarketplaceResponse = createMarketplaceResponse;
 db.getMarketplaceResponsesForBroadcast = getMarketplaceResponsesForBroadcast;
 db.getMarketplaceResponseCountForBroadcast = getMarketplaceResponseCountForBroadcast;
 db.getMarketplaceStats = getMarketplaceStats;
+db.getMarketplaceRoomStats = getMarketplaceRoomStats;
+db.getRelatedListings = getRelatedListings;
+db.getAllRoomStats = getAllRoomStats;
 
 export default { db };

@@ -97,6 +97,68 @@ function getMarketplaceResponseCountForBroadcast(broadcastId) {
     ).get(broadcastId).count;
 }
 
+function getMarketplaceRoomStats(roomId) {
+    const now = Math.floor(Date.now() / 1000);
+    const cutoff = now - SEVEN_DAYS;
+
+    const totalBroadcasts = sqlite.prepare(
+        `SELECT COUNT(*) as count FROM broadcast_log WHERE room = ? AND has_parts_request = 1 AND part_details IS NOT NULL`
+    ).get(roomId).count;
+
+    const activeBroadcasts = sqlite.prepare(
+        `SELECT COUNT(*) as count FROM broadcast_log WHERE room = ? AND has_parts_request = 1 AND part_details IS NOT NULL AND created_at > ?`
+    ).get(roomId, cutoff).count;
+
+    const yardCount = sqlite.prepare(
+        `SELECT COUNT(*) as count FROM accounts WHERE room = ? AND active = 1`
+    ).get(roomId).count;
+
+    const topMakes = sqlite.prepare(
+        `SELECT json_extract(part_details, '$.make') as name, COUNT(*) as count
+         FROM broadcast_log
+         WHERE room = ? AND has_parts_request = 1 AND part_details IS NOT NULL
+           AND json_extract(part_details, '$.make') IS NOT NULL
+           AND json_extract(part_details, '$.make') != 'null'
+         GROUP BY name ORDER BY count DESC LIMIT 5`
+    ).all(roomId);
+
+    const topParts = sqlite.prepare(
+        `SELECT json_extract(part_details, '$.part') as name, COUNT(*) as count
+         FROM broadcast_log
+         WHERE room = ? AND has_parts_request = 1 AND part_details IS NOT NULL
+           AND json_extract(part_details, '$.part') IS NOT NULL
+           AND json_extract(part_details, '$.part') != 'null'
+         GROUP BY name ORDER BY count DESC LIMIT 5`
+    ).all(roomId);
+
+    return { totalBroadcasts, activeBroadcasts, yardCount, topMakes, topParts };
+}
+
+function getRelatedListings(broadcastId, make, room, limit = 4) {
+    if (!make || make === 'null') return [];
+    return sqlite.prepare(
+        `SELECT ${SAFE_COLUMNS} FROM broadcast_log b
+         WHERE b.id != ? AND b.room = ? AND b.has_parts_request = 1
+           AND b.part_details IS NOT NULL
+           AND LOWER(json_extract(b.part_details, '$.make')) = LOWER(?)
+           AND json_extract(b.part_details, '$.year') IS NOT NULL AND json_extract(b.part_details, '$.year') != 'null'
+           AND json_extract(b.part_details, '$.model') IS NOT NULL AND json_extract(b.part_details, '$.model') != 'null'
+         ORDER BY b.created_at DESC LIMIT ?`
+    ).all(broadcastId, room, make, limit);
+}
+
+function getAllRoomStats() {
+    return sqlite.prepare(
+        `SELECT b.room, b.room_name, COUNT(*) as broadcasts,
+                (SELECT COUNT(*) FROM accounts WHERE room = b.room AND active = 1) as yards
+         FROM broadcast_log b
+         WHERE b.has_parts_request = 1 AND b.part_details IS NOT NULL
+         GROUP BY b.room
+         HAVING broadcasts > 0
+         ORDER BY broadcasts DESC`
+    ).all();
+}
+
 function getMarketplaceStats() {
     const now = Math.floor(Date.now() / 1000);
     const cutoff = now - SEVEN_DAYS;
@@ -133,4 +195,7 @@ export {
     getMarketplaceResponsesForBroadcast,
     getMarketplaceResponseCountForBroadcast,
     getMarketplaceStats,
+    getMarketplaceRoomStats,
+    getRelatedListings,
+    getAllRoomStats,
 };

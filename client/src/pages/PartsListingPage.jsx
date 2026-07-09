@@ -39,6 +39,19 @@ function parseDisplayName(dn) {
   return { yard: dn.trim(), person: null };
 }
 
+function makeListingSlug(row) {
+    const pd = typeof row.part_details === 'object' ? row.part_details : JSON.parse(row.part_details || '{}');
+    const segments = [pd.year, pd.make, pd.model, pd.part]
+        .filter(v => v && v !== 'null')
+        .map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+    segments.push(String(row.id));
+    return segments.join('-');
+}
+
+const ROOM_TO_STATE_SLUG = {
+    California: 'california', Texas: 'texas', Florida: 'florida', Arizona: 'arizona',
+};
+
 function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -176,6 +189,7 @@ export default function PartsListingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [related, setRelated] = useState([]);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
@@ -193,6 +207,16 @@ export default function PartsListingPage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    if (!slug || !data) return;
+    fetch(`/api/v1/marketplace/listings/${slug}/related`)
+        .then(r => r.ok ? r.json() : null)
+        .then(json => {
+            if (json?.status && json.data) setRelated(json.data);
+        })
+        .catch(() => {});
+  }, [slug, data]);
 
   if (loading) {
     return (
@@ -267,25 +291,34 @@ export default function PartsListingPage() {
         path={`/parts/${slug}`}
         jsonLd={{
           "@context": "https://schema.org",
-          "@type": "Product",
-          name: `${vehicle} ${partName || ""}`.trim() || "Auto Part",
-          description: seoDesc,
-          url: buildSiteUrl(`/parts/${slug}`),
-          category: "Used Auto Parts",
-          brand: parts.make ? { "@type": "Brand", name: parts.make } : undefined,
-          offers: {
-            "@type": "Demand",
-            areaServed: data.room_name,
-            availability: "https://schema.org/InStock",
-            itemCondition: "https://schema.org/UsedCondition",
-          },
-          isRelatedTo: {
-            "@type": "Vehicle",
-            name: vehicle,
-            manufacturer: parts.make || undefined,
-            model: parts.model || undefined,
-            vehicleModelDate: parts.year || undefined,
-          },
+          "@graph": [
+            {
+              "@type": "WantAction",
+              name: `Looking for ${vehicle} ${partName || "part"}`.trim(),
+              description: seoDesc,
+              url: buildSiteUrl(`/parts/${slug}`),
+              object: {
+                "@type": "Product",
+                name: `${vehicle} ${partName || ""}`.trim() || "Auto Part",
+                category: "Used Auto Parts",
+                brand: parts.make ? { "@type": "Brand", name: parts.make } : undefined,
+                itemCondition: "https://schema.org/UsedCondition",
+              },
+              location: data.room_name ? { "@type": "AdministrativeArea", name: data.room_name } : undefined,
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Marketplace", item: buildSiteUrl("/marketplace") },
+                ...(data.room_name && ROOM_TO_STATE_SLUG[data.room_name] ? [{
+                  "@type": "ListItem", position: 2,
+                  name: `Used Auto Parts in ${data.room_name}`,
+                  item: buildSiteUrl(`/used-auto-parts/${ROOM_TO_STATE_SLUG[data.room_name]}`),
+                }] : []),
+                { "@type": "ListItem", position: data.room_name && ROOM_TO_STATE_SLUG[data.room_name] ? 3 : 2, name: seoTitle },
+              ],
+            },
+          ],
         }}
       />
 
@@ -294,13 +327,17 @@ export default function PartsListingPage() {
 
         <main className="pl-main">
           <div className="pl-container">
-            <Link to="/marketplace" className="pl-back">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              Back to Marketplace
-            </Link>
+            <nav className="pl-breadcrumb" aria-label="Breadcrumb">
+              <Link to="/marketplace">Marketplace</Link>
+              <span className="pl-bc-sep" aria-hidden="true">/</span>
+              {data.room_name && ROOM_TO_STATE_SLUG[data.room_name] && (
+                <>
+                  <Link to={`/used-auto-parts/${ROOM_TO_STATE_SLUG[data.room_name]}`}>{data.room_name}</Link>
+                  <span className="pl-bc-sep" aria-hidden="true">/</span>
+                </>
+              )}
+              <span className="pl-bc-current">{vehicle || 'Listing'}</span>
+            </nav>
 
             <div className="pl-split">
               {/* LEFT — Listing card */}
@@ -423,6 +460,27 @@ export default function PartsListingPage() {
                 </div>
               </div>
             </div>
+
+            {related.length > 0 && (
+              <section className="pl-related">
+                <h2 className="pl-related-title">Similar Requests in {data.room_name}</h2>
+                <div className="pl-related-grid">
+                  {related.map(item => {
+                    const rp = item.part_details || {};
+                    const rSlug = item.slug || makeListingSlug(item);
+                    const rVehicle = [rp.year, rp.make, rp.model].filter(v => v && v !== 'null').join(' ');
+                    return (
+                      <Link to={`/parts/${rSlug}`} className="pl-related-card" key={item.id}>
+                        {isRealValue(rp.year) && <span className="pl-related-year">{rp.year}</span>}
+                        <span className="pl-related-vehicle">{[rp.make, rp.model].filter(v => isRealValue(v)).join(' ') || 'Vehicle'}</span>
+                        {isRealValue(rp.part) && <span className="pl-related-part">{rp.part}</span>}
+                        <span className="pl-related-time">{formatRelativeTime(item.created_at)}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </div>
         </main>
 
@@ -1039,5 +1097,90 @@ const PAGE_CSS = `
   .pl-sidebar { padding: 28px 20px 24px; }
   .pl-sidebar-h2 { font-size: 22px; }
   .pl-sidebar-stats { gap: 14px; }
+}
+
+/* ---- Related listings ---- */
+.pl-related {
+  margin-top: 48px;
+  padding-top: 40px;
+  border-top: 1px solid var(--line);
+}
+.pl-related-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+.pl-related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.pl-related-card {
+  background: var(--surface);
+  border: 1px solid rgba(22,24,29,0.1);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s, transform 0.15s;
+  box-shadow: 0 1px 2px rgba(22,24,29,0.05);
+}
+.pl-related-card:hover { border-color: var(--red); transform: translateY(-2px); }
+.pl-related-year {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--subtle);
+  letter-spacing: 0.04em;
+}
+.pl-related-vehicle {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink) !important;
+  line-height: 1.15;
+}
+.pl-related-part {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  text-transform: capitalize;
+  align-self: flex-start;
+}
+.pl-related-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--subtle);
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* ---- Breadcrumb ---- */
+.pl-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.pl-breadcrumb a {
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.pl-breadcrumb a:hover { color: var(--ink); }
+.pl-bc-sep { color: var(--subtle); }
+.pl-bc-current { color: var(--ink-secondary); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .pl-related-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pl-related-card { padding: 14px 16px; }
 }
 `;

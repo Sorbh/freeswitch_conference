@@ -23,6 +23,10 @@
     "logout": "Logout",
     "fullscreenUnsupported": "Fullscreen is not supported in this browser. Use Add to Home Screen for the best mobile view.",
     "fullscreenFailed": "Fullscreen request failed. Tap the button again.",
+    "ptt": {
+      "hold": "Hold to Talk",
+      "live": "Live — Release to Mute"
+    },
     "loginFailed": "Login failed",
     "gotIt": "Got it",
     "cancel": "Cancel",
@@ -108,7 +112,7 @@
     "mute": "Mute",
     "unmute": "Unmute",
     "listenOnly": "Listen Only",
-    "muteShortcutHint": "<kbd>Ctrl+L</kbd> to toggle mute",
+    "muteShortcutHint": "<kbd>Ctrl+L</kbd> to toggle mute · hold <kbd>Space</kbd> to push-to-talk",
     "thisRoom": "This Room",
     "network": "Network",
     "speaking": "Speaking",

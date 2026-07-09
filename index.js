@@ -171,8 +171,10 @@ if (fs.existsSync(clientDistDir)) {
     reloadClientIndex();
 
     // Watch for frontend rebuilds — auto-reload without pm2 restart
+    // Watch the directory (not the file) because Vite delete+recreates index.html, which kills file watchers on Linux
     let reloadTimer;
-    fs.watch(clientIndexPath, () => {
+    fs.watch(clientDistDir, (eventType, filename) => {
+        if (filename !== 'index.html') return;
         clearTimeout(reloadTimer);
         reloadTimer = setTimeout(() => {
             try { reloadClientIndex(); } catch (e) { console.error('Client index reload failed:', e.message); }
@@ -324,25 +326,34 @@ if (fs.existsSync(clientDistDir)) {
 
             const jsonLd = JSON.stringify({
                 "@context": "https://schema.org",
-                "@type": "Product",
-                "name": `${vehicle} ${part}`.trim() || 'Auto Part',
-                "description": description,
-                "url": url,
-                "category": "Used Auto Parts",
-                "brand": make ? { "@type": "Brand", "name": make } : undefined,
-                "offers": {
-                    "@type": "Demand",
-                    "areaServed": region,
-                    "availability": "https://schema.org/InStock",
-                    "itemCondition": "https://schema.org/UsedCondition"
-                },
-                "isRelatedTo": {
-                    "@type": "Vehicle",
-                    "name": vehicle,
-                    "manufacturer": make || undefined,
-                    "model": model || undefined,
-                    "vehicleModelDate": year || undefined
-                }
+                "@graph": [
+                    {
+                        "@type": "WantAction",
+                        name: `Looking for ${partDesc || 'auto part'}`,
+                        description: description,
+                        url: url,
+                        object: {
+                            "@type": "Product",
+                            name: `${vehicle} ${part}`.trim() || 'Auto Part',
+                            category: "Used Auto Parts",
+                            brand: make ? { "@type": "Brand", name: make } : undefined,
+                            itemCondition: "https://schema.org/UsedCondition"
+                        },
+                        location: region ? { "@type": "AdministrativeArea", name: region } : undefined
+                    },
+                    {
+                        "@type": "BreadcrumbList",
+                        itemListElement: [
+                            { "@type": "ListItem", position: 1, name: "Marketplace", item: `${BASE_URL}/marketplace` },
+                            ...(region && ['California','Texas','Florida','Arizona'].includes(region) ? [{
+                                "@type": "ListItem", position: 2,
+                                name: `Used Auto Parts in ${region}`,
+                                item: `${BASE_URL}/used-auto-parts/${region.toLowerCase().replace(/ /g, '-')}`
+                            }] : []),
+                            { "@type": "ListItem", position: region && ['California','Texas','Florida','Arizona'].includes(region) ? 3 : 2, name: title }
+                        ]
+                    }
+                ]
             });
 
             sendSeoPage(req, res, {
@@ -361,20 +372,21 @@ if (fs.existsSync(clientDistDir)) {
     // SEO: server-side meta injection helper
     const BASE_URL = 'https://hotlinehq.online';
     const OG_IMAGE = `${BASE_URL}/og-default.png`;
-    const SSR_STYLE = `<style id="ssr-s">:root{--ink:#16181d;--red:#d92d20;--bg:#fbfaf8;--muted:#5d6370;--line:#e7e4dd;--mono:ui-monospace,"SF Mono","Cascadia Mono",monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif}#ssr-shell{font-family:var(--body);background:var(--bg);color:var(--ink);min-height:100vh}.ssr-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;max-width:1200px;margin:0 auto}.ssr-logo{font-weight:900;font-size:21px;letter-spacing:-.01em}.ssr-logo em{font-style:normal;color:var(--red)}.ssr-hero{text-align:center;padding:140px 24px 60px;max-width:800px;margin:0 auto}.ssr-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 18px}.ssr-hero h1{font-size:clamp(32px,5vw,56px);font-weight:700;line-height:1.08;letter-spacing:-.02em;margin:0 0 20px}.ssr-hero h1 em{font-style:normal;color:var(--red)}.ssr-sub{font-size:18px;color:var(--muted);line-height:1.6;margin:0 auto 32px;max-width:600px}.ssr-sub strong{color:var(--ink)}.ssr-cta{display:inline-block;background:var(--red);color:#fff;font-weight:600;font-size:15px;padding:14px 28px;border-radius:11px;text-decoration:none}.ssr-stats{display:flex;justify-content:center;gap:clamp(28px,6vw,80px);flex-wrap:wrap;padding:32px 0 48px}.ssr-stat{display:flex;flex-direction:column;align-items:center;gap:4px}.ssr-stat strong{font-size:36px;font-weight:700;line-height:1}.ssr-stat span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}@media(max-width:640px){.ssr-hero{padding:100px 16px 40px}.ssr-hero h1{font-size:clamp(24px,7vw,36px)}.ssr-sub{font-size:15px}.ssr-stat strong{font-size:26px}.ssr-nav{padding:10px 16px}}</style>`;
+    const SSR_STYLE = `<style id="ssr-s">:root{--ink:#16181d;--red:#d92d20;--bg:#fbfaf8;--muted:#5d6370;--line:#e7e4dd;--mono:ui-monospace,"SF Mono","Cascadia Mono",monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif}#ssr-shell{font-family:var(--body);background:var(--bg);color:var(--ink);min-height:100vh}.ssr-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;max-width:1200px;margin:0 auto}.ssr-logo{font-weight:900;font-size:21px;letter-spacing:-.01em}.ssr-logo em{font-style:normal;color:var(--red)}.ssr-hero{text-align:center;padding:140px 24px 60px;max-width:800px;margin:0 auto}.ssr-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 18px}.ssr-hero h1{font-size:clamp(32px,5vw,56px);font-weight:700;line-height:1.08;letter-spacing:-.02em;margin:0 0 20px}.ssr-hero h1 em{font-style:normal;color:var(--red)}.ssr-sub{font-size:18px;color:var(--muted);line-height:1.6;margin:0 auto 32px;max-width:600px}.ssr-sub strong{color:var(--ink)}.ssr-cta{display:inline-block;background:var(--red);color:#fff;font-weight:600;font-size:15px;padding:14px 28px;border-radius:11px;text-decoration:none}.ssr-stats{display:flex;justify-content:center;gap:clamp(28px,6vw,80px);flex-wrap:wrap;padding:32px 0 48px}.ssr-stat{display:flex;flex-direction:column;align-items:center;gap:4px}.ssr-stat strong{font-size:36px;font-weight:700;line-height:1}.ssr-stat span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}@media(max-width:640px){.ssr-hero{padding:100px 16px 40px}.ssr-hero h1{font-size:clamp(24px,7vw,36px)}.ssr-sub{font-size:15px}.ssr-stat strong{font-size:26px}.ssr-nav{padding:10px 16px}}.ssr-faq-section{max-width:800px;margin:0 auto;padding:48px 24px 64px}.ssr-faq-section h2{font-size:clamp(24px,3.5vw,36px);font-weight:700;letter-spacing:-.02em;margin:0 0 32px;text-align:center}.ssr-faq{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 28px;margin-bottom:16px}.ssr-faq h3{font-size:17px;font-weight:700;margin:0 0 10px;color:var(--ink)}.ssr-faq p{font-size:15px;line-height:1.65;color:var(--muted);margin:0}</style>`;
 
     function ssrShell(kicker, h1, sub, ctaText, ctaHref, stats) {
         const statsHtml = stats ? stats.map(s => `<div class="ssr-stat"><strong>${s[0]}</strong><span>${s[1]}</span></div>`).join('') : '';
         return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
     }
 
-    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '' }) {
+    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots }) {
         const safeTitle = title.replace(/"/g, '&quot;');
         const safeDesc = description.replace(/"/g, '&quot;');
         const metaTags = `
     ${shell ? SSR_STYLE : ''}
     <meta name="description" content="${safeDesc}">
     ${keywords ? `<meta name="keywords" content="${keywords}">` : ''}
+    ${robots ? `<meta name="robots" content="${robots}">` : ''}
     <link rel="canonical" href="${url}">
     <meta property="og:title" content="${safeTitle}">
     <meta property="og:description" content="${safeDesc}">
@@ -416,7 +428,11 @@ if (fs.existsSync(clientDistDir)) {
         url: BASE_URL,
         logo: `${BASE_URL}/logo-512.png`,
         email: "hotlinehq@redlineusedautoparts.com",
-        description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network."
+        description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
+        foundingDate: "2011",
+        sameAs: [
+            "https://www.linkedin.com/company/redlineautoparts-com"
+        ]
     };
 
     // SEO: Homepage
@@ -455,53 +471,98 @@ if (fs.existsSync(clientDistDir)) {
 
     // SEO: /find-used-auto-parts
     app.get("/find-used-auto-parts", (req, res) => {
+        const faqItems = [
+            { q: "What is an auto parts hotline?", a: "An auto parts hotline is a live voice network that connects salvage yards and auto dismantlers. Instead of calling yards one by one, you broadcast what you need to every yard in your region simultaneously and get answers in seconds. Hotline HQ operates the largest voice-based parts network in the US with 500+ member yards across 12 regional rooms." },
+            { q: "How do I find a used auto part on Hotline HQ?", a: "Sign up free and select your regional room (California, Texas, Florida, Arizona, or any of our 12 markets). Key up on your desk phone or web client and describe the part you need — year, make, model, and what you're looking for. Your request goes out live to every yard in the room. Yards that have your part respond immediately on the line." },
+            { q: "How fast do yards respond?", a: "The average response time on Hotline HQ is approximately 2 seconds. Because every yard in your regional room hears your request live, the first yard that has the part simply keys up and responds. There is no hold music, no voicemail, and no waiting for someone to check a database." },
+            { q: "Is Hotline HQ free to use?", a: "Joining the network is free. Hotline HQ charges a flat monthly membership fee with no per-call costs and no commissions on sales. A preconfigured desk phone is included with membership and shipped directly to your location." },
+            { q: "What parts can I find on Hotline HQ?", a: "Any used auto part that dismantler yards carry. The most-requested parts on the network are bumpers, transmissions, fenders, motors, doors, headlights, and AC compressors. The most-requested makes are Ford, Toyota, Honda, Chevrolet, and Nissan, spanning model years from the 1990s through 2025." },
+            { q: "How is this different from online parts databases?", a: "Online parts databases go stale — inventory changes daily. On Hotline HQ, you are asking real people who can walk the yard and check right now. One broadcast reaches 100+ yards simultaneously, replacing what used to take an hour of phone calls." },
+        ];
+        const faqHtml = faqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('');
+        const shell = ssrShell(
+            'FIND PARTS FASTER',
+            'Find used auto parts from <em>500+ yards</em> in seconds',
+            'Stop calling yard after yard. Broadcast what you need on Hotline HQ and every dismantler in your region hears it live. Average answer time: <strong>2 seconds</strong>.',
+            'Start Finding Parts — Free', `${BASE_URL}/client/signup`
+        ) + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${faqHtml}</div>`;
+
         sendSeoPage(req, res, {
             title: 'Find Used Auto Parts — Search 500+ Yards Instantly | Hotline HQ',
             description: 'Find used auto parts from 500+ dismantler yards in seconds. Broadcast what you need on the Hotline HQ voice network and get live answers — no databases, no waiting.',
             url: `${BASE_URL}/find-used-auto-parts`,
-            keywords: 'find used auto parts, used auto parts near me, used car parts, salvage auto parts, junkyard parts, auto parts search',
-            shell: ssrShell(
-                'FIND PARTS FASTER',
-                'Find used auto parts from <em>500+ yards</em> in seconds',
-                'Stop calling yard after yard. Broadcast what you need on Hotline HQ and every dismantler in your region hears it live. Average answer time: <strong>2 seconds</strong>.',
-                'Start Finding Parts — Free', `${BASE_URL}/client/signup`
-            ),
+            keywords: 'find used auto parts, used auto parts near me, used car parts, salvage auto parts, junkyard parts, auto parts search, auto parts hotline, how to find used car parts',
+            shell,
             jsonLd: {
                 "@context": "https://schema.org",
-                "@type": "Service",
-                name: "Hotline HQ — Find Used Auto Parts",
-                serviceType: "Used Auto Parts Search Network",
-                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
-                areaServed: { "@type": "Country", name: "US" },
-                description: "Live voice network connecting auto dismantlers. Broadcast what part you need and get answers from 500+ yards in seconds.",
-                offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+                "@graph": [
+                    {
+                        "@type": "Service",
+                        name: "Hotline HQ — Find Used Auto Parts",
+                        serviceType: "Used Auto Parts Search Network",
+                        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                        areaServed: { "@type": "Country", name: "US" },
+                        description: "Live voice network connecting auto dismantlers. Broadcast what part you need and get answers from 500+ yards in seconds.",
+                        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+                    },
+                    {
+                        "@type": "FAQPage",
+                        mainEntity: faqItems.map(f => ({
+                            "@type": "Question",
+                            name: f.q,
+                            acceptedAnswer: { "@type": "Answer", text: f.a }
+                        }))
+                    }
+                ]
             }
         });
     });
 
     // SEO: /sell-used-auto-parts
     app.get("/sell-used-auto-parts", (req, res) => {
+        const faqItems = [
+            { q: "How do I sell used auto parts on Hotline HQ?", a: "Join the network and select your regional room. When someone needs a part, you hear their request live through your desk phone or web client. If you have the part, you key up and respond. The requester contacts you directly to close the deal. There is no middleman and no commission — you keep 100% of the sale." },
+            { q: "Do I need to list my inventory?", a: "No. Hotline HQ is not an inventory database. You listen for requests and respond when you have what someone needs. This means you can sell parts you have not cataloged yet — the network surfaces demand you would never find on your own." },
+            { q: "How many part requests happen per day?", a: "The California room alone has processed over 2,500 part requests. Active rooms see dozens of broadcasts per day covering everything from Honda Civic bumpers to Ford F-150 transmissions. The network operates 24/7 so you hear requests around the clock." },
+            { q: "What does Hotline HQ cost for sellers?", a: "Hotline HQ charges a flat monthly membership fee. There are no listing fees, no per-call charges, and no commissions on sales you make through the network. A preconfigured desk phone is included and shipped to your yard." },
+            { q: "What regions does Hotline HQ cover?", a: "Hotline HQ operates 12 regional rooms covering California, Texas, Florida, Arizona, and other US markets. Each room connects the yards in that region. The California room is the largest with 200+ active yards, followed by Texas and Arizona." },
+        ];
+        const faqHtml = faqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('');
+        const shell = ssrShell(
+            'SELL PARTS FASTER',
+            'Sell used auto parts the moment <em>someone needs them</em>',
+            'Stop waiting for customers to find you. On Hotline HQ, you hear every part request in your region the instant it\'s broadcast. If you have it, you answer. Sale made.',
+            'Join the Network — Free', `${BASE_URL}/client/signup`,
+            [['500+', 'Yards on network'], ['12', 'Regional rooms'], ['~115', 'Listeners per call'], ['24/7', 'Always on']]
+        ) + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${faqHtml}</div>`;
+
         sendSeoPage(req, res, {
             title: 'Sell Used Auto Parts — Reach 500+ Yards Instantly | Hotline HQ',
             description: 'Sell used auto parts faster on Hotline HQ. Hear live part requests from dismantlers in your region and respond in seconds. No listing fees, no commissions.',
             url: `${BASE_URL}/sell-used-auto-parts`,
-            keywords: 'sell used auto parts, auto parts buyer, dismantler network, sell salvage parts, auto parts sales channel, junkyard sales',
-            shell: ssrShell(
-                'SELL PARTS FASTER',
-                'Sell used auto parts the moment <em>someone needs them</em>',
-                'Stop waiting for customers to find you. On Hotline HQ, you hear every part request in your region the instant it\'s broadcast. If you have it, you answer. Sale made.',
-                'Join the Network — Free', `${BASE_URL}/client/signup`,
-                [['500+', 'Yards on network'], ['12', 'Regional rooms'], ['~115', 'Listeners per call'], ['24/7', 'Always on']]
-            ),
+            keywords: 'sell used auto parts, auto parts buyer, dismantler network, sell salvage parts, auto parts sales channel, junkyard sales, sell car parts',
+            shell,
             jsonLd: {
                 "@context": "https://schema.org",
-                "@type": "Service",
-                name: "Hotline HQ — Sell Used Auto Parts",
-                serviceType: "Used Auto Parts Sales Network",
-                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
-                areaServed: { "@type": "Country", name: "US" },
-                description: "Live voice network for auto dismantlers to hear and respond to part requests in real-time. No listing fees or commissions.",
-                offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+                "@graph": [
+                    {
+                        "@type": "Service",
+                        name: "Hotline HQ — Sell Used Auto Parts",
+                        serviceType: "Used Auto Parts Sales Network",
+                        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                        areaServed: { "@type": "Country", name: "US" },
+                        description: "Live voice network for auto dismantlers to hear and respond to part requests in real-time. No listing fees or commissions.",
+                        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+                    },
+                    {
+                        "@type": "FAQPage",
+                        mainEntity: faqItems.map(f => ({
+                            "@type": "Question",
+                            name: f.q,
+                            acceptedAnswer: { "@type": "Answer", text: f.a }
+                        }))
+                    }
+                ]
             }
         });
     });
@@ -583,6 +644,7 @@ if (fs.existsSync(clientDistDir)) {
     });
 
     // SEO: Regional used auto parts pages
+    const ACTIVE_REGIONS = new Set(['california', 'texas', 'florida', 'arizona']);
     const REGIONS = {
         california: { name: 'California', abbr: 'CA' },
         texas: { name: 'Texas', abbr: 'TX' },
@@ -615,6 +677,7 @@ if (fs.existsSync(clientDistDir)) {
             description,
             url: `${BASE_URL}/used-auto-parts/${req.params.state}`,
             keywords: `used auto parts ${region.name}, ${region.abbr} auto parts, ${region.name} dismantler, junkyard parts ${region.name}, salvage auto parts ${region.abbr}`,
+            robots: ACTIVE_REGIONS.has(req.params.state) ? undefined : 'noindex, follow',
             shell: ssrShell(
                 `${region.abbr} NETWORK`,
                 `Used auto parts in <em>${region.name}</em>`,

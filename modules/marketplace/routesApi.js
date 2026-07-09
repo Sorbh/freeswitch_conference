@@ -40,6 +40,44 @@ function getClientIp(req) {
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60;
 
+const MAKE_NORMALIZE = {
+    'chevy': 'Chevrolet', 'chev': 'Chevrolet',
+    'kia': 'Kia', 'merc': 'Mercedes', 'mercedes benz': 'Mercedes',
+    'vw': 'Volkswagen', 'volkswagon': 'Volkswagen',
+};
+
+function normalizeMake(make) {
+    if (!make || make === 'null') return make;
+    const lower = make.trim().toLowerCase();
+    return MAKE_NORMALIZE[lower] || make.trim();
+}
+
+// ── GET /room-stats/:roomId ──
+
+marketplaceRouter.get('/room-stats/:roomId', (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        if (!roomId) return res.status(400).json({ status: false, error: 'Invalid room ID' });
+        const stats = global.db.getMarketplaceRoomStats(roomId);
+        res.json({ status: true, data: stats });
+    } catch (err) {
+        console.error('[MARKETPLACE] room-stats error:', err.message);
+        res.status(500).json({ status: false, error: 'Internal server error' });
+    }
+});
+
+// ── GET /all-room-stats ──
+
+marketplaceRouter.get('/all-room-stats', (req, res) => {
+    try {
+        const stats = global.db.getAllRoomStats();
+        res.json({ status: true, data: stats });
+    } catch (err) {
+        console.error('[MARKETPLACE] all-room-stats error:', err.message);
+        res.status(500).json({ status: false, error: 'Internal server error' });
+    }
+});
+
 // ── GET /listings ──
 
 marketplaceRouter.get('/listings', (req, res) => {
@@ -72,6 +110,34 @@ marketplaceRouter.get('/listings', (req, res) => {
         res.json({ status: true, ...result, rooms });
     } catch (err) {
         console.error('[MARKETPLACE] listings error:', err.message);
+        res.status(500).json({ status: false, error: 'Internal server error' });
+    }
+});
+
+// ── GET /listings/:slug/related ──
+
+marketplaceRouter.get('/listings/:slug/related', (req, res) => {
+    try {
+        const id = extractIdFromSlug(req.params.slug);
+        if (!id) return res.status(400).json({ status: false, error: 'Invalid slug' });
+
+        const broadcast = global.db.getMarketplaceListingById(id);
+        if (!broadcast) return res.status(404).json({ status: false, error: 'Not found' });
+
+        const parts = JSON.parse(broadcast.part_details || '{}');
+        const make = normalizeMake(parts.make);
+        const related = global.db.getRelatedListings(id, make, broadcast.room);
+
+        res.json({
+            status: true,
+            data: related.map(row => ({
+                ...row,
+                part_details: row.part_details ? JSON.parse(row.part_details) : null,
+                slug: generateSlug(row),
+            })),
+        });
+    } catch (err) {
+        console.error('[MARKETPLACE] related error:', err.message);
         res.status(500).json({ status: false, error: 'Internal server error' });
     }
 });
@@ -198,7 +264,7 @@ marketplaceRouter.post('/listings/:slug/respond', express.json(), (req, res) => 
 
 marketplaceRouter.get('/sitemap.xml', (req, res) => {
     try {
-        const result = global.db.getMarketplaceListings({ page: 1, pageSize: 1000 });
+        const result = global.db.getMarketplaceListings({ page: 1, pageSize: 500 });
         const baseUrl = 'https://hotlinehq.online';
 
         const urls = result.data.map(row => {
@@ -206,6 +272,8 @@ marketplaceRouter.get('/sitemap.xml', (req, res) => {
             const lastmod = new Date(row.created_at * 1000).toISOString().split('T')[0];
             return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
         });
+
+        urls.unshift(`  <url>\n    <loc>${baseUrl}/marketplace</loc>\n    <changefreq>hourly</changefreq>\n    <priority>0.9</priority>\n  </url>`);
 
         const xml = [
             '<?xml version="1.0" encoding="UTF-8"?>',

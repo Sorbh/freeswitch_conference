@@ -109,6 +109,8 @@ export default function DashboardLayout() {
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
   const dashboardRef = useRef(null);
+  const mediaAnchorRef = useRef(null);
+  const mediaAnchorStoppingRef = useRef(false);
 
   useEffect(() => {
     const fontLink = document.createElement('link');
@@ -256,7 +258,9 @@ export default function DashboardLayout() {
       }
     }
     function handleMuteState(nextMuted) {
-      setMuted(!!nextMuted);
+      const next = !!nextMuted;
+      setMuted(next);
+      updateMediaSessionMetadata(next);
     }
     function handleLoginFailed(msg) {
       setConnState('error');
@@ -325,6 +329,7 @@ export default function DashboardLayout() {
   }, []);
 
   function toggleMute() {
+    startMediaAnchorFromGesture();
     if (window.hotlineClient) window.hotlineClient.toggleMute();
   }
 
@@ -471,6 +476,128 @@ export default function DashboardLayout() {
   const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? t('layout.roomFallback', { id: currentRoomId }) : '');
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
+
+  // Media Session API — notification bar / lock screen / Bluetooth controls
+  // Silent audio anchor is created from a user gesture. Android Chrome requires a real URL-backed <audio>.
+  function updateMediaSessionMetadata(nextMuted = muted) {
+    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: roomLabel || 'Hotline HQ',
+      artist: nextMuted ? 'Muted' : 'Live',
+      album: 'Hotline HQ',
+      artwork: [{ src: '/logo-512.png', sizes: '512x512', type: 'image/png' }],
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  }
+
+  function keepMediaAnchorPlaying() {
+    const audio = mediaAnchorRef.current;
+    if (!audio || mediaAnchorStoppingRef.current) return;
+    if (!window.hotlineClient?.isConnected?.()) return;
+    const playPromise = audio.play();
+    if (playPromise?.catch) {
+      playPromise.catch(err => {
+        if (!mediaAnchorStoppingRef.current) {
+          console.warn('[MediaSession] Anchor play failed:', err.message);
+        }
+      });
+    }
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+  }
+
+  function handleMediaSessionToggle() {
+    if (window.hotlineClient) window.hotlineClient.toggleMute();
+    const nextMuted = window.hotlineClient?.isMuted?.() ?? muted;
+    updateMediaSessionMetadata(nextMuted);
+    window.setTimeout(keepMediaAnchorPlaying, 0);
+  }
+
+  function installMediaSessionHandlers() {
+    if (!('mediaSession' in navigator)) return;
+    try { navigator.mediaSession.setActionHandler('play', handleMediaSessionToggle); } catch {}
+    try { navigator.mediaSession.setActionHandler('pause', handleMediaSessionToggle); } catch {}
+    try { navigator.mediaSession.setActionHandler('togglemicrophone', handleMediaSessionToggle); } catch {}
+  }
+
+  function clearMediaSessionHandlers() {
+    if (!('mediaSession' in navigator)) return;
+    try { navigator.mediaSession.setActionHandler('play', null); } catch {}
+    try { navigator.mediaSession.setActionHandler('pause', null); } catch {}
+    try { navigator.mediaSession.setActionHandler('togglemicrophone', null); } catch {}
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+  }
+
+  function startMediaAnchorFromGesture() {
+    if (!('mediaSession' in navigator) || !isConnected || isListenOnly) return;
+
+    if (mediaAnchorRef.current) {
+      updateMediaSessionMetadata(window.hotlineClient?.isMuted?.() ?? muted);
+      keepMediaAnchorPlaying();
+      return;
+    }
+
+    mediaAnchorStoppingRef.current = false;
+    const audio = document.createElement('audio');
+    audio.src = '/silence.wav';
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.playsInline = true;
+    audio.setAttribute('aria-hidden', 'true');
+    audio.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+    audio.addEventListener('pause', () => {
+      if (mediaAnchorStoppingRef.current || mediaAnchorRef.current !== audio) return;
+      window.setTimeout(keepMediaAnchorPlaying, 0);
+    });
+    audio.addEventListener('ended', () => {
+      if (mediaAnchorStoppingRef.current || mediaAnchorRef.current !== audio) return;
+      window.setTimeout(keepMediaAnchorPlaying, 0);
+    });
+    document.body.appendChild(audio);
+    mediaAnchorRef.current = audio;
+
+    installMediaSessionHandlers();
+    updateMediaSessionMetadata(window.hotlineClient?.isMuted?.() ?? muted);
+
+    const playPromise = audio.play();
+    if (playPromise?.then) {
+      playPromise
+        .then(() => {
+          navigator.mediaSession.playbackState = 'playing';
+          console.log('[MediaSession] URL-backed anchor audio started');
+        })
+        .catch(err => {
+          console.warn('[MediaSession] Audio play blocked:', err.message);
+          stopMediaAnchor();
+        });
+    }
+  }
+
+  function stopMediaAnchor() {
+    mediaAnchorStoppingRef.current = true;
+    const audio = mediaAnchorRef.current;
+    mediaAnchorRef.current = null;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      audio.remove();
+    }
+    clearMediaSessionHandlers();
+  }
+
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !mediaAnchorRef.current) return;
+    updateMediaSessionMetadata(muted);
+    keepMediaAnchorPlaying();
+  }, [muted, roomLabel]);
+
+  // Clean up the silent audio anchor when disconnected
+  useEffect(() => {
+    if (!isConnected && mediaAnchorRef.current) stopMediaAnchor();
+  }, [isConnected]);
+
+  useEffect(() => () => stopMediaAnchor(), []);
 
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
@@ -650,7 +777,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 pb-32 md:pb-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 pb-40 md:pb-6">
           <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly }} />
         </main>
       </div>
@@ -669,7 +796,7 @@ export default function DashboardLayout() {
       {/* ── Mobile bottom stack: items stack above bottom nav naturally ── */}
       <div
         className="md:hidden fixed left-0 right-0 z-50 flex flex-col items-stretch"
-        style={{ bottom: 'calc(49px + env(safe-area-inset-bottom))' }}
+        style={{ bottom: `calc(${isConnected && !isListenOnly ? '52px + ' : ''}49px + env(safe-area-inset-bottom))` }}
       >
         {isConnected && !isListenOnly && <MobileMuteFAB muted={muted} onToggle={toggleMute} />}
         {isListenOnly && <ListenOnlyMobileBanner />}
@@ -678,9 +805,10 @@ export default function DashboardLayout() {
 
       {/* ── Mobile bottom navigation (hidden on desktop) ── */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex flex-col border-t"
         style={{ background: 'var(--surface)', borderColor: 'var(--line)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
+        <div className="flex items-stretch">
         {BOTTOM_NAV_ITEMS.map(item => (
           <NavLink
             key={item.to}
@@ -698,6 +826,8 @@ export default function DashboardLayout() {
             </span>
           </NavLink>
         ))}
+        </div>
+        {isConnected && !isListenOnly && <MobilePTTBar muted={muted} onToggle={toggleMute} />}
       </nav>
 
       {profilePromptOpen && (
@@ -1232,6 +1362,52 @@ function MuteFAB({ muted, onToggle, panelOpen }) {
       }}
     >
       {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
+    </button>
+  );
+}
+
+function MobilePTTBar({ muted, onToggle }) {
+  const { t } = useTranslation('dashboard');
+  const [held, setHeld] = useState(false);
+  const wasMutedRef = useRef(true);
+
+  function onStart(e) {
+    e.preventDefault();
+    setHeld(true);
+    wasMutedRef.current = window.hotlineClient?.isMuted?.() ?? true;
+    if (wasMutedRef.current) onToggle();
+  }
+  function onEnd(e) {
+    e.preventDefault();
+    if (!held) return;
+    setHeld(false);
+    if (wasMutedRef.current && window.hotlineClient && !window.hotlineClient.isMuted()) onToggle();
+  }
+
+  return (
+    <button
+      onTouchStart={onStart}
+      onTouchEnd={onEnd}
+      onTouchCancel={onEnd}
+      onMouseDown={onStart}
+      onMouseUp={onEnd}
+      onMouseLeave={onEnd}
+      className="w-full flex items-center justify-center gap-2 select-none"
+      style={{
+        height: 52,
+        background: held ? 'var(--green)' : 'var(--red)',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        fontFamily: 'var(--mono)',
+        textTransform: 'uppercase',
+        transition: 'background 0.15s ease',
+        WebkitUserSelect: 'none',
+        touchAction: 'none',
+      }}
+    >
+      {held ? <><MicOnIcon size={18} /> {t('layout.ptt.live')}</> : <><MicOffIcon size={18} /> {t('layout.ptt.hold')}</>}
     </button>
   );
 }

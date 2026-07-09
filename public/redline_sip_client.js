@@ -870,7 +870,9 @@ import "./jssip.bundle.js";
             }
         }
 
-        // ── Keyboard shortcut: Ctrl+L to toggle mute ──
+        // ── Keyboard shortcuts: Ctrl+L toggle mute, Spacebar push-to-talk ──
+        var _spaceHeld = false;
+        var _wasMutedBeforeSpace = false;
         try {
             document.addEventListener('keydown', function (e) {
                 try {
@@ -880,6 +882,25 @@ import "./jssip.bundle.js";
                         window._muteToggleAt = Date.now();
                         console.log('[TIMING] Ctrl+L pressed — ' + (isMuted ? 'unmuting' : 'muting'));
                         if (accountData) toggleMute();
+                        return;
+                    }
+                    if (e.code === 'Space' && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                        var tag = e.target.tagName;
+                        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+                        e.preventDefault();
+                        if (listenOnly || !accountData) return;
+                        _spaceHeld = true;
+                        _wasMutedBeforeSpace = isMuted;
+                        if (isMuted) toggleMute();
+                    }
+                } catch (err) { }
+            });
+            document.addEventListener('keyup', function (e) {
+                try {
+                    if (e.code === 'Space' && _spaceHeld) {
+                        e.preventDefault();
+                        _spaceHeld = false;
+                        if (_wasMutedBeforeSpace && !isMuted) toggleMute();
                     }
                 } catch (err) { }
             });
