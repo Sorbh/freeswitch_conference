@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
+import BlogLayout from "./BlogLayout";
 
 const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
@@ -561,6 +562,296 @@ export function RegionalPartsPage({ state }) {
   );
 }
 
+/* ================================================================== */
+/*  /how-auto-parts-hotlines-work — pillar content for AI citations     */
+/*  Targets: "how auto parts hotlines work", "salvage yard network",   */
+/*  "used auto parts network", "voice hotline", "parts locating"       */
+/* ================================================================== */
+
+export function HowItWorksPage() {
+  return (
+    <BlogLayout
+      breadcrumbs={[
+        { label: "Home", to: "/" },
+        { label: "Blog", to: "/blog" },
+        { label: "Industry Guides", to: "/blog/guides" },
+        { label: "How Auto Parts Hotlines Work" },
+      ]}
+      kicker="INDUSTRY GUIDE"
+      title="How auto parts hotlines work"
+      description="A complete guide to voice-based parts networks — how salvage yards find and sell used auto parts faster than phone calls, databases, or online marketplaces."
+      date="2026-07-09"
+      readTime="8 min read"
+      author={{ name: "Hotline HQ Team", role: "The team behind the largest voice parts network in the US" }}
+      toc={[
+        { id: "what-is", label: "What is an auto parts hotline?" },
+        { id: "how-it-works", label: "How the voice network works" },
+        { id: "comparison", label: "Voice hotlines vs alternatives" },
+        { id: "effective", label: "What makes a hotline effective" },
+        { id: "who-uses", label: "Who uses auto parts hotlines" },
+        { id: "coverage", label: "Network coverage" },
+        { id: "get-started", label: "How to get started" },
+      ]}
+      seoProps={{
+        title: "How Auto Parts Hotlines Work — Voice Networks for Salvage Yards | Hotline HQ",
+        description: "Learn how auto parts hotlines connect salvage yards on live voice networks. Compare voice hotlines vs phone calls, databases, and online marketplaces for finding used auto parts.",
+        keywords: "auto parts hotline, how parts hotlines work, salvage yard network, used auto parts network, voice hotline, parts locating service, dismantler network",
+        path: "/blog/guides/how-auto-parts-hotlines-work",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Article",
+              headline: "How Auto Parts Hotlines Work — A Complete Guide",
+              description: "Learn how auto parts hotlines connect salvage yards on live voice networks for instant parts locating.",
+              url: buildSiteUrl("/blog/guides/how-auto-parts-hotlines-work"),
+              publisher: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") },
+              datePublished: "2026-07-09",
+              dateModified: "2026-07-09",
+              mainEntityOfPage: buildSiteUrl("/blog/guides/how-auto-parts-hotlines-work"),
+            },
+            {
+              "@type": "FAQPage",
+              mainEntity: [
+                { "@type": "Question", name: "What is an auto parts hotline?", acceptedAnswer: { "@type": "Answer", text: "An auto parts hotline is a live voice network that connects salvage yards and auto dismantlers. Members join an always-on conference room for their region. When someone needs a part, they broadcast the request — every yard in the room hears it live and responds in seconds if they have it." } },
+                { "@type": "Question", name: "How is a voice hotline different from calling yards?", acceptedAnswer: { "@type": "Answer", text: "Calling yards one by one, a dismantler might spend an hour reaching 10-15 yards. On a voice hotline, one broadcast reaches 100+ yards simultaneously. The first yard with the part responds in about 2 seconds. It replaces serial phone calls with parallel live communication." } },
+                { "@type": "Question", name: "How much does a parts hotline cost?", acceptedAnswer: { "@type": "Answer", text: "Hotline HQ charges a flat monthly membership fee. There are no per-call charges, no listing fees, and no commissions on sales made through the network. A preconfigured desk phone is included with membership." } },
+              ]
+            }
+          ]
+        },
+      }}
+    >
+        <section id="what-is">
+          <h2>What is an auto parts hotline?</h2>
+          <p>
+            An auto parts hotline is a live voice network that connects auto dismantler and salvage yards in the same region.
+            Members join an always-on conference room through a desk phone or web client. When a yard needs a specific part — say
+            a 2019 Honda Civic front bumper — they key up and describe what they need. Every other yard in the room hears the
+            request instantly and responds if they have it in stock.
+          </p>
+          <p>
+            The concept dates back to the 1990s when yards used radio networks and phone trees to locate parts for each other.
+            Modern hotlines replaced unreliable radio with internet-connected SIP phones that deliver clear audio over dedicated
+            conference bridges. The always-on model means yards do not need to call anyone — they just listen. When a request
+            matches something in their inventory, they answer.
+          </p>
+          <p>
+            Hotline HQ operates the largest voice-based parts hotline in the United States, connecting over 500 dismantler yards
+            across 12 regional rooms. The average response time on the network is approximately 2 seconds.
+          </p>
+        </section>
+
+        <section id="how-it-works">
+          <h2>How the voice network works</h2>
+          <p>
+            The mechanics are straightforward. A yard joins a regional room — California, Texas, Florida, Arizona, or one of
+            eight other markets. Their desk phone connects to a conference bridge that runs 24 hours a day, 7 days a week.
+            When a dismantler needs a part, the process takes three steps:
+          </p>
+
+          {/* Inline SVG diagram */}
+          <div className="bl-diagram">
+            <svg viewBox="0 0 760 220" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How a parts broadcast works: one request reaches all yards in the room simultaneously">
+              {/* Step 1: Broadcaster */}
+              <rect x="10" y="60" width="160" height="100" rx="12" fill="var(--surface, #fff)" stroke="var(--red, #d92d20)" strokeWidth="2"/>
+              <text x="90" y="90" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing="0.08em" fill="var(--red, #d92d20)">STEP 1</text>
+              <text x="90" y="112" textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--ink, #16181d)">Yard broadcasts</text>
+              <text x="90" y="130" textAnchor="middle" fontSize="11" fill="var(--muted, #71717a)">"Need a 2019 Civic</text>
+              <text x="90" y="144" textAnchor="middle" fontSize="11" fill="var(--muted, #71717a)">front bumper"</text>
+
+              {/* Arrow */}
+              <line x1="175" y1="110" x2="280" y2="110" stroke="var(--red, #d92d20)" strokeWidth="2" strokeDasharray="6,4"/>
+              <polygon points="278,104 290,110 278,116" fill="var(--red, #d92d20)"/>
+
+              {/* Step 2: Conference bridge */}
+              <rect x="290" y="40" width="180" height="140" rx="12" fill="var(--surface, #fff)" stroke="var(--line, #e7e4dd)" strokeWidth="2"/>
+              <text x="380" y="70" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing="0.08em" fill="var(--red, #d92d20)">STEP 2</text>
+              <text x="380" y="92" textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--ink, #16181d)">Conference bridge</text>
+              <text x="380" y="112" textAnchor="middle" fontSize="11" fill="var(--muted, #71717a)">Broadcasts to every</text>
+              <text x="380" y="126" textAnchor="middle" fontSize="11" fill="var(--muted, #71717a)">yard in the room</text>
+              <text x="380" y="150" textAnchor="middle" fontSize="20" fill="var(--red, #d92d20)">&#128225;</text>
+              <text x="380" y="170" textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--muted, #71717a)">~100+ YARDS HEAR IT</text>
+
+              {/* Arrows to yards */}
+              <line x1="475" y1="80" x2="570" y2="50" stroke="var(--line, #e7e4dd)" strokeWidth="1.5"/>
+              <line x1="475" y1="110" x2="570" y2="110" stroke="var(--line, #e7e4dd)" strokeWidth="1.5"/>
+              <line x1="475" y1="140" x2="570" y2="170" stroke="var(--line, #e7e4dd)" strokeWidth="1.5"/>
+
+              {/* Step 3: Responding yards */}
+              <rect x="575" y="20" width="170" height="56" rx="10" fill="var(--surface, #fff)" stroke="var(--line, #e7e4dd)" strokeWidth="1.5"/>
+              <text x="660" y="42" textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--muted, #71717a)">Yard A — no stock</text>
+              <text x="660" y="58" textAnchor="middle" fontSize="10" fill="var(--muted, #71717a)">(stays silent)</text>
+
+              <rect x="575" y="84" width="170" height="56" rx="10" fill="#fef3f2" stroke="var(--red, #d92d20)" strokeWidth="2"/>
+              <text x="660" y="104" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--red, #d92d20)">STEP 3</text>
+              <text x="660" y="122" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--ink, #16181d)">Yard B — "I have it!"</text>
+
+              <rect x="575" y="148" width="170" height="56" rx="10" fill="var(--surface, #fff)" stroke="var(--line, #e7e4dd)" strokeWidth="1.5"/>
+              <text x="660" y="170" textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--muted, #71717a)">Yard C — no stock</text>
+              <text x="660" y="186" textAnchor="middle" fontSize="10" fill="var(--muted, #71717a)">(stays silent)</text>
+            </svg>
+          </div>
+
+          <ol className="bl-steps">
+            <li><strong>Broadcast.</strong> The requesting yard keys up and describes the part: year, make, model, and what they need. The message goes out live to every connected phone in the room.</li>
+            <li><strong>Listen.</strong> Every yard in the regional room hears the request through their desk phone speaker. Yards that do not have the part stay silent.</li>
+            <li><strong>Respond.</strong> The first yard with the part keys up and responds. The two yards connect directly to arrange the sale — price, shipping, and pickup happen between them with no middleman.</li>
+          </ol>
+          <p>
+            The entire cycle — from broadcast to answer — takes about 2 seconds on the Hotline HQ network. Compare that to
+            the traditional approach of calling yards one by one, which can take 30 minutes to an hour to reach 10-15 yards.
+          </p>
+        </section>
+
+        <section id="comparison">
+          <h2>Voice hotlines vs other parts-finding methods</h2>
+          <p>
+            Salvage yards have several options for locating and selling used auto parts. Each has trade-offs in speed,
+            reach, cost, and data freshness. Here is how they compare:
+          </p>
+          <div className="bl-table-wrap">
+            <table className="bl-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Speed</th>
+                  <th>Reach</th>
+                  <th>Data freshness</th>
+                  <th>Cost model</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Voice hotline (Hotline HQ)</strong></td>
+                  <td>~2 seconds</td>
+                  <td>100+ yards per broadcast</td>
+                  <td>Real-time (live voice)</td>
+                  <td>Flat monthly</td>
+                </tr>
+                <tr>
+                  <td>Calling yards individually</td>
+                  <td>30-60 minutes</td>
+                  <td>10-15 yards per hour</td>
+                  <td>Real-time (if they answer)</td>
+                  <td>Time cost</td>
+                </tr>
+                <tr>
+                  <td>Online inventory databases</td>
+                  <td>Minutes</td>
+                  <td>Varies by database</td>
+                  <td>Stale (updated weekly/monthly)</td>
+                  <td>Per-listing or subscription</td>
+                </tr>
+                <tr>
+                  <td>Facebook groups / forums</td>
+                  <td>Hours to days</td>
+                  <td>Group size dependent</td>
+                  <td>Post-dependent</td>
+                  <td>Free</td>
+                </tr>
+                <tr>
+                  <td>Parts locating services</td>
+                  <td>Hours</td>
+                  <td>Service network</td>
+                  <td>Depends on service</td>
+                  <td>Per-request or commission</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            The key advantage of a voice hotline is that it combines the speed and accuracy of real-time communication with the
+            reach of broadcasting to an entire network simultaneously. Online databases can search more yards, but their data
+            goes stale — inventory at a salvage yard changes daily as vehicles arrive and parts are sold. A voice request asks
+            a real person who can walk the yard and confirm availability right now.
+          </p>
+        </section>
+
+        <section id="effective">
+          <h2>What makes a parts hotline effective</h2>
+          <p>
+            Not all hotline networks deliver equal results. The factors that determine whether a voice hotline actually
+            helps yards find and sell parts faster:
+          </p>
+          <ul>
+            <li><strong>Density of members per room.</strong> A room with 20 yards produces fewer matches than one with 200. Hotline HQ's California room has over 200 active yards — the highest density in any US parts network.</li>
+            <li><strong>Always-on availability.</strong> If yards have to dial in for scheduled call windows, they miss requests. An always-on conference bridge means every request reaches every connected yard, 24 hours a day.</li>
+            <li><strong>Regional organization.</strong> Parts sourcing is often regional — shipping a bumper from California to Florida is expensive. Grouping yards by geography ensures requests match yards that can realistically fulfill them.</li>
+            <li><strong>Low friction to respond.</strong> If responding requires logging into a website or typing a message, speed drops. Voice is the fastest medium — a yard hears the request and keys up to say "I have it" in the same second.</li>
+            <li><strong>No commission on sales.</strong> Networks that take a percentage of each sale create a disincentive to use the hotline for high-value parts. Flat monthly pricing aligns the network's interests with its members.</li>
+          </ul>
+        </section>
+
+        <section id="who-uses">
+          <h2>Who uses auto parts hotlines</h2>
+          <p>
+            The primary users are auto dismantlers, salvage yards, and auto recyclers — businesses that buy end-of-life
+            vehicles, dismantle them, and sell the usable parts. These businesses need two things from a network:
+          </p>
+          <p>
+            <strong>As buyers:</strong> When a customer calls a yard asking for a specific part the yard does not carry,
+            the yard broadcasts the request on the hotline. If another yard in the region has it, they arrange a yard-to-yard
+            sale. The original yard fulfills their customer's order without losing the sale.
+          </p>
+          <p>
+            <strong>As sellers:</strong> By listening to the hotline, a yard hears every part request in their region. Parts
+            that would otherwise sit on shelves get matched with buyers who need them. The hotline surfaces demand a yard
+            would never discover through passive channels like their website or walk-in traffic.
+          </p>
+          <p>
+            The model works because salvage yards carry overlapping but different inventory. A yard in Los Angeles
+            might have three Honda Civic transmissions while a yard in Sacramento has none — and vice versa for Toyota
+            Camry doors. The hotline turns a fragmented market of thousands of individual yards into a single connected network.
+          </p>
+        </section>
+
+        <section id="coverage">
+          <h2>Hotline HQ network coverage</h2>
+          <p>
+            Hotline HQ operates 12 regional rooms across the United States. The four most active rooms —
+            California, Arizona, Texas, and Florida — account for the majority of daily broadcast activity.
+          </p>
+          <div>
+            <div className="bl-grid">
+              {[
+                { abbr: 'CA', name: 'California', yards: '200+', status: 'active' },
+                { abbr: 'AZ', name: 'Arizona', yards: '30+', status: 'active' },
+                { abbr: 'TX', name: 'Texas', yards: '40+', status: 'active' },
+                { abbr: 'FL', name: 'Florida', yards: '19+', status: 'active' },
+                { abbr: 'OH', name: 'Ohio', yards: '—', status: 'building' },
+                { abbr: 'NY', name: 'New York', yards: '—', status: 'building' },
+                { abbr: 'GA', name: 'Georgia', yards: '—', status: 'building' },
+                { abbr: 'IN', name: 'Indiana', yards: '—', status: 'building' },
+                { abbr: 'MI', name: 'Michigan', yards: '—', status: 'building' },
+                { abbr: 'NJ', name: 'New Jersey', yards: '—', status: 'building' },
+                { abbr: 'IA', name: 'Iowa', yards: '—', status: 'building' },
+                { abbr: 'KY', name: 'Kentucky', yards: '—', status: 'building' },
+              ].map(r => (
+                <div className={`bl-grid-card ${r.status}`} key={r.abbr}>
+                  <span className="abbr">{r.abbr}</span>
+                  <span className="name">{r.name}</span>
+                  <span className="detail">{r.yards} yards</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="get-started">
+          <h2>How to get started on a parts hotline</h2>
+          <p>
+            Joining Hotline HQ takes less than two minutes. Sign up online, select your regional room, and a preconfigured
+            desk phone ships to your yard. Plug it in, and you are immediately connected to the live room — hearing every
+            part request in your region the moment it is broadcast. There is no software to install, no inventory to upload,
+            and no training required. If your team can use a phone, they can use the hotline.
+          </p>
+        </section>
+
+    </BlogLayout>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  Shared feature page styles                                          */
 /* ------------------------------------------------------------------ */
@@ -989,6 +1280,154 @@ const FEATURE_CSS = `
   padding: 0 28px 24px;
   margin: 0;
 }
+
+/* Pillar article */
+.hw-article {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+.hw-section {
+  padding: 40px 0;
+  border-bottom: 1px solid var(--line);
+}
+.hw-section:last-child { border-bottom: none; }
+.hw-section h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 18px;
+}
+.hw-section p {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.hw-section p:last-child { margin-bottom: 0; }
+.hw-section p strong { color: var(--ink); }
+.hw-section ul, .hw-section ol {
+  padding-left: 22px;
+  margin: 0 0 16px;
+}
+.hw-section li {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.hw-section li strong { color: var(--ink); }
+.hw-diagram {
+  margin: 28px 0;
+  overflow-x: auto;
+}
+.hw-diagram svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.hw-steps {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+  counter-reset: step;
+}
+.hw-steps li {
+  counter-increment: step;
+  padding-left: 36px;
+  position: relative;
+  margin-bottom: 16px;
+}
+.hw-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #fef3f2;
+  color: var(--red);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hw-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin: 20px 0;
+}
+.hw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.hw-table th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 14px 18px;
+  background: var(--band);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.hw-table td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  line-height: 1.5;
+}
+.hw-table tr:last-child td { border-bottom: none; }
+.hw-table td strong { color: var(--ink); }
+.hw-coverage { margin: 24px 0; }
+.hw-coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.hw-room {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.hw-room.active {
+  border-color: var(--red);
+  background: #fef3f2;
+}
+.hw-room-abbr {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--red);
+}
+.hw-room-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+.hw-room-yards {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.hw-room.building .hw-room-abbr { color: var(--muted); }
+.hw-room.building .hw-room-name { color: var(--muted); }
 
 /* Mobile */
 @media (max-width: 640px) {

@@ -273,7 +273,7 @@ marketplaceRouter.get('/sitemap.xml', (req, res) => {
             return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
         });
 
-        urls.unshift(`  <url>\n    <loc>${baseUrl}/marketplace</loc>\n    <changefreq>hourly</changefreq>\n    <priority>0.9</priority>\n  </url>`);
+        urls.unshift(`  <url>\n    <loc>${baseUrl}/marketplace</loc>\n    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n  </url>`);
 
         const xml = [
             '<?xml version="1.0" encoding="UTF-8"?>',

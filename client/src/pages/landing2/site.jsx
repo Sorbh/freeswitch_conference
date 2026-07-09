@@ -184,8 +184,10 @@ export function SiteNav() {
       </Link>
       <nav className="l2-nav-links">
         <Link to="/">{t("nav.home")}</Link>
-        <Link to="/#how">{t("nav.howItWorks")}</Link>
+        <Link to="/find-used-auto-parts">Find Parts</Link>
+        <Link to="/sell-used-auto-parts">Sell Parts</Link>
         <Link to="/marketplace">Marketplace</Link>
+        <Link to="/blog">Blog</Link>
         <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">{t("nav.login")}</a>
         <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
           {t("nav.signUpFree")}
@@ -258,6 +260,19 @@ export function SiteFooter() {
               {t(key)}
             </Link>
           ))}
+        </div>
+
+        <div className="l2f-col">
+          <p className="l2f-head">Features</p>
+          <Link to="/features/always-on-voice-network">Voice Network</Link>
+          <Link to="/features/caller-id">Caller ID</Link>
+          <Link to="/features/any-device">Any Device</Link>
+          <Link to="/features/direct-calls">Direct Calls</Link>
+          <Link to="/features/broadcast-recording">Recording</Link>
+          <Link to="/features/notifications">Notifications</Link>
+          <Link to="/features/unanswered-capture">Lead Capture</Link>
+          <Link to="/features/parts-marketplace">Marketplace</Link>
+          <Link to="/features/admin-dashboard">Admin Dashboard</Link>
         </div>
 
         <div className="l2f-col">
@@ -386,7 +401,7 @@ export const SITE_CSS = `
 .l2f { background: #111316; color: #b9bcc4; }
 .l2f-inner {
   max-width: 1280px; margin: 0 auto; padding: 72px 32px 48px;
-  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 48px;
+  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 40px;
 }
 @media (max-width: 980px) { .l2f-inner { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .l2f-inner { grid-template-columns: 1fr; } }

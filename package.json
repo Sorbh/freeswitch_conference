@@ -7,10 +7,11 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "build": "vite build && cd client && npm run build",
+    "build": "node scripts/build-blog.mjs && vite build && cd client && npm run build",
     "build:client": "cd client && npm run build",
+    "build:blog": "node scripts/build-blog.mjs",
     "send:outreach": "node scripts/send_outreach.js",
-    "deploy": "vite build && cd client && npm run build && cd .. && pm2 restart 8"
+    "deploy": "node scripts/build-blog.mjs && vite build && cd client && npm run build && cd .. && pm2 restart 8"
   },
   "author": "Saurabh",
   "license": "ISC",

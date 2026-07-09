@@ -7,6 +7,8 @@ Hotline HQ is a live voice network where auto dismantler yards broadcast used pa
 ## Key Pages
 - [Find Used Auto Parts](https://hotlinehq.online/find-used-auto-parts): How buyers search 500+ yards instantly via live voice broadcast
 - [Sell Used Auto Parts](https://hotlinehq.online/sell-used-auto-parts): How dismantlers hear and respond to part requests in real-time
+- [Blog](https://hotlinehq.online/blog): Industry guides, network updates, and parts market insights
+- [How Auto Parts Hotlines Work](https://hotlinehq.online/blog/guides/how-auto-parts-hotlines-work): Complete guide to voice-based parts networks — how they work, comparison with alternatives, who uses them
 - [Parts Marketplace](https://hotlinehq.online/marketplace): Browse unanswered part requests from the network
 - [Used Auto Parts California](https://hotlinehq.online/used-auto-parts/california): California dismantler network — largest room with 200+ yards
 - [Used Auto Parts Arizona](https://hotlinehq.online/used-auto-parts/arizona): Arizona network — rust-free desert-stored parts
@@ -23,4 +25,5 @@ Hotline HQ is a live voice network where auto dismantler yards broadcast used pa
 - Desk phones preconfigured and shipped to members
 - Web-based SIP client also available
 - Operated by Global Solutions Software (established 2011)
+- LinkedIn: https://www.linkedin.com/showcase/hotline-hq
 - Contact: hotlinehq@redlineusedautoparts.com

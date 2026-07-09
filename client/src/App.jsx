@@ -19,12 +19,16 @@ const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
 const PartsListingPage = lazy(() => import('./pages/PartsListingPage'));
 const FindPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.FindPartsPage })));
 const SellPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.SellPartsPage })));
+const HowItWorksPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.HowItWorksPage })));
+const BlogIndexPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogIndexPage })));
+const BlogCategoryPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogCategoryPage })));
 const RegionalPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.RegionalPartsPage })));
 const NotFoundPage = lazy(() => import('./pages/landing2/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const AboutPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.AboutPage })));
 const PrivacyPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.TermsPage })));
 const DisclaimerPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.DisclaimerPage })));
+const FeatureDetailPage = lazy(() => import('./pages/landing2/FeatureDetailPage').then(m => ({ default: m.FeatureDetailPage })));
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -60,8 +64,15 @@ export default function App() {
         <Route path="/marketplace" element={<Lazy><MarketplacePage /></Lazy>} />
         <Route path="/parts/:slug" element={<Lazy><PartsListingPage /></Lazy>} />
         <Route path="/own-a-hotline" element={<Lazy><OwnHotlinePage /></Lazy>} />
+        <Route path="/features/:slug" element={<Lazy><FeatureDetailPage /></Lazy>} />
         <Route path="/find-used-auto-parts" element={<Lazy><FindPartsPage /></Lazy>} />
         <Route path="/sell-used-auto-parts" element={<Lazy><SellPartsPage /></Lazy>} />
+        <Route path="/how-auto-parts-hotlines-work" element={<Lazy><HowItWorksPage /></Lazy>} />
+        <Route path="/blog" element={<Lazy><BlogIndexPage /></Lazy>} />
+        <Route path="/blog/guides" element={<Lazy><BlogCategoryPage category="guides" /></Lazy>} />
+        <Route path="/blog/news" element={<Lazy><BlogCategoryPage category="news" /></Lazy>} />
+        <Route path="/blog/market" element={<Lazy><BlogCategoryPage category="market" /></Lazy>} />
+        <Route path="/blog/guides/how-auto-parts-hotlines-work" element={<Lazy><HowItWorksPage /></Lazy>} />
         <Route path="/used-auto-parts/california" element={<Lazy><RegionalPartsPage state="california" /></Lazy>} />
         <Route path="/used-auto-parts/texas" element={<Lazy><RegionalPartsPage state="texas" /></Lazy>} />
         <Route path="/used-auto-parts/florida" element={<Lazy><RegionalPartsPage state="florida" /></Lazy>} />

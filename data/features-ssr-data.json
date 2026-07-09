@@ -1,0 +1,471 @@
+{
+  "features": {
+    "always-on-voice-network": {
+      "title": "Always-On Voice Network",
+      "accent": "#d92d20",
+      "seo": {
+        "title": "Always-On Voice Network — 24/7 Live Hotline | Hotline HQ",
+        "description": "A live voice network that runs 24/7 with zero dialing. Members connect the moment their phone powers on. Built for industries where speed wins the sale.",
+        "keywords": "always on hotline, live voice network, 24/7 hotline, auto parts hotline, voice conference network"
+      },
+      "hero": {
+        "kicker": "CORE PLATFORM",
+        "heading": "A voice network that never sleeps",
+        "lede": "No dialing. No hold music. No voicemail. Every member is connected to their regional room the moment their phone powers on — and stays connected all day, every day."
+      },
+      "problem": {
+        "heading": "The old way wastes hours",
+        "text": "In most industries, locating inventory means calling yard after yard, sitting on hold, leaving voicemails that never get returned. By the time you find the part, the customer has moved on. A hotline flips this — you broadcast once, and every yard in your region hears it live."
+      },
+      "steps": [
+        { "title": "Phone powers on", "desc": "The preconfigured desk phone or web app automatically registers with FreeSWITCH and joins the member's regional room." },
+        { "title": "Always listening", "desc": "Members hear every broadcast in their room in real time. No ringing, no answering — audio flows continuously like an open radio channel." },
+        { "title": "Unmute to broadcast", "desc": "When a member needs a part, they unmute (off-hook on desk phone, tap on mobile) and speak. Every member in the room hears it instantly." },
+        { "title": "Response in seconds", "desc": "A yard with the part unmutes to respond. Average response time across the network: 2 seconds. The deal happens live, on air." }
+      ],
+      "benefits": [
+        { "title": "Zero friction", "desc": "No phone numbers to remember, no contacts to manage, no apps to open. The connection is always there." },
+        { "title": "Regional rooms", "desc": "20+ rooms organized by geography. Members only hear broadcasts relevant to their area — California, Texas, Florida, and more." },
+        { "title": "Automatic failover", "desc": "If a connection drops, the system retries 5 times at 5-second intervals, then escalates with 15-minute, 30-minute, and 1-hour fallbacks." },
+        { "title": "Works while you work", "desc": "The hotline runs in the background. Members go about their day and only pay attention when they hear a part they have." }
+      ],
+      "scenario": {
+        "heading": "Real-world: finding a 2019 Camry bumper",
+        "text": "A body shop calls their local yard needing a 2019 Toyota Camry front bumper. The yard doesn't have it, so the rep picks up the hotline phone and says \"Looking for a 2019 Camry front bumper, any color.\" Within 2 seconds, a yard 40 miles away responds: \"I've got one, silver, $180.\" The deal is done before the body shop customer even sits down."
+      },
+      "faqs": [
+        { "q": "Do members need to dial a number to connect?", "a": "No. The desk phone or web app connects automatically when powered on. There's no number to dial and no conference code to enter." },
+        { "q": "What happens if the internet goes down?", "a": "The system detects the drop and retries automatically — 5 attempts at 5-second intervals, then longer fallback retries at 15, 30, and 60 minutes. When the connection returns, the phone reconnects without any action from the member." },
+        { "q": "Can members be in multiple rooms at once?", "a": "Members belong to one room at a time, but they can switch rooms instantly from the web dashboard or their desk phone softkeys." },
+        { "q": "Is there a limit to how many members can be in a room?", "a": "No hard limit. Our largest rooms have 100+ members connected simultaneously with no audio quality issues." },
+        { "q": "Does the network run on weekends and holidays?", "a": "Yes. The network is always on — 24 hours a day, 7 days a week, 365 days a year. There's no schedule and no downtime windows." }
+      ],
+      "related": ["caller-id", "any-device", "broadcast-recording"]
+    },
+
+    "caller-id": {
+      "title": "Real-Time Caller ID",
+      "accent": "#2563eb",
+      "seo": {
+        "title": "Real-Time Caller ID — Know Who's Talking | Hotline HQ",
+        "description": "See the company name, rep name, phone number, and city of every speaker in real time. Caller ID on a voice hotline network built for speed.",
+        "keywords": "caller ID hotline, real-time caller ID, voice network caller identification, who is talking hotline"
+      },
+      "hero": {
+        "kicker": "IDENTIFICATION",
+        "heading": "Know who's talking before they finish speaking",
+        "lede": "Every broadcast shows the speaker's company name, representative name, phone number, and city — in real time on every member's screen."
+      },
+      "problem": {
+        "heading": "Anonymous calls don't close deals",
+        "text": "On a traditional conference line, voices are anonymous. Members don't know who's asking or where they're located. That uncertainty slows response times and kills trust. Caller ID eliminates the guesswork — every member sees exactly who is broadcasting and where they are."
+      },
+      "steps": [
+        { "title": "Member unmutes", "desc": "When a member picks up the hotline phone or taps the unmute button, the system identifies them by their SIP registration and MAC address." },
+        { "title": "Caller ID pushed instantly", "desc": "The server pushes the speaker's profile — company name, rep name, phone number, city — to every connected device via Server-Sent Events (SSE)." },
+        { "title": "Displayed on every screen", "desc": "The web dashboard, mobile app, and admin panel all show the active speaker's information in real time with color-coded status." },
+        { "title": "History preserved", "desc": "Every broadcast is logged with full caller ID. Members and admins can review who spoke, when, and for how long." }
+      ],
+      "benefits": [
+        { "title": "Instant trust", "desc": "When a member responds to a broadcast, the original speaker can see the responder's company and location — they know they're dealing with a real business." },
+        { "title": "Faster responses", "desc": "Members respond faster when they know who's asking. A yard in Phoenix is more likely to respond to a broadcast from a shop in their metro area." },
+        { "title": "Accountability", "desc": "Every broadcast is attributed. No anonymous noise, no mystery callers. This keeps the network professional and productive." },
+        { "title": "Admin visibility", "desc": "Network operators see every active speaker across all rooms in real time — who's talking, for how long, and whether anyone responded." }
+      ],
+      "scenario": {
+        "heading": "Real-world: responding to a local broadcast",
+        "text": "A member hears a request for a 2020 Honda Civic transmission. On their dashboard, they see: \"Desert Auto Recyclers / Mike / (602) 555-0123 / Phoenix, AZ.\" They know it's a local yard 15 miles away, so they unmute and respond. The caller sees \"Sunbelt Auto Parts / Rosa / Tempe, AZ\" and knows the part can be delivered same-day. Deal done in under 10 seconds."
+      },
+      "faqs": [
+        { "q": "What information is shown in the caller ID?", "a": "Company name, representative name, phone number, and city. This information comes from the member's profile, which they fill out during signup or in their account settings." },
+        { "q": "Does caller ID work on the desk phone too?", "a": "The desk phone shows a compact caller ID format on the screen. The full detailed view with company info, city, and phone number is shown on the web dashboard and mobile app." },
+        { "q": "Can members hide their caller ID?", "a": "No. Caller ID is always visible to maintain network trust and accountability. This is a feature, not a limitation — it's what makes the network work." },
+        { "q": "How fast does the caller ID appear?", "a": "Caller ID is pushed via SSE the moment a member unmutes. Typical latency is under 200 milliseconds — it appears before the speaker finishes their first word." }
+      ],
+      "related": ["always-on-voice-network", "broadcast-recording", "notifications"]
+    },
+
+    "any-device": {
+      "title": "Works On Any Device",
+      "accent": "#7c3aed",
+      "seo": {
+        "title": "Works On Any Device — Phone, Mobile, Desktop | Hotline HQ",
+        "description": "Use the hotline from a preconfigured desk phone, your mobile browser, or any desktop. No app to install — push-to-talk from anywhere.",
+        "keywords": "hotline mobile app, web based hotline, push to talk mobile, desk phone hotline, browser conference call"
+      },
+      "hero": {
+        "kicker": "ACCESSIBILITY",
+        "heading": "Desk phone, mobile, or laptop — you're connected",
+        "lede": "A preconfigured Yealink desk phone for your counter. A web app for the road. Push-to-talk from your pocket. No app store, no install, no hardware required."
+      },
+      "problem": {
+        "heading": "Hardware lock-in kills adoption",
+        "text": "Traditional hotline systems require expensive proprietary hardware. If the desk phone breaks, the member goes offline. If they're on the road, they're out of the loop. Hotline HQ works on whatever device you already have — your phone is your hotline."
+      },
+      "steps": [
+        { "title": "Desk phone (zero-touch)", "desc": "Preconfigured Yealink phones ship directly to members. Plug in the ethernet cable and it auto-connects — no setup, no IT department needed." },
+        { "title": "Mobile web app", "desc": "Open the browser on any smartphone, log in, and you're on the hotline. Push-to-talk bar at the bottom — hold to broadcast, release to mute." },
+        { "title": "Desktop browser", "desc": "Works on Chrome, Edge, Firefox on any laptop or desktop. Spacebar push-to-talk for hands-free operation. Ctrl+L to toggle mute." },
+        { "title": "Seamless switching", "desc": "A member can be on their desk phone in the morning and switch to mobile for an afternoon delivery run. The network follows them." }
+      ],
+      "benefits": [
+        { "title": "No app store dependency", "desc": "The web app is a PWA — installable on the home screen but doesn't require the App Store or Google Play. Works instantly in the browser." },
+        { "title": "Push-to-talk on mobile", "desc": "A full-width PTT bar at the bottom of the mobile screen. Hold to talk, release to mute — just like a walkie-talkie." },
+        { "title": "Keyboard shortcuts on desktop", "desc": "Spacebar for push-to-talk, Ctrl+L to toggle mute. Power users never touch the mouse." },
+        { "title": "Screen wake lock", "desc": "The app keeps the screen on while connected so members don't miss broadcasts during idle moments." }
+      ],
+      "scenario": {
+        "heading": "Real-world: from counter to delivery truck",
+        "text": "A yard rep starts the day at the counter with the Yealink desk phone, hearing and responding to broadcasts. At noon, they hop in the delivery truck, open Hotline HQ on their iPhone, and stay connected. A broadcast comes in for a part on the truck — they hold the PTT bar and respond. The deal closes before they reach the delivery address."
+      },
+      "faqs": [
+        { "q": "Do I need to install an app from the App Store?", "a": "No. Hotline HQ is a Progressive Web App (PWA) that runs directly in your mobile browser. You can optionally add it to your home screen for a native app-like experience." },
+        { "q": "What happens if I'm on both my desk phone and mobile at the same time?", "a": "The system manages your connection automatically. Typically the most recently connected device takes priority." },
+        { "q": "Does the mobile app work on older phones?", "a": "The web app works on any smartphone with a modern browser — Chrome, Safari, Firefox, or Edge. No special hardware requirements." },
+        { "q": "Is the audio quality the same on mobile as the desk phone?", "a": "Audio quality depends on your internet connection. On Wi-Fi, mobile quality is comparable to the desk phone. On cellular, quality may vary but remains usable for voice communication." },
+        { "q": "Can I use the hotline from my car's Bluetooth?", "a": "Yes. The web app integrates with Media Session API, so your car's Bluetooth media controls can toggle mute/unmute." }
+      ],
+      "related": ["always-on-voice-network", "direct-calls", "notifications"]
+    },
+
+    "direct-calls": {
+      "title": "Private Direct Calls",
+      "accent": "#0891b2",
+      "seo": {
+        "title": "Private Direct Calls — Extension-Based Calling | Hotline HQ",
+        "description": "Every member gets a 3-digit extension for private calls over the network. No phone bills, no long-distance charges. Call any yard directly.",
+        "keywords": "private hotline calls, extension based calling, direct call network, free business calls, intercom hotline"
+      },
+      "hero": {
+        "kicker": "DIRECT CALLS",
+        "heading": "Private calls, zero phone bills",
+        "lede": "Every member gets a 3-digit extension number. Dial any member privately over the network — negotiate pricing, discuss details, close the deal. No phone bills, no long-distance charges."
+      },
+      "problem": {
+        "heading": "Follow-up calls shouldn't cost money",
+        "text": "After hearing a broadcast, members often need a private follow-up: negotiate pricing, confirm fitment, arrange delivery. Dialing the member's cell or landline costs money and takes them away from the hotline. Direct calls keep the conversation on-network, free, and fast."
+      },
+      "steps": [
+        { "title": "Request an extension", "desc": "Members pick any 3-digit number (100-999) from the member directory in their dashboard. The extension is assigned immediately." },
+        { "title": "Dial *NNN from the hotline", "desc": "From the desk phone, dial star plus the 3-digit extension (e.g., *247). From the web app, tap the \"Call\" button next to any member's name." },
+        { "title": "Private connection", "desc": "Both parties are pulled out of the conference room into a private call. The conversation is recorded and both members return to the room when the call ends." },
+        { "title": "Missed call notifications", "desc": "If the callee doesn't answer within 15 seconds, they get a push notification with the caller's name and extension — they can call back with one tap." }
+      ],
+      "benefits": [
+        { "title": "Zero cost", "desc": "Direct calls travel over the internet, not the phone network. No per-minute charges, no long-distance fees, no phone bills." },
+        { "title": "Searchable member directory", "desc": "A full directory of every member on the network — searchable by company name, city, phone number, or extension." },
+        { "title": "Call recording", "desc": "Every direct call is recorded automatically. Useful for dispute resolution, training, and quality assurance." },
+        { "title": "Push notification on miss", "desc": "If a member misses a direct call, they get a push notification on their phone with the caller's details. One tap to call back." }
+      ],
+      "scenario": {
+        "heading": "Real-world: closing a deal privately",
+        "text": "A yard hears a broadcast requesting a 2018 F-150 transfer case. They have one, but they want to negotiate price privately. They check the member directory, see the broadcaster is \"Valley Auto Recyclers / ext. 315\" and dial *315. A private call connects in 2 seconds. They agree on $450 with free delivery, hang up, and both return to the conference room automatically."
+      },
+      "faqs": [
+        { "q": "How do I get an extension number?", "a": "Go to the Members page in your dashboard and tap \"Request Extension.\" Pick any available 3-digit number between 100 and 999." },
+        { "q": "Can I call someone who doesn't have an extension?", "a": "No — both parties need an extension for direct calls. Encourage your network members to register one; it takes 10 seconds." },
+        { "q": "Are direct calls recorded?", "a": "Yes. All direct calls are recorded and available in the admin dashboard. This protects both parties and helps resolve any disputes." },
+        { "q": "What happens if nobody answers?", "a": "After 15 seconds of ringing, the call is declined automatically. The callee receives a push notification with the caller's name and can call back with one tap." },
+        { "q": "Can I make a direct call from my mobile?", "a": "Yes. The member directory on the web app has a \"Call\" button next to every member with an extension. Tap it and the call connects over the internet." }
+      ],
+      "related": ["caller-id", "any-device", "notifications"]
+    },
+
+    "broadcast-recording": {
+      "title": "Broadcast Recording & History",
+      "accent": "#ea580c",
+      "seo": {
+        "title": "Broadcast Recording & History — Every Call Saved | Hotline HQ",
+        "description": "Every broadcast is recorded automatically with full metadata. Browse history, replay conversations, track response times across the network.",
+        "keywords": "broadcast recording, call recording hotline, voice network history, broadcast analytics, call replay"
+      },
+      "hero": {
+        "kicker": "RECORDING",
+        "heading": "Every broadcast, saved and searchable",
+        "lede": "Every time a member unmutes and speaks, the broadcast is recorded automatically — with full metadata, transcription, and response time tracking. Nothing is lost."
+      },
+      "problem": {
+        "heading": "Verbal deals need a paper trail",
+        "text": "On a live voice network, deals happen in seconds. Without recordings, there's no way to verify what was said, who responded, or whether the deal was honored. Broadcast recording creates an automatic paper trail for every interaction on the network."
+      },
+      "steps": [
+        { "title": "Automatic recording", "desc": "The moment a member unmutes, the FreeSWITCH conference engine starts recording the audio to a WAV file. No buttons to press, no setup required." },
+        { "title": "AI transcription", "desc": "After the broadcast ends, the audio is transcribed using local Whisper AI. For auto parts broadcasts, year/make/model/part are automatically extracted." },
+        { "title": "Metadata captured", "desc": "Who spoke, when, for how long, how many listeners were online, whether anyone responded, and how fast the response came — all logged automatically." },
+        { "title": "Searchable history", "desc": "Admins and members can browse broadcast history with filters by room, date, answered/unanswered status. Every recording has an inline audio player." }
+      ],
+      "benefits": [
+        { "title": "Response time tracking", "desc": "The system measures how fast the first yard responded to each broadcast — in milliseconds. Track network health and member engagement." },
+        { "title": "AI part extraction", "desc": "Whisper transcription plus AI parsing extracts structured data: year, make, model, trim, part name, and specification from spoken broadcasts." },
+        { "title": "Shareable broadcast links", "desc": "Generate a public link to any broadcast. The recipient sees the audio player, speaker info, responders, and transcription — no login required." },
+        { "title": "Answered vs. unanswered tracking", "desc": "Every broadcast is classified as answered or unanswered. This data drives the marketplace (unanswered auto-listed) and helps operators spot coverage gaps." }
+      ],
+      "scenario": {
+        "heading": "Real-world: resolving a pricing dispute",
+        "text": "A buyer says the yard quoted $200 on the hotline for a radiator, but the yard says it was $250. The admin pulls up the broadcast recording, plays it back, and confirms the quote was $200. Dispute resolved in 30 seconds with audio evidence."
+      },
+      "faqs": [
+        { "q": "Are all broadcasts recorded automatically?", "a": "Yes. Every broadcast is recorded the moment a member unmutes. There's no opt-in or button to press — recording is always on." },
+        { "q": "How long are recordings kept?", "a": "Recordings are stored on the server indefinitely. Admins can manage storage as needed, but there's no automatic deletion policy." },
+        { "q": "Can members access their own broadcast recordings?", "a": "Members can listen to broadcasts in the broadcast panel on their dashboard. Admins have full access to all recordings with download capability." },
+        { "q": "Does the AI transcription work for all languages?", "a": "The Whisper AI model supports multiple languages, but the auto-parts extraction (year/make/model parsing) is optimized for English broadcasts." },
+        { "q": "Can I share a broadcast recording externally?", "a": "Yes. Admins can generate a shareable public link for any broadcast. The link shows the audio player, speaker info, and transcription on a branded page — no login required." }
+      ],
+      "related": ["unanswered-capture", "parts-marketplace", "caller-id"]
+    },
+
+    "notifications": {
+      "title": "Smart Notifications",
+      "accent": "#16a34a",
+      "seo": {
+        "title": "Smart Notifications — Never Miss a Part Request | Hotline HQ",
+        "description": "Push notifications on mobile, Telegram alerts, and lock screen controls keep your members connected even when they're away from the hotline.",
+        "keywords": "hotline notifications, push notifications, telegram alerts, missed call notifications, parts request alerts"
+      },
+      "hero": {
+        "kicker": "NOTIFICATIONS",
+        "heading": "Your members never miss a request",
+        "lede": "Push notifications on mobile, Telegram alerts for room activity, and lock screen mute controls. Even when a member steps away, the network reaches them."
+      },
+      "problem": {
+        "heading": "Members can't be at the phone 24/7",
+        "text": "Even on an always-on network, members step away — lunch breaks, delivery runs, customer meetings. Without notifications, those missed broadcasts are lost revenue. Smart notifications bridge the gap between the hotline and the member's pocket."
+      },
+      "steps": [
+        { "title": "Web push notifications", "desc": "When a broadcast goes unanswered in a member's room, they get a push notification on their phone — even if the browser is closed. Tap to open the dashboard." },
+        { "title": "Telegram integration", "desc": "Broadcasts are forwarded to Telegram channels with full details: speaker name, room, duration, transcription, and part details. Configurable per room." },
+        { "title": "Direct call alerts", "desc": "When someone dials a member's extension and they don't answer, a push notification arrives with the caller's name. One tap to call back." },
+        { "title": "Lock screen controls", "desc": "On mobile, media controls in the notification shade let members mute/unmute without opening the app." }
+      ],
+      "benefits": [
+        { "title": "Works even when closed", "desc": "Web push notifications are delivered by the browser's service worker — the Hotline HQ tab doesn't need to be open." },
+        { "title": "Configurable per room", "desc": "Operators can choose which rooms trigger notifications, filter by answered/unanswered, and skip broadcasts with no detected parts." },
+        { "title": "Critical member alerts", "desc": "Flag important members as \"critical\" — if they go offline, the system sends Telegram alerts every 60 seconds until they reconnect." },
+        { "title": "iOS support via PWA", "desc": "On iPhone, members add Hotline HQ to their home screen to enable push notifications. The app guides them through the process." }
+      ],
+      "scenario": {
+        "heading": "Real-world: catching a request during lunch",
+        "text": "A yard rep steps out for lunch. While they're eating, someone broadcasts for a part they have stacked in the back. They get a push notification: \"CA Room — Looking for 2017 Accord hood.\" They tap the notification, open the dashboard, hold the PTT bar, and respond: \"Got it, black, $120.\" The deal closes from the restaurant parking lot."
+      },
+      "faqs": [
+        { "q": "Do I need to install an app for push notifications?", "a": "On Android, notifications work directly in Chrome with no installation. On iPhone, you need to add Hotline HQ to your home screen first (Share > Add to Home Screen)." },
+        { "q": "Can I turn off notifications?", "a": "Yes. Members control their notification preferences in Account Settings — they can toggle parts request alerts and direct call alerts independently." },
+        { "q": "What notification channels are available?", "a": "Web push notifications (mobile and desktop), Telegram (text or voice message), and WhatsApp. Each channel is configured separately by the network operator." },
+        { "q": "Do notifications include the audio recording?", "a": "Telegram notifications can include the broadcast audio as a voice message. Push notifications link to the broadcast in the dashboard where the recording can be played." }
+      ],
+      "related": ["broadcast-recording", "unanswered-capture", "any-device"]
+    },
+
+    "unanswered-capture": {
+      "title": "Unanswered Broadcast Capture",
+      "accent": "#ca8a04",
+      "seo": {
+        "title": "Unanswered Broadcast Capture — No Request Wasted | Hotline HQ",
+        "description": "When a broadcast goes unanswered, it's automatically transcribed, parsed for year/make/model, and listed on the parts marketplace. Every request becomes a lead.",
+        "keywords": "unanswered calls, missed call capture, auto parts leads, broadcast transcription, lead generation hotline"
+      },
+      "hero": {
+        "kicker": "LEAD CAPTURE",
+        "heading": "No request goes to waste",
+        "lede": "When a broadcast goes unanswered, the system doesn't just log it — it transcribes the audio, extracts the part details, and creates a searchable marketplace listing that lives on Google 24/7."
+      },
+      "problem": {
+        "heading": "Unanswered calls are lost revenue",
+        "text": "On any network, some broadcasts go unanswered — the right yard was at lunch, or the part is rare. On a traditional hotline, that request disappears. On Hotline HQ, every unanswered broadcast becomes a searchable listing that any yard can respond to later — or that a Google searcher finds organically."
+      },
+      "steps": [
+        { "title": "Broadcast goes unanswered", "desc": "The system waits 5 seconds after the speaker mutes for a response. If no one unmutes, the broadcast is classified as \"unanswered.\"" },
+        { "title": "AI transcription runs", "desc": "Whisper AI transcribes the audio locally. The transcription is then parsed by an AI model to extract structured data: year, make, model, trim, part, and specification." },
+        { "title": "Marketplace listing created", "desc": "The extracted part details become a listing on the Parts Marketplace — with the speaker's room, time, and a \"Respond\" form." },
+        { "title": "Indexed by Google", "desc": "Each listing gets its own SEO-optimized page with structured data (Product + WantAction schema). Google indexes these pages, driving organic traffic to the network." }
+      ],
+      "benefits": [
+        { "title": "Passive lead generation", "desc": "Unanswered broadcasts become Google-indexed pages. Someone searching \"2019 Camry bumper California\" could land on your marketplace listing." },
+        { "title": "Delayed responses", "desc": "A yard that was closed when the broadcast aired can find the listing the next morning and respond — the broadcaster gets an email notification." },
+        { "title": "Network growth driver", "desc": "Marketplace listings attract new visitors who aren't on the network yet. They see the activity, see the speed, and sign up." },
+        { "title": "Zero manual work", "desc": "The entire pipeline — recording, transcription, parsing, listing creation, SEO — is fully automated. Operators don't lift a finger." }
+      ],
+      "scenario": {
+        "heading": "Real-world: a Google search closes a deal 12 hours later",
+        "text": "At 8 PM, a yard broadcasts for a rare Mercedes part. The rooms are quiet — unanswered. The system transcribes it, creates a listing: \"2016 Mercedes C300 turbocharger — California.\" The next morning, a Google searcher finds the page, fills out the response form with their name and phone number. The broadcaster gets an email, calls back, and sells the part."
+      },
+      "faqs": [
+        { "q": "How does the system know a broadcast is unanswered?", "a": "After the speaker mutes, the system waits 5 seconds for another member to unmute. If no one responds in that window, the broadcast is classified as unanswered." },
+        { "q": "Can answered broadcasts also be listed on the marketplace?", "a": "Currently, only unanswered broadcasts are auto-listed. Answered broadcasts are assumed to have been resolved on the hotline." },
+        { "q": "How accurate is the AI part extraction?", "a": "The system uses Whisper for transcription and a specialized AI model for part extraction. It reliably captures year, make, model, and common part names. Unusual or heavily accented speech may require manual review." },
+        { "q": "Can I respond to a marketplace listing if I'm not on the network?", "a": "Yes. Anyone can view the listing and submit a response with their name and phone number. The broadcaster receives an email notification with the respondent's details." },
+        { "q": "Do marketplace listings expire?", "a": "Listings remain visible but are visually marked as stale after a period. Fresh listings (under 2 hours) get a \"fresh\" indicator." }
+      ],
+      "related": ["parts-marketplace", "broadcast-recording", "notifications"]
+    },
+
+    "parts-marketplace": {
+      "title": "Parts Marketplace",
+      "accent": "#db2777",
+      "seo": {
+        "title": "Parts Marketplace — SEO-Powered Part Listings | Hotline HQ",
+        "description": "Every captured broadcast becomes a searchable part listing on Google. The marketplace turns hotline activity into organic traffic and new member signups.",
+        "keywords": "used auto parts marketplace, parts wanted board, auto parts listings, used parts search, salvage parts marketplace"
+      },
+      "hero": {
+        "kicker": "MARKETPLACE",
+        "heading": "Your hotline activity, indexed by Google",
+        "lede": "Every unanswered broadcast automatically becomes a searchable part listing. SEO-optimized pages with structured data bring organic traffic — and new members — from Google."
+      },
+      "problem": {
+        "heading": "Hotline networks are invisible to search engines",
+        "text": "A traditional hotline generates zero online presence. Hundreds of part requests happen daily, but Google never sees them. The marketplace bridges this gap — it turns voice activity into web pages that rank, attract visitors, and convert them into network members."
+      },
+      "steps": [
+        { "title": "Broadcast captured", "desc": "Unanswered broadcasts are transcribed and parsed for part details. Each one becomes a marketplace listing with year, make, model, part, room, and timestamp." },
+        { "title": "SEO page generated", "desc": "Each listing gets its own URL (e.g., /parts/2019-toyota-camry-bumper-ca-12345) with a unique title, meta description, and JSON-LD structured data." },
+        { "title": "Dynamic sitemap", "desc": "A separate marketplace sitemap is auto-generated and submitted to Google, ensuring new listings are crawled and indexed quickly." },
+        { "title": "Response form", "desc": "Visitors can respond to any listing by submitting their name and phone number. The broadcaster gets an email notification with the respondent's details." }
+      ],
+      "benefits": [
+        { "title": "Organic traffic engine", "desc": "Every listing is a new page that can rank on Google. Over time, the marketplace becomes a significant source of organic traffic." },
+        { "title": "Member acquisition", "desc": "Visitors who find the marketplace see how active the network is and are prompted to sign up. The marketplace is the top of the funnel." },
+        { "title": "Structured data", "desc": "Every listing includes Product and WantAction JSON-LD schema, breadcrumbs, and Open Graph tags — maximizing search engine visibility." },
+        { "title": "Related listings", "desc": "Each listing page shows related parts from the same room, encouraging visitors to browse more inventory and increasing time on site." }
+      ],
+      "scenario": {
+        "heading": "Real-world: a Google search becomes a new member",
+        "text": "A shop in Houston Googles \"used 2020 Honda CR-V catalytic converter Texas.\" They find a Hotline HQ marketplace listing from yesterday's unanswered broadcast. They fill out the response form. The yard calls back and sells the part. The shop asks, \"How do I hear these requests live?\" They sign up that afternoon."
+      },
+      "faqs": [
+        { "q": "Do I need to manually create marketplace listings?", "a": "No. Listings are created automatically from unanswered broadcast transcriptions. The entire pipeline is hands-off." },
+        { "q": "How quickly do listings appear on Google?", "a": "New listings are added to the dynamic sitemap immediately. Google typically indexes them within 24-48 hours, depending on crawl frequency." },
+        { "q": "Can I see how much traffic the marketplace generates?", "a": "Yes. The marketplace pages include Microsoft Clarity analytics tracking. Traffic data is visible in your Clarity dashboard." },
+        { "q": "Are listings visible to non-members?", "a": "Yes. The marketplace is fully public — that's the point. Anyone can find a listing via Google and respond to it." }
+      ],
+      "related": ["unanswered-capture", "broadcast-recording", "caller-id"]
+    },
+
+    "admin-dashboard": {
+      "title": "Admin Dashboard",
+      "accent": "#4f46e5",
+      "seo": {
+        "title": "Admin Dashboard — Real-Time Network Control | Hotline HQ",
+        "description": "Full network visibility from one screen. Real-time user status, broadcast analytics, room management, phone health monitoring, and system diagnostics.",
+        "keywords": "hotline admin panel, network management dashboard, broadcast analytics, real-time monitoring, conference room management"
+      },
+      "hero": {
+        "kicker": "MANAGEMENT",
+        "heading": "Full control from one screen",
+        "lede": "Real-time user status, broadcast analytics, room management, phone health monitoring, and system diagnostics. Everything a network operator needs — nothing they don't."
+      },
+      "problem": {
+        "heading": "Running a network blind is dangerous",
+        "text": "Without visibility, operators can't tell if members are online, if rooms are active, or if phones are working. Problems go unnoticed for hours. The admin dashboard gives operators complete real-time visibility into every aspect of the network."
+      },
+      "steps": [
+        { "title": "Live overview", "desc": "The dashboard homepage shows real-time stats: users online, in conference, active broadcasts, with a scrolling event ticker and room activity timelines." },
+        { "title": "User management", "desc": "See every member's status (online, offline, muted, talking, error) with smart suggestions for common issues. Bulk actions: reconnect all, mute all, kick all." },
+        { "title": "Broadcast analytics", "desc": "Charts for broadcast volume, response rates, top broadcasters, peak hours. Filter by room, time range, answered/unanswered." },
+        { "title": "System health", "desc": "FreeSWITCH connection status, server uptime, database size, memory usage, SIP registration count — with auto-alerts for anomalies." }
+      ],
+      "benefits": [
+        { "title": "Real-time SSE updates", "desc": "Every dashboard page updates live via Server-Sent Events. No page refreshes, no polling — changes appear the instant they happen." },
+        { "title": "Smart diagnostics", "desc": "The user detail panel shows smart suggestions: \"UDP/NAT issue detected,\" \"Phone unreachable for 5 minutes,\" \"Stuck in connecting state.\" Operators know what to fix." },
+        { "title": "Role-based access", "desc": "Three admin roles: Admin (full access), Editor (users and rooms), Analytics (read-only). Each operator sees only what they need." },
+        { "title": "Remote phone control", "desc": "Reboot phones, push configurations, update SIP servers, and rebind devices — all from the dashboard. No on-site visits." }
+      ],
+      "scenario": {
+        "heading": "Real-world: diagnosing a silent yard",
+        "text": "An operator notices a yard that's been online but silent for 3 days. They open the user detail panel and see: \"No syslog events in 72 hours — phone may be powered off or network-disconnected.\" They tap \"Reboot\" to send a remote restart command. 30 seconds later, the phone reconnects and the yard is back on the hotline."
+      },
+      "faqs": [
+        { "q": "Can multiple admins use the dashboard simultaneously?", "a": "Yes. The dashboard supports multiple concurrent admin sessions. All admins see the same real-time data via SSE." },
+        { "q": "What analytics are available?", "a": "Broadcast volume charts, response rate tracking, hourly distribution, top broadcasters by room, user availability timelines, and room capacity utilization." },
+        { "q": "Can I export data from the dashboard?", "a": "Yes. FreeSWITCH logs, phone logs, and server logs all support CSV export. Broadcast data is available via the API." },
+        { "q": "Is there an API for integrating with other systems?", "a": "Yes. The admin API supports user management, room management, and broadcast data. API keys can be generated and revoked from the Settings page." }
+      ],
+      "related": ["caller-id", "broadcast-recording", "notifications"]
+    },
+
+    "multi-language": {
+      "title": "Multi-Language Support",
+      "accent": "#0d9488",
+      "seo": {
+        "title": "Multi-Language Support — 6 Languages + RTL | Hotline HQ",
+        "description": "The Hotline HQ member dashboard is available in English, Spanish, French, Chinese, Japanese, and Arabic with full RTL support.",
+        "keywords": "multi-language hotline, spanish hotline app, RTL support, i18n voice network, multilingual dashboard"
+      },
+      "hero": {
+        "kicker": "LOCALIZATION",
+        "heading": "Your members' language, not yours",
+        "lede": "The member dashboard automatically detects the user's system language and loads the right translation. Six languages with full RTL support — because your network shouldn't have a language barrier."
+      },
+      "problem": {
+        "heading": "English-only tools lose members",
+        "text": "In the auto dismantler industry, a significant portion of the workforce speaks Spanish as their first language. An English-only interface creates friction, slows adoption, and makes members feel like the tool wasn't built for them."
+      },
+      "steps": [
+        { "title": "Auto-detection", "desc": "On first visit, the app detects the user's browser language and loads the matching translation. No settings to configure." },
+        { "title": "Manual switch", "desc": "Members can switch languages anytime via the language selector in the sidebar. The change takes effect immediately — no page reload." },
+        { "title": "Full coverage", "desc": "Every UI element is translated: navigation, buttons, forms, error messages, help overlays, notifications, and the push-to-talk bar." },
+        { "title": "RTL layout", "desc": "Arabic translations include full right-to-left layout support — text direction, icon positions, and navigation all flip correctly." }
+      ],
+      "benefits": [
+        { "title": "6 languages", "desc": "English, Spanish, French, Chinese (Simplified), Japanese, and Arabic. The most common languages in the global auto parts trade." },
+        { "title": "Faster onboarding", "desc": "Spanish-speaking members can sign up, configure their profile, and start using the hotline entirely in Spanish. Zero English required." },
+        { "title": "Inclusive network", "desc": "Language support signals that the network is built for everyone — not just English speakers. This matters for adoption in diverse markets." },
+        { "title": "Lazy-loaded bundles", "desc": "Translation files load on demand. English users never download Spanish translations. Fast initial load regardless of how many languages are supported." }
+      ],
+      "scenario": {
+        "heading": "Real-world: a Spanish-speaking yard joins the network",
+        "text": "A dismantler in East LA opens the signup page. The app detects Spanish and loads the interface in Spanish. They complete signup, see the dashboard in their language, and immediately understand the push-to-talk bar: \"Mantener para Hablar.\" They're on the hotline and productive in under 2 minutes — no training, no English required."
+      },
+      "faqs": [
+        { "q": "What languages are supported?", "a": "English, Spanish, French, Chinese (Simplified), Japanese, and Arabic. More languages can be added as the network expands to new regions." },
+        { "q": "Does the voice audio get translated?", "a": "No — translations apply to the dashboard interface only. Voice broadcasts are in whatever language the speaker uses. The hotline is a live voice channel." },
+        { "q": "Can I force a specific language for all members?", "a": "Members choose their own language. There's no way to force a language — this is intentional, as members work best in their preferred language." },
+        { "q": "Is the admin dashboard also translated?", "a": "Currently, the admin dashboard is English-only. The member-facing client app (signup, login, dashboard, settings) is fully translated in all 6 languages." }
+      ],
+      "related": ["any-device", "direct-calls", "admin-dashboard"]
+    },
+
+    "enterprise-security": {
+      "title": "Enterprise Security",
+      "accent": "#64748b",
+      "seo": {
+        "title": "Enterprise Security — Production-Grade Voice Network | Hotline HQ",
+        "description": "JWT authentication, rate limiting, SIP digest auth, encrypted connections, and role-based access control. Built for always-on, production voice networks.",
+        "keywords": "secure hotline, enterprise voice security, SIP authentication, encrypted conference, production grade hotline"
+      },
+      "hero": {
+        "kicker": "SECURITY",
+        "heading": "Built for always-on production",
+        "lede": "JWT authentication, rate limiting, SIP digest auth, encrypted WebSocket connections, and role-based access control. The infrastructure runs 24/7 with zero planned downtime."
+      },
+      "problem": {
+        "heading": "Voice networks are targets",
+        "text": "An always-on voice network that's connected to hundreds of SIP phones is a high-value target for toll fraud, unauthorized access, and abuse. Security can't be an afterthought — it has to be the foundation."
+      },
+      "steps": [
+        { "title": "SIP digest authentication", "desc": "Every phone must authenticate with FreeSWITCH using SIP digest auth before joining a room. Unauthorized User-Agents are silently rejected." },
+        { "title": "JWT token auth", "desc": "The web client uses JWT access tokens (15-minute expiry) with refresh tokens (7-day expiry). Tokens are rotated automatically." },
+        { "title": "Rate limiting & lockout", "desc": "Login attempts are limited to 5 per 15 minutes per IP. After 5 failed attempts, the account is locked for 15 minutes." },
+        { "title": "Encrypted transport", "desc": "All web traffic runs over HTTPS/TLS. SIP signaling uses WSS (WebSocket Secure). No plaintext communication." }
+      ],
+      "benefits": [
+        { "title": "UA allowlist", "desc": "Only Yealink phones and the Hotline HQ web client are allowed to register. All other SIP User-Agents are rejected and can be blocklisted." },
+        { "title": "Role-based admin access", "desc": "Three admin roles: Admin (full), Editor (users/rooms/notifications), Analytics (read-only). Principle of least privilege." },
+        { "title": "Listener session isolation", "desc": "Public listen-in sessions use ephemeral SIP credentials with 60-second auth TTL, single-use tokens, and 20 concurrent session cap." },
+        { "title": "Security headers", "desc": "X-Content-Type-Options, X-Frame-Options, Referrer-Policy, and Permissions-Policy headers on every response. The server fingerprint is suppressed." }
+      ],
+      "scenario": {
+        "heading": "Real-world: blocking a toll fraud attempt",
+        "text": "An unknown SIP User-Agent attempts to register with the FreeSWITCH server. The directory endpoint checks the UA string, finds it's not a Yealink or web client, and returns a 403. The admin sees the blocked attempt in the SIP logs and adds the UA to the blocklist. The attacker never reaches the conference."
+      },
+      "faqs": [
+        { "q": "Is call audio encrypted?", "a": "SIP signaling is encrypted via WSS (WebSocket Secure). The audio stream uses SRTP when supported by the endpoint. All web traffic is over HTTPS." },
+        { "q": "Can unauthorized phones connect to the network?", "a": "No. The FreeSWITCH directory endpoint validates every registration against the account database and checks the SIP User-Agent. Unknown devices are rejected." },
+        { "q": "How are admin accounts secured?", "a": "Admin accounts use bcrypt-hashed passwords, JWT tokens with short expiry, refresh token rotation, and rate-limited login with account lockout after failed attempts." },
+        { "q": "Is there an audit log?", "a": "Yes. Every significant event — user joins, leaves, mutes, unmutes, broadcasts, direct calls, room changes, admin actions — is logged in the event log with timestamps." },
+        { "q": "What happens during a server restart?", "a": "The server performs a graceful shutdown: all active calls receive a BYE signal, recordings are saved, and the process exits cleanly. Phones reconnect automatically when the server comes back online." }
+      ],
+      "related": ["admin-dashboard", "always-on-voice-network", "broadcast-recording"]
+    }
+  }
+}

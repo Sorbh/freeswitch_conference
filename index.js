@@ -255,13 +255,13 @@ if (fs.existsSync(clientDistDir)) {
                 .map(row => {
                     const slug = generateSlug(row);
                     const lastmod = new Date(row.created_at * 1000).toISOString().split('T')[0];
-                    return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>`;
+                    return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
                 });
 
             const xml = [
                 '<?xml version="1.0" encoding="UTF-8"?>',
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-                `  <url>\n    <loc>${baseUrl}/marketplace</loc>\n    <changefreq>hourly</changefreq>\n    <priority>0.9</priority>\n  </url>`,
+                `  <url>\n    <loc>${baseUrl}/marketplace</loc>\n    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>\n  </url>`,
                 ...urls,
                 '</urlset>',
             ].join('\n');
@@ -431,7 +431,7 @@ if (fs.existsSync(clientDistDir)) {
         description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
         foundingDate: "2011",
         sameAs: [
-            "https://www.linkedin.com/company/redlineautoparts-com"
+            "https://www.linkedin.com/showcase/hotline-hq"
         ]
     };
 
@@ -567,6 +567,124 @@ if (fs.existsSync(clientDistDir)) {
         });
     });
 
+    // SEO: /blog
+    app.get("/blog", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Blog — Auto Parts Industry Guides & Network Updates | Hotline HQ',
+            description: 'Industry guides, network updates, and parts market insights from Hotline HQ — the voice network connecting 500+ auto dismantler yards.',
+            url: `${BASE_URL}/blog`,
+            keywords: 'auto parts blog, dismantler industry, salvage yard tips, used auto parts guide, hotline hq blog',
+            shell: ssrShell(
+                'HOTLINE HQ',
+                'Blog',
+                'Industry guides, network updates, and parts market insights from the largest voice parts network in the US.',
+                'Browse Posts', `${BASE_URL}/blog`
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "Blog",
+                name: "Hotline HQ Blog",
+                description: "Industry guides, network updates, and parts market insights from Hotline HQ.",
+                url: `${BASE_URL}/blog`,
+                publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` }
+            }
+        });
+    });
+
+    // SEO: /blog/:category
+    const BLOG_CATS = {
+        guides: { label: 'Industry Guides', desc: 'How-to guides and explainers for the auto dismantler industry' },
+        news: { label: 'Network Updates', desc: 'New rooms, milestones, and member stories from the Hotline HQ network' },
+        market: { label: 'Parts Market', desc: 'Popular parts, seasonal trends, and pricing insights from 500+ yards' },
+    };
+    app.get("/blog/:category", (req, res) => {
+        const cat = BLOG_CATS[req.params.category];
+        if (!cat) return sendClientIndex(req, res);
+        sendSeoPage(req, res, {
+            title: `${cat.label} — Hotline HQ Blog`,
+            description: cat.desc,
+            url: `${BASE_URL}/blog/${req.params.category}`,
+            keywords: `${cat.label.toLowerCase()}, auto parts blog, hotline hq`,
+            shell: ssrShell(
+                'BLOG',
+                cat.label,
+                cat.desc,
+                'Browse Posts', `${BASE_URL}/blog`
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "CollectionPage",
+                name: `${cat.label} — Hotline HQ Blog`,
+                description: cat.desc,
+                url: `${BASE_URL}/blog/${req.params.category}`,
+                isPartOf: { "@type": "Blog", name: "Hotline HQ Blog", url: `${BASE_URL}/blog` }
+            }
+        });
+    });
+
+    // 301 redirect: old pillar page URL → new blog URL
+    app.get("/how-auto-parts-hotlines-work", (req, res) => {
+        res.redirect(301, `${BASE_URL}/blog/guides/how-auto-parts-hotlines-work`);
+    });
+
+    // SEO: /blog/:category/:slug — dynamic blog post SSR from generated data
+    const blogSsrPath = path.join(__dirname, 'data', 'blog-ssr-data.json');
+    let blogSsrData = { posts: [] };
+    try { blogSsrData = JSON.parse(fs.readFileSync(blogSsrPath, 'utf8')); } catch {}
+
+    app.get("/blog/:category/:slug", (req, res) => {
+        const post = blogSsrData.posts.find(p => p.category === req.params.category && p.slug === req.params.slug);
+        if (!post) return sendClientIndex(req, res);
+
+        const postUrl = `${BASE_URL}/blog/${post.category}/${post.slug}`;
+        const catLabel = BLOG_CATS[post.category]?.label || post.category;
+
+        const faqHtml = post.faq.length > 0
+            ? `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${post.faq.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`
+            : '';
+
+        const contentHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 64px">${post.bodyHtml}</article>`;
+
+        const shell = ssrShell(
+            catLabel.toUpperCase(),
+            post.title,
+            post.description,
+            'Join the Network — Free', `${BASE_URL}/client/signup`
+        ) + contentHtml + faqHtml;
+
+        const jsonLdGraph = [
+            {
+                "@type": "Article",
+                headline: post.title,
+                description: post.description,
+                url: postUrl,
+                publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                datePublished: post.date,
+                dateModified: post.date,
+                mainEntityOfPage: postUrl,
+            },
+        ];
+        if (post.faq.length > 0) {
+            jsonLdGraph.push({
+                "@type": "FAQPage",
+                mainEntity: post.faq.map(f => ({
+                    "@type": "Question",
+                    name: f.q,
+                    acceptedAnswer: { "@type": "Answer", text: f.a }
+                }))
+            });
+        }
+
+        sendSeoPage(req, res, {
+            title: `${post.title} — ${catLabel} | Hotline HQ`,
+            description: post.description,
+            url: postUrl,
+            keywords: post.keywords || '',
+            shell,
+            jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
+        });
+    });
+
     // SEO: /own-a-hotline
     app.get("/own-a-hotline", (req, res) => {
         sendSeoPage(req, res, {
@@ -599,6 +717,61 @@ if (fs.existsSync(clientDistDir)) {
                             { "@type": "Question", name: "What industries can use a hotline?", acceptedAnswer: { "@type": "Answer", text: "Any industry where businesses need to locate inventory across a network of peers — auto dismantlers, heavy truck parts, building materials, wholesale distribution, and more." } }
                         ]
                     }
+                ]
+            }
+        });
+    });
+
+    // Feature pages — loaded from data/features-ssr-data.json (same pattern as blog)
+    const featuresDataPath = path.join(__dirname, 'data', 'features-ssr-data.json');
+    let featuresData = {};
+    function reloadFeaturesData() {
+        try {
+            featuresData = JSON.parse(fs.readFileSync(featuresDataPath, 'utf8')).features || {};
+            console.log('Features data reloaded —', Object.keys(featuresData).length, 'features');
+        } catch (e) { console.error('Features data load failed:', e.message); }
+    }
+    reloadFeaturesData();
+    let featReloadTimer;
+    fs.watch(path.dirname(featuresDataPath), (_, filename) => {
+        if (filename !== 'features-ssr-data.json') return;
+        clearTimeout(featReloadTimer);
+        featReloadTimer = setTimeout(reloadFeaturesData, 500);
+    });
+
+    // API: feature content for client-side rendering
+    app.get("/api/v1/features/:slug", (req, res) => {
+        const f = featuresData[req.params.slug];
+        if (!f) return res.status(404).json({ status: false, error: 'Feature not found' });
+        res.json({ status: true, data: { slug: req.params.slug, ...f } });
+    });
+    app.get("/api/v1/features", (req, res) => {
+        const list = Object.entries(featuresData).map(([slug, f]) => ({ slug, title: f.title, accent: f.accent, seo: f.seo, hero: f.hero }));
+        res.json({ status: true, data: list });
+    });
+
+    // SEO: /features/:slug
+    app.get("/features/:slug", (req, res) => {
+        const f = featuresData[req.params.slug];
+        if (!f) return sendClientIndex(req, res);
+        const seo = f.seo;
+        const faqJsonLd = f.faqs?.length ? [{ "@type": "FAQPage", mainEntity: f.faqs.map(item => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) }] : [];
+        sendSeoPage(req, res, {
+            title: seo.title,
+            description: seo.description,
+            keywords: seo.keywords,
+            url: `${BASE_URL}/features/${req.params.slug}`,
+            shell: ssrShell(f.hero.kicker, f.hero.heading, f.hero.lede, 'Sign Up Free', `${BASE_URL}/client/signup`),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@graph": [
+                    { "@type": "BreadcrumbList", itemListElement: [
+                        { "@type": "ListItem", position: 1, name: "Home", item: `${BASE_URL}/` },
+                        { "@type": "ListItem", position: 2, name: "Features", item: `${BASE_URL}/own-a-hotline` },
+                        { "@type": "ListItem", position: 3, name: f.title, item: `${BASE_URL}/features/${req.params.slug}` },
+                    ]},
+                    { "@type": "Service", name: `${f.title} — Hotline HQ`, serviceType: "Voice Hotline Network Feature", provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` }, description: seo.description },
+                    ...faqJsonLd,
                 ]
             }
         });
