@@ -63,7 +63,7 @@ export async function sendMail({ to, subject, text, html }) {
 
 export async function sendVerificationEmail({ email, token, displayName, roomName }) {
     const config = global.config || {};
-    const baseUrl = config.CLIENT_APP_URL || 'https://hotline.redlineusedautoparts.com';
+    const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
     const verifyUrl = `${baseUrl}/api/v1/client/verify?token=${encodeURIComponent(token)}`;
     const name = displayName || 'there';
     const room = roomName || 'your regional room';
@@ -110,7 +110,7 @@ export async function sendVerificationEmail({ email, token, displayName, roomNam
 
 export async function sendWelcomeEmail({ email, displayName, companyName, roomName }) {
     const config = global.config || {};
-    const baseUrl = config.CLIENT_APP_URL || 'https://hotline.redlineusedautoparts.com';
+    const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
     const dashboardUrl = `${baseUrl}/client/dashboard`;
     const name = displayName || companyName || 'there';
     const room = roomName || 'your room';
@@ -164,7 +164,7 @@ export async function sendWelcomeEmail({ email, displayName, companyName, roomNa
 
 export async function sendPasswordResetEmail({ email, token, displayName }) {
     const config = global.config || {};
-    const baseUrl = config.CLIENT_APP_URL || 'https://hotline.redlineusedautoparts.com';
+    const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
     const resetUrl = `${baseUrl}/client/reset-password?token=${encodeURIComponent(token)}`;
 
     const lines = [

@@ -199,7 +199,7 @@ marketplaceRouter.post('/listings/:slug/respond', express.json(), (req, res) => 
 marketplaceRouter.get('/sitemap.xml', (req, res) => {
     try {
         const result = global.db.getMarketplaceListings({ page: 1, pageSize: 1000 });
-        const baseUrl = 'https://hotline.redlineusedautoparts.com';
+        const baseUrl = 'https://hotlinehq.online';
 
         const urls = result.data.map(row => {
             const slug = generateSlug(row);

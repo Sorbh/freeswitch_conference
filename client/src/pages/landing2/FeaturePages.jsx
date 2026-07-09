@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 
-const SIGNUP_URL = "https://hotline.redlineusedautoparts.com/client/signup";
+const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
 /* ================================================================== */
 /*  /find-used-auto-parts — buyer intent SEO page                      */
@@ -235,6 +235,15 @@ const REGION_DATA = {
   michigan: { name: "Michigan", abbr: "MI", roomId: null },
   carolinas: { name: "Carolinas", abbr: "NC/SC", roomId: null },
   mexico: { name: "Mexico", abbr: "MX", roomId: null },
+  "new-jersey": { name: "New Jersey", abbr: "NJ", roomId: null },
+  "san-diego": { name: "San Diego", abbr: "SD", roomId: null },
+  iowa: { name: "Iowa", abbr: "IA", roomId: null },
+  kentucky: { name: "Kentucky", abbr: "KY", roomId: null },
+  alberta: { name: "Alberta", abbr: "AB", roomId: null },
+  canada: { name: "Canada", abbr: "CA", roomId: null },
+  egypt: { name: "Egypt", abbr: "EG", roomId: null },
+  spain: { name: "Spain", abbr: "ES", roomId: null },
+  ghana: { name: "Ghana", abbr: "GH", roomId: null },
 };
 
 export function RegionalPartsPage({ state }) {
@@ -274,7 +283,7 @@ export function RegionalPartsPage({ state }) {
           name: `Hotline HQ — Used Auto Parts in ${region.name}`,
           serviceType: "Used Auto Parts Network",
           provider: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") },
-          areaServed: { "@type": "State", name: region.name },
+          areaServed: { "@type": "AdministrativeArea", name: region.name },
           description: description,
         }}
       />
@@ -329,7 +338,7 @@ export function RegionalPartsPage({ state }) {
       <section className="fp-section fp-band">
         <div className="fp-section-head">
           <p className="fp-kicker">ALL REGIONS</p>
-          <h2>Hotline HQ covers 12 states</h2>
+          <h2>Hotline HQ covers 15 regions</h2>
         </div>
         <div className="fp-regions">
           {Object.entries(REGION_DATA).map(([slug, r]) => (

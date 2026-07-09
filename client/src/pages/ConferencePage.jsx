@@ -77,12 +77,6 @@ export default function ConferencePage() {
 
   }, [account, token]);
 
-  useEffect(() => {
-    return () => {
-      if (sseRef.current) sseRef.current.close();
-    };
-  }, []);
-
   function handleToggleMute() {
     if (toggleMute) toggleMute();
     else if (window.hotlineClient) window.hotlineClient.toggleMute();

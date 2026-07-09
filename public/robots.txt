@@ -17,5 +17,5 @@ Disallow: /client/
 Disallow: /classic
 Disallow: /landing_2
 
-Sitemap: https://hotline.redlineusedautoparts.com/sitemap.xml
-Sitemap: https://hotline.redlineusedautoparts.com/sitemap-marketplace.xml
+Sitemap: https://hotlinehq.online/sitemap.xml
+Sitemap: https://hotlinehq.online/sitemap-marketplace.xml

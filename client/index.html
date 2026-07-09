@@ -10,32 +10,38 @@
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-title" content="Hotline HQ" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" /></noscript>
 </head>
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
   <script>
-    (function(){
+    // Load Google Fonts after page is interactive (not during FCP/LCP)
+    function loadFonts(){
+      var l=document.createElement('link');
+      l.rel='stylesheet';
+      l.href='https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=optional';
+      document.head.appendChild(l);
+    }
+    if('requestIdleCallback' in window) requestIdleCallback(loadFonts);
+    else setTimeout(loadFonts,1);
+
+    // Clarity — deferred to idle
+    function loadClarity(){
       var tz;
-      try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) {}
-      if (tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta') return;
-
+      try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){}
+      if(tz==='Asia/Kolkata'||tz==='Asia/Calcutta')return;
       (function(c,l,a,r,i,t,y){
-          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-      })(window, document, "clarity", "script", "xavilq840o");
-
-      var p = new URLSearchParams(window.location.search);
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window,document,"clarity","script","xavilq840o");
+      var p=new URLSearchParams(window.location.search);
       ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(k){
-        var v = p.get(k);
-        if (v) window.clarity('set', k, v);
+        var v=p.get(k);if(v)window.clarity('set',k,v);
       });
-    })();
+    }
+    if('requestIdleCallback' in window) requestIdleCallback(loadClarity);
+    else setTimeout(loadClarity,2000);
   </script>
 </body>
 </html>

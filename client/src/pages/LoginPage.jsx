@@ -86,7 +86,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md animate-fadeIn">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <Link to="/"><img src="/hotlinehq/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} /></Link>
+          <Link to="/"><img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} /></Link>
           <h1 className="text-2xl font-bold">Hotline HQ</h1>
           <p className="hq-label mt-1">{t("login.subtitle")}</p>
         </div>

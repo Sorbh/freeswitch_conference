@@ -2,20 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <script>
-      document.write(
-        '<base href="' +
-          (window.location.pathname === "/hotlinehq" || window.location.pathname.startsWith("/hotlinehq/")
-            ? "/hotlinehq/"
-            : "/") +
-          '">'
-      );
-    </script>
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Hotline HQ — Used Auto Parts Hotline Network for Salvage Yards</title>
     <meta
       name="description"
@@ -23,7 +11,18 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="ssr-shell" style="--ink:#16181d;--red:#d92d20;--bg:#faf9f7;--muted:#71717a;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh">
+        <nav style="display:flex;justify-content:space-between;align-items:center;padding:18px 48px;max-width:1200px;margin:0 auto">
+          <svg width="120" height="32" viewBox="0 0 120 32"><text x="0" y="24" style="font-size:22px;font-weight:900;fill:var(--ink)">HOTLINE</text><text x="88" y="24" style="font-size:22px;font-weight:900;fill:var(--red)">HQ</text></svg>
+        </nav>
+        <div style="text-align:center;padding:80px 24px 60px;max-width:800px;margin:0 auto">
+          <p style="font-size:12px;font-weight:700;letter-spacing:0.14em;color:var(--red);margin:0 0 16px">USED AUTO PARTS HOTLINE NETWORK</p>
+          <h1 style="font-size:clamp(32px,5vw,56px);font-weight:900;line-height:1.08;letter-spacing:-0.03em;margin:0 0 20px">One broadcast.<br>Every yard hears it.</h1>
+          <p style="font-size:18px;color:var(--muted);line-height:1.5;margin:0 0 32px;max-width:560px;display:inline-block">The live voice network that connects 500+ auto dismantlers. Ask for a part once — the nearest yard answers in about 2 seconds.</p>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

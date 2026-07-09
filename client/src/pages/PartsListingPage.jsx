@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { SiteNav, SiteFooter, SITE_CSS, Seo, buildSiteUrl } from "./landing2/site";
 
-const SIGNUP_URL = "https://hotline.redlineusedautoparts.com/client/signup";
+const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
 function formatRelativeTime(unixSeconds) {
   const now = Math.floor(Date.now() / 1000);

@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -42,9 +42,16 @@ function Lazy({ children }) {
   return <Suspense fallback={<div />}>{children}</Suspense>;
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
+      <ScrollToTop />
       <Routes>
         {/* Public / marketing pages */}
         <Route path="/" element={<Lazy><Landing2Page /></Lazy>} />
@@ -66,6 +73,15 @@ export default function App() {
         <Route path="/used-auto-parts/michigan" element={<Lazy><RegionalPartsPage state="michigan" /></Lazy>} />
         <Route path="/used-auto-parts/carolinas" element={<Lazy><RegionalPartsPage state="carolinas" /></Lazy>} />
         <Route path="/used-auto-parts/mexico" element={<Lazy><RegionalPartsPage state="mexico" /></Lazy>} />
+        <Route path="/used-auto-parts/new-jersey" element={<Lazy><RegionalPartsPage state="new-jersey" /></Lazy>} />
+        <Route path="/used-auto-parts/san-diego" element={<Lazy><RegionalPartsPage state="san-diego" /></Lazy>} />
+        <Route path="/used-auto-parts/iowa" element={<Lazy><RegionalPartsPage state="iowa" /></Lazy>} />
+        <Route path="/used-auto-parts/kentucky" element={<Lazy><RegionalPartsPage state="kentucky" /></Lazy>} />
+        <Route path="/used-auto-parts/alberta" element={<Lazy><RegionalPartsPage state="alberta" /></Lazy>} />
+        <Route path="/used-auto-parts/canada" element={<Lazy><RegionalPartsPage state="canada" /></Lazy>} />
+        <Route path="/used-auto-parts/egypt" element={<Lazy><RegionalPartsPage state="egypt" /></Lazy>} />
+        <Route path="/used-auto-parts/spain" element={<Lazy><RegionalPartsPage state="spain" /></Lazy>} />
+        <Route path="/used-auto-parts/ghana" element={<Lazy><RegionalPartsPage state="ghana" /></Lazy>} />
         <Route path="/about" element={<Lazy><AboutPage /></Lazy>} />
         <Route path="/privacy-policy" element={<Lazy><PrivacyPage /></Lazy>} />
         <Route path="/terms-and-conditions" element={<Lazy><TermsPage /></Lazy>} />

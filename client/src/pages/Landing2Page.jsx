@@ -1,10 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
-import ListenLive from "../components/ListenLive";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+
+const ListenLive = lazy(() => import("../components/ListenLive"));
+
+function LazySection({ children, rootMargin = "200px" }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVisible(true); io.disconnect(); } }, { rootMargin });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref}>{visible ? children : null}</div>;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Landing 2 — Hotline HQ. Light B2B theme, no heavy 3D:             */
@@ -236,8 +250,8 @@ export default function Landing2Page() {
   ];
   const JOIN_LIST = t("join.list", { returnObjects: true });
 
-  const signupBase = "https://hotline.redlineusedautoparts.com/client/signup";
-  const loginBase = "https://hotline.redlineusedautoparts.com/client/login";
+  const signupBase = "https://hotlinehq.online/client/signup";
+  const loginBase = "https://hotlinehq.online/client/login";
   const referralParams = useMemo(() => {
     return new URLSearchParams(window.location.search).toString();
   }, []);
@@ -319,9 +333,11 @@ export default function Landing2Page() {
     };
   }, []);
 
-  /* scroll reveal — re-runs on language change so remounted elements get re-observed */
+  /* scroll reveal — re-runs on language change so remounted elements get re-observed.
+     MutationObserver catches dynamically added .l2-reveal elements (e.g. marketplace preview). */
   useEffect(() => {
-    const els = rootRef.current?.querySelectorAll(".l2-reveal") ?? [];
+    const root = rootRef.current;
+    if (!root) return;
     const io = new IntersectionObserver(
       (entries) =>
         entries.forEach((e) => {
@@ -332,8 +348,13 @@ export default function Landing2Page() {
         }),
       { threshold: 0.15 }
     );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const observeAll = () => {
+      root.querySelectorAll(".l2-reveal:not(.l2-in)").forEach((el) => io.observe(el));
+    };
+    observeAll();
+    const mo = new MutationObserver(observeAll);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => { io.disconnect(); mo.disconnect(); };
   }, [i18n.language]);
 
   /* scroll progress wire */
@@ -408,7 +429,7 @@ export default function Landing2Page() {
         title={t("seo.title")}
         description={t("seo.description")}
         keywords={t("seo.keywords")}
-        canonicalUrl="https://hotline.redlineusedautoparts.com/"
+        canonicalUrl="https://hotlinehq.online/"
         path="/"
         jsonLd={landingJsonLd()}
       />
@@ -526,7 +547,11 @@ export default function Landing2Page() {
       </div>
 
       {/* ───────────────── listen live ───────────────── */}
-      <ListenLive signupUrl={signupUrl} steps={STEPS} footnote={t("how.footnote")} />
+      <LazySection>
+        <Suspense fallback={<div style={{height:400}} />}>
+          <ListenLive signupUrl={signupUrl} steps={STEPS} footnote={t("how.footnote")} />
+        </Suspense>
+      </LazySection>
 
       {/* ───────────────── problem ───────────────── */}
       <section className="l2-section l2-band">
@@ -607,7 +632,9 @@ export default function Landing2Page() {
       </section>
 
       {/* ───────────────── marketplace ───────────────── */}
-      <MarketplacePreview />
+      <LazySection>
+        <MarketplacePreview />
+      </LazySection>
 
       {/* ───────────────── join ───────────────── */}
       <section className="l2-join" id="join">

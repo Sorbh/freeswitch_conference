@@ -14,17 +14,17 @@
 // LOADED AUTOMATICALLY by redline_sip_client.js and redline_callerid.js
 // after login. Can also be used standalone:
 //
-//   <script src="https://hotline.redlineusedautoparts.com/redline_push.js"></script>
+//   <script src="https://hotlinehq.online/redline_push.js"></script>
 //   <script>
 //     RedlinePush.init({
-//       apiBase: 'https://hotline.redlineusedautoparts.com/fs',
+//       apiBase: 'https://hotlinehq.online/fs',
 //       getToken: function () { return myClientJwt; },
 //     });
 //   </script>
 //
 // IMPORTANT — SERVICE WORKER ORIGIN:
 //   Browsers only allow registering a service worker served from the SAME
-//   origin as the page. hotline.redlineusedautoparts.com already serves
+//   origin as the page. hotlinehq.online already serves
 //   /sw.js. Any OTHER site loading this module must host a copy of sw.js
 //   at its own web root (or pass swPath in init()). If the worker file is
 //   missing this module logs a warning and does nothing.

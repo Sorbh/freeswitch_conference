@@ -36,9 +36,9 @@ export function HQLogo({ light = false, size = 32 }) {
 }
 
 export const CONTACT_EMAIL = "hotlinehq@redlineusedautoparts.com";
-const HOTLINE_LOGIN_URL = "https://hotline.redlineusedautoparts.com/client/login";
-const HOTLINE_SIGNUP_URL = "https://hotline.redlineusedautoparts.com/client/signup";
-const HOTLINE_ADMIN_URL = "https://hotline.redlineusedautoparts.com/admin/login";
+const HOTLINE_LOGIN_URL = "https://hotlinehq.online/client/login";
+const HOTLINE_SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const HOTLINE_ADMIN_URL = "https://hotlinehq.online/admin/login";
 const SITE_BASE_PATH = "/hotlinehq";
 
 function getSiteBasePath() {
@@ -107,7 +107,7 @@ export function Seo({
     setProp("og:type", "website");
     setProp("og:url", url);
     setProp("og:site_name", "Hotline HQ");
-    setNamed("twitter:card", "summary");
+    setNamed("twitter:card", "summary_large_image");
     setNamed("twitter:title", title);
     setNamed("twitter:description", description);
 
@@ -145,7 +145,7 @@ export function landingJsonLd() {
         "@id": `${websiteUrl}#org`,
         name: "Hotline HQ",
         url: websiteUrl,
-        logo: buildSiteUrl("/favicon.svg"),
+        logo: buildSiteUrl("/logo-512.png"),
         email: CONTACT_EMAIL,
         description:
           "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
@@ -219,6 +219,16 @@ const ROOM_LINKS = [
   ["New York", "/used-auto-parts/new-york"],
   ["Indiana", "/used-auto-parts/indiana"],
   ["Carolinas", "/used-auto-parts/carolinas"],
+  ["New Jersey", "/used-auto-parts/new-jersey"],
+  ["San Diego", "/used-auto-parts/san-diego"],
+  ["Iowa", "/used-auto-parts/iowa"],
+  ["Kentucky", "/used-auto-parts/kentucky"],
+  ["Alberta", "/used-auto-parts/alberta"],
+  ["Canada", "/used-auto-parts/canada"],
+  ["Mexico", "/used-auto-parts/mexico"],
+  ["Egypt", "/used-auto-parts/egypt"],
+  ["Spain", "/used-auto-parts/spain"],
+  ["Ghana", "/used-auto-parts/ghana"],
 ];
 
 export function SiteFooter() {
@@ -327,9 +337,9 @@ export const SITE_CSS = `
   --red-deep: #b42318;
   --red-soft: #fef3f2;
   --green: #12b76a;
-  --display: "Bricolage Grotesque", "Georgia", sans-serif;
-  --body: "Instrument Sans", sans-serif;
-  --mono: "IBM Plex Mono", monospace;
+  --display: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
 
   background: var(--bg);
   color: var(--ink);

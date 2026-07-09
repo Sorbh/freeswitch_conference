@@ -100,7 +100,7 @@ export default function LandingPage() {
 
           <div className="hidden items-center gap-3 md:flex">
             <a
-              href="https://hotline.redlineusedautoparts.com/admin/login"
+              href="https://hotlinehq.online/admin/login"
               className="rounded-xl border border-black/10 px-4 py-2 text-sm font-medium text-[#374151] transition hover:bg-white"
             >
               Console
@@ -398,7 +398,7 @@ export default function LandingPage() {
           <div className="text-sm text-[#6b7280]">
             &copy; {new Date().getFullYear()} HotlineHQ. All rights reserved.
           </div>
-          <a href="https://hotline.redlineusedautoparts.com/admin/login" className="text-sm font-medium text-[#374151]">
+          <a href="https://hotlinehq.online/admin/login" className="text-sm font-medium text-[#374151]">
             Admin Console
           </a>
         </div>

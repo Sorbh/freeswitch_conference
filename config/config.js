@@ -21,11 +21,11 @@ config.ROOM_REQUEST_TO_EMAIL = process.env.ROOM_REQUEST_TO_EMAIL || config.EXTEN
 config.SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 config.SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 config.SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME;
-config.CLIENT_APP_URL = process.env.CLIENT_APP_URL || 'https://hotline.redlineusedautoparts.com';
+config.CLIENT_APP_URL = process.env.CLIENT_APP_URL || 'https://hotlinehq.online';
 
 config.USER_VALIDATION_API = process.env.USER_VALIDATION_API || 'https://apis.redlineusedautoparts.com/api/user-info';
 config.SIP_DEFAULT_PASSWORD = process.env.SIP_DEFAULT_PASSWORD || '12345678';
-config.PUBLIC_WSS_URL = process.env.PUBLIC_WSS_URL || 'wss://hotline.redlineusedautoparts.com/fs_wss/';
+config.PUBLIC_WSS_URL = process.env.PUBLIC_WSS_URL || 'wss://hotlinehq.online/fs_wss/';
 config.HONK_AUDIO_FILE = process.env.HONK_AUDIO_FILE || '/root/sorbh/freeswitch_conference/public/redlinehonk.wav';
 config.RECORDING_DIR = process.env.RECORDING_DIR || '/root/sorbh/freeswitch_conference/recordings';
 

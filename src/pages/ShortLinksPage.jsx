@@ -29,7 +29,7 @@ function truncateUrl(url, max = 40) {
   return url.substring(0, max) + "…";
 }
 
-const BASE_URL = "https://hotline.redlineusedautoparts.com";
+const BASE_URL = "https://hotlinehq.online";
 
 export default function ShortLinksPage() {
   const [links, setLinks] = useState([]);

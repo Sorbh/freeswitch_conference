@@ -11,8 +11,8 @@ const VARIANTS = {
   own_line: "dist/hotline_hq_outreach_own_line.html",
 };
 const VARIANT_KEYS = Object.keys(VARIANTS);
-const LOGIN_URL = "https://hotline.redlineusedautoparts.com/client/login";
-const SIGNUP_URL = "https://hotline.redlineusedautoparts.com/client/signup";
+const LOGIN_URL = "https://hotlinehq.online/client/login";
+const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
 function usage() {
   console.error(

@@ -15,7 +15,7 @@
 //   <div id="caller_grid"></div>
 //
 // HOW TO USE (single script tag, no function calls needed):
-//   <script src="https://hotline.redlineusedautoparts.com/redline_callerid.js"></script>
+//   <script src="https://hotlinehq.online/redline_callerid.js"></script>
 //
 //   That's it. It auto-reads room from localStorage and connects.
 //
@@ -40,9 +40,9 @@
 //
 // OPTIONAL CONFIG (set before loading this script):
 //   window.HOTLINE_CONFIG = {
-//     apiBase: '',              // API base URL (default: https://hotline.redlineusedautoparts.com/fs)
+//     apiBase: '',              // API base URL (default: https://hotlinehq.online/fs)
 //     baseUrl: '',              // origin serving the shared helper scripts (redline_push.js,
-//                               // redline_extensions.js); default: https://hotline.redlineusedautoparts.com
+//                               // redline_extensions.js); default: https://hotlinehq.online
 //     room: '123456701',        // override room (default: reads localStorage)
 //     email: '',                // email for client login (default: reads localStorage user_data)
 //     password: '12345678',     // SIP password (default: 12345678)
@@ -82,8 +82,8 @@
 (function () {
     var config = window.HOTLINE_CONFIG || {};
     // Origin hosting the shared helper scripts (redline_push.js, redline_extensions.js)
-    var baseUrl = (config.baseUrl || 'https://hotline.redlineusedautoparts.com').replace(/\/$/, '');
-    var apiBase = config.apiBase || 'https://hotline.redlineusedautoparts.com/fs';
+    var baseUrl = (config.baseUrl || 'https://hotlinehq.online').replace(/\/$/, '');
+    var apiBase = config.apiBase || 'https://hotlinehq.online/fs';
     var room = config.room || window.CALLERID_ROOM || localStorage.getItem("room");
     var clientToken = config.token || null;
     var accountData = config.accountData || null;

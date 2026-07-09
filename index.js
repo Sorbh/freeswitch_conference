@@ -74,6 +74,21 @@ const compressMiddleware = compression({
     }
 });
 app.use(compressMiddleware);
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Frame-Options', 'SAMEORIGIN');
+    res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
+    next();
+});
+// Strip trailing slashes (except root)
+app.use((req, res, next) => {
+    if (req.path.length > 1 && req.path.endsWith('/') && !req.path.startsWith('/api/')) {
+        return res.redirect(301, req.path.slice(0, -1) + (req._parsedUrl.search || ''));
+    }
+    next();
+});
 app.use(cors({ origin: true, credentials: true }));
 app.use(json());
 app.use(urlencoded({ extended: true }));
@@ -89,7 +104,7 @@ app.use("/admin/assets", adminAssets);
 app.get("/admin/assets/*", (req, res) => sendAssetNotFound(res));
 app.use("/admin", express.static(adminDistDir, { index: false }));
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"), { maxAge: '7d' }));
 import { requireAuth as _recAuth } from './service/auth/middleware.js';
 app.use("/recordings", _recAuth, express.static(path.join(__dirname, "recordings")));
 
@@ -125,61 +140,67 @@ const clientDistDir = path.join(__dirname, "dist-client");
 if (fs.existsSync(clientDistDir)) {
     const clientAssets = express.static(path.join(clientDistDir, "assets"), { index: false, ...immutableAssets });
     const clientIndexPath = path.join(clientDistDir, "index.html");
-    let clientIndexHtml = fs.readFileSync(clientIndexPath, "utf8");
-    const cssLinkMatch = clientIndexHtml.match(/<link[^>]+href="(\/assets\/[^"]+\.css)"[^>]*>/);
-    if (cssLinkMatch) {
-        const cssFileName = cssLinkMatch[1].replace(/^\//, '');
-        const cssPath = path.join(clientDistDir, cssFileName);
-        if (fs.existsSync(cssPath)) {
-            const cssContent = fs.readFileSync(cssPath, "utf8");
-            clientIndexHtml = clientIndexHtml.replace(cssLinkMatch[0], `<style>${cssContent}</style>`);
+
+    let clientIndexHtml, routeChunks, preloadCache;
+    function reloadClientIndex() {
+        clientIndexHtml = fs.readFileSync(clientIndexPath, "utf8");
+        const cssLinkMatch = clientIndexHtml.match(/<link[^>]+href="(\/assets\/[^"]+\.css)"[^>]*>/);
+        if (cssLinkMatch) {
+            const cssFileName = cssLinkMatch[1].replace(/^\//, '');
+            const cssPath = path.join(clientDistDir, cssFileName);
+            if (fs.existsSync(cssPath)) {
+                const cssContent = fs.readFileSync(cssPath, "utf8");
+                clientIndexHtml = clientIndexHtml.replace(cssLinkMatch[0], `<style>${cssContent}</style>`);
+            }
         }
+        const assetFiles = fs.readdirSync(path.join(clientDistDir, "assets")).filter(f => f.endsWith('.js'));
+        const chunkMap = {};
+        for (const f of assetFiles) {
+            const name = f.replace(/-[A-Za-z0-9_-]+\.js$/, '');
+            chunkMap[name] = `/assets/${f}`;
+        }
+        routeChunks = {
+            '/client/signup': [chunkMap['SignupPage']],
+            '/client/login': [chunkMap['LoginPage']],
+            '/b/': [chunkMap['PublicBroadcastPage'], chunkMap['site']],
+            '/': [chunkMap['Landing2Page'], chunkMap['site']],
+        };
+        preloadCache = {};
+        console.log('Client index reloaded — asset hashes refreshed');
     }
-    const hotlineIndexHtml = clientIndexHtml
-        .replaceAll('src="/assets/', 'src="/hotlinehq/assets/')
-        .replaceAll('href="/assets/', 'href="/hotlinehq/assets/')
-        .replaceAll('href="/favicon.svg"', 'href="/hotlinehq/favicon.svg"');
+    reloadClientIndex();
 
-    const assetFiles = fs.readdirSync(path.join(clientDistDir, "assets")).filter(f => f.endsWith('.js'));
-    const chunkMap = {};
-    for (const f of assetFiles) {
-        const name = f.replace(/-[A-Za-z0-9_-]+\.js$/, '');
-        chunkMap[name] = `/assets/${f}`;
-    }
-    const routeChunks = {
-        '/client/signup': [chunkMap['SignupPage']],
-        '/client/login': [chunkMap['LoginPage']],
-        '/b/': [chunkMap['PublicBroadcastPage'], chunkMap['site']],
-        '/': [chunkMap['Landing2Page'], chunkMap['site']],
-    };
+    // Watch for frontend rebuilds — auto-reload without pm2 restart
+    let reloadTimer;
+    fs.watch(clientIndexPath, () => {
+        clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => {
+            try { reloadClientIndex(); } catch (e) { console.error('Client index reload failed:', e.message); }
+        }, 500);
+    });
 
-    const preloadCache = {};
-    function getPreloadedHtml(routeKey, isHotline) {
-        const cacheKey = `${routeKey}:${isHotline}`;
-        if (preloadCache[cacheKey]) return preloadCache[cacheKey];
+    function getPreloadedHtml(routeKey) {
+        if (preloadCache[routeKey]) return preloadCache[routeKey];
         const chunks = routeChunks[routeKey] || [];
-        const base = isHotline ? hotlineIndexHtml : clientIndexHtml;
         if (!chunks.length) {
-            preloadCache[cacheKey] = { html: base, gz: zlib.gzipSync(base) };
-            return preloadCache[cacheKey];
+            preloadCache[routeKey] = { html: clientIndexHtml, gz: zlib.gzipSync(clientIndexHtml) };
+            return preloadCache[routeKey];
         }
-        const prefix = isHotline ? '/hotlinehq' : '';
-        const hints = chunks.filter(Boolean).map(c => `<link rel="modulepreload" href="${prefix}${c}">`).join('\n  ');
-        const html = base.replace('</head>', `  ${hints}\n</head>`);
-        preloadCache[cacheKey] = { html, gz: zlib.gzipSync(html) };
-        return preloadCache[cacheKey];
+        const hints = chunks.filter(Boolean).map(c => `<link rel="modulepreload" href="${c}">`).join('\n  ');
+        const html = clientIndexHtml.replace('</head>', `  ${hints}\n</head>`);
+        preloadCache[routeKey] = { html, gz: zlib.gzipSync(html) };
+        return preloadCache[routeKey];
     }
 
     const sendClientIndex = (req, res) => {
         setNoStoreHtml(res);
-        const isHotline = req.path.startsWith('/hotlinehq');
         const p = req.path;
         const routeKey = p.startsWith('/b/') ? '/b/'
             : p.startsWith('/client/signup') ? '/client/signup'
             : p.startsWith('/client/login') ? '/client/login'
             : (p === '/' || p === '') ? '/'
             : null;
-        const { html, gz } = getPreloadedHtml(routeKey, isHotline);
+        const { html, gz } = getPreloadedHtml(routeKey);
         if (req.headers['accept-encoding']?.includes('gzip')) {
             res.set('Content-Encoding', 'gzip');
             res.set('Content-Type', 'text/html; charset=utf-8');
@@ -188,14 +209,6 @@ if (fs.existsSync(clientDistDir)) {
             res.type("html").send(html);
         }
     };
-
-    app.use("/hotlinehq/assets", clientAssets);
-    app.get("/hotlinehq/assets/*", (req, res) => sendAssetNotFound(res));
-    app.get("/hotlinehq/favicon.svg", (req, res) => {
-        res.sendFile(path.join(__dirname, "public", "favicon.svg"));
-    });
-    app.get("/hotlinehq", sendClientIndex);
-    app.get("/hotlinehq/*", sendClientIndex);
 
     app.use("/assets", clientAssets);
     app.get("/assets/*", (req, res) => sendAssetNotFound(res));
@@ -215,7 +228,7 @@ if (fs.existsSync(clientDistDir)) {
     app.get("/sitemap-marketplace.xml", (req, res) => {
         try {
             const result = global.db.getMarketplaceListings({ page: 1, pageSize: 5000 });
-            const baseUrl = 'https://hotline.redlineusedautoparts.com';
+            const baseUrl = 'https://hotlinehq.online';
 
             const generateSlug = (row) => {
                 const pd = JSON.parse(row.part_details || '{}');
@@ -228,11 +241,20 @@ if (fs.existsSync(clientDistDir)) {
                 return segments.join('-');
             };
 
-            const urls = result.data.map(row => {
-                const slug = generateSlug(row);
-                const lastmod = new Date(row.created_at * 1000).toISOString().split('T')[0];
-                return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>`;
-            });
+            const urls = result.data
+                .filter(row => {
+                    const pd = JSON.parse(row.part_details || '{}');
+                    const isReal = v => v && v !== 'null' && v !== 'undefined' && String(v).trim().length > 1;
+                    if (!isReal(pd.make) || !isReal(pd.model)) return false;
+                    const placeholders = ['make', 'model', 'part-name', 'test', 'example', 'sample'];
+                    if (placeholders.includes(String(pd.make).toLowerCase().trim())) return false;
+                    return true;
+                })
+                .map(row => {
+                    const slug = generateSlug(row);
+                    const lastmod = new Date(row.created_at * 1000).toISOString().split('T')[0];
+                    return `  <url>\n    <loc>${baseUrl}/parts/${slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>`;
+                });
 
             const xml = [
                 '<?xml version="1.0" encoding="UTF-8"?>',
@@ -255,43 +277,21 @@ if (fs.existsSync(clientDistDir)) {
 
     // Marketplace SEO — inject meta tags for /marketplace before SPA fallback
     app.get("/marketplace", (req, res) => {
-        const isHotline = req.path.startsWith('/hotlinehq');
-        const base = isHotline ? hotlineIndexHtml : clientIndexHtml;
-        const url = 'https://hotline.redlineusedautoparts.com/marketplace';
-        const title = 'Used Auto Parts Wanted — Parts Marketplace | Hotline HQ';
-        const description = 'Browse unanswered used auto parts requests from 500+ dismantler yards across the US. Have the part they need? Respond and get connected directly.';
-        const jsonLd = JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            "name": "Parts Marketplace",
-            "description": description,
-            "url": url,
-            "isPartOf": { "@type": "WebSite", "name": "Hotline HQ", "url": "https://hotline.redlineusedautoparts.com/" },
-            "provider": { "@type": "Organization", "name": "Hotline HQ" }
+        sendSeoPage(req, res, {
+            title: 'Used Auto Parts Wanted — Parts Marketplace | Hotline HQ',
+            description: 'Browse unanswered used auto parts requests from 500+ dismantler yards across the US. Have the part they need? Respond and get connected directly.',
+            url: `${BASE_URL}/marketplace`,
+            keywords: 'used auto parts, auto parts marketplace, car parts wanted, dismantler parts, junkyard parts, salvage auto parts, used car parts near me',
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "CollectionPage",
+                name: "Parts Marketplace",
+                description: 'Browse unanswered used auto parts requests from 500+ dismantler yards across the US.',
+                url: `${BASE_URL}/marketplace`,
+                isPartOf: { "@type": "WebSite", name: "Hotline HQ", url: `${BASE_URL}/` },
+                provider: { "@type": "Organization", name: "Hotline HQ" }
+            }
         });
-        const metaTags = `
-    <title>${title}</title>
-    <meta name="description" content="${description}">
-    <meta name="keywords" content="used auto parts, auto parts marketplace, car parts wanted, dismantler parts, junkyard parts, salvage auto parts, used car parts near me">
-    <link rel="canonical" href="${url}">
-    <meta property="og:title" content="${title}">
-    <meta property="og:description" content="${description}">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="${url}">
-    <meta property="og:site_name" content="Hotline HQ">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="${title}">
-    <meta name="twitter:description" content="${description}">
-    <script type="application/ld+json">${jsonLd}</script>`;
-        const html = base.replace('</head>', `${metaTags}\n</head>`);
-        setNoStoreHtml(res);
-        if (req.headers['accept-encoding']?.includes('gzip')) {
-            res.set('Content-Encoding', 'gzip');
-            res.set('Content-Type', 'text/html; charset=utf-8');
-            res.end(zlib.gzipSync(html));
-        } else {
-            res.type("html").send(html);
-        }
     });
 
     // Marketplace SEO — inject meta tags for /parts/:slug before SPA fallback
@@ -316,7 +316,7 @@ if (fs.existsSync(clientDistDir)) {
             const partDesc = [vehicle, part].filter(Boolean).join(' ');
             const room = global.db.getRoom(broadcast.room);
             const region = room?.name || '';
-            const url = `https://hotline.redlineusedautoparts.com/parts/${slug}`;
+            const url = `https://hotlinehq.online/parts/${slug}`;
 
             const title = `${partDesc || 'Part'} Needed in ${region} | Used Auto Parts | Hotline HQ`;
             const description = `${region} dismantler needs a used ${partDesc}${spec ? ` (${spec})` : ''}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
@@ -345,42 +345,317 @@ if (fs.existsSync(clientDistDir)) {
                 }
             });
 
-            const isHotline = req.path.startsWith('/hotlinehq');
-            const base = isHotline ? hotlineIndexHtml : clientIndexHtml;
-            const metaTags = `
-    <title>${title}</title>
-    <meta name="description" content="${description}">
-    <meta name="keywords" content="${keywords}">
-    <link rel="canonical" href="${url}">
-    <meta property="og:title" content="${title}">
-    <meta property="og:description" content="${description}">
-    <meta property="og:type" content="product">
-    <meta property="og:url" content="${url}">
-    <meta property="og:site_name" content="Hotline HQ">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="${title}">
-    <meta name="twitter:description" content="${description}">
-    <script type="application/ld+json">${jsonLd}</script>`;
-
-            const html = base.replace('</head>', `${metaTags}\n</head>`);
-            setNoStoreHtml(res);
-            if (req.headers['accept-encoding']?.includes('gzip')) {
-                res.set('Content-Encoding', 'gzip');
-                res.set('Content-Type', 'text/html; charset=utf-8');
-                res.end(zlib.gzipSync(html));
-            } else {
-                res.type("html").send(html);
-            }
+            sendSeoPage(req, res, {
+                title,
+                description,
+                url,
+                keywords,
+                ogType: 'product',
+                jsonLd: JSON.parse(jsonLd)
+            });
         } catch {
             sendClientIndex(req, res);
         }
     });
 
-    // SPA fallback for client app — skip API, admin, and static file paths
+    // SEO: server-side meta injection helper
+    const BASE_URL = 'https://hotlinehq.online';
+    const OG_IMAGE = `${BASE_URL}/og-default.png`;
+    const SSR_STYLE = `<style id="ssr-s">:root{--ink:#16181d;--red:#d92d20;--bg:#fbfaf8;--muted:#5d6370;--line:#e7e4dd;--mono:ui-monospace,"SF Mono","Cascadia Mono",monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif}#ssr-shell{font-family:var(--body);background:var(--bg);color:var(--ink);min-height:100vh}.ssr-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;max-width:1200px;margin:0 auto}.ssr-logo{font-weight:900;font-size:21px;letter-spacing:-.01em}.ssr-logo em{font-style:normal;color:var(--red)}.ssr-hero{text-align:center;padding:140px 24px 60px;max-width:800px;margin:0 auto}.ssr-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 18px}.ssr-hero h1{font-size:clamp(32px,5vw,56px);font-weight:700;line-height:1.08;letter-spacing:-.02em;margin:0 0 20px}.ssr-hero h1 em{font-style:normal;color:var(--red)}.ssr-sub{font-size:18px;color:var(--muted);line-height:1.6;margin:0 auto 32px;max-width:600px}.ssr-sub strong{color:var(--ink)}.ssr-cta{display:inline-block;background:var(--red);color:#fff;font-weight:600;font-size:15px;padding:14px 28px;border-radius:11px;text-decoration:none}.ssr-stats{display:flex;justify-content:center;gap:clamp(28px,6vw,80px);flex-wrap:wrap;padding:32px 0 48px}.ssr-stat{display:flex;flex-direction:column;align-items:center;gap:4px}.ssr-stat strong{font-size:36px;font-weight:700;line-height:1}.ssr-stat span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}@media(max-width:640px){.ssr-hero{padding:100px 16px 40px}.ssr-hero h1{font-size:clamp(24px,7vw,36px)}.ssr-sub{font-size:15px}.ssr-stat strong{font-size:26px}.ssr-nav{padding:10px 16px}}</style>`;
+
+    function ssrShell(kicker, h1, sub, ctaText, ctaHref, stats) {
+        const statsHtml = stats ? stats.map(s => `<div class="ssr-stat"><strong>${s[0]}</strong><span>${s[1]}</span></div>`).join('') : '';
+        return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
+    }
+
+    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '' }) {
+        const safeTitle = title.replace(/"/g, '&quot;');
+        const safeDesc = description.replace(/"/g, '&quot;');
+        const metaTags = `
+    ${shell ? SSR_STYLE : ''}
+    <meta name="description" content="${safeDesc}">
+    ${keywords ? `<meta name="keywords" content="${keywords}">` : ''}
+    <link rel="canonical" href="${url}">
+    <meta property="og:title" content="${safeTitle}">
+    <meta property="og:description" content="${safeDesc}">
+    <meta property="og:type" content="${ogType}">
+    <meta property="og:url" content="${url}">
+    <meta property="og:site_name" content="Hotline HQ">
+    <meta property="og:image" content="${OG_IMAGE}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${safeTitle}">
+    <meta name="twitter:description" content="${safeDesc}">
+    <meta name="twitter:image" content="${OG_IMAGE}">
+    ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}`;
+        let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
+        html = html.replace('</head>', `${metaTags}\n</head>`);
+        if (shell) {
+            html = html.replace('<div id="root"></div>', `<div id="root">${shell}</div>`);
+        }
+        return html;
+    }
+
+    function sendSeoPage(req, res, seo) {
+        const html = injectSeoMeta(clientIndexHtml, seo);
+        res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
+        if (req.headers['accept-encoding']?.includes('gzip')) {
+            res.set('Content-Encoding', 'gzip');
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.end(zlib.gzipSync(html));
+        } else {
+            res.type("html").send(html);
+        }
+    }
+
+    const orgJsonLd = {
+        "@type": "Organization",
+        "@id": `${BASE_URL}/#org`,
+        name: "Hotline HQ",
+        url: BASE_URL,
+        logo: `${BASE_URL}/logo-512.png`,
+        email: "hotlinehq@redlineusedautoparts.com",
+        description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network."
+    };
+
+    // SEO: Homepage
+    app.get("/", (req, res) => {
+        if (req.path !== '/' && req.path !== '') return sendClientIndex(req, res);
+        sendSeoPage(req, res, {
+            title: 'Hotline HQ — Used Auto Parts Hotline Network for Salvage Yards',
+            description: 'Join 500+ salvage yards on the always-on parts hotline. Broadcast a used auto part request once and a nearby yard answers in about 2 seconds. Flat monthly membership, desk phone included.',
+            url: `${BASE_URL}/`,
+            keywords: 'used auto parts hotline, auto dismantler network, salvage yard hotline, parts locating, used car parts, auto recycler network',
+            shell: ssrShell(
+                'USED AUTO PARTS HOTLINE NETWORK',
+                'One broadcast.<br>Every yard hears it.',
+                'The live voice network that connects <strong>500+ auto dismantler yards</strong>. Ask for a part once — the nearest yard answers in about <strong>2 seconds</strong>.',
+                'Sign Up Free', `${BASE_URL}/client/signup`,
+                [['500+', 'Member yards'], ['12', 'Regional rooms'], ['2s', 'Typical answer'], ['24/7', 'Always on']]
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@graph": [
+                    orgJsonLd,
+                    { "@type": "WebSite", name: "Hotline HQ", url: `${BASE_URL}/`, publisher: { "@id": `${BASE_URL}/#org` } },
+                    {
+                        "@type": "Service",
+                        name: "Hotline HQ voice hotline network",
+                        serviceType: "Always-on business voice hotline network",
+                        provider: { "@id": `${BASE_URL}/#org` },
+                        areaServed: "US",
+                        description: "An always-on voice hotline that connects member businesses by region. Members broadcast requests live and get answers in seconds.",
+                        offers: { "@type": "Offer", priceCurrency: "USD", description: "Flat monthly membership per member business." }
+                    }
+                ]
+            }
+        });
+    });
+
+    // SEO: /find-used-auto-parts
+    app.get("/find-used-auto-parts", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Find Used Auto Parts — Search 500+ Yards Instantly | Hotline HQ',
+            description: 'Find used auto parts from 500+ dismantler yards in seconds. Broadcast what you need on the Hotline HQ voice network and get live answers — no databases, no waiting.',
+            url: `${BASE_URL}/find-used-auto-parts`,
+            keywords: 'find used auto parts, used auto parts near me, used car parts, salvage auto parts, junkyard parts, auto parts search',
+            shell: ssrShell(
+                'FIND PARTS FASTER',
+                'Find used auto parts from <em>500+ yards</em> in seconds',
+                'Stop calling yard after yard. Broadcast what you need on Hotline HQ and every dismantler in your region hears it live. Average answer time: <strong>2 seconds</strong>.',
+                'Start Finding Parts — Free', `${BASE_URL}/client/signup`
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "Service",
+                name: "Hotline HQ — Find Used Auto Parts",
+                serviceType: "Used Auto Parts Search Network",
+                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                areaServed: { "@type": "Country", name: "US" },
+                description: "Live voice network connecting auto dismantlers. Broadcast what part you need and get answers from 500+ yards in seconds.",
+                offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+            }
+        });
+    });
+
+    // SEO: /sell-used-auto-parts
+    app.get("/sell-used-auto-parts", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Sell Used Auto Parts — Reach 500+ Yards Instantly | Hotline HQ',
+            description: 'Sell used auto parts faster on Hotline HQ. Hear live part requests from dismantlers in your region and respond in seconds. No listing fees, no commissions.',
+            url: `${BASE_URL}/sell-used-auto-parts`,
+            keywords: 'sell used auto parts, auto parts buyer, dismantler network, sell salvage parts, auto parts sales channel, junkyard sales',
+            shell: ssrShell(
+                'SELL PARTS FASTER',
+                'Sell used auto parts the moment <em>someone needs them</em>',
+                'Stop waiting for customers to find you. On Hotline HQ, you hear every part request in your region the instant it\'s broadcast. If you have it, you answer. Sale made.',
+                'Join the Network — Free', `${BASE_URL}/client/signup`,
+                [['500+', 'Yards on network'], ['12', 'Regional rooms'], ['~115', 'Listeners per call'], ['24/7', 'Always on']]
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "Service",
+                name: "Hotline HQ — Sell Used Auto Parts",
+                serviceType: "Used Auto Parts Sales Network",
+                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                areaServed: { "@type": "Country", name: "US" },
+                description: "Live voice network for auto dismantlers to hear and respond to part requests in real-time. No listing fees or commissions.",
+                offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+            }
+        });
+    });
+
+    // SEO: /own-a-hotline
+    app.get("/own-a-hotline", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Own a Hotline — Start a Voice Hotline Network in Your Industry | Hotline HQ',
+            description: 'Launch your own always-on voice hotline network. Hotline HQ provides the platform, phones, and support — you own the membership revenue. Proven with 500+ auto yards.',
+            url: `${BASE_URL}/own-a-hotline`,
+            keywords: 'own a hotline, start a hotline business, voice hotline network, auto parts hotline, used auto parts hotline, hotline franchise',
+            shell: ssrShell(
+                'OWN THE HOTLINE',
+                'Launch a voice hotline network <em>in your industry</em>',
+                'Hotline HQ provides the platform, phones, and support. You own the membership revenue. Proven with <strong>500+ auto dismantler yards</strong> across 12 regional rooms.',
+                'Get Started', `mailto:hotlinehq@redlineusedautoparts.com`
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@graph": [
+                    {
+                        "@type": "Service",
+                        name: "Own a Hotline — Hotline HQ Platform",
+                        serviceType: "Voice Hotline Network Platform",
+                        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/`, email: "hotlinehq@redlineusedautoparts.com" },
+                        areaServed: "US",
+                        description: "Launch and operate your own always-on voice hotline network. Platform, desk phones, and support included."
+                    },
+                    {
+                        "@type": "FAQPage",
+                        mainEntity: [
+                            { "@type": "Question", name: "What does an owner actually do?", acceptedAnswer: { "@type": "Answer", text: "You sign up yards in your area, set the membership price, and collect monthly dues. Hotline HQ handles all the technology — phones, network, monitoring — so you focus on relationships and growth." } },
+                            { "@type": "Question", name: "Do I need technical skills?", acceptedAnswer: { "@type": "Answer", text: "No. Hotline HQ provides all the infrastructure. Phones are preconfigured and ship directly to your members. You manage your network through a simple web dashboard." } },
+                            { "@type": "Question", name: "What industries can use a hotline?", acceptedAnswer: { "@type": "Answer", text: "Any industry where businesses need to locate inventory across a network of peers — auto dismantlers, heavy truck parts, building materials, wholesale distribution, and more." } }
+                        ]
+                    }
+                ]
+            }
+        });
+    });
+
+    // SEO: /about
+    app.get("/about", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'About Hotline HQ — The Team Behind the Parts Hotline Network',
+            description: 'Hotline HQ is an always-on voice network connecting 500+ salvage yards to locate and sell used auto parts. Meet the team and the story behind the hotline.',
+            url: `${BASE_URL}/about`,
+            shell: ssrShell(
+                'COMPANY',
+                'About Hotline HQ',
+                'Hotline HQ is an always-on voice network that connects salvage yards and auto recyclers so they can locate and sell used parts for each other\'s customers — in seconds, not hours.',
+                'Home', `${BASE_URL}/`
+            ),
+            jsonLd: { "@context": "https://schema.org", "@type": "AboutPage", name: "About Hotline HQ", url: `${BASE_URL}/about`, mainEntity: { "@id": `${BASE_URL}/#org` } }
+        });
+    });
+
+    // SEO: Legal pages
+    app.get("/privacy-policy", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Privacy Policy | Hotline HQ',
+            description: 'How Hotline HQ collects, uses, and protects member information — including call recordings, account data, and your choices.',
+            url: `${BASE_URL}/privacy-policy`
+        });
+    });
+    app.get("/terms-and-conditions", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Terms & Conditions | Hotline HQ',
+            description: 'Membership terms for the Hotline HQ voice network: billing, acceptable use, member-to-member deals, equipment, and recordings.',
+            url: `${BASE_URL}/terms-and-conditions`
+        });
+    });
+    app.get("/disclaimer", (req, res) => {
+        sendSeoPage(req, res, {
+            title: 'Disclaimer | Hotline HQ',
+            description: 'What the figures and demos on this site represent, and what Hotline HQ does and does not guarantee about member-to-member deals.',
+            url: `${BASE_URL}/disclaimer`
+        });
+    });
+
+    // SEO: Regional used auto parts pages
+    const REGIONS = {
+        california: { name: 'California', abbr: 'CA' },
+        texas: { name: 'Texas', abbr: 'TX' },
+        florida: { name: 'Florida', abbr: 'FL' },
+        arizona: { name: 'Arizona', abbr: 'AZ' },
+        ohio: { name: 'Ohio', abbr: 'OH' },
+        'new-york': { name: 'New York', abbr: 'NY' },
+        georgia: { name: 'Georgia', abbr: 'GA' },
+        indiana: { name: 'Indiana', abbr: 'IN' },
+        michigan: { name: 'Michigan', abbr: 'MI' },
+        carolinas: { name: 'Carolinas', abbr: 'NC/SC' },
+        'new-jersey': { name: 'New Jersey', abbr: 'NJ' },
+        'san-diego': { name: 'San Diego', abbr: 'SD' },
+        iowa: { name: 'Iowa', abbr: 'IA' },
+        kentucky: { name: 'Kentucky', abbr: 'KY' },
+        alberta: { name: 'Alberta', abbr: 'AB' },
+        canada: { name: 'Canada', abbr: 'CA' },
+        mexico: { name: 'Mexico', abbr: 'MX' },
+        egypt: { name: 'Egypt', abbr: 'EG' },
+        spain: { name: 'Spain', abbr: 'ES' },
+        ghana: { name: 'Ghana', abbr: 'GH' },
+    };
+    app.get("/used-auto-parts/:state", (req, res) => {
+        const region = REGIONS[req.params.state];
+        if (!region) return sendClientIndex(req, res);
+        const title = `Used Auto Parts in ${region.name} — ${region.abbr} Dismantler Network | Hotline HQ`;
+        const description = `Find and sell used auto parts in ${region.name}. Hotline HQ connects ${region.name} dismantler yards on a live voice network — broadcast what you need and get answers in seconds.`;
+        sendSeoPage(req, res, {
+            title,
+            description,
+            url: `${BASE_URL}/used-auto-parts/${req.params.state}`,
+            keywords: `used auto parts ${region.name}, ${region.abbr} auto parts, ${region.name} dismantler, junkyard parts ${region.name}, salvage auto parts ${region.abbr}`,
+            shell: ssrShell(
+                `${region.abbr} NETWORK`,
+                `Used auto parts in <em>${region.name}</em>`,
+                `Hotline HQ's ${region.name} room connects dismantler yards across the state on a live voice hotline. Broadcast what you need — every yard in ${region.name} hears it instantly.`,
+                `Join ${region.name} Room — Free`, `${BASE_URL}/client/signup?room=${encodeURIComponent(region.name)}`
+            ),
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "Service",
+                name: `Hotline HQ — Used Auto Parts in ${region.name}`,
+                serviceType: "Used Auto Parts Network",
+                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                areaServed: { "@type": "AdministrativeArea", name: region.name },
+                description
+            }
+        });
+    });
+
+    // Known client-side routes (no SEO injection needed but must return 200)
+    const CLIENT_ROUTES = ['/client/login', '/client/signup', '/client/forgot-password', '/client/reset-password',
+        '/client/dashboard', '/classic', '/landing_2'];
+    for (const route of CLIENT_ROUTES) {
+        app.get(route, sendClientIndex);
+        app.get(`${route}/*`, sendClientIndex);
+    }
+    app.get("/b/:token", sendClientIndex);
+
+    // SPA fallback — return 404 status for unknown routes (fixes soft 404s)
     app.get("*", (req, res, next) => {
         if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/recordings/')) return next();
         if (path.extname(req.path)) return next();
-        sendClientIndex(req, res);
+        setNoStoreHtml(res);
+        res.status(404);
+        const { html, gz } = getPreloadedHtml(null);
+        if (req.headers['accept-encoding']?.includes('gzip')) {
+            res.set('Content-Encoding', 'gzip');
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.end(gz);
+        } else {
+            res.type("html").send(html);
+        }
     });
 }
 

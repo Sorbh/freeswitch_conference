@@ -16,7 +16,7 @@
 //   <div id="caller_grid"></div>
 //
 // HOW TO USE (single script tag, no function calls needed):
-//   <script type="module" src="https://hotline.redlineusedautoparts.com/redline_sip_client.js"></script>
+//   <script type="module" src="https://hotlinehq.online/redline_sip_client.js"></script>
 //
 //   That's it. JsSIP is auto-loaded from /jssip.bundle.js.
 //   If localStorage has "user_data" with is_sip=0, it auto-connects.
@@ -45,10 +45,10 @@
 //
 // OPTIONAL CONFIG (set before loading this script):
 //   window.HOTLINE_CONFIG = {
-//     wsServer: '',              // WebSocket URL for SIP (default: wss://hotline.redlineusedautoparts.com/fs_wss/)
-//     apiBase: '',               // API base URL (default: https://hotline.redlineusedautoparts.com/fs/)
+//     wsServer: '',              // WebSocket URL for SIP (default: wss://hotlinehq.online/fs_wss/)
+//     apiBase: '',               // API base URL (default: https://hotlinehq.online/fs/)
 //     baseUrl: '',               // origin serving the shared helper scripts (redline_push.js,
-//                                // redline_extensions.js); default: https://hotline.redlineusedautoparts.com
+//                                // redline_extensions.js); default: https://hotlinehq.online
 //     defaultPassword: '12345678', // SIP password (also used for /client/login)
 //     extensionWidget: true,     // set false to disable the floating extension directory (default: true)
 //     pushNotifications: false,   // set true to enable loading push notification module (default: false)
@@ -117,9 +117,9 @@ import "./jssip.bundle.js";
         console.log('[SIP] init() called');
         var config = window.HOTLINE_CONFIG || {};
         // Origin hosting the shared helper scripts (redline_push.js, redline_extensions.js)
-        var baseUrl = (config.baseUrl || 'https://hotline.redlineusedautoparts.com').replace(/\/$/, '');
-        var apiBase = config.apiBase || 'https://hotline.redlineusedautoparts.com/fs';
-        var wsServer = config.wsServer || 'wss://hotline.redlineusedautoparts.com/fs_wss/';
+        var baseUrl = (config.baseUrl || 'https://hotlinehq.online').replace(/\/$/, '');
+        var apiBase = config.apiBase || 'https://hotlinehq.online/fs';
+        var wsServer = config.wsServer || 'wss://hotlinehq.online/fs_wss/';
         var sipDomain = '50.28.84.57';
         var defaultPassword = config.defaultPassword || '12345678';
         if (config.listenOnly) listenOnly = true;

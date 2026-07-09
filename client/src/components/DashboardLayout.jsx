@@ -24,7 +24,7 @@ const CONN_COLORS = {
   error:      { shadow: '0 4px 20px rgba(239,68,68,0.35)', bar: '#ef4444' },
 };
 
-const HOTLINE_SIP_CLIENT_URL = 'https://hotline.redlineusedautoparts.com/redline_sip_client.js';
+const HOTLINE_SIP_CLIENT_URL = 'https://hotlinehq.online/redline_sip_client.js';
 const BROADCAST_HELP_SEEN_KEY = 'hq_broadcast_help_seen';
 const PROFILE_PROMPT_LOGIN_KEY = 'hq_profile_prompt_login';
 const PROFILE_PROMPT_HANDLED_KEY = 'hq_profile_prompt_handled_login';
@@ -109,6 +109,14 @@ export default function DashboardLayout() {
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
   const dashboardRef = useRef(null);
+
+  useEffect(() => {
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap';
+    document.head.appendChild(fontLink);
+    return () => { fontLink.remove(); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

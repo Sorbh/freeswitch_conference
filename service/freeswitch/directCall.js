@@ -193,7 +193,7 @@ function _directCallPayload(type, callId, role, peerInfo, extra = {}) {
 }
 
 function _publicApiBase() {
-    return (process.env.HOTLINE_API_BASE_URL || process.env.PUBLIC_API_BASE_URL || 'https://hotline.redlineusedautoparts.com/fs').replace(/\/$/, '');
+    return (process.env.HOTLINE_API_BASE_URL || process.env.PUBLIC_API_BASE_URL || 'https://hotlinehq.online/fs').replace(/\/$/, '');
 }
 
 function _yealinkDeclineUrl() {

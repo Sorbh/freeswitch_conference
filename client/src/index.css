@@ -12,9 +12,9 @@
     --ink: #16181d;
     --muted: #5d6370;
     --line: #e7e4dd;
-    --display: 'Bricolage Grotesque', sans-serif;
-    --body: 'Instrument Sans', sans-serif;
-    --mono: 'IBM Plex Mono', monospace;
+    --display: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
   }
 
   body {

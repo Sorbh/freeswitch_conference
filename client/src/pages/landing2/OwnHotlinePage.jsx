@@ -69,7 +69,7 @@ export function OwnHotlinePage() {
         title={t("seo.title")}
         description={t("seo.description")}
         keywords={t("seo.keywords")}
-        canonicalUrl="https://hotline.redlineusedautoparts.com/own-a-hotline"
+        canonicalUrl="https://hotlinehq.online/own-a-hotline"
         path="/own-a-hotline"
         jsonLd={ownJsonLd()}
       />
@@ -174,7 +174,7 @@ export function OwnHotlinePage() {
             </a>
             <a
               className="l2-btn l2-btn-ghost"
-              href="https://hotline.redlineusedautoparts.com/client/signup"
+              href="https://hotlinehq.online/client/signup"
               style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff', background: 'transparent' }}
             >
               Sign Up Free
