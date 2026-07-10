@@ -6,7 +6,10 @@ function logBroadcast({ room, roomName, userName, displayName, durationMs, answe
         INSERT INTO broadcast_log (room, room_name, user_name, display_name, duration_ms, answered, responded_by, participants, participant_count, recording_path, response_time_ms, listener_count)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(room, roomName, userName, displayName, durationMs, answered ? 1 : 0, respondedBy, JSON.stringify(participants), participantCount, recordingPath, responseTimeMs, listenerCount || 0);
-    eventEmitter.emit('BROADCAST_LOG', { id: Number(result.lastInsertRowid), room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, listenerCount, created_at: Math.floor(Date.now() / 1000) });
+    const id = Number(result.lastInsertRowid);
+    const shareToken = crypto.randomUUID();
+    sqlite.prepare('UPDATE broadcast_log SET share_token = ? WHERE id = ?').run(shareToken, id);
+    eventEmitter.emit('BROADCAST_LOG', { id, room, roomName, userName, displayName, durationMs, answered, respondedBy, participants, participantCount, recordingPath, responseTimeMs, listenerCount, shareToken, created_at: Math.floor(Date.now() / 1000) });
     eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'broadcasts' });
     eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'dashboard' });
 }
@@ -70,6 +73,17 @@ function getRecentBroadcasts(limit = 10, type) {
         SELECT id, room, room_name, user_name, display_name, duration_ms, answered, responded_by, participant_count, recording_path, created_at
         FROM broadcast_log${filter} ORDER BY created_at DESC LIMIT ?
     `).all(limit);
+}
+
+function getLatestBroadcast() {
+    return sqlite.prepare(`
+        SELECT id, room, room_name, display_name, duration_ms, answered, responded_by,
+            participants, participant_count, recording_path, response_time_ms, share_token,
+            listener_count, created_at
+        FROM broadcast_log
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+    `).get() || null;
 }
 
 function getPaginatedBroadcasts({ page = 1, pageSize = 25, room, answered, dateFrom, dateTo, hasParts } = {}) {
@@ -162,7 +176,7 @@ function updateBroadcastPartDetails(id, partDetails) {
 
 export {
     logBroadcast, getBroadcastStats, getRecentBroadcasts, getPaginatedBroadcasts,
-    getHourlyBroadcasts, getTimelineBroadcasts,
+    getLatestBroadcast, getHourlyBroadcasts, getTimelineBroadcasts,
     generateBroadcastShareToken, revokeBroadcastShareToken,
     getBroadcastByShareToken, getBroadcastById, getBroadcastByRecordingPath,
     updateBroadcastTranscription, updateBroadcastLocalTranscription, updateBroadcastPartDetails,

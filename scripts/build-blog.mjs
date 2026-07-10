@@ -1,18 +1,13 @@
 #!/usr/bin/env node
 /**
- * Blog build script — reads markdown files from content/blog/,
- * generates blogRegistry.js (client) and blog-ssr-data.json (server).
+ * Content build script — reads markdown from content/blog/ and content/features/,
+ * generates client registries and server SSR data.
  *
  * Run: node scripts/build-blog.mjs
  * Runs automatically as part of: npm run build
  *
- * To add a new blog post:
- *   1. Create a .md file in content/blog/{category}/
- *   2. Add frontmatter (title, description, date, readTime, author, etc.)
- *   3. Run this script (or npm run build)
- *   4. If the post needs custom JSX, set `component: ComponentName` in frontmatter
- *      and create the component in FeaturePages.jsx
- *   5. If the post is pure markdown (no component), it renders via the generic BlogPost component
+ * Blog posts:    content/blog/{category}/*.md  → blogRegistry.js + blog-ssr-data.json
+ * Feature pages: content/features/*.md         → features-ssr-data.json
  */
 
 import fs from 'fs';
@@ -22,8 +17,10 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
 const CONTENT_DIR = path.join(ROOT, 'content', 'blog');
+const FEATURES_DIR = path.join(ROOT, 'content', 'features');
 const REGISTRY_OUT = path.join(ROOT, 'client', 'src', 'pages', 'landing2', 'blogRegistry.js');
 const SSR_OUT = path.join(ROOT, 'data', 'blog-ssr-data.json');
+const FEATURES_OUT = path.join(ROOT, 'data', 'features-ssr-data.json');
 
 const CATEGORIES = {
   guides: { label: 'Industry Guides', description: 'How-to guides and explainers for the auto dismantler industry' },
@@ -254,3 +251,122 @@ if (fs.existsSync(sitemapPath)) {
 }
 
 console.log('[blog] Done');
+
+// ── Feature pages ──────────────────────────────────────────────────
+
+function parseFeatureFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+
+  const meta = {};
+  const lines = match[1].split('\n');
+  let i = 0;
+
+  function parseValue(raw) {
+    raw = raw.trim();
+    if (raw.startsWith('"') && raw.endsWith('"')) return raw.slice(1, -1).replace(/\\"/g, '"');
+    return raw;
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // top-level scalar: "key: value"
+    const scalarMatch = line.match(/^(\w+): (.+)$/);
+    if (scalarMatch) {
+      meta[scalarMatch[1]] = parseValue(scalarMatch[2]);
+      i++;
+      continue;
+    }
+
+    // block key: "key:" — could be object or array, peek at next line
+    const blockMatch = line.match(/^(\w+):$/);
+    if (blockMatch) {
+      const key = blockMatch[1];
+      i++;
+      if (i < lines.length && lines[i].match(/^  - /)) {
+        // array of items
+        const arr = [];
+        while (i < lines.length && lines[i].startsWith('  ')) {
+          const itemMatch = lines[i].match(/^  - (.+)$/);
+          if (itemMatch) {
+            const val = itemMatch[1];
+            const kvMatch = val.match(/^(\w+): (.+)$/);
+            if (kvMatch) {
+              const obj = { [kvMatch[1]]: parseValue(kvMatch[2]) };
+              i++;
+              while (i < lines.length && lines[i].match(/^    \w+: /)) {
+                const nested = lines[i].match(/^    (\w+): (.+)$/);
+                if (nested) obj[nested[1]] = parseValue(nested[2]);
+                i++;
+              }
+              arr.push(obj);
+            } else {
+              arr.push(parseValue(val));
+              i++;
+            }
+          } else {
+            i++;
+          }
+        }
+        meta[key] = arr;
+      } else {
+        // nested object
+        const obj = {};
+        while (i < lines.length && lines[i].match(/^  \w+: /)) {
+          const kv = lines[i].match(/^  (\w+): (.+)$/);
+          if (kv) obj[kv[1]] = parseValue(kv[2]);
+          i++;
+        }
+        meta[key] = obj;
+      }
+      continue;
+    }
+
+    i++;
+  }
+
+  return meta;
+}
+
+function scanFeatures() {
+  if (!fs.existsSync(FEATURES_DIR)) return {};
+  const features = {};
+  const files = fs.readdirSync(FEATURES_DIR).filter(f => f.endsWith('.md'));
+
+  for (const file of files) {
+    const slug = file.replace(/\.md$/, '');
+    const content = fs.readFileSync(path.join(FEATURES_DIR, file), 'utf8');
+    const meta = parseFeatureFrontmatter(content);
+
+    features[slug] = {
+      title: meta.title || slug,
+      accent: meta.accent || '#d92d20',
+      seo: meta.seo || {},
+      hero: meta.hero || {},
+      problem: meta.problem || {},
+      steps: meta.steps || [],
+      benefits: meta.benefits || [],
+      scenario: meta.scenario || {},
+      faqs: meta.faqs || [],
+      related: meta.related || [],
+    };
+  }
+
+  return features;
+}
+
+function generateFeaturesData(features) {
+  return JSON.stringify({ features }, null, 2);
+}
+
+const features = scanFeatures();
+const featureCount = Object.keys(features).length;
+console.log(`[features] Found ${featureCount} feature(s)`);
+
+if (featureCount > 0) {
+  fs.writeFileSync(FEATURES_OUT, generateFeaturesData(features));
+  console.log(`[features] Generated ${path.relative(ROOT, FEATURES_OUT)}`);
+}
+
+console.log('[content] All done');

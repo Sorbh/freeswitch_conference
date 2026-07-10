@@ -18,7 +18,7 @@ import {
 import { getAllRooms, getRoom, createRoom, updateRoom, deleteRoom } from './db/rooms.js';
 import {
     logBroadcast, getBroadcastStats, getRecentBroadcasts, getPaginatedBroadcasts,
-    getHourlyBroadcasts, getTimelineBroadcasts,
+    getLatestBroadcast, getHourlyBroadcasts, getTimelineBroadcasts,
     generateBroadcastShareToken, revokeBroadcastShareToken,
     getBroadcastByShareToken, getBroadcastById, getBroadcastByRecordingPath,
     updateBroadcastTranscription, updateBroadcastLocalTranscription, updateBroadcastPartDetails,
@@ -80,6 +80,7 @@ db.logBroadcast = logBroadcast;
 db.getBroadcastStats = getBroadcastStats;
 db.getRecentBroadcasts = getRecentBroadcasts;
 db.getPaginatedBroadcasts = getPaginatedBroadcasts;
+db.getLatestBroadcast = getLatestBroadcast;
 db.createAccount = createAccount;
 db.getAccountByEmail = getAccountByEmail;
 db.getAccountByUserName = getAccountByUserName;

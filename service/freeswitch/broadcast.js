@@ -111,6 +111,7 @@ function _resolveMember(memberId, event) {
 function _handleUnmute(conferenceName, memberId, room, event) {
     const roomName = global.config.ROOM_NAME[room] || conferenceName;
     const member = _resolveMember(memberId, event);
+    let startedSession = false;
 
     // Stop any active announcement in this room
     if (isPlaying(room)) {
@@ -156,6 +157,7 @@ function _handleUnmute(conferenceName, memberId, room, event) {
             responseTimeMs: null,
         };
         roomSessions.set(conferenceName, session);
+        startedSession = true;
     }
 
     if (!session.participants.has(memberId)) {
@@ -171,6 +173,28 @@ function _handleUnmute(conferenceName, memberId, room, event) {
             session.responseTimeMs = 0;
         }
         logSystem('BCAST', `│  ${member.displayName} UNMUTE (${session.participants.size} active)`);
+
+        const broadcaster = session.allParticipants[0];
+        if (startedSession) {
+            global.db.eventEmitter.emit('PUBLIC_BROADCAST_EVENT', {
+                type: 'broadcast_started',
+                room,
+                roomName,
+                broadcaster,
+                participants: session.allParticipants,
+                ts: Date.now(),
+            });
+        } else if (isResponder) {
+            global.db.eventEmitter.emit('PUBLIC_BROADCAST_EVENT', {
+                type: 'broadcast_replied',
+                room,
+                roomName,
+                broadcaster,
+                responder: info,
+                participants: session.allParticipants,
+                ts: Date.now(),
+            });
+        }
     }
 }
 

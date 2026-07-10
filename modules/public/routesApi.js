@@ -182,3 +182,111 @@ publicRouter.get("/listen/events/:room", (req, res) => {
         else listenSSEByIp.set(ip, count);
     });
 });
+
+// --- Public broadcast activity (landing page) ---
+// Only company/display names, room names, and the public recording link are
+// exposed here. Account emails, extensions, and SIP data stay private.
+
+function _publicParticipants(participants) {
+    let parsed = participants;
+    if (typeof parsed === 'string') {
+        try { parsed = JSON.parse(parsed); } catch { parsed = []; }
+    }
+    if (!Array.isArray(parsed)) return [];
+
+    const seen = new Set();
+    return parsed.reduce((result, participant) => {
+        const displayName = participant?.displayName || participant?.display_name;
+        if (!displayName || seen.has(displayName)) return result;
+        seen.add(displayName);
+        result.push({ displayName });
+        return result;
+    }, []);
+}
+
+function _publicBroadcast(broadcast) {
+    if (!broadcast) return null;
+    const token = broadcast.shareToken || broadcast.share_token || null;
+    const participants = _publicParticipants(broadcast.participants);
+    return {
+        id: broadcast.id,
+        room: broadcast.room,
+        room_name: broadcast.roomName || broadcast.room_name || null,
+        display_name: broadcast.displayName || broadcast.display_name || participants[0]?.displayName || 'Network member',
+        duration_ms: broadcast.durationMs || broadcast.duration_ms || 0,
+        answered: !!broadcast.answered,
+        responded_by: broadcast.respondedBy || broadcast.responded_by || null,
+        participants,
+        participant_count: broadcast.participantCount || broadcast.participant_count || participants.length,
+        has_recording: !!(broadcast.recordingPath || broadcast.recording_path),
+        token,
+        url: token ? `/b/${token}` : null,
+        created_at: broadcast.created_at || Math.floor(Date.now() / 1000),
+    };
+}
+
+function _latestPublicBroadcast() {
+    const broadcast = global.db.getLatestBroadcast();
+    if (!broadcast) return null;
+    if (!broadcast.share_token) {
+        broadcast.share_token = global.db.generateBroadcastShareToken(broadcast.id);
+    }
+    return _publicBroadcast(broadcast);
+}
+
+const publicBroadcastSSE = new Set();
+let _publicBroadcastListenersRegistered = false;
+
+function _sendPublicBroadcastEvent(event) {
+    const frame = `data: ${JSON.stringify(event)}\n\n`;
+    for (const clientRes of publicBroadcastSSE) clientRes.write(frame);
+}
+
+function _ensurePublicBroadcastListeners() {
+    if (_publicBroadcastListenersRegistered) return;
+    _publicBroadcastListenersRegistered = true;
+
+    global.db.eventEmitter.on('PUBLIC_BROADCAST_EVENT', (event) => {
+        const participants = _publicParticipants(event.participants);
+        _sendPublicBroadcastEvent({
+            type: event.type,
+            room: event.room,
+            room_name: event.roomName || null,
+            broadcaster: { displayName: event.broadcaster?.displayName || participants[0]?.displayName || 'Network member' },
+            responder: event.responder ? { displayName: event.responder.displayName || 'Network member' } : null,
+            participants,
+            ts: event.ts || Date.now(),
+        });
+    });
+
+    global.db.eventEmitter.on('BROADCAST_LOG', (broadcast) => {
+        _sendPublicBroadcastEvent({
+            type: 'broadcast_finished',
+            data: _publicBroadcast(broadcast),
+            ts: Date.now(),
+        });
+    });
+}
+
+publicRouter.get('/broadcasts/latest', (req, res) => {
+    try {
+        res.json({ status: true, data: _latestPublicBroadcast() });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+publicRouter.get('/broadcasts/events', (req, res) => {
+    _ensurePublicBroadcastListeners();
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+    });
+    res.write(`data: ${JSON.stringify({ type: 'connected', latest: _latestPublicBroadcast(), ts: Date.now() })}\n\n`);
+    publicBroadcastSSE.add(res);
+
+    req.on('close', () => {
+        publicBroadcastSSE.delete(res);
+    });
+});

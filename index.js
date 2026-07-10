@@ -722,22 +722,13 @@ if (fs.existsSync(clientDistDir)) {
         });
     });
 
-    // Feature pages — loaded from data/features-ssr-data.json (same pattern as blog)
+    // Feature pages — generated from content/features/*.md by build-blog.mjs
     const featuresDataPath = path.join(__dirname, 'data', 'features-ssr-data.json');
     let featuresData = {};
-    function reloadFeaturesData() {
-        try {
-            featuresData = JSON.parse(fs.readFileSync(featuresDataPath, 'utf8')).features || {};
-            console.log('Features data reloaded —', Object.keys(featuresData).length, 'features');
-        } catch (e) { console.error('Features data load failed:', e.message); }
-    }
-    reloadFeaturesData();
-    let featReloadTimer;
-    fs.watch(path.dirname(featuresDataPath), (_, filename) => {
-        if (filename !== 'features-ssr-data.json') return;
-        clearTimeout(featReloadTimer);
-        featReloadTimer = setTimeout(reloadFeaturesData, 500);
-    });
+    try {
+        featuresData = JSON.parse(fs.readFileSync(featuresDataPath, 'utf8')).features || {};
+        console.log('Features data loaded —', Object.keys(featuresData).length, 'features');
+    } catch (e) { console.error('Features data load failed:', e.message); }
 
     // API: feature content for client-side rendering
     app.get("/api/v1/features/:slug", (req, res) => {
