@@ -1,6 +1,38 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, Component } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+
+class ChunkErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error) {
+    if (error?.name === 'ChunkLoadError' || error?.message?.includes('Loading chunk') || error?.message?.includes('dynamically imported module')) {
+      const reloaded = sessionStorage.getItem('hq_chunk_reload');
+      if (!reloaded) {
+        sessionStorage.setItem('hq_chunk_reload', '1');
+        window.location.reload();
+        return { hasError: false };
+      }
+    }
+    return { hasError: true };
+  }
+  componentDidCatch() {}
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'system-ui, sans-serif', gap: '16px', padding: '24px', textAlign: 'center' }}>
+          <p style={{ fontSize: '16px', color: '#5d6370' }}>A new version is available.</p>
+          <button onClick={() => { sessionStorage.removeItem('hq_chunk_reload'); window.location.reload(); }} style={{ padding: '12px 24px', fontSize: '15px', fontWeight: 600, color: '#fff', background: '#d92d20', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
@@ -42,8 +74,21 @@ function PublicRoute({ children }) {
   return children;
 }
 
+function LoadingSpinner() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <div style={{ width: '32px', height: '32px', border: '3px solid #e7e4dd', borderTopColor: '#d92d20', borderRadius: '50%', animation: 'hq-spin 0.7s linear infinite' }} />
+      <style>{`@keyframes hq-spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  );
+}
+
 function Lazy({ children }) {
-  return <Suspense fallback={<div />}>{children}</Suspense>;
+  return (
+    <ChunkErrorBoundary>
+      <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+    </ChunkErrorBoundary>
+  );
 }
 
 function ScrollToTop() {
@@ -52,10 +97,16 @@ function ScrollToTop() {
   return null;
 }
 
+function ClearChunkReloadFlag() {
+  useEffect(() => { sessionStorage.removeItem('hq_chunk_reload'); }, []);
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <ScrollToTop />
+      <ClearChunkReloadFlag />
       <Routes>
         {/* Public / marketing pages */}
         <Route path="/" element={<Lazy><Landing2Page /></Lazy>} />

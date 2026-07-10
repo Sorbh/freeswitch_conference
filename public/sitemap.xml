@@ -64,4 +64,46 @@
     <loc>https://hotlinehq.online/disclaimer</loc>
     <lastmod>2026-07-09</lastmod>
   </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/guides/auto-dismantler-business-guide</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/guides/find-used-auto-parts-online-guide</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/guides/how-salvage-yards-sell-more-parts</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/guides/partshotlines-vs-car-part-vs-hotline-hq</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/guides/salvage-yard-software-compared</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/market/most-requested-used-auto-parts</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hotlinehq.online/blog/market/used-auto-parts-pricing-guide</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>
