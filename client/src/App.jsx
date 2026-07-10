@@ -76,9 +76,25 @@ function PublicRoute({ children }) {
 
 function LoadingSpinner() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-      <div style={{ width: '32px', height: '32px', border: '3px solid #e7e4dd', borderTopColor: '#d92d20', borderRadius: '50%', animation: 'hq-spin 0.7s linear infinite' }} />
-      <style>{`@keyframes hq-spin { to { transform: rotate(360deg) } }`}</style>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 24 }}>
+      <style>{`
+        @keyframes hq-wave1{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes hq-wave2{0%,100%{opacity:.7}50%{opacity:.15}}
+        @keyframes hq-glow{0%,100%{opacity:.15}50%{opacity:.35}}
+        @keyframes hq-vib{0%{transform:rotate(0)}3%{transform:rotate(-2.5deg)}6%{transform:rotate(2.5deg)}9%{transform:rotate(-2deg)}12%{transform:rotate(1.5deg)}15%,100%{transform:rotate(0)}}
+        @keyframes hq-fade{0%{opacity:.45}100%{opacity:1}}
+      `}</style>
+      <svg width="64" height="64" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="22" fill="#d92d20" style={{ animation: 'hq-glow 2s ease-in-out infinite' }} />
+        <rect x="1.5" y="1.5" width="45" height="45" rx="13" fill="#d92d20" />
+        <g style={{ transformOrigin: '24px 24px', animation: 'hq-vib 2s ease-in-out infinite' }}>
+          <path d="M33.8 30.7v2.6a2.3 2.3 0 0 1-2.5 2.3 23 23 0 0 1-10-3.6 22.7 22.7 0 0 1-7-7 23 23 0 0 1-3.5-10.1 2.3 2.3 0 0 1 2.3-2.5h2.6a2.3 2.3 0 0 1 2.3 2c.1 1 .4 2.1.7 3.1a2.3 2.3 0 0 1-.5 2.4l-1.1 1.1a18.4 18.4 0 0 0 6.7 6.7l1.1-1.1a2.3 2.3 0 0 1 2.4-.5c1 .3 2 .6 3.1.7a2.3 2.3 0 0 1 2 2.3z" fill="#fff" />
+        </g>
+        <path d="M30.5 13.6a8.6 8.6 0 0 1 5 5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" style={{ animation: 'hq-wave1 1.4s ease-in-out infinite' }} />
+        <path d="M32.8 8.4a14.3 14.3 0 0 1 8 8" stroke="#ffb4ad" strokeWidth="2.6" strokeLinecap="round" style={{ animation: 'hq-wave2 1.4s ease-in-out infinite 0.2s' }} />
+      </svg>
+      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--ink, #16181d)' }}>Hotline <span style={{ color: '#d92d20' }}>HQ</span></div>
+      <div style={{ marginTop: -14, fontSize: 12.5, letterSpacing: '0.04em', color: 'var(--muted, #6b7280)', animation: 'hq-fade 1.8s ease-in-out infinite alternate' }}>Connecting to the network</div>
     </div>
   );
 }

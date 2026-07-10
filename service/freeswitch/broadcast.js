@@ -63,11 +63,12 @@ onCustomEvent((event) => {
     const memberId = event.getHeader('Member-ID');
     const room = parseInt(conferenceName) || null;
 
-    // Skip broadcast tracking for members involved in a direct call
+    // Skip unmute tracking for members in a direct call, but always
+    // process mute/leave so stuck broadcast sessions get cleaned up.
     const uuid = event.getHeader('Unique-ID');
-    if (uuid && isInDirectCall(uuid)) return;
+    const inDirectCall = uuid && isInDirectCall(uuid);
 
-    if (action === 'unmute-member') _handleUnmute(conferenceName, memberId, room, event);
+    if (action === 'unmute-member' && !inDirectCall) _handleUnmute(conferenceName, memberId, room, event);
     else if (action === 'mute-member') _handleParticipantLeft(conferenceName, memberId, room);
     else if (action === 'del-member') _handleParticipantLeft(conferenceName, memberId, room);
 });
@@ -206,7 +207,8 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
 
     const leaving = session.participants.get(memberId);
     session.participants.delete(memberId);
-    logSystem('BCAST', `│  ${leaving.displayName} left (${session.participants.size} remaining)`);
+    const remainingNames = [...session.participants.values()].map(p => p.displayName).join(', ');
+    logSystem('BCAST', `│  ${leaving.displayName} left (${session.participants.size} remaining${remainingNames ? ': ' + remainingNames : ''})`);
 
     if (session.participants.size > 0) return;
 

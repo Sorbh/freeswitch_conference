@@ -27,7 +27,14 @@ function loadJsSIP() {
 
 function createSilentStream() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  ctx.resume();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  gain.gain.value = 0;
+  oscillator.connect(gain);
   const dest = ctx.createMediaStreamDestination();
+  gain.connect(dest);
+  oscillator.start();
   return { stream: dest.stream, ctx };
 }
 
@@ -108,6 +115,7 @@ export function useListenLive() {
       ua.on("connected", () => {
         const session = ua.call(`sip:${creds.target}@${creds.domain}`, {
           mediaStream: silentStream,
+          pcConfig: { iceServers: [{ urls: "stun:74.125.250.129:19302" }] },
           rtcOfferConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
         });
         sessionRef.current = session;
@@ -136,9 +144,11 @@ export function useListenLive() {
           }
         });
 
-        session.on("failed", () => {
+        session.on("failed", (e) => {
+          const cause = e?.cause || e?.message?.cause || "unknown";
+          console.error("[ListenLive] Call failed:", cause, e);
           setState("error");
-          setError("Could not join the room — try again");
+          setError(`Could not join the room (${cause}) — try again`);
           sessionRef.current = null;
         });
 
