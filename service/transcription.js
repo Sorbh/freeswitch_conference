@@ -80,6 +80,7 @@ import fs from 'fs';
 import { execFile } from 'child_process';
 import config from '../config/config.js';
 import { logSystem } from './logger.js';
+import { pingIndexNow } from './indexnow.js';
 
 function _logSTT(title, lines) {
     console.log('');
@@ -471,6 +472,20 @@ export async function processBroadcastTranscription(broadcastId, recordingPath) 
     return { hasPartsRequest };
 }
 
+function _pingMarketplaceListing(broadcastId, pd) {
+    try {
+        const segments = [pd.year, pd.make, pd.model, pd.part]
+            .filter(v => v && v !== 'null')
+            .map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+        const row = global.db.getBroadcastById(broadcastId);
+        const room = row?.room ? global.db.getRoom(row.room) : null;
+        if (room?.short_code) segments.push(room.short_code.toLowerCase());
+        segments.push(String(broadcastId));
+        const slug = segments.join('-');
+        pingIndexNow(`/parts/${slug}`).catch(() => {});
+    } catch {}
+}
+
 async function extractPartDetails(broadcastId, text) {
     const url = config.CAPTURE_PART_API || 'http://50.28.84.57:4005/api/v1/ai/capture-partv1';
     const res = await fetch(url, {
@@ -485,6 +500,7 @@ async function extractPartDetails(broadcastId, text) {
     if (partDetails) {
         global.db.updateBroadcastPartDetails(broadcastId, partDetails);
         logSystem('PARTS', `#${broadcastId}: ${partDetails.year || '?'} ${partDetails.make || '?'} ${partDetails.model || '?'} ${partDetails.part || '?'}`);
+        _pingMarketplaceListing(broadcastId, partDetails);
     } else {
         logSystem('PARTS', `#${broadcastId}: no part details returned`);
     }

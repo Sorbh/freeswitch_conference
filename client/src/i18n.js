@@ -5,9 +5,6 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import en_common from "./locales/en/common.json";
 import en_landing from "./locales/en/landing.json";
 import en_own from "./locales/en/own.json";
-import en_legal from "./locales/en/legal.json";
-import en_auth from "./locales/en/auth.json";
-import en_dashboard from "./locales/en/dashboard.json";
 
 export const LANGUAGES = [
   { code: "en", label: "English", dir: "ltr" },
@@ -63,6 +60,20 @@ const loaders = {
   })),
 };
 
+const enDeferredLoaders = {
+  auth: () => import("./locales/en/auth.json").then(m => m.default),
+  dashboard: () => import("./locales/en/dashboard.json").then(m => m.default),
+  legal: () => import("./locales/en/legal.json").then(m => m.default),
+};
+
+export async function loadEnNamespace(ns) {
+  if (i18n.hasResourceBundle("en", ns)) return;
+  const loader = enDeferredLoaders[ns];
+  if (!loader) return;
+  const data = await loader();
+  i18n.addResourceBundle("en", ns, data, true, true);
+}
+
 async function loadLanguage(lng) {
   const base = lng.split("-")[0];
   if (base === "en" || !loaders[base]) return;
@@ -78,8 +89,9 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: en_common, landing: en_landing, own: en_own, legal: en_legal, auth: en_auth, dashboard: en_dashboard },
+      en: { common: en_common, landing: en_landing, own: en_own },
     },
+    partialBundledLanguages: true,
     fallbackLng: "en",
     supportedLngs: LANGUAGES.map((l) => l.code),
     nonExplicitSupportedLngs: true,
@@ -109,5 +121,12 @@ i18n.on("languageChanged", (lng) => {
   applyDirection(lng);
   loadLanguage(lng);
 });
+
+// Load deferred EN namespaces after first paint so they're ready when needed
+if (typeof requestIdleCallback !== 'undefined') {
+  requestIdleCallback(() => { loadEnNamespace('auth'); loadEnNamespace('dashboard'); loadEnNamespace('legal'); });
+} else {
+  setTimeout(() => { loadEnNamespace('auth'); loadEnNamespace('dashboard'); loadEnNamespace('legal'); }, 2000);
+}
 
 export default i18n;

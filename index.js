@@ -83,6 +83,14 @@ app.use((req, res, next) => {
     next();
 });
 // Strip trailing slashes (except root)
+// www → apex redirect
+app.use((req, res, next) => {
+    if (req.hostname === 'www.hotlinehq.online') {
+        return res.redirect(301, `https://hotlinehq.online${req.originalUrl}`);
+    }
+    next();
+});
+// Strip trailing slashes (except root)
 app.use((req, res, next) => {
     if (req.path.length > 1 && req.path.endsWith('/') && !req.path.startsWith('/api/')) {
         return res.redirect(301, req.path.slice(0, -1) + (req._parsedUrl.search || ''));
@@ -302,10 +310,10 @@ if (fs.existsSync(clientDistDir)) {
             const slug = req.params.slug;
             const lastHyphen = slug.lastIndexOf('-');
             const id = parseInt(lastHyphen >= 0 ? slug.substring(lastHyphen + 1) : slug, 10);
-            if (!id) return sendClientIndex(req, res);
+            if (!id) { res.status(404); return sendClientIndex(req, res); }
 
             const broadcast = global.db.getMarketplaceListingById(id);
-            if (!broadcast) return sendClientIndex(req, res);
+            if (!broadcast) { res.status(404); return sendClientIndex(req, res); }
 
             const pd = JSON.parse(broadcast.part_details || '{}');
             const isReal = v => v && v !== 'null' && String(v).trim() !== '';
@@ -379,11 +387,14 @@ if (fs.existsSync(clientDistDir)) {
         return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
     }
 
-    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots }) {
+    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, preloadChunks }) {
         const safeTitle = title.replace(/"/g, '&quot;');
         const safeDesc = description.replace(/"/g, '&quot;');
+        const preloadHints = preloadChunks?.length
+            ? preloadChunks.filter(Boolean).map(c => `<link rel="modulepreload" href="${c}">`).join('\n    ') + '\n    '
+            : '';
         const metaTags = `
-    ${shell ? SSR_STYLE : ''}
+    ${preloadHints}${shell ? SSR_STYLE : ''}
     <meta name="description" content="${safeDesc}">
     ${keywords ? `<meta name="keywords" content="${keywords}">` : ''}
     ${robots ? `<meta name="robots" content="${robots}">` : ''}
@@ -404,12 +415,17 @@ if (fs.existsSync(clientDistDir)) {
         let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
         html = html.replace('</head>', `${metaTags}\n</head>`);
         if (shell) {
-            html = html.replace('<div id="root"></div>', `<div id="root">${shell}</div>`);
+            html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/,  `<div id="root">${shell}</div>\n<script`);
         }
         return html;
     }
 
-    function sendSeoPage(req, res, seo) {
+    function _routePreloads(routeKey) {
+        return (routeChunks[routeKey] || []).filter(Boolean);
+    }
+
+    function sendSeoPage(req, res, seo, routeKey) {
+        if (routeKey) seo.preloadChunks = _routePreloads(routeKey);
         const html = injectSeoMeta(clientIndexHtml, seo);
         res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
         if (req.headers['accept-encoding']?.includes('gzip')) {
@@ -440,7 +456,7 @@ if (fs.existsSync(clientDistDir)) {
         if (req.path !== '/' && req.path !== '') return sendClientIndex(req, res);
         sendSeoPage(req, res, {
             title: 'Hotline HQ — Used Auto Parts Hotline Network for Salvage Yards',
-            description: 'Join 500+ salvage yards on the always-on parts hotline. Broadcast a used auto part request once and a nearby yard answers in about 2 seconds. Flat monthly membership, desk phone included.',
+            description: 'Join 500+ salvage yards on the always-on parts hotline. Broadcast a part request once — a nearby yard answers in about 2 seconds.',
             url: `${BASE_URL}/`,
             keywords: 'used auto parts hotline, auto dismantler network, salvage yard hotline, parts locating, used car parts, auto recycler network',
             shell: ssrShell(
@@ -466,7 +482,7 @@ if (fs.existsSync(clientDistDir)) {
                     }
                 ]
             }
-        });
+        }, '/');
     });
 
     // SEO: /find-used-auto-parts
@@ -599,7 +615,7 @@ if (fs.existsSync(clientDistDir)) {
     };
     app.get("/blog/:category", (req, res) => {
         const cat = BLOG_CATS[req.params.category];
-        if (!cat) return sendClientIndex(req, res);
+        if (!cat) { res.status(404); return sendClientIndex(req, res); }
         sendSeoPage(req, res, {
             title: `${cat.label} — Hotline HQ Blog`,
             description: cat.desc,
@@ -634,7 +650,7 @@ if (fs.existsSync(clientDistDir)) {
 
     app.get("/blog/:category/:slug", (req, res) => {
         const post = blogSsrData.posts.find(p => p.category === req.params.category && p.slug === req.params.slug);
-        if (!post) return sendClientIndex(req, res);
+        if (!post) { res.status(404); return sendClientIndex(req, res); }
 
         const postUrl = `${BASE_URL}/blog/${post.category}/${post.slug}`;
         const catLabel = BLOG_CATS[post.category]?.label || post.category;
@@ -744,7 +760,7 @@ if (fs.existsSync(clientDistDir)) {
     // SEO: /features/:slug
     app.get("/features/:slug", (req, res) => {
         const f = featuresData[req.params.slug];
-        if (!f) return sendClientIndex(req, res);
+        if (!f) { res.status(404); return sendClientIndex(req, res); }
         const seo = f.seo;
         const faqJsonLd = f.faqs?.length ? [{ "@type": "FAQPage", mainEntity: f.faqs.map(item => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) }] : [];
         sendSeoPage(req, res, {
@@ -833,9 +849,27 @@ if (fs.existsSync(clientDistDir)) {
     };
     app.get("/used-auto-parts/:state", (req, res) => {
         const region = REGIONS[req.params.state];
-        if (!region) return sendClientIndex(req, res);
+        if (!region) { res.status(404); return sendClientIndex(req, res); }
+
+        // Enrich with real data from DB
+        const room = global.db.getAllRooms().find(r => r.short_code === region.abbr || r.name === region.name);
+        let yardCount = 0, totalBroadcasts = 0, activeBroadcasts = 0, topMakes = [];
+        if (room) {
+            try {
+                const roomStats = global.db.getMarketplaceRoomStats(room.id);
+                yardCount = roomStats.yardCount || 0;
+                totalBroadcasts = roomStats.totalBroadcasts || 0;
+                activeBroadcasts = roomStats.activeBroadcasts || 0;
+                topMakes = (roomStats.topMakes || []).map(m => m.name).slice(0, 3);
+            } catch {}
+        }
+        const yardText = yardCount > 0 ? `${yardCount} member yards` : 'dismantler yards';
+        const recentText = activeBroadcasts > 0 ? ` with ${activeBroadcasts} part requests in the last 7 days` : '';
+        const makesText = topMakes.length > 0 ? ` Top makes: ${topMakes.join(', ')}.` : '';
+        const stats = yardCount > 0 ? [[String(yardCount), `${region.abbr} yards`], [String(totalBroadcasts), 'Total requests'], [String(activeBroadcasts), 'This week'], ['24/7', 'Always on']] : undefined;
+
         const title = `Used Auto Parts in ${region.name} — ${region.abbr} Dismantler Network | Hotline HQ`;
-        const description = `Find and sell used auto parts in ${region.name}. Hotline HQ connects ${region.name} dismantler yards on a live voice network — broadcast what you need and get answers in seconds.`;
+        const description = `Find and sell used auto parts in ${region.name}. ${yardText} on a live voice network${recentText}.${makesText} Broadcast what you need and get answers in seconds.`;
         sendSeoPage(req, res, {
             title,
             description,
@@ -845,8 +879,9 @@ if (fs.existsSync(clientDistDir)) {
             shell: ssrShell(
                 `${region.abbr} NETWORK`,
                 `Used auto parts in <em>${region.name}</em>`,
-                `Hotline HQ's ${region.name} room connects dismantler yards across the state on a live voice hotline. Broadcast what you need — every yard in ${region.name} hears it instantly.`,
-                `Join ${region.name} Room — Free`, `${BASE_URL}/client/signup?room=${encodeURIComponent(region.name)}`
+                `Hotline HQ's ${region.name} room connects ${yardText} on a live voice hotline${recentText}. Broadcast what you need — every yard in ${region.name} hears it instantly.`,
+                `Join ${region.name} Room — Free`, `${BASE_URL}/client/signup?room=${encodeURIComponent(region.name)}`,
+                stats
             ),
             jsonLd: {
                 "@context": "https://schema.org",

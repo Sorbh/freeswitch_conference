@@ -316,17 +316,6 @@ import "./jssip.bundle.js";
         }
 
         async function checkMicPermission() {
-            try {
-                var devices = await navigator.mediaDevices.enumerateDevices();
-                var hasMic = devices.some(function (d) { return d.kind === 'audioinput'; });
-                if (!hasMic) {
-                    console.warn('[SIP] No microphone detected on this device');
-                    listenOnly = true;
-                    _activateListenOnly();
-                    return 'listen-only';
-                }
-            } catch (e) { }
-
             // Check permission state without triggering prompt
             var permState = 'unknown';
             try {
@@ -340,13 +329,39 @@ import "./jssip.bundle.js";
                 return false;
             }
 
-            // 'granted' or 'prompt' or 'unknown' — try getUserMedia
+            // Try getUserMedia — this is the only reliable way to detect a real mic.
+            // enumerateDevices() reports phantom 'audioinput' on no-mic systems.
             try {
                 var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(function (t) { t.stop(); });
                 hideMicPermissionModal();
                 return true;
             } catch (err) {
+                console.warn('[SIP] getUserMedia failed:', err.name, err.message);
+                // NotFoundError/OverconstrainedError = clearly no mic hardware
+                if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError' || err.name === 'NotReadableError') {
+                    console.warn('[SIP] No microphone hardware — entering listen-only');
+                    listenOnly = true;
+                    _activateListenOnly();
+                    return 'listen-only';
+                }
+                // Edge/Chrome may throw NotAllowedError even on no-mic systems.
+                // Secondary check: after getUserMedia attempt, enumerateDevices
+                // may reveal whether a real mic actually exists.
+                try {
+                    var devicesAfter = await navigator.mediaDevices.enumerateDevices();
+                    var realMics = devicesAfter.filter(function (d) {
+                        return d.kind === 'audioinput' && d.deviceId && d.deviceId !== '';
+                    });
+                    // No real device IDs = phantom entries = no physical mic
+                    var allPhantom = realMics.every(function (d) { return d.label === ''; }) && permState !== 'granted';
+                    if (realMics.length === 0 || allPhantom) {
+                        console.warn('[SIP] No real microphone found after secondary check — entering listen-only');
+                        listenOnly = true;
+                        _activateListenOnly();
+                        return 'listen-only';
+                    }
+                } catch (e2) { }
                 console.error('[SIP] Microphone permission denied:', err.message);
                 showMicPermissionModal('denied');
                 return false;

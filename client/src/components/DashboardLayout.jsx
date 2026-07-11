@@ -632,9 +632,7 @@ export default function DashboardLayout() {
       {/* ── Desktop sidebar (hidden on mobile) ── */}
       <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0" style={{ background: 'var(--ink)', color: '#fff' }}>
         <div className="flex items-center gap-3 px-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', height: 64 }}>
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--red)' }}>
-            <HQMarkSVG />
-          </div>
+          <HQMarkSVG size={36} />
           <div>
             <div className="text-sm font-bold tracking-tight" style={{ fontFamily: 'var(--display)' }}>Hotline HQ</div>
             <div className="text-[10px] font-medium tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.4)' }}>{t('layout.client')}</div>
@@ -1225,7 +1223,22 @@ function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave,
 
 function ListenOnlySidebarCard() {
   const { t } = useTranslation('dashboard');
-  const [micStatus, setMicStatus] = useState('idle'); // idle | requesting | blocked
+  const [micStatus, setMicStatus] = useState('idle'); // idle | requesting | blocked | no-mic
+  const [hasMic, setHasMic] = useState(true);
+
+  useEffect(() => {
+    navigator.mediaDevices?.enumerateDevices().then(devices => {
+      const inputs = devices.filter(d => d.kind === 'audioinput');
+      const hasReal = inputs.some(d => d.label !== '');
+      const hasAny = inputs.length > 0;
+      if (!hasAny) setHasMic(false);
+      else if (!hasReal) {
+        navigator.permissions?.query({ name: 'microphone' }).then(p => {
+          if (p.state === 'granted') setHasMic(false);
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (micStatus !== 'blocked') return;
@@ -1245,10 +1258,16 @@ function ListenOnlySidebarCard() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
       window.location.reload();
-    } catch {
+    } catch (err) {
+      if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError' || err.name === 'NotReadableError') {
+        setHasMic(false);
+        return;
+      }
       setMicStatus('blocked');
     }
   }
+
+  if (!hasMic) return null;
 
   return (
     <div
@@ -1322,6 +1341,19 @@ function ListenOnlySidebarCard() {
 function ListenOnlyMobileBanner() {
   const { t } = useTranslation('dashboard');
   const [micStatus, setMicStatus] = useState('idle');
+  const [hasMic, setHasMic] = useState(true);
+
+  useEffect(() => {
+    navigator.mediaDevices?.enumerateDevices().then(devices => {
+      const inputs = devices.filter(d => d.kind === 'audioinput');
+      if (!inputs.length) setHasMic(false);
+      else if (inputs.every(d => d.label === '')) {
+        navigator.permissions?.query({ name: 'microphone' }).then(p => {
+          if (p.state === 'granted') setHasMic(false);
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (micStatus !== 'blocked') return;
@@ -1341,10 +1373,16 @@ function ListenOnlyMobileBanner() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
       window.location.reload();
-    } catch {
+    } catch (err) {
+      if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError' || err.name === 'NotReadableError') {
+        setHasMic(false);
+        return;
+      }
       setMicStatus('blocked');
     }
   }
+
+  if (!hasMic) return null;
 
   return (
     <div className="px-2 pb-1">
@@ -1589,8 +1627,18 @@ function FreeWebsiteOfferMobile() {
 
 function HQMarkSVG({ size = 20 }) {
   return (
-    <svg viewBox="0 0 32 32" width={size} height={size} fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.2 5.8 7.8 8.2c-.9.9-1.2 2.3-.8 3.5 2.3 7.1 7.9 12.7 15 15 .6.2 1.2.2 1.8.1.7-.1 1.3-.4 1.7-.9l2.5-2.4c.8-.8.8-2.2 0-3l-3.2-3.2c-.7-.7-1.9-.8-2.7-.2l-2.5 1.8c-2.8-1.4-5.1-3.7-6.5-6.5l1.8-2.5c.6-.8.5-2-.2-2.7l-3.2-3.2c-.9-.8-2.3-.8-3.1 0Z" />
+    <svg viewBox="0 0 48 48" width={size} height={size} fill="none" aria-hidden="true">
+      <style>{`
+        @keyframes hqm-w1{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes hqm-w2{0%,100%{opacity:.7}50%{opacity:.15}}
+        @keyframes hqm-vib{0%{transform:rotate(0)}3%{transform:rotate(-2.5deg)}6%{transform:rotate(2.5deg)}9%{transform:rotate(-2deg)}12%{transform:rotate(1.5deg)}15%,100%{transform:rotate(0)}}
+      `}</style>
+      <rect x="1.5" y="1.5" width="45" height="45" rx="13" fill="#d92d20" />
+      <g style={{ transformOrigin: '24px 24px', animation: 'hqm-vib 2s ease-in-out infinite' }}>
+        <path d="M33.8 30.7v2.6a2.3 2.3 0 0 1-2.5 2.3 23 23 0 0 1-10-3.6 22.7 22.7 0 0 1-7-7 23 23 0 0 1-3.5-10.1 2.3 2.3 0 0 1 2.3-2.5h2.6a2.3 2.3 0 0 1 2.3 2c.1 1 .4 2.1.7 3.1a2.3 2.3 0 0 1-.5 2.4l-1.1 1.1a18.4 18.4 0 0 0 6.7 6.7l1.1-1.1a2.3 2.3 0 0 1 2.4-.5c1 .3 2 .6 3.1.7a2.3 2.3 0 0 1 2 2.3z" fill="#fff" />
+      </g>
+      <path d="M30.5 13.6a8.6 8.6 0 0 1 5 5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" style={{ animation: 'hqm-w1 1.4s ease-in-out infinite' }} />
+      <path d="M32.8 8.4a14.3 14.3 0 0 1 8 8" stroke="#ffb4ad" strokeWidth="2.6" strokeLinecap="round" style={{ animation: 'hqm-w2 1.4s ease-in-out infinite 0.2s' }} />
     </svg>
   );
 }
