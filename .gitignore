@@ -51,6 +51,9 @@ data/.whatsapp_auth/
 # Logs
 *.log
 
+# SEO audit output
+hotlinehq.online-audit/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -65,7 +65,7 @@ function parseFrontmatter(content) {
       currentObj = null;
       currentList = null;
       currentKey = topKvMatch[1];
-      meta[currentKey] = topKvMatch[2].trim();
+      meta[currentKey] = topKvMatch[2].trim().replace(/^"(.*)"$/, '$1');
     } else if (line.match(/^(\w+):$/)) {
       if (currentList && currentObj && Object.keys(currentObj).length > 0) {
         currentList.push(currentObj);

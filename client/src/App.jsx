@@ -54,6 +54,7 @@ const SellPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m 
 const HowItWorksPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.HowItWorksPage })));
 const BlogIndexPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogIndexPage })));
 const BlogCategoryPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogCategoryPage })));
+const BlogPostPage = lazy(() => import('./pages/landing2/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
 const RegionalPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.RegionalPartsPage })));
 const NotFoundPage = lazy(() => import('./pages/landing2/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const AboutPage = lazy(() => import('./pages/landing2/LegalPages').then(m => ({ default: m.AboutPage })));
@@ -139,7 +140,7 @@ export default function App() {
         <Route path="/blog/guides" element={<Lazy><BlogCategoryPage category="guides" /></Lazy>} />
         <Route path="/blog/news" element={<Lazy><BlogCategoryPage category="news" /></Lazy>} />
         <Route path="/blog/market" element={<Lazy><BlogCategoryPage category="market" /></Lazy>} />
-        <Route path="/blog/guides/how-auto-parts-hotlines-work" element={<Lazy><HowItWorksPage /></Lazy>} />
+        <Route path="/blog/:category/:slug" element={<Lazy><BlogPostPage /></Lazy>} />
         <Route path="/used-auto-parts/california" element={<Lazy><RegionalPartsPage state="california" /></Lazy>} />
         <Route path="/used-auto-parts/texas" element={<Lazy><RegionalPartsPage state="texas" /></Lazy>} />
         <Route path="/used-auto-parts/florida" element={<Lazy><RegionalPartsPage state="florida" /></Lazy>} />

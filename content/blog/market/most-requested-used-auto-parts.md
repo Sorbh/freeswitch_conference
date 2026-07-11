@@ -39,7 +39,7 @@ faq:
 
 Every number in this post comes from the Hotline HQ network. These are real broadcast requests — a yard keying up on the [parts hotline](/blog/guides/how-auto-parts-hotlines-work) and asking 100+ other yards for a specific part. Not search queries. Not survey answers. Actual demand from working dismantlers.
 
-No competitor has this data. Online marketplaces track listings, not demand. Search engines track what consumers type, not what yards actually need. This is first-party demand data from the supply side of the used parts market.
+No competitor has this data. Online marketplaces track listings, not demand. Search engines track what consumers type, not what yards need. This is first-party demand data from the supply side of the used parts market.
 
 If you run a yard, this tells you two things: what to pull first when you're dismantling a vehicle, and which vehicles to bid on at auction.
 
@@ -66,13 +66,13 @@ Ranked by total broadcast requests on the Hotline HQ network.
 
 ### What stands out
 
-**Bumpers dominate.** 164 requests puts bumpers 28% ahead of motors/engines. That tracks with real-world conditions — bumpers are the first thing damaged in fender-benders, the most-replaced body panel in collision repair, and they move fast because every model's bumper is different.
+**Bumpers dominate.** 164 requests — 28% ahead of motors/engines. That tracks with what we all see in the yard. Bumpers are the first thing damaged in fender-benders, the most-replaced body panel in collision repair, and they move fast because every model's bumper is different.
 
-**Body parts outpace mechanicals.** Bumpers, fenders, doors, headlights, taillights, and hoods combine for 478 requests. That's more than engines, transmissions, starters, AC compressors, and tires combined (355). Body parts get damaged in collisions. Mechanical parts fail from wear. Collisions create more sudden demand.
+**Body parts outpace mechanicals.** Bumpers, fenders, doors, headlights, taillights, and hoods combine for 478 requests. That beats engines, transmissions, starters, AC compressors, and tires combined (355). Collisions create sudden demand. Mechanical failure is slower and more spread out.
 
-**Starters and AC compressors hold steady.** These aren't flashy categories, but 40 and 32 requests respectively show consistent demand. They're also compact parts that ship easily and store without taking up shelf space. High-margin items for yards that test before selling.
+**Starters and AC compressors hold steady.** Not flashy categories. But 40 and 32 requests show consistent pull. They're also compact parts that ship easily and don't eat up shelf space. High-margin items for yards that test before selling.
 
-**Airbags are a wildcard.** 39 requests is significant volume. But airbag sales carry regulatory requirements that vary by state. If you can legally sell them in your market, they're a reliable revenue stream. If not, focus your dismantling time elsewhere.
+**Airbags are a wildcard.** 39 requests is real volume. But airbag sales carry regulatory requirements that vary by state. If you can legally sell them in your market, they're a reliable revenue stream. If not, spend your dismantling time elsewhere.
 
 ## Top makes by request volume {#top-makes}
 
@@ -89,31 +89,31 @@ Ranked by total broadcast requests on the Hotline HQ network.
 
 ### What stands out
 
-**Ford and Toyota are neck and neck.** Just 19 requests separate first and second place. Both are auction staples, which means supply is available — the question is whether you're buying the right models. F-150s, Explorers, Camrys, and RAV4s drive most of the volume for their respective makes.
+**Ford and Toyota are neck and neck.** Just 19 requests between first and second. Both are auction staples, so supply is available — the question is whether you're buying the right models. F-150s, Explorers, Camrys, and RAV4s drive most of the volume for their respective makes.
 
 **Honda punches above its weight.** Third place with 268 requests for a brand that sells fewer vehicles than GM. Honda parts hold value because Civics and Accords stay on the road for 15-20 years. An older Honda still generates demand because the car is still being driven.
 
-**Chevrolet is undercounted.** Callers say "Chevy" and "Chevrolet" interchangeably. We combined the two, but some voice requests may use other shorthand. The real Chevrolet number is likely higher than 247.
+**Chevrolet is undercounted.** Callers say "Chevy" and "Chevrolet" interchangeably. We combined the two, but some voice requests probably use other shorthand. The real number is likely north of 247.
 
-**Nissan and Dodge cluster together.** Both sit around 117-118 requests. Nissan's volume is driven by Altimas, Rogues, and Sentras. Dodge skews toward Ram trucks and Chargers. Different markets, similar demand levels.
+**Nissan and Dodge cluster together.** Both sit around 117-118 requests. Nissan's volume comes from Altimas, Rogues, and Sentras. Dodge skews toward Ram trucks and Chargers. Different markets, similar demand levels.
 
-**The unspecified problem.** Over 1,000 requests didn't include a make. These are voice broadcasts where the caller jumped straight to the part description — "I need a front bumper for a '19 CR-V" without saying "Honda" first. The real numbers for every make are higher than what's shown here.
+**The unspecified problem.** Over 1,000 requests didn't include a make. Voice broadcasts where the caller jumped straight to the part — "I need a front bumper for a '19 CR-V" without saying "Honda" first. The real numbers for every make are higher than what's shown.
 
 ## What this means for your yard {#what-it-means}
 
 ### Pull body parts first
 
-When a vehicle hits your yard, the dismantling order matters. Body parts — bumpers, fenders, doors, headlights, hoods — represent the highest request volume. Pull them early, photograph them, and store them where your team can find them fast. A bumper sitting on a car in the back row isn't inventory. A bumper on a shelf with a tag is.
+When a vehicle hits your yard, dismantling order matters. Body parts — bumpers, fenders, doors, headlights, hoods — represent the highest request volume. Pull them early, photograph them, store them where your team can grab them fast. A bumper sitting on a car in the back row isn't inventory. A bumper on a shelf with a tag is.
 
 ### Stock Ford and Toyota deep
 
-If you're bidding at auction, Ford and Toyota vehicles give you the broadest demand coverage. A 2017 Ford F-150 gives you a bumper (top request), fenders, doors, headlights, and a transmission — all from the top 12 list. Same story with a 2018 Toyota Camry.
+Bidding at auction? Ford and Toyota vehicles give you the broadest demand coverage. A 2017 Ford F-150 yields a bumper (top request), fenders, doors, headlights, and a transmission — all from the top 12 list. Same story with a 2018 Toyota Camry.
 
 Honda is your third priority. Strong demand, parts hold value, and the vehicles are plentiful at auction.
 
 ### Don't ignore the mid-tier
 
-Starters (40 requests), AC compressors (32 requests), and tires (31 requests) won't make headlines. But they're steady sellers with low storage costs. A starter takes up less shelf space than a glove box. Test them, tag them, and they'll move.
+Starters (40 requests), AC compressors (32 requests), and tires (31 requests) won't make headlines. But they're steady sellers with low storage costs. A starter takes up less shelf space than a glove box. Test them, tag them, they'll move.
 
 ### Watch airbag regulations
 
@@ -121,34 +121,34 @@ Starters (40 requests), AC compressors (32 requests), and tires (31 requests) wo
 
 ## How to use this data to stock smarter {#stocking-strategy}
 
-Here's a practical framework based on the request data.
+A practical framework based on the request data.
 
 ### Tier 1 — always pull, always stock
 
-Bumpers, engines, transmissions, and fenders. These four categories account for 510 of the tracked requests. If you have the part and it's in sellable condition, pull it immediately. Price it. Make it findable. Every hour it sits on the vehicle is an hour someone else fills that request.
+Bumpers, engines, transmissions, and fenders. These four categories account for 510 of the tracked requests. If you have the part and it's in sellable condition, pull it now. Price it. Make it findable. Every hour it sits on the vehicle is an hour someone else fills that request.
 
 For pricing guidance on these parts, check our [parts pricing guide](/blog/market/used-auto-parts-pricing-guide).
 
 ### Tier 2 — pull early, store smart
 
-Doors, headlights, taillights, and hoods. Strong demand, but these parts are bulky. Doors need wall racks. Hoods need horizontal storage. The investment in storage infrastructure pays off — these four categories combine for 220 requests.
+Doors, headlights, taillights, and hoods. Strong demand, but bulky. Doors need wall racks. Hoods need horizontal storage. The investment in storage infrastructure pays for itself — these four categories combine for 220 requests.
 
 ### Tier 3 — pull and test
 
-Starters, AC compressors, and airbags (where legal). Lower volume but higher margin per unit. The key is testing. A tested starter with a 30-day warranty sells for 40-60% more than an untested one. The 10 minutes you spend bench-testing a part adds $20-$40 to its sale price.
+Starters, AC compressors, and airbags (where legal). Lower volume but higher margin per unit. Testing is the key. A tested starter with a 30-day warranty sells for 40-60% more than an untested one. Ten minutes on a bench test adds $20-$40 to the sale price.
 
 ### Auction buying strategy
 
-When you're bidding at auction, filter by make first. Ford and Toyota vehicles cover the widest demand. Then evaluate by body condition — a vehicle with intact bumpers, fenders, and doors is worth more as parts than one that's been hit on every panel.
+Bidding at auction? Filter by make first. Ford and Toyota vehicles cover the widest demand. Then look at body condition — a vehicle with intact bumpers, fenders, and doors is worth more as parts than one that's been hit on every panel.
 
 A clean 2018 Toyota Camry gives you access to demand across all 12 part categories on this list. A wrecked one might give you the engine and transmission but nothing else. Price your bids accordingly.
 
 ## See live requests now {#see-live}
 
-This data is a snapshot. Real demand shifts daily based on what's coming through the [parts hotline](/blog/guides/how-auto-parts-hotlines-work) rooms.
+This data is a snapshot. Real demand shifts daily based on what's flowing through the [parts hotline](/blog/guides/how-auto-parts-hotlines-work) rooms.
 
 On the [Hotline HQ marketplace](/marketplace), you can watch requests as they come in — which parts, which makes, which regions. That's the live version of the data in this post, updated with every broadcast.
 
-If you're a yard owner, watching the marketplace for a week tells you more about your region's demand than any report. You'll see which parts get requested repeatedly and which sit quiet. You'll see whether your region leans Ford-heavy or Toyota-heavy. And you'll start making dismantling and auction decisions based on actual demand instead of gut feel.
+If you're a yard owner, watching the marketplace for a week tells you more about your region's demand than any report. You'll see which parts get requested over and over and which go quiet. You'll see whether your region runs Ford-heavy or Toyota-heavy. And you'll start making dismantling and auction decisions based on what people are asking for instead of gut feel.
 
 Check the [Hotline HQ marketplace](/marketplace) to see what yards are requesting right now.

@@ -643,10 +643,16 @@ if (fs.existsSync(clientDistDir)) {
         res.redirect(301, `${BASE_URL}/blog/guides/how-auto-parts-hotlines-work`);
     });
 
-    // SEO: /blog/:category/:slug — dynamic blog post SSR from generated data
+    // Blog post API + SSR
     const blogSsrPath = path.join(__dirname, 'data', 'blog-ssr-data.json');
     let blogSsrData = { posts: [] };
     try { blogSsrData = JSON.parse(fs.readFileSync(blogSsrPath, 'utf8')); } catch {}
+
+    app.get("/api/v1/blog/:category/:slug", (req, res) => {
+        const post = blogSsrData.posts.find(p => p.category === req.params.category && p.slug === req.params.slug);
+        if (!post) return res.status(404).json({ status: false, error: 'Post not found' });
+        res.json({ status: true, data: post });
+    });
 
     app.get("/blog/:category/:slug", (req, res) => {
         const post = blogSsrData.posts.find(p => p.category === req.params.category && p.slug === req.params.slug);

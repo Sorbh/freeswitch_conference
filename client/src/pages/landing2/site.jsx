@@ -443,7 +443,7 @@ export const SITE_CSS = `
 }
 
 /* document pages (about / legal) */
-.l2-doc { max-width: 840px; margin: 0 auto; padding: 150px 32px 90px; }
+.l2-doc { max-width: 1140px; margin: 0 auto; padding: 150px 32px 90px; }
 .l2-doc-kicker {
   font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
   text-transform: uppercase; color: var(--red); margin: 0 0 14px;

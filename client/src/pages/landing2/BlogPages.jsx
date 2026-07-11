@@ -164,6 +164,8 @@ export function BlogCategoryPage({ category }) {
 }
 
 const BLOG_INDEX_CSS = `
+/* Force white nav on dark header pages */
+.l2:has(.bi-header) .l2-nav { background: #fff; }
 /* Header */
 .bi-header {
   position: relative;
@@ -183,7 +185,7 @@ const BLOG_INDEX_CSS = `
 .bi-header-inner {
   position: relative;
   z-index: 2;
-  max-width: 1060px;
+  max-width: 1140px;
   margin: 0 auto;
 }
 .bi-kicker {
@@ -229,7 +231,7 @@ const BLOG_INDEX_CSS = `
 
 /* Main */
 .bi-main {
-  max-width: 1060px;
+  max-width: 1140px;
   margin: 0 auto;
   padding: 40px 32px 80px;
 }

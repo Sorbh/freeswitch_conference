@@ -177,25 +177,19 @@ export function FeatureDetailPage() {
       />
       <SiteNav />
 
-      {/* Light header — matches landing page */}
-      <header className="fd-header">
-        <div className="fd-header-scrim" aria-hidden="true" />
-        <div className="fd-header-inner">
+      {/* Dark header — matches blog post */}
+      <header className="fd-hero">
+        <div className="fd-hero-inner">
           <nav className="fd-crumbs" aria-label="Breadcrumb">
-            <Link to="/">Home</Link>
-            <span aria-hidden="true">/</span>
-            <Link to="/own-a-hotline">Features</Link>
-            <span aria-hidden="true">/</span>
+            <Link to="/">Home</Link><span>/</span>
+            <Link to="/own-a-hotline">Features</Link><span>/</span>
             <span>{f.title}</span>
           </nav>
-          <div className="fd-header-row">
-            <div className="fd-hero-icon-header" style={{ '--accent': f.accent || '#d92d20' }}>
-              <Icon />
-            </div>
-            <span className="fd-kicker">{f.hero?.kicker}</span>
+          <h1 className="fd-title">{f.hero?.heading || f.title}</h1>
+          <p className="fd-lede">{f.hero?.lede || f.seo?.description}</p>
+          <div className="fd-hero-meta">
+            <span className="fd-tag">{f.hero?.kicker || 'Feature'}</span>
           </div>
-          <h1 className="fd-title">{f.hero?.heading}</h1>
-          <p className="fd-lede">{f.hero?.lede}</p>
           <div className="fd-header-ctas">
             <a href={SIGNUP_URL} className="fd-btn-hot">Sign Up Free</a>
             <a href={`mailto:${CONTACT_EMAIL}?subject=Feature inquiry: ${f.title}`} target="_blank" rel="noopener noreferrer" className="fd-btn-ghost">Talk to Us</a>
@@ -203,8 +197,10 @@ export function FeatureDetailPage() {
         </div>
       </header>
 
-      {/* Two-column body: article + TOC */}
-      <div className="bl-body">
+      {/* Two-column body: article + sidebar */}
+      <div className="fd-layout">
+        <div className="fd-container">
+          <div className="fd-grid">
         <article className="bl-article">
 
           {/* The Problem */}
@@ -287,10 +283,44 @@ export function FeatureDetailPage() {
           )}
         </article>
 
-        <TableOfContents items={TOC_ITEMS} activeId={activeId} />
+        {/* Right sidebar */}
+        <aside className="fd-sidebar">
+          <div className="fd-sidebar-sticky">
+            <TableOfContents items={TOC_ITEMS} activeId={activeId} />
+
+            <div className="fd-sb-card">
+              <h4>Share Feature</h4>
+              <div className="fd-sb-share">
+                <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(f.title + ' — Hotline HQ')}&url=${encodeURIComponent('https://hotlinehq.online/features/' + slug)}`} target="_blank" rel="noopener noreferrer" className="fd-sb-share-btn" aria-label="Share on X">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://hotlinehq.online/features/' + slug)}`} target="_blank" rel="noopener noreferrer" className="fd-sb-share-btn" aria-label="Share on LinkedIn">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                </a>
+                <button className="fd-sb-share-btn" onClick={() => navigator.clipboard?.writeText('https://hotlinehq.online/features/' + slug)} aria-label="Copy link">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="fd-sb-card">
+              <h4>Explore Features</h4>
+              <p className="fd-sb-explore">View all features on <Link to="/own-a-hotline">Own a Hotline</Link>.</p>
+            </div>
+
+            <div className="fd-sb-cta">
+              <div className="fd-sb-cta-badge">Free to Join</div>
+              <h4>Join the Network</h4>
+              <p>500+ yards connected across 12 regional rooms.</p>
+              <a href={SIGNUP_URL} className="fd-sb-cta-btn">Sign Up Free →</a>
+            </div>
+          </div>
+        </aside>
+          </div>
+        </div>
       </div>
 
-      {/* Bottom CTA — matches blog */}
+      {/* Bottom CTA */}
       <section className="bl-cta">
         <div className="bl-cta-inner">
           <p className="bl-cta-kicker">JOIN THE NETWORK</p>
@@ -311,51 +341,33 @@ export function FeatureDetailPage() {
 /* ── Feature-specific styles (extends blog CSS classes) ── */
 
 const PAGE_CSS = `
-/* ═══ Light header (matches landing page) ═══ */
-.fd-header {
-  position: relative; padding: 140px 32px 56px; overflow: hidden;
-}
-.fd-header-scrim {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image:
-    radial-gradient(ellipse 62% 46% at 50% 30%, rgba(251,250,248,0.94) 36%, rgba(251,250,248,0.55) 68%, transparent 100%),
-    radial-gradient(ellipse 55% 40% at 50% 42%, rgba(217,45,32,0.05), transparent 70%),
-    radial-gradient(#dcd7cc 1px, transparent 1.4px);
-  background-size: 100% 100%, 100% 100%, 26px 26px;
-}
-.fd-header-inner { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; }
-.fd-crumbs { display: flex; align-items: center; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.02em; margin-bottom: 28px; }
-.fd-crumbs a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
-.fd-crumbs a:hover { color: var(--ink); }
-.fd-crumbs span { margin: 0 8px; color: var(--line); }
-.fd-crumbs span:last-child { margin: 0; color: var(--ink); font-weight: 600; }
-.fd-header-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-.fd-kicker { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--red); }
-.fd-title {
-  font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 52px);
-  line-height: 1.08; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 18px;
-}
-.fd-lede { font-size: 18px; line-height: 1.7; color: var(--muted); margin: 0 0 28px; max-width: 640px; }
+/* Force white nav */
+.l2:has(.fd-hero) .l2-nav { background: #fff; }
+/* ═══ Dark hero (matches blog post) ═══ */
+.fd-hero { background: #0f1117; padding: 100px 24px 48px; border-bottom: 3px solid var(--red); }
+.fd-hero-inner { max-width: 1140px; margin: 0 auto; }
+.fd-crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; font-family: var(--mono); font-size: 12.5px; }
+.fd-crumbs a { color: rgba(255,255,255,0.45); text-decoration: none; }
+.fd-crumbs a:hover { color: #fff; }
+.fd-crumbs span { color: rgba(255,255,255,0.2); font-size: 11px; }
+.fd-crumbs span:last-child { color: rgba(255,255,255,0.7); font-weight: 600; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fd-title { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 4.5vw, 42px); line-height: 1.15; letter-spacing: -0.025em; color: #fff; margin: 0 0 16px; text-wrap: balance; max-width: 720px; }
+.fd-lede { font-size: 16.5px; line-height: 1.6; color: rgba(255,255,255,0.55); margin: 0 0 24px; max-width: 600px; }
+.fd-hero-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 24px; }
+.fd-tag { padding: 3px 10px; border-radius: 6px; background: rgba(217,45,32,0.15); color: #ff8a82; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
 .fd-header-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
-.fd-btn-hot {
-  font-family: var(--body); font-weight: 600; font-size: 15px; padding: 13px 28px;
-  border-radius: 11px; background: var(--red); color: #fff !important; text-decoration: none;
-  box-shadow: 0 8px 24px -8px rgba(217,45,32,0.5);
-  transition: background 0.2s, transform 0.15s;
-}
+.fd-btn-hot { font-weight: 600; font-size: 15px; padding: 13px 28px; border-radius: 11px; background: var(--red); color: #fff !important; text-decoration: none; box-shadow: 0 8px 24px -8px rgba(217,45,32,0.5); transition: background 0.2s, transform 0.15s; }
 .fd-btn-hot:hover { background: #b42318; transform: translateY(-1px); }
-.fd-btn-ghost {
-  font-family: var(--body); font-weight: 600; font-size: 15px; padding: 13px 28px;
-  border-radius: 11px; background: var(--surface); border: 1px solid var(--line); color: var(--ink) !important; text-decoration: none;
-  transition: border-color 0.2s;
-}
-.fd-btn-ghost:hover { border-color: #c9c4ba; }
+.fd-btn-ghost { font-weight: 600; font-size: 15px; padding: 13px 28px; border-radius: 11px; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8) !important; text-decoration: none; transition: border-color 0.2s; }
+.fd-btn-ghost:hover { border-color: rgba(255,255,255,0.5); color: #fff !important; }
 
-/* ═══ Two-column body ═══ */
-.bl-body { display: grid; grid-template-columns: 1fr 220px; gap: 56px; max-width: 1060px; margin: 0 auto; padding: 48px 32px 64px; align-items: start; }
+/* ═══ Two-column layout ═══ */
+.fd-layout { padding: 48px 0 64px; }
+.fd-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+.fd-grid { display: grid; grid-template-columns: 1fr 280px; gap: 48px; }
 
 /* ═══ Article ═══ */
-.bl-article { min-width: 0; max-width: 740px; }
+.bl-article { min-width: 0; }
 .bl-article section { margin-bottom: 48px; }
 .bl-article section:last-child { margin-bottom: 0; }
 .bl-article h2 { font-family: var(--display); font-weight: 700; font-size: clamp(22px, 3vw, 28px); line-height: 1.15; letter-spacing: -0.015em; color: var(--ink); margin: 0 0 16px; padding-top: 8px; scroll-margin-top: 100px; }
@@ -367,19 +379,36 @@ const PAGE_CSS = `
 .bl-article li { font-size: 17px; line-height: 1.8; color: var(--muted); margin-bottom: 10px; }
 .bl-article li:last-child { margin-bottom: 0; }
 .bl-article li strong { color: var(--ink); }
-
 .bl-steps { list-style: none; padding: 0; margin: 20px 0 24px; counter-reset: bl-step; }
 .bl-steps li { counter-increment: bl-step; padding-left: 40px; position: relative; margin-bottom: 16px; }
 .bl-steps li::before { content: counter(bl-step); position: absolute; left: 0; top: 4px; width: 26px; height: 26px; border-radius: 8px; background: var(--red-soft); color: var(--red); font-family: var(--display); font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
 
-/* ═══ TOC ═══ */
-.bl-toc { position: sticky; top: 96px; align-self: start; }
-.bl-toc-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+/* ═══ Sidebar (matches blog post) ═══ */
+.fd-sidebar { display: block; }
+.fd-sidebar-sticky { position: sticky; top: 96px; }
+.fd-sb-card { margin-bottom: 24px; padding: 24px; border: 1px solid #e0e3de; border-radius: 16px; background: #fff; box-shadow: 0 2px 12px -2px rgba(0,0,0,0.08); }
+.fd-sb-card h4 { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--red); margin: 0 0 16px; }
+.fd-sb-share { display: flex; gap: 8px; }
+.fd-sb-share-btn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid #e0e3de; background: #fff; color: #607286; display: flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; transition: all 0.15s; }
+.fd-sb-share-btn:hover { border-color: var(--red); background: rgba(217,45,32,0.05); color: var(--red); }
+.fd-sb-explore { font-size: 14px; line-height: 1.6; color: #607286; margin: 0; }
+.fd-sb-explore a { color: var(--red); font-weight: 600; text-decoration: none; }
+.fd-sb-explore a:hover { text-decoration: underline; }
+.fd-sb-cta { margin-bottom: 24px; padding: 24px; border-radius: 16px; background: linear-gradient(to bottom right, #19253a, #101f4e); text-align: center; box-shadow: 0 4px 16px -4px rgba(16,31,78,0.3); }
+.fd-sb-cta-badge { display: inline-flex; padding: 4px 12px; border-radius: 20px; background: rgba(255,255,255,0.1); color: #fff; font-family: var(--mono); font-size: 11px; font-weight: 500; margin-bottom: 12px; }
+.fd-sb-cta h4 { font-size: 18px; font-weight: 700; color: #fff; margin: 0 0 8px; letter-spacing: 0; text-transform: none; }
+.fd-sb-cta p { font-size: 14px; color: rgba(255,255,255,0.7); margin: 0 0 16px; line-height: 1.55; }
+.fd-sb-cta-btn { display: inline-block; padding: 12px 20px; background: #fff; color: #19253a; font-weight: 700; font-size: 14px; border-radius: 12px; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: background 0.15s; }
+.fd-sb-cta-btn:hover { background: #f0f5f2; }
+
+/* TOC in sidebar card */
+.bl-toc { margin-bottom: 24px; padding: 24px; border: 1px solid #e0e3de; border-radius: 16px; background: #fff; box-shadow: 0 2px 12px -2px rgba(0,0,0,0.08); }
+.bl-toc-label { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--red); margin: 0 0 16px; padding: 0; border: none; }
 .bl-toc-list { list-style: none; padding: 0; margin: 0; }
-.bl-toc-list li { margin-bottom: 2px; }
-.bl-toc-link { display: block; font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--muted); padding: 6px 0 6px 14px; border-left: 2px solid transparent; transition: color 0.2s, border-color 0.2s; text-decoration: none; }
-.bl-toc-link:hover { color: var(--ink); }
-.bl-toc-active { color: var(--red) !important; border-left-color: var(--red); font-weight: 600; }
+.bl-toc-list li { margin: 0; }
+.bl-toc-link { display: block; font-size: 14px !important; font-weight: 500; line-height: 1.5; color: #3f5465 !important; padding: 8px 12px; border-radius: 8px; border-left: none; text-decoration: none !important; transition: background 0.15s, color 0.15s; }
+.bl-toc-link:hover { background: rgba(217,45,32,0.05); color: #16181d !important; }
+.bl-toc-active { color: var(--red) !important; background: rgba(217,45,32,0.05); font-weight: 600; }
 
 /* ═══ Bottom CTA ═══ */
 .bl-cta { background: var(--ink); padding: 80px 32px; }
@@ -392,18 +421,18 @@ const PAGE_CSS = `
 
 /* ═══ Responsive ═══ */
 @media (max-width: 900px) {
-  .bl-body { grid-template-columns: 1fr; gap: 0; padding: 32px 24px 48px; }
-  .bl-toc { position: static; order: -1; margin-bottom: 32px; padding: 20px; background: var(--band); border-radius: 10px; border: 1px solid var(--line); }
-  .bl-toc-label { border-bottom: none; padding-bottom: 0; margin-bottom: 10px; }
-  .bl-toc-link { padding: 4px 0 4px 14px; font-size: 13px; }
+  .fd-grid { grid-template-columns: 1fr; gap: 0; }
+  .fd-sidebar { margin-top: 48px; }
+  .fd-sidebar-sticky { position: static; }
 }
 @media (max-width: 640px) {
-  .fd-header { padding: 110px 16px 40px; }
-  .fd-title { font-size: clamp(26px, 7vw, 36px); }
-  .fd-lede { font-size: 15.5px; }
+  .fd-hero { padding: 80px 16px 36px; }
+  .fd-title { font-size: clamp(24px, 7vw, 32px); }
+  .fd-lede { font-size: 15px; }
   .fd-header-ctas { flex-direction: column; }
   .fd-header-ctas a { text-align: center; }
-  .bl-body { padding: 24px 16px 40px; }
+  .fd-layout { padding: 32px 0 48px; }
+  .fd-container { padding: 0 16px; }
   .bl-cta { padding: 56px 16px; }
   .bl-article h2 { font-size: 22px; }
   .bl-article p, .bl-article li { font-size: 16px; line-height: 1.75; }

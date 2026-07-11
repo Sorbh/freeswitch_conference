@@ -875,7 +875,7 @@ const FEATURE_CSS = `
 .fp-hero-inner {
   position: relative;
   z-index: 2;
-  max-width: 800px;
+  max-width: 1140px;
   margin: 0 auto;
   text-align: center;
 }
