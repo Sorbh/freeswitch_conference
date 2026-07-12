@@ -105,14 +105,10 @@ export default function DashboardLayout() {
     try { return localStorage.getItem('hq_broadcast_panel') !== '0'; } catch { return true; }
   });
   const [mobileBroadcastOpen, setMobileBroadcastOpen] = useState(false);
-  const [mediaControlsState, setMediaControlsState] = useState('idle');
-  const [mediaControlsError, setMediaControlsError] = useState('');
   const dropdownRef = useRef(null);
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
   const dashboardRef = useRef(null);
-  const mediaAnchorRef = useRef(null);
-  const mediaAnchorStoppingRef = useRef(false);
 
   useEffect(() => {
     const fontLink = document.createElement('link');
@@ -262,7 +258,6 @@ export default function DashboardLayout() {
     function handleMuteState(nextMuted) {
       const next = !!nextMuted;
       setMuted(next);
-      updateMediaSessionMetadata(next);
     }
     function handleLoginFailed(msg) {
       setConnState('error');
@@ -479,154 +474,6 @@ export default function DashboardLayout() {
   const isConnected = connState === 'connected';
   const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
 
-  // Android Chrome does not expose WebRTC MediaStream audio in the notification shade.
-  // We keep a real URL-backed audio element playing after a user tap so Media Session can own lock-screen controls.
-  function updateMediaSessionMetadata(nextMuted = muted) {
-    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: 'Hotline HQ Conference',
-      artist: nextMuted ? 'Microphone muted' : 'Microphone live',
-      album: roomLabel || 'Client Dashboard',
-      artwork: [
-        { src: '/logo-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/logo-512.png', sizes: '512x512', type: 'image/png' },
-      ],
-    });
-    navigator.mediaSession.playbackState = 'playing';
-  }
-
-  function keepMediaAnchorPlaying() {
-    const audio = mediaAnchorRef.current;
-    if (!audio || mediaAnchorStoppingRef.current || !window.hotlineClient?.isConnected?.()) return;
-    const playPromise = audio.play();
-    if (playPromise?.catch) {
-      playPromise.catch(err => {
-        if (!mediaAnchorStoppingRef.current) {
-          setMediaControlsState('failed');
-          setMediaControlsError(err.message || 'Media controls blocked');
-          console.warn('[MediaSession] anchor play failed:', err.message);
-        }
-      });
-    }
-  }
-
-  function handleMediaSessionToggle() {
-    if (!window.hotlineClient || isListenOnly) return;
-    window.hotlineClient.toggleMute();
-    const nextMuted = window.hotlineClient.isMuted();
-    setMuted(nextMuted);
-    updateMediaSessionMetadata(nextMuted);
-    window.setTimeout(keepMediaAnchorPlaying, 0);
-  }
-
-  function installMediaSessionHandlers() {
-    if (!('mediaSession' in navigator)) return;
-    try { navigator.mediaSession.setActionHandler('play', handleMediaSessionToggle); } catch {}
-    try { navigator.mediaSession.setActionHandler('pause', handleMediaSessionToggle); } catch {}
-    try { navigator.mediaSession.setActionHandler('togglemicrophone', handleMediaSessionToggle); } catch {}
-  }
-
-  function clearMediaSessionHandlers() {
-    if (!('mediaSession' in navigator)) return;
-    try { navigator.mediaSession.setActionHandler('play', null); } catch {}
-    try { navigator.mediaSession.setActionHandler('pause', null); } catch {}
-    try { navigator.mediaSession.setActionHandler('togglemicrophone', null); } catch {}
-    navigator.mediaSession.metadata = null;
-    navigator.mediaSession.playbackState = 'none';
-  }
-
-  function startMediaAnchorFromGesture() {
-    if (!isConnected || isListenOnly) return;
-
-    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') {
-      setMediaControlsState('failed');
-      setMediaControlsError('Media Session is not supported in this browser');
-      return;
-    }
-
-    if (mediaAnchorRef.current) {
-      setMediaControlsState('active');
-      updateMediaSessionMetadata(window.hotlineClient?.isMuted?.() ?? muted);
-      keepMediaAnchorPlaying();
-      return;
-    }
-
-    mediaAnchorStoppingRef.current = false;
-    setMediaControlsState('starting');
-    setMediaControlsError('');
-
-    const audio = document.createElement('audio');
-    audio.src = '/media-anchor.wav';
-    audio.loop = true;
-    audio.preload = 'auto';
-    audio.playsInline = true;
-    audio.volume = 0.02;
-    audio.setAttribute('aria-hidden', 'true');
-    audio.style.cssText = 'position:fixed;left:-9999px;bottom:0;width:1px;height:1px;opacity:0.01;pointer-events:none;';
-
-    audio.addEventListener('playing', () => {
-      if (mediaAnchorRef.current !== audio) return;
-      setMediaControlsState('active');
-      setMediaControlsError('');
-      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
-    });
-    audio.addEventListener('pause', () => {
-      if (mediaAnchorStoppingRef.current || mediaAnchorRef.current !== audio) return;
-      window.setTimeout(keepMediaAnchorPlaying, 0);
-    });
-    audio.addEventListener('ended', () => {
-      if (mediaAnchorStoppingRef.current || mediaAnchorRef.current !== audio) return;
-      window.setTimeout(keepMediaAnchorPlaying, 0);
-    });
-    audio.addEventListener('error', () => {
-      if (mediaAnchorRef.current !== audio) return;
-      setMediaControlsState('failed');
-      setMediaControlsError('Media anchor file could not be loaded');
-    });
-
-    document.body.appendChild(audio);
-    mediaAnchorRef.current = audio;
-
-    installMediaSessionHandlers();
-    updateMediaSessionMetadata(window.hotlineClient?.isMuted?.() ?? muted);
-
-    const playPromise = audio.play();
-    if (playPromise?.then) {
-      playPromise.catch(err => {
-        console.warn('[MediaSession] audio play blocked:', err.message);
-        stopMediaAnchor();
-        setMediaControlsState('failed');
-        setMediaControlsError(err.message || 'Tap Enable again to allow media controls');
-      });
-    }
-  }
-
-  function stopMediaAnchor() {
-    mediaAnchorStoppingRef.current = true;
-    const audio = mediaAnchorRef.current;
-    mediaAnchorRef.current = null;
-    if (audio) {
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-      audio.remove();
-    }
-    clearMediaSessionHandlers();
-    setMediaControlsState('idle');
-  }
-
-  useEffect(() => {
-    if (!mediaAnchorRef.current) return;
-    updateMediaSessionMetadata(muted);
-    keepMediaAnchorPlaying();
-  }, [muted, roomLabel]);
-
-  useEffect(() => {
-    if (!isConnected && mediaAnchorRef.current) stopMediaAnchor();
-  }, [isConnected]);
-
-  useEffect(() => () => stopMediaAnchor(), []);
-
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
       {/* ── Desktop sidebar (hidden on mobile) ── */}
@@ -798,30 +645,6 @@ export default function DashboardLayout() {
           {fullscreenMessage && (
             <div className="px-4 md:px-6 py-2 text-xs font-medium" style={{ background: 'rgba(245,158,11,0.08)', color: '#b45309', borderTop: '1px solid rgba(245,158,11,0.2)' }}>
               {fullscreenMessage}
-            </div>
-          )}
-          {isConnected && !isListenOnly && mediaControlsState !== 'active' && (
-            <div className="md:hidden px-4 py-2 flex items-center gap-3" style={{ background: 'rgba(217,45,32,0.06)', borderTop: '1px solid rgba(217,45,32,0.12)' }}>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold" style={{ color: 'var(--ink)' }}>Lock screen mute controls</div>
-                <div className="text-[11px] truncate" style={{ color: 'var(--muted)' }}>
-                  {mediaControlsState === 'failed' ? (mediaControlsError || 'Tap to try again') : 'Tap once to enable Android notification controls'}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={startMediaAnchorFromGesture}
-                disabled={mediaControlsState === 'starting'}
-                className="px-3 py-1.5 rounded-full text-[11px] font-bold"
-                style={{
-                  background: 'var(--red)',
-                  color: '#fff',
-                  opacity: mediaControlsState === 'starting' ? 0.65 : 1,
-                  boxShadow: '0 6px 16px rgba(217,45,32,0.22)',
-                }}
-              >
-                {mediaControlsState === 'starting' ? 'Enabling…' : 'Enable'}
-              </button>
             </div>
           )}
         </header>
