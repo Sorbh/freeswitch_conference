@@ -76,8 +76,7 @@ async function _handleRegistration(event) {
         existingUser.authState = 'login';
         global.db.setUserInfo(userName, existingUser);
         global.db.touchLastSeen(userName);
-        global.db.logEvent('registration', userName, null, 'User registered');
-        global.db.logOnlineStatus(userName, 'online');
+        if (wasOffline) global.db.logOnlineStatus(userName, 'online');
 
         if (global.alerting) global.alerting.stopCriticalAlert(userName);
 
@@ -123,7 +122,7 @@ async function _handleRegistration(event) {
 
     global.db.setUserInfo(userName, userInfo);
     global.db.touchLastSeen(userName);
-    global.db.logEvent('registration', userName, null, 'User registered');
+    global.db.logEvent('new_user', userName, room, 'First registration');
     global.db.logOnlineStatus(userName, 'online');
     logUser(userName, 'REG', `NEW -> ${global.config.ROOM_NAME[room] || room}`);
 

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, Component } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import InstallPrompt from './components/InstallPrompt';
 
 class ChunkErrorBoundary extends Component {
   constructor(props) {
@@ -124,6 +125,7 @@ export default function App() {
     <AuthProvider>
       <ScrollToTop />
       <ClearChunkReloadFlag />
+      <InstallPrompt />
       <Routes>
         {/* Public / marketing pages */}
         <Route path="/" element={<Lazy><Landing2Page /></Lazy>} />

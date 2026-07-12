@@ -1019,9 +1019,10 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 global.db.snapshotRoomCounts();
 
-// Clean old snapshots once a day
+// Clean old snapshots + event/online history once a day
 setInterval(() => {
     try { global.db.cleanOldSnapshots(14); } catch {}
+    try { global.db.cleanOldEventLogs(14); } catch {}
 }, 24 * 60 * 60 * 1000);
 
 // Clean expired refresh tokens every hour

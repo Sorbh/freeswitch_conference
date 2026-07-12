@@ -5,6 +5,7 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import en_common from "./locales/en/common.json";
 import en_landing from "./locales/en/landing.json";
 import en_own from "./locales/en/own.json";
+import en_auth from "./locales/en/auth.json";
 
 export const LANGUAGES = [
   { code: "en", label: "English", dir: "ltr" },
@@ -61,7 +62,6 @@ const loaders = {
 };
 
 const enDeferredLoaders = {
-  auth: () => import("./locales/en/auth.json").then(m => m.default),
   dashboard: () => import("./locales/en/dashboard.json").then(m => m.default),
   legal: () => import("./locales/en/legal.json").then(m => m.default),
 };
@@ -89,7 +89,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { common: en_common, landing: en_landing, own: en_own },
+      en: { common: en_common, landing: en_landing, own: en_own, auth: en_auth },
     },
     partialBundledLanguages: true,
     fallbackLng: "en",
@@ -124,9 +124,9 @@ i18n.on("languageChanged", (lng) => {
 
 // Load deferred EN namespaces after first paint so they're ready when needed
 if (typeof requestIdleCallback !== 'undefined') {
-  requestIdleCallback(() => { loadEnNamespace('auth'); loadEnNamespace('dashboard'); loadEnNamespace('legal'); });
+  requestIdleCallback(() => { loadEnNamespace('dashboard'); loadEnNamespace('legal'); });
 } else {
-  setTimeout(() => { loadEnNamespace('auth'); loadEnNamespace('dashboard'); loadEnNamespace('legal'); }, 2000);
+  setTimeout(() => { loadEnNamespace('dashboard'); loadEnNamespace('legal'); }, 2000);
 }
 
 export default i18n;

@@ -446,7 +446,6 @@ export default function Landing2Page() {
           <HQLogo />
         </a>
         <nav className="l2-nav-links">
-          <a href="#how">{t("common:nav.howItWorks")}</a>
           <a href="./find-used-auto-parts">Find Parts</a>
           <a href="./sell-used-auto-parts">Sell Parts</a>
           <a href="./own-a-hotline">{t("common:nav.ownHotline")}</a>

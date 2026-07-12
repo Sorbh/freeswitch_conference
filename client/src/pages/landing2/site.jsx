@@ -200,7 +200,6 @@ export function SiteNav() {
 
 const PRODUCT_LINK_KEYS = [
   ["footer.hearItLive", "/#listen-live"],
-  ["footer.howItWorks", "/#how"],
   ["footer.coverageLink", "/#rooms"],
   ["footer.theSystem", "/#system"],
   ["footer.getALine", "/#join"],

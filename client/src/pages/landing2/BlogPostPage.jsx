@@ -39,7 +39,17 @@ export function BlogPostPage() {
 
   if (loading) return (
     <div className="l2"><style>{SITE_CSS}</style><style>{CSS}</style><SiteNav />
-      <div className="bp-loading"><div className="bp-spinner" /></div>
+      <div className="bp-loading">
+        <div className="bp-brand-loader">
+          <svg width="40" height="40" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="45" height="45" rx="13" fill="#d92d20" />
+            <path d="M33.8 30.7v2.6a2.3 2.3 0 0 1-2.5 2.3 23 23 0 0 1-10-3.6 22.7 22.7 0 0 1-7-7 23 23 0 0 1-3.5-10.1 2.3 2.3 0 0 1 2.3-2.5h2.6a2.3 2.3 0 0 1 2.3 2c.1 1 .4 2.1.7 3.1a2.3 2.3 0 0 1-.5 2.4l-1.1 1.1a18.4 18.4 0 0 0 6.7 6.7l1.1-1.1a2.3 2.3 0 0 1 2.4-.5c1 .3 2 .6 3.1.7a2.3 2.3 0 0 1 2 2.3z" fill="#ffffff" />
+            <path className="bp-wave1" d="M30.5 13.6a8.6 8.6 0 0 1 5 5" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" />
+            <path className="bp-wave2" d="M32.8 8.4a14.3 14.3 0 0 1 8 8" stroke="#ffb4ad" strokeWidth="2.6" strokeLinecap="round" />
+          </svg>
+          <span className="bp-brand-loader-text">Loading article&hellip;</span>
+        </div>
+      </div>
     <SiteFooter /></div>
   );
 
@@ -202,9 +212,20 @@ export function BlogPostPage() {
 }
 
 const CSS = `
-@keyframes bp-spin { to { transform: rotate(360deg); } }
 .bp-loading { display: flex; justify-content: center; align-items: center; min-height: 60vh; }
-.bp-spinner { width: 32px; height: 32px; border: 3px solid var(--line); border-top-color: var(--red); border-radius: 50%; animation: bp-spin 0.7s linear infinite; }
+.bp-brand-loader {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; border-radius: 12px;
+  background: var(--surface, #fff); border: 1px solid var(--line);
+  box-shadow: 0 4px 24px -6px rgba(22,24,29,0.12);
+  animation: bp-fade-in .3s ease-out;
+}
+.bp-brand-loader-text { color: var(--muted); font-size: 14px; font-weight: 500; }
+@keyframes bp-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bp-pulse1 { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes bp-pulse2 { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.15; } }
+.bp-wave1 { animation: bp-pulse1 1.4s ease-in-out infinite; }
+.bp-wave2 { animation: bp-pulse2 1.4s ease-in-out infinite 0.2s; }
 .bp-empty { text-align: center; padding: 120px 24px 80px; min-height: 50vh; }
 .bp-empty h1 { font-size: 28px; font-weight: 700; margin: 0 0 12px; }
 .bp-empty p { font-size: 16px; color: var(--muted); margin: 0 0 24px; }

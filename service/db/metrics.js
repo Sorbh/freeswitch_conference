@@ -81,6 +81,16 @@ function cleanOldSnapshots(days = 14) {
     sqlite.prepare('DELETE FROM room_snapshots WHERE created_at < ?').run(cutoff);
 }
 
+function cleanOldEventLogs(days = 14) {
+    const cutoff = Math.floor(Date.now() / 1000) - (days * 86400);
+    const r1 = sqlite.prepare('DELETE FROM event_log WHERE created_at < ?').run(cutoff);
+    const r2 = sqlite.prepare('DELETE FROM online_history WHERE created_at < ?').run(cutoff);
+    if (r1.changes > 0 || r2.changes > 0) {
+        console.log(`DB cleanup: purged ${r1.changes} event_log + ${r2.changes} online_history rows older than ${days}d`);
+    }
+    return { eventLog: r1.changes, onlineHistory: r2.changes };
+}
+
 function getRoomAvailability(hours = 12) {
     const since = Math.floor(Date.now() / 1000) - (hours * 3600);
     return sqlite.prepare(`
@@ -93,5 +103,5 @@ function getRoomAvailability(hours = 12) {
 
 export {
     logEvent, getEvents, logOnlineStatus, getOnlineHistory, getDashboardStats,
-    snapshotRoomCounts, getRoomSnapshots, cleanOldSnapshots, getRoomAvailability,
+    snapshotRoomCounts, getRoomSnapshots, cleanOldSnapshots, cleanOldEventLogs, getRoomAvailability,
 };

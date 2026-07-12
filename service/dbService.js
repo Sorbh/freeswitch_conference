@@ -25,7 +25,7 @@ import {
 } from './db/broadcasts.js';
 import {
     logEvent, getEvents, logOnlineStatus, getOnlineHistory, getDashboardStats,
-    snapshotRoomCounts, getRoomSnapshots, cleanOldSnapshots, getRoomAvailability,
+    snapshotRoomCounts, getRoomSnapshots, cleanOldSnapshots, cleanOldEventLogs, getRoomAvailability,
 } from './db/metrics.js';
 import {
     getAllNotificationChannels, getNotificationChannel, createNotificationChannel,
@@ -102,6 +102,7 @@ db.getRoomAvailability = getRoomAvailability;
 db.snapshotRoomCounts = snapshotRoomCounts;
 db.getRoomSnapshots = getRoomSnapshots;
 db.cleanOldSnapshots = cleanOldSnapshots;
+db.cleanOldEventLogs = cleanOldEventLogs;
 db.getAllRooms = getAllRooms;
 db.getRoom = getRoom;
 db.createRoom = createRoom;
