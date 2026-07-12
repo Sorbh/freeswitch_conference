@@ -68,7 +68,7 @@ export function BlogPostPage() {
         description={post.description} keywords={post.keywords}
         path={`/blog/${category}/${slug}`}
         jsonLd={{ "@context": "https://schema.org", "@graph": [
-          { "@type": "Article", headline: post.title, description: post.description, url: shareUrl, publisher: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") }, datePublished: post.date, dateModified: post.date },
+          { "@type": "Article", headline: post.title, description: post.description, url: shareUrl, ...(post.coverImage ? { image: buildSiteUrl(post.coverImage) } : {}), publisher: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") }, datePublished: post.date, dateModified: post.lastUpdated || post.date },
           ...(post.faq?.length ? [{ "@type": "FAQPage", mainEntity: post.faq.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }] : []),
         ] }}
       />

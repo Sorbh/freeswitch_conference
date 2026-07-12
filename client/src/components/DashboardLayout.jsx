@@ -101,6 +101,7 @@ export default function DashboardLayout() {
   const [broadcastHelpOpen, setBroadcastHelpOpen] = useState(false);
   const [extensionHelpOpen, setExtensionHelpOpen] = useState(false);
   const [roomChangeHelpOpen, setRoomChangeHelpOpen] = useState(false);
+  const [gestureActive, setGestureActive] = useState(false);
   const [broadcastPanelOpen, setBroadcastPanelOpen] = useState(() => {
     try { return localStorage.getItem('hq_broadcast_panel') !== '0'; } catch { return true; }
   });
@@ -326,7 +327,6 @@ export default function DashboardLayout() {
   }, []);
 
   function toggleMute() {
-    startMediaAnchorFromGesture();
     if (window.hotlineClient) window.hotlineClient.toggleMute();
   }
 
@@ -651,7 +651,7 @@ export default function DashboardLayout() {
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-40 md:pb-6">
-          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly }} />
+          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly, setGestureActive }} />
         </main>
       </div>
 
@@ -664,14 +664,14 @@ export default function DashboardLayout() {
       </div>
 
       {/* ── Mute FAB — desktop only (fixed bottom-right) ── */}
-      {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} panelOpen={broadcastPanelOpen} />}
+      {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} panelOpen={broadcastPanelOpen} gestureActive={gestureActive} />}
 
       {/* ── Mobile bottom stack: items stack above bottom nav naturally ── */}
       <div
         className="md:hidden fixed left-0 right-0 z-50 flex flex-col items-stretch"
         style={{ bottom: `calc(${isConnected && !isListenOnly ? '52px + ' : ''}49px + env(safe-area-inset-bottom))` }}
       >
-        {isConnected && !isListenOnly && <MobileMuteFAB muted={muted} onToggle={toggleMute} />}
+        {isConnected && !isListenOnly && <MobileMuteFAB muted={muted} onToggle={toggleMute} gestureActive={gestureActive} />}
         {isListenOnly && <ListenOnlyMobileBanner />}
         <FreeWebsiteOfferMobile />
       </div>
@@ -1259,23 +1259,40 @@ function ListenOnlyMobileBanner() {
   );
 }
 
-function MuteFAB({ muted, onToggle, panelOpen }) {
+function GestureIndicator({ muted }) {
   return (
-    <button
-      onClick={onToggle}
-      className="hidden md:flex fixed z-50 w-14 h-14 rounded-full items-center justify-center bottom-6"
-      style={{
-        right: panelOpen ? 358 : 24,
-        transition: 'right 0.25s ease',
-        background: muted ? 'var(--red)' : 'var(--green)',
-        color: '#fff',
-        boxShadow: muted
-          ? '0 6px 20px rgba(217,45,32,0.45)'
-          : '0 6px 20px rgba(18,183,106,0.45)',
-      }}
-    >
-      {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
-    </button>
+    <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{
+      background: muted ? 'var(--red)' : 'var(--green)',
+      boxShadow: muted ? '0 4px 12px rgba(217,45,32,0.35)' : '0 4px 12px rgba(18,183,106,0.35)',
+      transition: 'background 0.2s',
+    }}>
+      <style>{`@keyframes gesture-dot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+      <span style={{ fontSize: 18 }}>{muted ? '✊' : '✋'}</span>
+    </div>
+  );
+}
+
+function MuteFAB({ muted, onToggle, panelOpen, gestureActive }) {
+  return (
+    <div className="hidden md:flex fixed z-50 items-center gap-2 bottom-6" style={{
+      right: panelOpen ? 358 : 24,
+      transition: 'right 0.25s ease',
+    }}>
+      <button
+        onClick={onToggle}
+        className="w-14 h-14 rounded-full flex items-center justify-center"
+        style={{
+          background: muted ? 'var(--red)' : 'var(--green)',
+          color: '#fff',
+          boxShadow: muted
+            ? '0 6px 20px rgba(217,45,32,0.45)'
+            : '0 6px 20px rgba(18,183,106,0.45)',
+        }}
+      >
+        {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
+      </button>
+      {gestureActive && <GestureIndicator muted={muted} />}
+    </div>
   );
 }
 
@@ -1325,9 +1342,9 @@ function MobilePTTBar({ muted, onToggle }) {
   );
 }
 
-function MobileMuteFAB({ muted, onToggle }) {
+function MobileMuteFAB({ muted, onToggle, gestureActive }) {
   return (
-    <div className="flex justify-center py-2">
+    <div className="flex justify-center items-center gap-3 py-2">
       <button
         onClick={onToggle}
         className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -1341,6 +1358,7 @@ function MobileMuteFAB({ muted, onToggle }) {
       >
         {muted ? <MicOffIcon size={22} /> : <MicOnIcon size={22} />}
       </button>
+      {gestureActive && <GestureIndicator muted={muted} />}
     </div>
   );
 }

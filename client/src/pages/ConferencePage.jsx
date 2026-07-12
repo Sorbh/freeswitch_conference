@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
+import { useGestureControl, isGestureEnabled } from '../hooks/useGestureControl';
 
 export default function ConferencePage() {
   const { t } = useTranslation('dashboard');
   const { account, token } = useAuth();
-  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false } = useOutletContext() || {};
+  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false, setGestureActive } = useOutletContext() || {};
   const [callerIds, setCallerIds] = useState([]);
   const [userCount, setUserCount] = useState(0);
   const [unmutedCount, setUnmutedCount] = useState(0);
@@ -82,6 +83,15 @@ export default function ConferencePage() {
     else if (window.hotlineClient) window.hotlineClient.toggleMute();
   }
 
+  const gestureWanted = isGestureEnabled();
+  const gesture = useGestureControl(handleToggleMute, connected, muted);
+
+  useEffect(() => {
+    if (setGestureActive) setGestureActive(gesture.active);
+  }, [gesture.active, setGestureActive]);
+
+  const showGesturePrompt = gestureWanted && connected && !isListenOnly && !gesture.active && gesture.status !== "loading";
+
   const room = account?.current_room || account?.room;
   const currentRoomData = rooms.find(r => r.id === room);
   const roomDisplayName = currentRoomData ? currentRoomData.name : (room ? t('layout.roomFallback', { id: room }) : t('conference.roomNotAvailable'));
@@ -142,6 +152,25 @@ export default function ConferencePage() {
         </div>
       )}
 
+      {showGesturePrompt && (
+        <button
+          onClick={gesture.start}
+          className="w-full mb-4 px-4 py-3 rounded-xl flex items-center gap-3 text-left"
+          style={{ background: 'rgba(217,45,32,0.06)', border: '1px solid rgba(217,45,32,0.15)', cursor: 'pointer' }}
+        >
+          <span style={{ fontSize: 22 }}>✋</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Gesture Control</div>
+            <div className="text-xs" style={{ color: 'var(--muted)' }}>
+              {gesture.status === 'error' ? (gesture.errorMsg || 'Failed — tap to retry') : 'Tap to start camera for hands-free mute'}
+            </div>
+          </div>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: 'var(--red)', color: '#fff' }}>
+            {gesture.status === 'error' ? 'Retry' : 'Start'}
+          </span>
+        </button>
+      )}
+
       {/* Online stats bar — visible as soon as SSE data flows */}
       {(connected || totalOnline > 0) && (
         <div className="flex items-center gap-3 mb-4">
@@ -190,6 +219,8 @@ export default function ConferencePage() {
       </div>
 
       <div id="mixedaudio" style={{ display: 'none' }}><audio id="roomaudio" autoPlay /></div>
+
+
     </div>
   );
 }

@@ -117,6 +117,15 @@ function markdownToHtml(md) {
     return `<ul>${items}</ul>`;
   });
 
+  // Images
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />');
+
+  // Blockquotes
+  html = html.replace(/^(?:> .+\n?)+/gm, (match) => {
+    const inner = match.replace(/^> ?/gm, '').trim();
+    return `<blockquote>${inner}</blockquote>`;
+  });
+
   // Paragraphs
   html = html.split('\n\n').map(block => {
     block = block.trim();
@@ -147,10 +156,13 @@ function scanPosts() {
         title: meta.title || slug,
         description: meta.description || '',
         date: meta.date || '2026-01-01',
+        lastUpdated: meta.lastUpdated || null,
         readTime: meta.readTime || '5 min read',
         author: meta.author || 'Hotline HQ Team',
         authorRole: meta.authorRole || '',
         keywords: meta.keywords || '',
+        coverImage: meta.coverImage || null,
+        ogImage: meta.ogImage || meta.coverImage || null,
         component: meta.component || null,
         toc: Array.isArray(meta.toc) ? meta.toc : [],
         faq: Array.isArray(meta.faq) ? meta.faq : [],
@@ -212,10 +224,13 @@ function generateSsrData(posts) {
       title: p.title,
       description: p.description,
       date: p.date,
+      lastUpdated: p.lastUpdated,
       readTime: p.readTime,
       author: p.author,
       authorRole: p.authorRole,
       keywords: p.keywords,
+      coverImage: p.coverImage,
+      ogImage: p.ogImage,
       component: p.component,
       toc: p.toc,
       faq: p.faq,

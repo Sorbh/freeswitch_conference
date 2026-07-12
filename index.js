@@ -79,7 +79,7 @@ app.use((req, res, next) => {
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('X-Frame-Options', 'SAMEORIGIN');
     res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()');
+    res.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
     next();
 });
 // Strip trailing slashes (except root)
@@ -387,7 +387,7 @@ if (fs.existsSync(clientDistDir)) {
         return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
     }
 
-    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, preloadChunks }) {
+    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, preloadChunks, ogImage }) {
         const safeTitle = title.replace(/"/g, '&quot;');
         const safeDesc = description.replace(/"/g, '&quot;');
         const preloadHints = preloadChunks?.length
@@ -404,13 +404,13 @@ if (fs.existsSync(clientDistDir)) {
     <meta property="og:type" content="${ogType}">
     <meta property="og:url" content="${url}">
     <meta property="og:site_name" content="Hotline HQ">
-    <meta property="og:image" content="${OG_IMAGE}">
+    <meta property="og:image" content="${ogImage || OG_IMAGE}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${safeTitle}">
     <meta name="twitter:description" content="${safeDesc}">
-    <meta name="twitter:image" content="${OG_IMAGE}">
+    <meta name="twitter:image" content="${ogImage || OG_IMAGE}">
     ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}`;
         let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
         html = html.replace('</head>', `${metaTags}\n</head>`);
@@ -682,7 +682,7 @@ if (fs.existsSync(clientDistDir)) {
                 url: postUrl,
                 publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
                 datePublished: post.date,
-                dateModified: post.date,
+                dateModified: post.lastUpdated || post.date,
                 mainEntityOfPage: postUrl,
             },
         ];
@@ -702,6 +702,7 @@ if (fs.existsSync(clientDistDir)) {
             description: post.description,
             url: postUrl,
             keywords: post.keywords || '',
+            ogImage: post.ogImage ? `${BASE_URL}${post.ogImage}` : null,
             shell,
             jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
         });
