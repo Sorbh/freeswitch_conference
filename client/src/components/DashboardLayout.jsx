@@ -86,6 +86,7 @@ export default function DashboardLayout() {
   const [connError, setConnError] = useState('');
   const [muted, setMuted] = useState(true);
   const [isListenOnly, setIsListenOnly] = useState(false);
+  const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
   const [changingRoom, setChangingRoom] = useState(false);
@@ -281,6 +282,9 @@ export default function DashboardLayout() {
     function handleListenOnly(active) {
       setIsListenOnly(!!active);
     }
+    function handleMonitorMode(active) {
+      setIsMonitorMode(!!active);
+    }
     function handleUserLogout() {
       logout();
       navigate('/client/login?session=replaced');
@@ -290,6 +294,7 @@ export default function DashboardLayout() {
     window.onHotlineLoginFailed = handleLoginFailed;
     window.onHotlineDirectCallState = handleDirectCallState;
     window.onHotlineListenOnly = handleListenOnly;
+    window.onHotlineMonitorMode = handleMonitorMode;
     window.onHotlineUserLogout = handleUserLogout;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
@@ -303,6 +308,9 @@ export default function DashboardLayout() {
         if (window.hotlineClient.isListenOnly && window.hotlineClient.isListenOnly()) {
           setIsListenOnly(true);
         }
+        if (window.hotlineClient.isMonitorMode && window.hotlineClient.isMonitorMode()) {
+          setIsMonitorMode(true);
+        }
       }
     }, 2000);
     return () => {
@@ -313,6 +321,7 @@ export default function DashboardLayout() {
       if (window.onHotlineLoginFailed === handleLoginFailed) delete window.onHotlineLoginFailed;
       if (window.onHotlineDirectCallState === handleDirectCallState) delete window.onHotlineDirectCallState;
       if (window.onHotlineListenOnly === handleListenOnly) delete window.onHotlineListenOnly;
+      if (window.onHotlineMonitorMode === handleMonitorMode) delete window.onHotlineMonitorMode;
       if (window.onHotlineUserLogout === handleUserLogout) delete window.onHotlineUserLogout;
     };
   }, []);
@@ -478,7 +487,8 @@ export default function DashboardLayout() {
   const currentRoom = rooms.find(r => r.id === currentRoomId);
   const roomLabel = currentRoom ? currentRoom.name : (currentRoomId ? t('layout.roomFallback', { id: currentRoomId }) : '');
   const isConnected = connState === 'connected';
-  const colors = CONN_COLORS[connState] || CONN_COLORS.idle;
+  const monitorColors = { shadow: '0 4px 20px rgba(37,99,235,0.3)', bar: '#2563eb' };
+  const colors = isMonitorMode ? monitorColors : (CONN_COLORS[connState] || CONN_COLORS.idle);
 
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
@@ -657,7 +667,7 @@ export default function DashboardLayout() {
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-40 md:pb-6">
-          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly, setGestureActive }} />
+          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly, isMonitorMode, setGestureActive }} />
         </main>
       </div>
 
@@ -670,14 +680,14 @@ export default function DashboardLayout() {
       </div>
 
       {/* ── Mute FAB — desktop only (fixed bottom-right) ── */}
-      {isConnected && !isListenOnly && <MuteFAB muted={muted} onToggle={toggleMute} panelOpen={broadcastPanelOpen} gestureActive={gestureActive} />}
+      {isConnected && !isListenOnly && !isMonitorMode && <MuteFAB muted={muted} onToggle={toggleMute} panelOpen={broadcastPanelOpen} gestureActive={gestureActive} />}
 
       {/* ── Mobile bottom stack: items stack above bottom nav naturally ── */}
       <div
         className="md:hidden fixed left-0 right-0 z-50 flex flex-col items-stretch"
-        style={{ bottom: `calc(${isConnected && !isListenOnly ? '52px + ' : ''}49px + env(safe-area-inset-bottom))` }}
+        style={{ bottom: `calc(${isConnected && !isListenOnly && !isMonitorMode ? '52px + ' : ''}49px + env(safe-area-inset-bottom))` }}
       >
-        {isConnected && !isListenOnly && <MobileMuteFAB muted={muted} onToggle={toggleMute} gestureActive={gestureActive} />}
+        {isConnected && !isListenOnly && !isMonitorMode && <MobileMuteFAB muted={muted} onToggle={toggleMute} gestureActive={gestureActive} />}
         {isListenOnly && <ListenOnlyMobileBanner />}
         <FreeWebsiteOfferMobile />
       </div>
@@ -706,7 +716,7 @@ export default function DashboardLayout() {
           </NavLink>
         ))}
         </div>
-        {isConnected && !isListenOnly && <MobilePTTBar muted={muted} onToggle={toggleMute} />}
+        {isConnected && !isListenOnly && !isMonitorMode && <MobilePTTBar muted={muted} onToggle={toggleMute} />}
       </nav>
 
       {profilePromptOpen && (

@@ -7,7 +7,7 @@ import { useGestureControl, isGestureEnabled } from '../hooks/useGestureControl'
 export default function ConferencePage() {
   const { t } = useTranslation('dashboard');
   const { account, token } = useAuth();
-  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false, setGestureActive } = useOutletContext() || {};
+  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false, isMonitorMode = false, setGestureActive } = useOutletContext() || {};
   const [callerIds, setCallerIds] = useState([]);
   const [userCount, setUserCount] = useState(0);
   const [unmutedCount, setUnmutedCount] = useState(0);
@@ -55,7 +55,7 @@ export default function ConferencePage() {
     if (setGestureActive) setGestureActive(gesture.active);
   }, [gesture.active, setGestureActive]);
 
-  const showGesturePrompt = gestureWanted && connected && !isListenOnly && !gesture.active && gesture.status !== "loading";
+  const showGesturePrompt = gestureWanted && connected && !isListenOnly && !isMonitorMode && !gesture.active && gesture.status !== "loading";
 
   const room = account?.current_room || account?.room;
   const currentRoomData = rooms.find(r => r.id === room);
@@ -93,7 +93,7 @@ export default function ConferencePage() {
             {account?.company_name || ''} — {roomDisplayName}
           </p>
         </div>
-        {connected && !isListenOnly && (
+        {connected && !isListenOnly && !isMonitorMode && (
           <div className="flex items-center gap-3">
             <button onClick={handleToggleMute} className="hq-btn flex items-center gap-2 px-4 py-2" style={{ background: muted ? 'var(--red)' : 'var(--green)', boxShadow: muted ? '0 8px 18px rgba(217,45,32,0.3)' : '0 8px 18px rgba(18,183,106,0.3)' }}>
               {muted ? <><MicOffIcon /> {t('conference.unmute')}</> : <><MicOnIcon /> {t('conference.mute')}</>}
@@ -111,7 +111,7 @@ export default function ConferencePage() {
         )}
       </div>
 
-      {connected && !isListenOnly && (
+      {connected && !isListenOnly && !isMonitorMode && (
         <div className="hidden md:block mb-4 px-4 py-2.5 rounded-xl text-xs" style={{ background: 'var(--band)', color: 'var(--muted)', border: '1px solid var(--line)' }}>
           <Trans t={t} i18nKey="conference.muteShortcutHint" components={{ kbd: <span className="font-semibold font-mono" /> }} />
         </div>
