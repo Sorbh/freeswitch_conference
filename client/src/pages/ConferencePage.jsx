@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
@@ -13,7 +13,6 @@ export default function ConferencePage() {
   const [unmutedCount, setUnmutedCount] = useState(0);
   const [onlineCounts, setOnlineCounts] = useState({});
   const [rooms, setRooms] = useState([]);
-  const sseRef = useRef(null);
 
   const totalOnline = Object.values(onlineCounts).reduce((sum, n) => sum + n, 0);
   const roomOnline = onlineCounts[account?.current_room || account?.room] || 0;
@@ -30,52 +29,18 @@ export default function ConferencePage() {
   useEffect(() => {
     if (!account || !token) return;
 
-    window._onCallerIdData = function (data) {
+    function handleCallerIdUpdate(data) {
       if (data.callerIds) setCallerIds(data.callerIds);
       if (data.userCount !== undefined) setUserCount(data.userCount);
       if (data.unmutedCount !== undefined) setUnmutedCount(data.unmutedCount);
       if (data.online) setOnlineCounts(data.online);
-    };
-
-    window.updateOnlineCounts = function (online) {
-      setOnlineCounts(online || {});
-    };
-
-    // Own SSE connection for callerID data (works even if SIP client login fails)
-    const activeRoom = account.current_room || account.room;
-    if (activeRoom && token) {
-      if (sseRef.current) {
-        sseRef.current.close();
-        sseRef.current = null;
-      }
-      const sse = new EventSource(`/api/v1/client/events/room/${activeRoom}?token=${token}`);
-      sse.onmessage = function (event) {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'room_change' && data.email === account.email) {
-            if (typeof window.onHotlineRoomChange === 'function') {
-              window.onHotlineRoomChange({ source: 'sse', room: data.toRoom, roomName: data.toRoomName, direction: data.direction });
-            } else {
-              window.location.reload();
-            }
-            return;
-          }
-          if (data.callerIds) setCallerIds(data.callerIds);
-          if (data.userCount !== undefined) setUserCount(data.userCount);
-          if (data.unmutedCount !== undefined) setUnmutedCount(data.unmutedCount);
-          if (data.online) setOnlineCounts(data.online);
-        } catch {}
-      };
-      sseRef.current = sse;
     }
 
-    return () => {
-      if (sseRef.current) {
-        sseRef.current.close();
-        sseRef.current = null;
-      }
-    };
+    window.onCallerIdUpdate = handleCallerIdUpdate;
 
+    return () => {
+      if (window.onCallerIdUpdate === handleCallerIdUpdate) delete window.onCallerIdUpdate;
+    };
   }, [account, token]);
 
   function handleToggleMute() {

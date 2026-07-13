@@ -205,7 +205,7 @@ export default function DashboardLayout() {
     sipInitRef.current = true;
 
     const sipPwd = sessionStorage.getItem('hq_sip_pwd') || undefined;
-    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, email: account.email, ...(sipPwd ? { defaultPassword: sipPwd } : {}) };
+    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, broadcastFeed: true, email: account.email, ...(sipPwd ? { defaultPassword: sipPwd } : { token }) };
 
     if (!document.getElementById('sip-client-script')) {
       const script = document.createElement('script');
@@ -281,11 +281,16 @@ export default function DashboardLayout() {
     function handleListenOnly(active) {
       setIsListenOnly(!!active);
     }
+    function handleUserLogout() {
+      logout();
+      navigate('/client/login?session=replaced');
+    }
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
     window.onHotlineLoginFailed = handleLoginFailed;
     window.onHotlineDirectCallState = handleDirectCallState;
     window.onHotlineListenOnly = handleListenOnly;
+    window.onHotlineUserLogout = handleUserLogout;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
         if (window.hotlineClient.isConnected()) {
@@ -308,6 +313,7 @@ export default function DashboardLayout() {
       if (window.onHotlineLoginFailed === handleLoginFailed) delete window.onHotlineLoginFailed;
       if (window.onHotlineDirectCallState === handleDirectCallState) delete window.onHotlineDirectCallState;
       if (window.onHotlineListenOnly === handleListenOnly) delete window.onHotlineListenOnly;
+      if (window.onHotlineUserLogout === handleUserLogout) delete window.onHotlineUserLogout;
     };
   }, []);
 

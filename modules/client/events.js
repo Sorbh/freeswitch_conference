@@ -9,6 +9,24 @@ export const clientEventsRouter = express.Router();
 const clientRoomSSE = new Map();
 const clientUserSSE = new Map();
 
+export function kickClientSSE(userName) {
+    const normalizedUserName = _normalizeClientUserName(userName);
+    if (!normalizedUserName) return 0;
+    const clients = clientUserSSE.get(normalizedUserName);
+    if (!clients || clients.size === 0) return 0;
+    let kicked = 0;
+    for (const client of clients) {
+        try {
+            _writeClientEvent(client, { type: 'user_logout', reason: 'Logged in from another location' });
+            client.res.end();
+        } catch (e) { }
+        _removeFromMapSet(clientRoomSSE, client.room, client);
+        kicked++;
+    }
+    clientUserSSE.delete(normalizedUserName);
+    return kicked;
+}
+
 export function getClientSSEUsers() {
     const users = new Set();
     for (const userName of clientUserSSE.keys()) {
@@ -227,6 +245,7 @@ clientEventsRouter.get("/room/:room", requireClientSSEAuth, (req, res) => {
     res.write(`data: ${JSON.stringify({ type: 'connected', ...buildRoomSnapshot(room), online: buildOnlineCounts() })}\n\n`);
 
     const userName = _normalizeClientUserName(req.client.email);
+
     const client = {
         res,
         room,

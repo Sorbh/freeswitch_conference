@@ -28,6 +28,7 @@ export default function LoginPage() {
     if (verified === 'success') setMessage(t("login.emailVerified"));
     else if (verified === 'error') setError(msg ? decodeURIComponent(msg.replace(/\+/g, ' ')) : t("login.verificationFailed"));
     else if (searchParams.get('session') === 'expired') setMessage(t("login.sessionExpired"));
+    else if (searchParams.get('session') === 'replaced') setMessage(t("login.sessionReplaced"));
 
     if (queryEmail || queryPassword) {
       const nextParams = new URLSearchParams(searchParams);

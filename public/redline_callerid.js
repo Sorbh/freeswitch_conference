@@ -41,8 +41,8 @@
 // OPTIONAL CONFIG (set before loading this script):
 //   window.HOTLINE_CONFIG = {
 //     apiBase: '',              // API base URL (default: https://hotlinehq.online/fs)
-//     baseUrl: '',              // origin serving the shared helper scripts (redline_push.js,
-//                               // redline_extensions.js); default: https://hotlinehq.online
+//     baseUrl: '',              // origin serving the shared helper scripts (hotlinehq_push_notification.js,
+//                               // hotlinehq_extensions.js); default: https://hotlinehq.online
 //     room: '123456701',        // override room (default: reads localStorage)
 //     email: '',                // email for client login (default: reads localStorage user_data)
 //     password: '12345678',     // SIP password (default: 12345678)
@@ -81,7 +81,7 @@
 
 (function () {
     var config = window.HOTLINE_CONFIG || {};
-    // Origin hosting the shared helper scripts (redline_push.js, redline_extensions.js)
+    // Origin hosting the shared helper scripts (hotlinehq_push_notification.js, hotlinehq_extensions.js)
     var baseUrl = (config.baseUrl || 'https://hotlinehq.online').replace(/\/$/, '');
     var apiBase = config.apiBase || 'https://hotlinehq.online/fs';
     var room = config.room || window.CALLERID_ROOM || localStorage.getItem("room");
@@ -125,14 +125,14 @@
         }
     }
 
-    // Extension directory + direct-call UI live in the shared module redline_extensions.js
+    // Extension directory + direct-call UI live in the shared module hotlinehq_extensions.js
     function initExtensionModule(cb) {
         if (window.RedlineDirectCall) return cb();
-        var script = document.getElementById('redline_extensions_module');
+        var script = document.getElementById('hotline_extensions_module');
         if (!script) {
             script = document.createElement('script');
-            script.id = 'redline_extensions_module';
-            script.src = baseUrl + '/redline_extensions.js';
+            script.id = 'hotline_extensions_module';
+            script.src = baseUrl + '/hotlinehq_extensions.js';
             document.head.appendChild(script);
         }
         script.addEventListener('load', function () { if (window.RedlineDirectCall) cb(); });
@@ -183,14 +183,14 @@
         conferenceStatusTimer = setInterval(updateExtensionDirectoryVisibility, 5000);
     }
 
-    // Direct-call banner + handlers live in redline_extensions.js (RedlineDirectCall)
+    // Direct-call banner + handlers live in hotlinehq_extensions.js (RedlineDirectCall)
     function handleDirectCallEvent(data) {
         if (!data || !data.type || data.type.indexOf('direct_call_') !== 0) return false;
         if (window.RedlineDirectCall) window.RedlineDirectCall.handleEvent(data);
         return true;
     }
 
-    // ── Push notifications (shared module: redline_push.js) ──
+    // ── Push notifications (shared module: hotlinehq_push_notification.js) ──
     function initPushNotifications(getToken) {
         if (config.pushNotifications !== true) {
             console.log('[CallerID] Push notifications disabled (set pushNotifications: true to enable)');
@@ -204,10 +204,10 @@
             });
         }
         if (window.RedlinePush) return start();
-        if (document.getElementById('redline_push_module')) return;
+        if (document.getElementById('hotline_push_module')) return;
         var script = document.createElement('script');
-        script.id = 'redline_push_module';
-        script.src = baseUrl + '/redline_push.js';
+        script.id = 'hotline_push_module';
+        script.src = baseUrl + '/hotlinehq_push_notification.js';
         script.onload = start;
         document.head.appendChild(script);
     }

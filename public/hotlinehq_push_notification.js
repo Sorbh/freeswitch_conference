@@ -14,7 +14,7 @@
 // LOADED AUTOMATICALLY by redline_sip_client.js and redline_callerid.js
 // after login. Can also be used standalone:
 //
-//   <script src="https://hotlinehq.online/redline_push.js"></script>
+//   <script src="https://hotlinehq.online/hotlinehq_push_notification.js"></script>
 //   <script>
 //     RedlinePush.init({
 //       apiBase: 'https://hotlinehq.online/fs',

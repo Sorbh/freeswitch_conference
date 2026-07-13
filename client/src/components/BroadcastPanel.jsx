@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 
@@ -78,48 +78,50 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const audioRef = useRef(null);
-  const sseRef = useRef(null);
+  const feedStartedRef = useRef(false);
 
-  const connectSSE = useCallback(() => {
-    if (!token || !currentRoom) return;
-    if (sseRef.current) { sseRef.current.close(); sseRef.current = null; }
-
-    const url = '/api/v1/client/events/broadcasts/' + currentRoom + '?token=' + token + '&hasParts=1';
-    const sse = new EventSource(url);
-    sse.onmessage = function (event) {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'connected') {
-          setBroadcasts(data.data || []);
-          setTotal(data.total || 0);
-          setPage(1);
-        } else if (data.type === 'broadcast') {
-          setBroadcasts(prev => [data.data, ...prev]);
-          setTotal(prev => prev + 1);
-        }
-      } catch {}
-    };
-    sse.onerror = function () {
-      try { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } } catch {}
-      setTimeout(() => { if (token) connectSSE(); }, 5000);
-    };
-    sseRef.current = sse;
-  }, [token, currentRoom]);
-
+  // Register broadcast callbacks + start feed when ready
   useEffect(() => {
-    if (collapsed) return;
-    connectSSE();
-    return () => { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } };
-  }, [connectSSE, collapsed]);
+    if (collapsed || !currentRoom) return;
+    feedStartedRef.current = false;
+
+    function handleConnected(data) {
+      setBroadcasts(data.data || []);
+      setTotal(data.total || 0);
+      setPage(1);
+    }
+    function handleBroadcast(data) {
+      setBroadcasts(prev => [data.data, ...prev]);
+      setTotal(prev => prev + 1);
+    }
+    function tryStart() {
+      if (feedStartedRef.current) return;
+      if (window.hotlineClient && window.hotlineClient.getAccount() && window.HotlineBroadcastFeed) {
+        window.hotlineClient.startBroadcastFeed(currentRoom, { hasParts: 1 });
+        feedStartedRef.current = true;
+      }
+    }
+
+    window.onHotlineBroadcastConnected = handleConnected;
+    window.onHotlineBroadcast = handleBroadcast;
+
+    tryStart();
+    var poll = !feedStartedRef.current ? setInterval(tryStart, 1000) : null;
+
+    return () => {
+      if (poll) clearInterval(poll);
+      if (window.onHotlineBroadcastConnected === handleConnected) delete window.onHotlineBroadcastConnected;
+      if (window.onHotlineBroadcast === handleBroadcast) delete window.onHotlineBroadcast;
+      if (window.hotlineClient) window.hotlineClient.stopBroadcastFeed();
+    };
+  }, [currentRoom, collapsed]);
 
   async function loadMore() {
-    if (loading || !token || !currentRoom) return;
+    if (loading || !currentRoom || !window.hotlineClient) return;
     const nextPage = page + 1;
     setLoading(true);
     try {
-      const url = '/api/v1/client/broadcasts/list/' + currentRoom + '?page=' + nextPage + '&pageSize=50&hasParts=1';
-      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-      const json = await res.json();
+      const json = await window.hotlineClient.getBroadcasts(currentRoom, { page: nextPage, pageSize: 50, hasParts: 1 });
       if (json.status && json.data) {
         setBroadcasts(prev => [...prev, ...json.data]);
         setPage(nextPage);

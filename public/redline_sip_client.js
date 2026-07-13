@@ -47,12 +47,18 @@
 //   window.HOTLINE_CONFIG = {
 //     wsServer: '',              // WebSocket URL for SIP (default: wss://hotlinehq.online/fs_wss/)
 //     apiBase: '',               // API base URL (default: https://hotlinehq.online/fs/)
-//     baseUrl: '',               // origin serving the shared helper scripts (redline_push.js,
-//                                // redline_extensions.js); default: https://hotlinehq.online
+//     baseUrl: '',               // origin serving the shared helper scripts (hotlinehq_push_notification.js,
+//                                // hotlinehq_extensions.js); default: https://hotlinehq.online
 //     defaultPassword: '12345678', // SIP password (also used for /client/login)
-//     extensionWidget: true,     // set false to disable the floating extension directory (default: true)
+//     token: '',                  // pre-existing JWT token — skips POST /login, fetches account via GET /account
+//     extensions: true,           // set false to disable loading extension/direct-call module (default: true)
+//     extensionWidget: true,     // set false to hide the floating extension directory UI (default: true)
 //     pushNotifications: false,   // set true to enable loading push notification module (default: false)
-//     directCallAnswerButton: false // set true to show Answer button for incoming direct calls
+//     broadcastFeed: false,        // set true to enable loading broadcast feed module (default: false)
+//     directCallAnswerButton: false, // set true to show Answer button for incoming direct calls
+//     listenOnly: false,          // set true to force listen-only mode (SIP registers with silent audio, no mic)
+//     monitorMode: false,         // set true to skip SIP entirely — SSE caller ID only, no audio, no mute (view-only)
+//                                 // also auto-activated when login detects Yealink already connected
 //   };
 //
 // API ENDPOINTS USED:
@@ -74,10 +80,11 @@
 //   window.onHotlineDirectCallState = function(state, data) { ... }    // 'incoming', 'outgoing', 'connected', 'ending', 'ended', 'declined', 'missed', 'cancelled', 'busy', 'unavailable'
 //   window.onHotlineRoomChange = function(data) { ... }                // { source, room, roomName } — called on room change (API or SSE)
 //   window.onHotlineUserRefresh = function(data) { ... }               // { email, reason } — admin requested refresh; default (no callback): full page reload
+//   window.onHotlineUserLogout = function(data) { ... }                // { type, reason } — logged out by server (e.g. signed in from another location)
+//   window.onHotlineMonitorMode = function(active) { ... }             // true when monitor mode activated (Yealink connected, view-only dashboard)
 //   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
 //   window.onHotlineBroadcast = function(data) { ... }                 // { type:'broadcast', data:{...broadcast row...}, ts }
-//   window.updateOnlineCounts = function(onlineMap) { ... }            // { roomId: count, ... }
-//   window.onCallerIdUpdate = function(callerIdHtml) { ... }           // raw caller ID HTML array
+//   window.onCallerIdUpdate = function(data) { ... }                   // { callerIds, callerIdHtml, userCount, unmutedCount, online, ts }
 //
 // MANUAL CONTROL (if needed):
 //   window.hotlineClient.login('email@example.com')               // login with specific email
@@ -85,7 +92,6 @@
 //   window.hotlineClient.reconnect()                              // force reconnect SSE
 //   window.hotlineClient.disconnect()                             // stop SSE and clear grid
 //   window.hotlineClient.toggleMute()                             // Ctrl+L equivalent
-//   window.hotlineClient.joinConference()                         // request server to call this user
 //   window.hotlineClient.hangup()                                 // end current call
 //   window.hotlineClient.getRoom()                                // get current room
 //   window.hotlineClient.getRoomDetails()                         // get all rooms with online counts
@@ -95,9 +101,11 @@
 //   window.hotlineClient.getToken()                               // get current JWT token
 //   window.hotlineClient.startBroadcastFeed(room, {answered})     // start broadcast SSE (room optional)
 //   window.hotlineClient.stopBroadcastFeed()                      // stop broadcast SSE
-//   window.hotlineClient.getBroadcasts(room, {page,pageSize,answered,dateFrom,dateTo})  // REST fetch
-//   window.hotlineClient.isConnected()                            // true if in active call
+//   window.hotlineClient.getBroadcasts(room, {page,pageSize,answered,hasParts,dateFrom,dateTo})  // REST fetch
+//   window.hotlineClient.isConnected()                            // true if in active call or monitor mode
 //   window.hotlineClient.isMuted()                                // true if muted
+//   window.hotlineClient.isListenOnly()                           // true if listen-only mode
+//   window.hotlineClient.isMonitorMode()                          // true if monitor mode (Yealink or config)
 //   window.RedlineExtensionDirectory.open()                       // open extension search
 //
 // SSE EVENTS HANDLED:
@@ -105,6 +113,7 @@
 //   online_update — online/offline count changes
 //   room_change   — user changed room (auto-reloads if current user)
 //   user_refresh  — admin requested browser refresh (reloads page unless onHotlineUserRefresh is set)
+//   user_logout   — server-initiated logout (e.g. signed in from another location); calls logout()
 //   direct_call_* — incoming/outgoing direct call notifications
 //
 // ═══════════════════════════════════════════════════════════════════════════
@@ -115,59 +124,31 @@ import "./jssip.bundle.js";
 
     function init() {
         console.log('[SIP] init() called');
+
+        // ── 1. Config & State ──
+
         var config = window.HOTLINE_CONFIG || {};
-        // Origin hosting the shared helper scripts (redline_push.js, redline_extensions.js)
         var baseUrl = (config.baseUrl || 'https://hotlinehq.online').replace(/\/$/, '');
         var apiBase = config.apiBase || 'https://hotlinehq.online/fs';
         var wsServer = config.wsServer || 'wss://hotlinehq.online/fs_wss/';
         var sipDomain = '50.28.84.57';
         var defaultPassword = config.defaultPassword || '12345678';
-        if (config.listenOnly) listenOnly = true;
 
         var ua = null;
         var currentSession = null;
         var isMuted = true;
-        var listenOnly = false;
+        var listenOnly = !!config.listenOnly;
+        var monitorMode = !!config.monitorMode;
         var listenOnlySilentStream = null;
         var accountData = null;
         var clientToken = null;
         var loggingOut = false;
         var regRetryTimer = null;
         var callerIdSource = null;
-        var lastHeartbeat = Date.now();
         var callerIdReconnectAttempts = 0;
+        var lastHeartbeat = Date.now();
 
-        function notifyCallState(state) {
-            try {
-                if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState(state);
-            } catch (e) { }
-        }
-
-        function notifyMuteState() {
-            try {
-                if (typeof window.onHotlineMuteState === 'function') window.onHotlineMuteState(isMuted);
-            } catch (e) { }
-        }
-
-        function notifyListenOnly() {
-            try {
-                if (typeof window.onHotlineListenOnly === 'function') window.onHotlineListenOnly(true);
-            } catch (e) { }
-        }
-
-        // ── Sleep/wake detection ──
-        setInterval(function () {
-            try {
-                var now = Date.now();
-                if (now - lastHeartbeat > 15000 && ua && !loggingOut) {
-                    try {
-                        ua.stop();
-                        setTimeout(function () { if (!loggingOut && ua) ua.start(); }, 1000);
-                    } catch (e) { }
-                }
-                lastHeartbeat = now;
-            } catch (e) { }
-        }, 5000);
+        // ── 2. Utilities ──
 
         function generateMac(email) {
             try {
@@ -188,7 +169,6 @@ import "./jssip.bundle.js";
             }
         }
 
-        // ── Read user data from localStorage (production Vue app) ──
         function getLocalStorageUserData() {
             try {
                 var raw = localStorage.getItem("user_data");
@@ -203,7 +183,6 @@ import "./jssip.bundle.js";
                     var digits = phone.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
                     formattedPhone = !digits[2] ? digits[1] : '(' + digits[1] + ') ' + digits[2] + (digits[3] ? '-' + digits[3] : '');
                 } catch (e) { formattedPhone = phone; }
-
                 return {
                     email: userData.email || detail.email || '',
                     userId: userData.id,
@@ -222,37 +201,194 @@ import "./jssip.bundle.js";
             }
         }
 
-        // Extension directory + direct-call UI live in the shared module redline_extensions.js
-        function initExtensionModule(cb) {
-            if (window.RedlineDirectCall) return cb();
-            var script = document.getElementById('redline_extensions_module');
-            if (!script) {
-                script = document.createElement('script');
-                script.id = 'redline_extensions_module';
-                script.src = baseUrl + '/redline_extensions.js';
-                document.head.appendChild(script);
-            }
-            script.addEventListener('load', function () { if (window.RedlineDirectCall) cb(); });
+        // ── 3. Callback Notifiers ──
+
+        function notifyCallState(state) {
+            try { if (typeof window.onHotlineCallState === 'function') window.onHotlineCallState(state); } catch (e) { }
         }
 
-        initExtensionModule(function () {
-            window.RedlineDirectCall.configure({
-                apiBase: apiBase,
-                getToken: function () { return clientToken; },
-            });
-            if (config.extensionWidget === false) {
-                console.log('[SIP] Extension directory widget disabled via config');
-                window.RedlineExtensionDirectory.configure({ disabled: true });
-            } else window.RedlineExtensionDirectory.configure({
-                apiBase: apiBase,
-                getToken: function () { return clientToken; },
-                getOwnExtension: function () { return accountData && accountData.extension; },
-                getUserEmail: function () { return accountData && accountData.email; },
-                visible: false,
-            });
-        });
+        function notifyMuteState() {
+            try { if (typeof window.onHotlineMuteState === 'function') window.onHotlineMuteState(isMuted); } catch (e) { }
+        }
 
-        // ── Mic permission check ──
+        function notifyListenOnly() {
+            try { if (typeof window.onHotlineListenOnly === 'function') window.onHotlineListenOnly(true); } catch (e) { }
+        }
+
+        function notifyMonitorMode() {
+            try { if (typeof window.onHotlineMonitorMode === 'function') window.onHotlineMonitorMode(true); } catch (e) { }
+        }
+
+        function _notifyRoomChange(data) {
+            if (typeof window.onHotlineRoomChange === 'function') {
+                window.onHotlineRoomChange(data);
+            } else {
+                window.location.reload();
+            }
+        }
+
+        // ── 4. External Module Loaders ──
+
+        function initExtensionModule(getToken) {
+            function start() {
+                window.RedlineDirectCall.configure({
+                    apiBase: apiBase,
+                    getToken: getToken,
+                });
+                if (config.extensionWidget === false) {
+                    console.log('[SIP] Extension directory widget disabled via config');
+                    window.RedlineExtensionDirectory.configure({ disabled: true });
+                } else {
+                    window.RedlineExtensionDirectory.configure({
+                        apiBase: apiBase,
+                        getToken: getToken,
+                        getOwnExtension: function () { return accountData && accountData.extension; },
+                        getUserEmail: function () { return accountData && accountData.email; },
+                        visible: false,
+                    });
+                }
+            }
+            if (window.RedlineDirectCall) return start();
+            if (document.getElementById('hotline_extensions_module')) return;
+            var script = document.createElement('script');
+            script.id = 'hotline_extensions_module';
+            script.src = baseUrl + '/hotlinehq_extensions.js?v=' + Date.now();
+            script.onload = start;
+            document.head.appendChild(script);
+        }
+
+        function initPushNotifications(getToken) {
+            function start() {
+                window.RedlinePush.init({
+                    apiBase: apiBase,
+                    getToken: getToken,
+                    prompt: config.pushPrompt !== false,
+                });
+            }
+            if (window.RedlinePush) return start();
+            if (document.getElementById('hotline_push_module')) return;
+            var script = document.createElement('script');
+            script.id = 'hotline_push_module';
+            script.src = baseUrl + '/hotlinehq_push_notification.js?v=' + Date.now();
+            script.onload = start;
+            document.head.appendChild(script);
+        }
+
+        function initBroadcastFeed(getToken) {
+            function start() {
+                window.HotlineBroadcastFeed.configure({
+                    apiBase: apiBase,
+                    getToken: getToken,
+                });
+            }
+            if (window.HotlineBroadcastFeed) return start();
+            if (document.getElementById('hotline_broadcast_module')) return;
+            var script = document.createElement('script');
+            script.id = 'hotline_broadcast_module';
+            script.src = baseUrl + '/hotlinehq_broadcast_feed.js?v=' + Date.now();
+            script.onload = start;
+            document.head.appendChild(script);
+        }
+
+        function startBroadcastFeed(room, options) {
+            if (window.HotlineBroadcastFeed) window.HotlineBroadcastFeed.start(room, options);
+        }
+
+        function stopBroadcastFeed() {
+            if (window.HotlineBroadcastFeed) window.HotlineBroadcastFeed.stop();
+        }
+
+        // ── 5. Audio Management ──
+
+        var audioElement = null;
+        var micStream = null;
+
+        function ensureAudioElement() {
+            if (audioElement) return audioElement;
+            var container = document.getElementById("mixedaudio");
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'mixedaudio';
+                container.style.display = 'none';
+                document.body.appendChild(container);
+            }
+            container.innerHTML = '<audio id="roomaudio" autoplay></audio>';
+            audioElement = document.getElementById("roomaudio");
+            return audioElement;
+        }
+
+        function attachRemoteAudio(session) {
+            try {
+                if (!session || !session.connection) return;
+                var tracks = session.connection.getReceivers()
+                    .filter(function (r) { return r.track && r.track.kind === 'audio'; })
+                    .map(function (r) { return r.track; });
+                console.log('[SIP] attachRemoteAudio: remote audio tracks:', tracks.length, 'listenOnly:', listenOnly);
+                if (tracks.length > 0) {
+                    var el = ensureAudioElement();
+                    if (!el) return;
+                    el.srcObject = new MediaStream(tracks);
+                    el.play().catch(function (e) { console.error('[SIP] Audio play failed:', e.message); });
+                }
+            } catch (e) { console.error('[SIP] attachRemoteAudio error:', e.message); }
+        }
+
+        function muteAudio(mute) {
+            try {
+                if (!currentSession || !currentSession.connection) return;
+                currentSession.connection.getSenders().forEach(function (sender) {
+                    if (sender.track && sender.track.kind === 'audio') {
+                        sender.track.enabled = !mute;
+                    }
+                });
+            } catch (e) { }
+        }
+
+        function stopMicStream() {
+            try {
+                if (micStream) {
+                    micStream.getTracks().forEach(function (t) { t.stop(); });
+                    micStream = null;
+                }
+            } catch (e) { }
+        }
+
+        function releaseSessionMedia(session) {
+            stopMicStream();
+            if (!listenOnly) {
+                try {
+                    if (session && session.connection) {
+                        session.connection.getSenders().forEach(function (s) {
+                            if (s.track) s.track.stop();
+                        });
+                    }
+                } catch (e) { }
+            }
+            try {
+                if (audioElement) { audioElement.pause(); audioElement.srcObject = null; }
+            } catch (e) { }
+        }
+
+        function _activateListenOnly() {
+            try {
+                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                ctx.resume();
+                var oscillator = ctx.createOscillator();
+                var gain = ctx.createGain();
+                gain.gain.value = 0;
+                oscillator.connect(gain);
+                var dest = ctx.createMediaStreamDestination();
+                gain.connect(dest);
+                oscillator.start();
+                listenOnlySilentStream = dest.stream;
+                console.log('[SIP] Listen-only activated, silent stream tracks:', listenOnlySilentStream.getAudioTracks().length);
+            } catch (e) { console.error('[SIP] Silent stream creation failed:', e.message); }
+            var el = ensureAudioElement();
+            if (el) { el.play().catch(function () { }); }
+        }
+
+        // ── 6. Mic Permission ──
+
         var micPermissionModal = null;
 
         function showMicPermissionModal(mode) {
@@ -304,7 +440,7 @@ import "./jssip.bundle.js";
                 _activateListenOnly();
                 hideMicPermissionModal();
                 var email = accountData && accountData.email;
-                if (email) _startSipRegistration(email, defaultPassword);
+                if (email) _startSipRegistration(email, accountData.sip_password || defaultPassword);
             };
         }
 
@@ -316,11 +452,10 @@ import "./jssip.bundle.js";
         }
 
         async function checkMicPermission() {
-            // Check permission state without triggering prompt
             var permState = 'unknown';
             try {
                 var perm = await navigator.permissions.query({ name: 'microphone' });
-                permState = perm.state; // 'granted', 'denied', or 'prompt'
+                permState = perm.state;
             } catch (e) { permState = 'unknown'; }
 
             if (permState === 'denied') {
@@ -329,8 +464,6 @@ import "./jssip.bundle.js";
                 return false;
             }
 
-            // Try getUserMedia — this is the only reliable way to detect a real mic.
-            // enumerateDevices() reports phantom 'audioinput' on no-mic systems.
             try {
                 var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 stream.getTracks().forEach(function (t) { t.stop(); });
@@ -338,22 +471,17 @@ import "./jssip.bundle.js";
                 return true;
             } catch (err) {
                 console.warn('[SIP] getUserMedia failed:', err.name, err.message);
-                // NotFoundError/OverconstrainedError = clearly no mic hardware
                 if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError' || err.name === 'NotReadableError') {
                     console.warn('[SIP] No microphone hardware — entering listen-only');
                     listenOnly = true;
                     _activateListenOnly();
                     return 'listen-only';
                 }
-                // Edge/Chrome may throw NotAllowedError even on no-mic systems.
-                // Secondary check: after getUserMedia attempt, enumerateDevices
-                // may reveal whether a real mic actually exists.
                 try {
                     var devicesAfter = await navigator.mediaDevices.enumerateDevices();
                     var realMics = devicesAfter.filter(function (d) {
                         return d.kind === 'audioinput' && d.deviceId && d.deviceId !== '';
                     });
-                    // No real device IDs = phantom entries = no physical mic
                     var allPhantom = realMics.every(function (d) { return d.label === ''; }) && permState !== 'granted';
                     if (realMics.length === 0 || allPhantom) {
                         console.warn('[SIP] No real microphone found after secondary check — entering listen-only');
@@ -368,32 +496,8 @@ import "./jssip.bundle.js";
             }
         }
 
-        function _activateListenOnly() {
-            try {
-                var ctx = new (window.AudioContext || window.webkitAudioContext)();
-                ctx.resume();
-                var oscillator = ctx.createOscillator();
-                var gain = ctx.createGain();
-                gain.gain.value = 0;
-                oscillator.connect(gain);
-                var dest = ctx.createMediaStreamDestination();
-                gain.connect(dest);
-                oscillator.start();
-                listenOnlySilentStream = dest.stream;
-                console.log('[SIP] Listen-only activated, silent stream tracks:', listenOnlySilentStream.getAudioTracks().length);
-            } catch (e) { console.error('[SIP] Silent stream creation failed:', e.message); }
-            var el = ensureAudioElement();
-            if (el) { el.play().catch(function () {}); }
-        }
+        // ── 7. CallerID SSE ──
 
-        // Direct-call banner + handlers live in redline_extensions.js (RedlineDirectCall)
-        function handleDirectCallEvent(data) {
-            if (!data || !data.type || data.type.indexOf('direct_call_') !== 0) return false;
-            if (window.RedlineDirectCall) window.RedlineDirectCall.handleEvent(data);
-            return true;
-        }
-
-        // ── CallerID SSE ──
         function startCallerIdSSE(room) {
             stopCallerIdSSE();
             callerIdReconnectAttempts = 0;
@@ -411,10 +515,19 @@ import "./jssip.bundle.js";
                 callerIdSource.onmessage = function (event) {
                     try {
                         var data = JSON.parse(event.data);
-                        if (handleDirectCallEvent(data)) return;
+                        if (data.type && data.type.indexOf('direct_call_') === 0) {
+                            if (window.RedlineDirectCall) window.RedlineDirectCall.handleEvent(data);
+                            return;
+                        }
+                        if (data.type === 'user_logout') {
+                            console.warn('[SIP] Logged out:', data.reason);
+                            if (typeof window.onHotlineUserLogout === 'function') {
+                                window.onHotlineUserLogout(data);
+                            }
+                            logout();
+                            return;
+                        }
                         if (data.type === 'user_refresh') {
-                            // Server already targets frames per-user; if we don't know our
-                            // own email (token-mode), trust the targeting and refresh anyway.
                             var refreshEmail = accountData && accountData.email;
                             if (!data.email || !refreshEmail || data.email === refreshEmail) {
                                 console.log('[Hotline] User refresh requested:', data.reason || '');
@@ -438,15 +551,12 @@ import "./jssip.bundle.js";
                             console.log('[TIMING] Ctrl+L -> callerID rendered: +' + (Date.now() - window._muteToggleAt) + 'ms (server emit -> browser: +' + (Date.now() - data.ts) + 'ms)');
                             window._muteToggleAt = null;
                         }
-                        if (typeof window._onCallerIdData === 'function') {
-                            window._onCallerIdData(data);
+                        if (typeof window.onCallerIdUpdate === 'function') {
+                            window.onCallerIdUpdate(data);
                         }
                         var grid = document.getElementById('caller_grid');
                         if (grid && data.callerIdHtml) {
                             grid.innerHTML = (data.callerIdHtml || []).join('');
-                        }
-                        if (data.online && typeof window.updateOnlineCounts === 'function') {
-                            window.updateOnlineCounts(data.online);
                         }
                     } catch (e) { }
                 };
@@ -476,175 +586,7 @@ import "./jssip.bundle.js";
             }
         }
 
-        // ── Audio ──
-        var audioElement = null;
-
-        function ensureAudioElement() {
-            if (audioElement) return audioElement;
-            var container = document.getElementById("mixedaudio");
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'mixedaudio';
-                container.style.display = 'none';
-                document.body.appendChild(container);
-            }
-            container.innerHTML = '<audio id="roomaudio" autoplay></audio>';
-            audioElement = document.getElementById("roomaudio");
-            return audioElement;
-        }
-
-        function attachRemoteAudio(session) {
-            try {
-                if (!session || !session.connection) return;
-                var tracks = session.connection.getReceivers()
-                    .filter(function (r) { return r.track && r.track.kind === 'audio'; })
-                    .map(function (r) { return r.track; });
-                console.log('[SIP] attachRemoteAudio: remote audio tracks:', tracks.length, 'listenOnly:', listenOnly);
-                if (tracks.length > 0) {
-                    var el = ensureAudioElement();
-                    if (!el) return;
-                    el.srcObject = new MediaStream(tracks);
-                    el.play().catch(function (e) { console.error('[SIP] Audio play failed:', e.message); });
-                }
-            } catch (e) { console.error('[SIP] attachRemoteAudio error:', e.message); }
-        }
-
-        function muteAudio(mute) {
-            try {
-                if (!currentSession || !currentSession.connection) return;
-                currentSession.connection.getSenders().forEach(function (sender) {
-                    if (sender.track && sender.track.kind === 'audio') {
-                        sender.track.enabled = !mute;
-                    }
-                });
-            } catch (e) { }
-        }
-
-        // ── Mic stream ownership ──
-        // We acquire the mic ourselves and pass it to session.answer() so we can
-        // deterministically stop it on every teardown path. If JsSIP acquires it
-        // internally and the session dies mid-answer, the stream leaks and the
-        // browser keeps the recording indicator until the tab closes.
-        var micStream = null;
-
-        function stopMicStream() {
-            try {
-                if (micStream) {
-                    micStream.getTracks().forEach(function (t) { t.stop(); });
-                    micStream = null;
-                }
-            } catch (e) { }
-        }
-
-        function releaseSessionMedia(session) {
-            stopMicStream();
-            // Don't stop senders in listen-only mode: the silent oscillator track
-            // is reused across sessions and is not a capture device anyway.
-            if (!listenOnly) {
-                try {
-                    if (session && session.connection) {
-                        session.connection.getSenders().forEach(function (s) {
-                            if (s.track) s.track.stop();
-                        });
-                    }
-                } catch (e) { }
-            }
-            try {
-                if (audioElement) { audioElement.pause(); audioElement.srcObject = null; }
-            } catch (e) { }
-        }
-
-        // ── Push notifications (shared module: redline_push.js) ──
-        function initPushNotifications(getToken) {
-            if (config.pushNotifications !== true) {
-                console.log('[SIP] Push notifications disabled (set pushNotifications: true to enable)');
-                return;
-            }
-            function start() {
-                window.RedlinePush.init({
-                    apiBase: apiBase,
-                    getToken: getToken,
-                    prompt: config.pushPrompt !== false,
-                });
-            }
-            if (window.RedlinePush) return start();
-            if (document.getElementById('redline_push_module')) return;
-            var script = document.createElement('script');
-            script.id = 'redline_push_module';
-            script.src = baseUrl + '/redline_push.js';
-            script.onload = start;
-            document.head.appendChild(script);
-        }
-
-        // ── SIP ──
-        function doLogin(emailArg) {
-            var lsData = getLocalStorageUserData();
-            var email = emailArg || (lsData && lsData.email) || '';
-            var password = defaultPassword;
-
-            if (!email) {
-                console.error('[SIP] No email provided and none found in localStorage');
-                return;
-            }
-
-            console.log('[SIP] Logging in:', email);
-
-            fetch(apiBase + '/api/v1/client/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, password: password }),
-            })
-            .then(function (r) {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            })
-            .then(function (json) {
-                clientToken = json.token;
-                accountData = json.data || json;
-
-                if (!accountData.room && lsData && lsData.room) {
-                    accountData.room = lsData.room;
-                }
-                if (lsData) {
-                    if (!accountData.display_name && lsData.repName) accountData.display_name = lsData.repName;
-                    if (!accountData.company_name && lsData.companyName) accountData.company_name = lsData.companyName;
-                    accountData._lsData = lsData;
-                }
-
-                if (!accountData.room) {
-                    console.error('[SIP] Account has no room:', accountData);
-                    return;
-                }
-
-                var activeRoom = accountData.current_room || accountData.room;
-                console.log('[SIP] Login OK:', accountData.display_name, 'Room:', activeRoom);
-                startCallerIdSSE(activeRoom);
-                initPushNotifications(function () { return clientToken; });
-
-                if (typeof window.onHotlineReady === 'function') {
-                    window.onHotlineReady(accountData);
-                }
-
-                if (listenOnly) {
-                    console.log('[SIP] Listen-only mode — skipping mic check');
-                    _startSipRegistration(email, password);
-                } else {
-                    checkMicPermission().then(function (result) {
-                        if (result === true || result === 'listen-only') {
-                            _startSipRegistration(email, password);
-                        } else {
-                            console.warn('[SIP] Mic permission denied — SIP registration skipped, listen-only available via modal');
-                        }
-                    });
-                }
-            })
-            .catch(function (e) {
-                console.error('[SIP] Login failed:', e.message);
-                if (typeof window.onHotlineLoginFailed === 'function') {
-                    window.onHotlineLoginFailed(e.message);
-                }
-            });
-        }
+        // ── 8. SIP Registration ──
 
         function _startSipRegistration(email, password) {
             try {
@@ -683,12 +625,10 @@ import "./jssip.bundle.js";
                     try {
                         var cause = e.cause || 'unknown';
                         console.error('[SIP] Registration failed:', cause);
-
                         if (cause === 'Rejected' || cause === 'Forbidden') {
                             if (ua) { ua.stop(); ua = null; }
                             return;
                         }
-
                         if (!regRetryTimer && ua) {
                             regRetryTimer = setInterval(function () {
                                 try {
@@ -706,23 +646,10 @@ import "./jssip.bundle.js";
                     }
                 });
 
-                ua.on('unregistered', function () {
-                    if (loggingOut) return;
-                    console.warn('[SIP] Unregistered');
-                });
-
-                ua.on('disconnected', function () {
-                    if (loggingOut) return;
-                    console.warn('[SIP] WebSocket disconnected');
-                });
-
-                ua.on('connected', function () {
-                    console.log('[SIP] WebSocket connected');
-                });
-
-                ua.on('newMessage', function (data) {
-                    try { if (data.originator === 'remote') data.message.accept(); } catch (e) { }
-                });
+                ua.on('unregistered', function () { if (!loggingOut) console.warn('[SIP] Unregistered'); });
+                ua.on('disconnected', function () { if (!loggingOut) console.warn('[SIP] WebSocket disconnected'); });
+                ua.on('connected', function () { console.log('[SIP] WebSocket connected'); });
+                ua.on('newMessage', function (data) { try { if (data.originator === 'remote') data.message.accept(); } catch (e) { } });
 
                 ua.on('newRTCSession', function (data) {
                     try {
@@ -743,13 +670,13 @@ import "./jssip.bundle.js";
                                     if (listenOnly) notifyListenOnly();
                                 } catch (e) { }
                             });
-                            session.on('failed', function (e) {
+                            session.on('failed', function () {
                                 releaseSessionMedia(session);
                                 currentSession = null;
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
                                 notifyCallState('disconnected');
                             });
-                            session.on('ended', function (e) {
+                            session.on('ended', function () {
                                 releaseSessionMedia(session);
                                 currentSession = null;
                                 if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
@@ -764,8 +691,6 @@ import "./jssip.bundle.js";
                             } else {
                                 navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
                                     if (session.isEnded()) {
-                                        // Session died while the mic was being acquired —
-                                        // stop the stream now or it leaks (recording dot stays on)
                                         stream.getTracks().forEach(function (t) { t.stop(); });
                                         return;
                                     }
@@ -791,21 +716,133 @@ import "./jssip.bundle.js";
             }
         }
 
-        // ── Room API ──
+        // ── 9. Login Flow ──
+
+        function _onLoginSuccess(email, password) {
+            var lsData = getLocalStorageUserData();
+
+            if (!accountData.room && lsData && lsData.room) {
+                accountData.room = lsData.room;
+            }
+            if (lsData) {
+                if (!accountData.display_name && lsData.repName) accountData.display_name = lsData.repName;
+                if (!accountData.company_name && lsData.companyName) accountData.company_name = lsData.companyName;
+                accountData._lsData = lsData;
+            }
+
+            if (!accountData.room) {
+                console.error('[SIP] Account has no room:', accountData);
+                return;
+            }
+
+            var activeRoom = accountData.current_room || accountData.room;
+            console.log('[SIP] Login OK:', accountData.display_name, 'Room:', activeRoom);
+
+            // Start SSE + modules
+            var getToken = function () { return clientToken; };
+            startCallerIdSSE(activeRoom);
+            if (config.extensions !== false) initExtensionModule(getToken);
+            if (config.pushNotifications === true) initPushNotifications(getToken);
+            if (config.broadcastFeed === true) initBroadcastFeed(getToken);
+
+            // Monitor mode: set via config or auto-detected when Yealink already connected
+            if (!monitorMode && accountData.connection_state === 'connected' && accountData.client_type === 'yealink') {
+                monitorMode = true;
+                notifyMonitorMode();
+                console.log('[SIP] Monitor mode — Yealink already connected, SSE only');
+            } else if (monitorMode) {
+                notifyMonitorMode();
+                console.log('[SIP] Monitor mode — set via config, SSE only');
+            }
+
+            if (typeof window.onHotlineReady === 'function') {
+                window.onHotlineReady(accountData);
+            }
+
+            // Decide SIP path
+            if (monitorMode) {
+                notifyCallState('connected');
+            } else if (listenOnly) {
+                console.log('[SIP] Listen-only mode — skipping mic check');
+                _startSipRegistration(email, password);
+            } else {
+                checkMicPermission().then(function (result) {
+                    if (result === true || result === 'listen-only') {
+                        _startSipRegistration(email, password);
+                    } else {
+                        console.warn('[SIP] Mic permission denied — SIP registration skipped, listen-only available via modal');
+                    }
+                });
+            }
+        }
+
+        function doLogin(emailArg) {
+            // Token mode: skip POST /login, fetch account via GET /account
+            if (config.token) {
+                console.log('[SIP] Token mode — skipping login API, fetching account');
+                clientToken = config.token;
+                fetch(apiBase + '/api/v1/client/account', {
+                    headers: { 'Authorization': 'Bearer ' + clientToken },
+                })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function (json) {
+                    accountData = json.data || json;
+                    var sipPassword = accountData.sip_password || defaultPassword;
+                    _onLoginSuccess(accountData.email || '', sipPassword);
+                })
+                .catch(function (e) {
+                    console.error('[SIP] Account fetch failed:', e.message);
+                    if (typeof window.onHotlineLoginFailed === 'function') {
+                        window.onHotlineLoginFailed(e.message);
+                    }
+                });
+                return;
+            }
+
+            // Normal mode: authenticate with email + password
+            var lsData = getLocalStorageUserData();
+            var email = emailArg || (lsData && lsData.email) || '';
+            var password = defaultPassword;
+
+            if (!email) {
+                console.error('[SIP] No email provided and none found in localStorage');
+                return;
+            }
+
+            console.log('[SIP] Logging in:', email);
+            fetch(apiBase + '/api/v1/client/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password }),
+            })
+            .then(function (r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
+            .then(function (json) {
+                clientToken = json.token;
+                accountData = json.data || json;
+                _onLoginSuccess(email, password);
+            })
+            .catch(function (e) {
+                console.error('[SIP] Login failed:', e.message);
+                if (typeof window.onHotlineLoginFailed === 'function') {
+                    window.onHotlineLoginFailed(e.message);
+                }
+            });
+        }
+
+        // ── 10. Room API ──
+
         function getRoomDetails() {
             if (!clientToken) { console.error('[SIP] getRoomDetails: not logged in'); return Promise.reject(new Error('Not logged in')); }
             return fetch(apiBase + '/api/v1/client/rooms/details', {
                 headers: { 'Authorization': 'Bearer ' + clientToken },
             })
             .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json.data; }); });
-        }
-
-        function _notifyRoomChange(data) {
-            if (typeof window.onHotlineRoomChange === 'function') {
-                window.onHotlineRoomChange(data);
-            } else {
-                window.location.reload();
-            }
         }
 
         function changeRoom(newRoomId) {
@@ -833,14 +870,14 @@ import "./jssip.bundle.js";
             .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); });
         }
 
-        // ── Actions ──
+        // ── 11. Actions ──
+
         function toggleMute() {
             try {
-                if (listenOnly) return;
+                if (listenOnly || monitorMode) return;
                 isMuted = !isMuted;
                 muteAudio(isMuted);
                 notifyMuteState();
-
                 if (!accountData || !clientToken) return;
                 var muteUrl = apiBase + '/api/v1/client/' + (isMuted ? 'mute' : 'unmute');
                 fetch(muteUrl, {
@@ -850,10 +887,6 @@ import "./jssip.bundle.js";
             } catch (e) {
                 console.error('[SIP] toggleMute error:', e.message);
             }
-        }
-
-        function joinConference() {
-            console.log('[SIP] joinConference — auto-join on SIP register, no explicit API call needed');
         }
 
         function hangup() {
@@ -872,11 +905,10 @@ import "./jssip.bundle.js";
                 stopCallerIdSSE();
                 stopBroadcastFeed();
                 if (regRetryTimer) { clearInterval(regRetryTimer); regRetryTimer = null; }
-                if (currentSession) { try { currentSession.terminate(); } catch (e) { } currentSession = null; }
+                hangup();
                 if (ua) { try { ua.unregister(); ua.stop(); } catch (e) { } ua = null; }
                 stopMicStream();
                 accountData = null;
-                if (window.RedlineExtensionDirectory?.setVisible) window.RedlineExtensionDirectory.setVisible(false);
                 loggingOut = false;
                 console.log('[SIP] Logged out');
             } catch (e) {
@@ -885,7 +917,8 @@ import "./jssip.bundle.js";
             }
         }
 
-        // ── Keyboard shortcuts: Ctrl+L toggle mute, Spacebar push-to-talk ──
+        // ── 12. Keyboard Shortcuts ──
+
         var _spaceHeld = false;
         var _wasMutedBeforeSpace = false;
         try {
@@ -893,7 +926,7 @@ import "./jssip.bundle.js";
                 try {
                     if (e.ctrlKey && e.key === 'l') {
                         e.preventDefault();
-                        if (listenOnly) return;
+                        if (listenOnly || monitorMode) return;
                         window._muteToggleAt = Date.now();
                         console.log('[TIMING] Ctrl+L pressed — ' + (isMuted ? 'unmuting' : 'muting'));
                         if (accountData) toggleMute();
@@ -903,7 +936,7 @@ import "./jssip.bundle.js";
                         var tag = e.target.tagName;
                         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
                         e.preventDefault();
-                        if (listenOnly || !accountData) return;
+                        if (listenOnly || monitorMode || !accountData) return;
                         _spaceHeld = true;
                         _wasMutedBeforeSpace = isMuted;
                         if (isMuted) toggleMute();
@@ -921,97 +954,29 @@ import "./jssip.bundle.js";
             });
         } catch (e) { }
 
-        // ── Broadcast Feed (SSE + REST) ──
-        var broadcastSource = null;
-        var broadcastReconnectAttempts = 0;
-        var broadcastFeedRoom = null;
-        var broadcastFeedAnswered = undefined;
+        // ── 13. Sleep/Wake Detection ──
 
-        function startBroadcastFeed(room, options) {
-            stopBroadcastFeed();
-            broadcastReconnectAttempts = 0;
-            options = options || {};
-            broadcastFeedRoom = room || undefined;
-            broadcastFeedAnswered = options.answered;
-            connectBroadcastSSE();
-        }
-
-        function connectBroadcastSSE() {
-            if (!clientToken) return;
-            var url = apiBase + '/api/v1/client/events/broadcasts';
-            if (broadcastFeedRoom) url += '/' + broadcastFeedRoom;
-            url += '?token=' + clientToken;
-            if (broadcastFeedAnswered !== undefined) url += '&answered=' + broadcastFeedAnswered;
-
+        setInterval(function () {
             try {
-                broadcastSource = new EventSource(url);
-
-                broadcastSource.onopen = function () {
-                    broadcastReconnectAttempts = 0;
-                };
-
-                broadcastSource.onmessage = function (event) {
+                var now = Date.now();
+                if (now - lastHeartbeat > 15000 && ua && !loggingOut) {
                     try {
-                        var data = JSON.parse(event.data);
-                        if (data.type === 'connected') {
-                            if (typeof window.onHotlineBroadcastConnected === 'function') {
-                                window.onHotlineBroadcastConnected(data);
-                            }
-                        } else if (data.type === 'broadcast') {
-                            if (typeof window.onHotlineBroadcast === 'function') {
-                                window.onHotlineBroadcast(data);
-                            }
-                        }
+                        ua.stop();
+                        setTimeout(function () { if (!loggingOut && ua) ua.start(); }, 1000);
                     } catch (e) { }
-                };
-
-                broadcastSource.onerror = function () {
-                    try { if (broadcastSource) { broadcastSource.close(); broadcastSource = null; } } catch (e) { }
-                    if (loggingOut || !accountData) return;
-                    broadcastReconnectAttempts++;
-                    var delay = Math.min(1000 * Math.pow(2, broadcastReconnectAttempts), 30000);
-                    setTimeout(function () { if (!loggingOut && accountData) connectBroadcastSSE(); }, delay);
-                };
-            } catch (e) {
-                broadcastReconnectAttempts++;
-                var delay = Math.min(1000 * Math.pow(2, broadcastReconnectAttempts), 30000);
-                setTimeout(function () { if (!loggingOut && accountData) connectBroadcastSSE(); }, delay);
-            }
-        }
-
-        function stopBroadcastFeed() {
-            try {
-                if (broadcastSource) { broadcastSource.close(); broadcastSource = null; }
+                }
+                lastHeartbeat = now;
             } catch (e) { }
-        }
+        }, 5000);
 
-        function getBroadcasts(room, options) {
-            if (!clientToken) return Promise.reject(new Error('Not logged in'));
-            options = options || {};
-            var url = apiBase + '/api/v1/client/broadcasts/list';
-            if (room) url += '/' + room;
-            var params = [];
-            if (options.page) params.push('page=' + options.page);
-            if (options.pageSize) params.push('pageSize=' + options.pageSize);
-            if (options.answered !== undefined) params.push('answered=' + options.answered);
-            if (options.dateFrom) params.push('dateFrom=' + options.dateFrom);
-            if (options.dateTo) params.push('dateTo=' + options.dateTo);
-            if (params.length) url += '?' + params.join('&');
+        // ── 14. Public API ──
 
-            return fetch(url, {
-                headers: { 'Authorization': 'Bearer ' + clientToken },
-            })
-            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); });
-        }
-
-        // ── Public API ──
         window.hotlineClient = {
             login: doLogin,
             logout: logout,
             reconnect: function () { callerIdReconnectAttempts = 0; var r = accountData && (accountData.current_room || accountData.room); if (r) startCallerIdSSE(r); },
             disconnect: stopCallerIdSSE,
             toggleMute: toggleMute,
-            joinConference: joinConference,
             hangup: hangup,
             getRoom: function () { return accountData && (accountData.current_room || accountData.room) || ''; },
             getRoomDetails: getRoomDetails,
@@ -1020,17 +985,19 @@ import "./jssip.bundle.js";
             getAccount: function () { return accountData; },
             getToken: function () { return clientToken; },
             getLocalData: getLocalStorageUserData,
-            isConnected: function () { return !!currentSession; },
+            isConnected: function () { return monitorMode || !!currentSession; },
             isMuted: function () { return isMuted; },
             isListenOnly: function () { return listenOnly; },
+            isMonitorMode: function () { return monitorMode; },
             startBroadcastFeed: startBroadcastFeed,
             stopBroadcastFeed: stopBroadcastFeed,
-            getBroadcasts: getBroadcasts,
+            getBroadcasts: function (room, options) { return window.HotlineBroadcastFeed ? window.HotlineBroadcastFeed.getBroadcasts(room, options) : Promise.reject(new Error('Broadcast feed not loaded. Set broadcastFeed: true in config.')); },
             enablePush: function () { return window.RedlinePush ? window.RedlinePush.enable() : Promise.reject(new Error('Push module not loaded')); },
             disablePush: function () { return window.RedlinePush ? window.RedlinePush.disable() : Promise.resolve(false); },
         };
 
-        // ── Auto-login from localStorage or HOTLINE_CONFIG ──
+        // ── 15. Auto-Login ──
+
         try {
             var lsAutoData = getLocalStorageUserData();
             var autoEmail = (lsAutoData && lsAutoData.email) || config.email || '';

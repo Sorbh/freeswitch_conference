@@ -10,7 +10,7 @@ import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification, sendWelcomeEmail } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
-import { clientEventsRouter, buildOnlineCounts } from "./events.js";
+import { clientEventsRouter, buildOnlineCounts, kickClientSSE } from "./events.js";
 import { getVapidPublicKey, sendToAccount } from "../../service/webPush.js";
 
 function enrichBroadcast(b) {
@@ -387,10 +387,16 @@ clientRouter.post("/login", async (req, res) => {
 
         const token = _clientLoginToken(account);
 
+        kickClientSSE(account.email);
+
         const { password: _, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);
         if (userInfo && userInfo.currentRoom) {
             safe.current_room = userInfo.currentRoom;
+        }
+        if (userInfo && Object.keys(userInfo).length > 0) {
+            safe.connection_state = userInfo.connectionState || 'ideal';
+            safe.client_type = userInfo.clientType || 'unknown';
         }
         res.json({ status: true, token, data: safe });
     } catch (err) {
@@ -565,7 +571,8 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
     try {
         const account = global.db.getAccountById(req.client.sub);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
-        const { password: _, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
+        const { password: sipPwd, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
+        safe.sip_password = sipPwd || global.config.SIP_DEFAULT_PASSWORD || '12345678';
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);
         if (userInfo && userInfo.currentRoom) safe.current_room = userInfo.currentRoom;
         res.json({ status: true, data: safe });
