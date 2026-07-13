@@ -39,7 +39,12 @@ faq:
     a: Yes. Every state requires a dismantler or salvage dealer license from the DMV or equivalent agency. You'll also need environmental permits, a business license, and a surety bond ranging from $10,000 to $50,000. California's bond requirement is $50,000 and Texas requires $25,000.
   - q: How do salvage yards find parts they don't have in stock?
     a: Yards use voice hotline networks, online databases, and direct calls to other dismantlers. On the Hotline HQ network, one broadcast reaches 100+ yards simultaneously with an average 2-second response time. Online databases like Car-Part.com offer broader but slower searches.
+coverImage: /images/blog/auto-dismantler-business-guide/yard-entrance-dawn.webp
+coverImageAlt: Flatbed truck delivering a wrecked vehicle to a busy auto dismantler yard at sunrise
+ogImage: /images/blog/auto-dismantler-business-guide/yard-entrance-dawn.webp
 ---
+
+![Flatbed truck delivering a wrecked vehicle to a busy auto dismantler yard at sunrise](/images/blog/auto-dismantler-business-guide/yard-entrance-dawn.webp)
 
 Here's the deal with the auto dismantler business. You buy end-of-life vehicles, tear them apart, and sell the parts for more than the whole car cost you. The [Automotive Recyclers Association](https://www.a-r-a.org) (ARA) estimates US yards process over 12 million vehicles annually, feeding a $32 billion used parts market (ARA, 2025). That number isn't shrinking. Average vehicle age hit 12.6 years in 2024, per [S&P Global Mobility](https://www.spglobal.com/mobility/en/index.html), and that keeps pushing demand for replacement parts dealers don't stock new anymore.
 
@@ -88,6 +93,8 @@ Plenty of yards keep standing relationships with tow companies and body shops. W
 
 ## From Whole Car to Sellable Parts: The Dismantling Process {#dismantling-process}
 
+![Close-up of a dismantler workbench with hand tools, a barcode scanner, and a half-disassembled alternator](/images/blog/auto-dismantler-business-guide/dismantler_workbench.webp)
+
 A good dismantler can process a vehicle in 2-4 hours, pulling 200-400 sellable parts per car. The [Automotive Recyclers Association](https://www.a-r-a.org) reports that roughly 80% of a scrapped vehicle's weight gets recycled (ARA, 2025). The process follows a strict sequence designed to maximize part value and keep contamination out of the equation.
 
 ### Fluid Removal
@@ -114,7 +121,7 @@ Inventory management is what separates profitable yards from chaotic ones. A mid
 
 ### Tagging and Cataloging
 
-Every part pulled gets tagged with a unique identifier, vehicle source (year, make, model, VIN), condition grade, and storage location. Most yards run barcode or QR code systems tied to inventory software. Popular platforms include Pinnacle, Checkmate, and Hollander. The right [salvage yard software](/blog/guides/salvage-yard-software-tools) pays for itself within months through faster lookups and fewer lost parts.
+Every part pulled gets tagged with a unique identifier, vehicle source (year, make, model, VIN), condition grade, and storage location. Most yards run barcode or QR code systems tied to inventory software. Popular platforms include Pinnacle, Checkmate, and Hollander. The right [salvage yard software](/blog/guides/salvage-yard-software-compared) pays for itself within months through faster lookups and fewer lost parts.
 
 ### Storage and Organization
 
@@ -131,6 +138,8 @@ Parts sitting 12+ months are costing you money in storage space and tied-up capi
 <!-- Citation capsule: A mid-size salvage yard carries between 5,000 and 15,000 individual parts, per ARA industry estimates (2025). Effective inventory management using barcode-based software reduces lost parts and speeds lookups, directly improving turnover and profitability. -->
 
 ## Five Channels for Selling Salvage Parts {#selling-parts}
+
+![Salvage yard owner standing confidently in front of a whiteboard showing the inventory flow process](/images/blog/auto-dismantler-business-guide/yard_owner_portrait.webp)
 
 Successful yards don't rely on one sales pipeline. The US used auto parts market hit $32 billion in 2025 according to [ARA](https://www.a-r-a.org), and that demand spreads across five distinct channels. Yards running all five capture revenue they'd flat-out miss otherwise.
 
@@ -203,6 +212,8 @@ Rain running through a yard picks up oil, metal particles, and other contaminant
 <!-- Citation capsule: The average end-of-life vehicle contains 10-15 gallons of fluids requiring proper EPA-compliant handling. Stormwater pollution prevention plans, fluid containment systems, and hazardous materials protocols are mandatory for all US auto dismantler operations. -->
 
 ## What Does It Cost to Start a Salvage Yard? {#startup-costs}
+
+![Hydraulic car crusher compacting a stripped vehicle at a salvage yard with metal cubes stacked in the background](/images/blog/auto-dismantler-business-guide/car_crusher_yard.webp)
 
 Starting an auto dismantler business takes real money, but the barrier is lower than most people think. The [Small Business Administration](https://www.sba.gov) (SBA) notes that small recycling businesses typically launch with $50,000-$75,000 in owner equity plus additional financing. A well-managed yard can reach profitability within its first 12 months of operation.
 

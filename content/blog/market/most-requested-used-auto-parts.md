@@ -33,7 +33,12 @@ faq:
     a: Bumpers. On the Hotline HQ network, bumpers lead all other parts with 164 requests — 32% more than the next highest category (motors/engines at 128). Front bumpers drive most of the volume because they take the most collision damage.
   - q: Which vehicle makes are most in demand for used parts?
     a: Ford leads with 383 requests, followed closely by Toyota at 364. Honda comes in third at 268, then Chevrolet at 247. These four makes account for the majority of all parts requests on the network, which tracks with their dominance in US vehicle registrations.
+coverImage: /images/blog/most-requested-used-auto-parts/parts_shelving.webp
+coverImageAlt: Organized metal shelving in a salvage yard warehouse stocked with alternators, headlights, and transmissions
+ogImage: /images/blog/most-requested-used-auto-parts/parts_shelving.webp
 ---
+
+![Organized metal shelving in a salvage yard warehouse stocked with alternators, headlights, and transmissions](/images/blog/most-requested-used-auto-parts/parts_shelving.webp)
 
 ## Why this data matters {#why-this-data}
 
@@ -75,6 +80,8 @@ Ranked by total broadcast requests on the Hotline HQ network.
 **Airbags are a wildcard.** 39 requests is real volume. But airbag sales carry regulatory requirements that vary by state. If you can legally sell them in your market, they're a reliable revenue stream. If not, spend your dismantling time elsewhere.
 
 ## Top makes by request volume {#top-makes}
+
+![Close-up of an engine being lifted out of a vehicle with an engine hoist, oil dripping from the oil pan](/images/blog/most-requested-used-auto-parts/car_engine_removal.webp)
 
 | Rank | Make | Requests |
 |------|------|----------|
@@ -121,6 +128,8 @@ Starters (40 requests), AC compressors (32 requests), and tires (31 requests) wo
 
 ## How to use this data to stock smarter {#stocking-strategy}
 
+![Flat lay of six popular used auto parts neatly arranged on a concrete floor with white identification labels](/images/blog/most-requested-used-auto-parts/used_auto_parts.webp)
+
 A practical framework based on the request data.
 
 ### Tier 1 — always pull, always stock
@@ -144,6 +153,8 @@ Bidding at auction? Filter by make first. Ford and Toyota vehicles cover the wid
 A clean 2018 Toyota Camry gives you access to demand across all 12 part categories on this list. A wrecked one might give you the engine and transmission but nothing else. Price your bids accordingly.
 
 ## See live requests now {#see-live}
+
+![Row of Honda Civics and Toyota Camrys in a salvage yard being dismantled by workers under a clear blue sky](/images/blog/most-requested-used-auto-parts/salvage_yard_cars.webp)
 
 This data is a snapshot. Real demand shifts daily based on what's flowing through the [parts hotline](/blog/guides/how-auto-parts-hotlines-work) rooms.
 

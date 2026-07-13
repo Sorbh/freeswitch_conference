@@ -43,7 +43,7 @@ faq:
 
 ## What is an auto parts hotline? {#what-is}
 
-The US automotive recycling industry employs over 140,000 people across more than 9,000 locations, generating $32 billion in annual sales ([Automotive Recyclers Association](https://www.a-r-a.org/industry-statistics/), 2025). An auto parts hotline is how many of these yards find and sell parts to each other in real time, without typing a single search query or waiting on hold.
+The US automotive recycling industry employs over 140,000 people across more than 9,000 locations, generating $32 billion in annual sales ([Automotive Recyclers Association](https://www.a-r-a.org/industry-statistics/), 2025). An auto parts hotline is how many of these yards find and sell parts to each other in real time, without typing a single search query or waiting on hold. If you're new to the industry, our [auto dismantler business guide](/blog/guides/auto-dismantler-business-guide) covers how the whole operation works end to end.
 
 > **Key Takeaways**
 > - Voice hotlines broadcast part requests to 100+ yards simultaneously with ~2-second response times, replacing 30-60 minute phone call sessions
@@ -89,7 +89,7 @@ The global automotive aftermarket was valued at $509.8 billion in 2026 ([Grand V
 
 Why does real-time matter so much? Inventory at a salvage yard changes daily as vehicles arrive and parts sell. A voice request asks a real person who can walk the row and confirm availability right now. That's fundamentally different from a database entry that was last updated Tuesday.
 
-Online databases can technically search more yards. But stale data creates a frustrating pattern: you find the part listed, call the yard, and they sold it three days ago. Or worse, the listing was never accurate to begin with. Voice eliminates that lag entirely.
+Online databases can technically search more yards. But stale data creates a frustrating pattern: you find the part listed, call the yard, and they sold it three days ago. Or worse, the listing was never accurate to begin with. Voice eliminates that lag entirely. For a deeper breakdown of every method, see our guide on [how to find used auto parts online](/blog/guides/find-used-auto-parts-online-guide).
 
 ![Aerial view of a large salvage yard with hundreds of vehicles organized in rows, workers visible between the aisles](/images/blog/how-auto-parts-hotlines-work/auto_salvage_yard.webp)
 
@@ -104,7 +104,7 @@ Not all hotline networks produce equal results. After operating the Hotline HQ n
 - **Always-on availability.** Scheduled call windows don't work. Yards miss requests while they're on the lot pulling an engine. An always-on bridge means every ask reaches every connected yard, 24 hours a day, whether you're at your desk or across the property.
 - **Regional organization.** Shipping a bumper from California to Florida costs more than the part is worth half the time. Grouping yards by geography keeps requests matched with yards that can realistically deliver or arrange a local pickup.
 - **Low friction to respond.** If you've got to log into a website or type out a message, you've already lost the sale to whoever picked up the mic. Voice wins because a yard hears the request and keys up to say "I have it" in the same second.
-- **No commission on sales.** Networks that skim a percentage on every deal give yards a reason to work around the system on big-ticket parts. Flat monthly pricing keeps incentives aligned. You don't think twice about responding to a $2,000 transmission request because the network isn't taking a cut.
+- **No commission on sales.** Networks that skim a percentage on every deal give yards a reason to work around the system on big-ticket parts. Flat monthly pricing keeps incentives aligned. You don't think twice about responding to a $2,000 transmission request because the network isn't taking a cut. See how Hotline HQ stacks up against other networks in our [PartsHotlines vs Car-Part.com vs Hotline HQ comparison](/blog/guides/partshotlines-vs-car-part-vs-hotline-hq).
 
 ## Who actually uses auto parts hotlines? {#who-uses}
 
@@ -112,11 +112,11 @@ Dismantlers, salvage yards, and auto recyclers. These are businesses that buy en
 
 **As buyers:** A customer calls asking for a part you don't carry. You've got two choices: lose the sale or find it somewhere else. On the hotline, you broadcast the request. Another yard in the region has it? You arrange a yard-to-yard sale and fulfill your customer's order. Sale saved.
 
-**As sellers:** You're sitting on parts nobody's asking about through your usual channels. By listening to the hotline, you hear every part request in your region. That transmission collecting dust for six months? Someone three counties over just asked for one. The hotline surfaces demand you'd never find through your website or walk-in traffic alone.
+**As sellers:** You're sitting on parts nobody's asking about through your usual channels. By listening to the hotline, you hear every part request in your region. That transmission collecting dust for six months? Someone three counties over just asked for one. The hotline surfaces demand you'd never find through your website or walk-in traffic alone. For more on stacking sales channels, read [how salvage yards sell more parts](/blog/guides/how-salvage-yards-sell-more-parts).
 
 ![Side-by-side comparison showing a frustrated worker calling yards one by one versus a relaxed worker using a modern SIP phone with confirmed parts availability on screen](/images/blog/how-auto-parts-hotlines-work/parts_hotline_comparison.webp)
 
-Why does it work? No two yards carry the same inventory mix. A yard in Los Angeles might have three Honda Civic transmissions while a yard in Sacramento has zero, and the reverse for Toyota Camry doors. The hotline turns a fragmented market of thousands of individual yards into one connected network where supply finds demand in seconds instead of days.
+Why does it work? No two yards carry the same inventory mix. A yard in Los Angeles might have three Honda Civic transmissions while a yard in Sacramento has zero, and the reverse for Toyota Camry doors. Our [most-requested used auto parts](/blog/market/most-requested-used-auto-parts) data shows exactly which parts and makes drive the most demand. The hotline turns a fragmented market of thousands of individual yards into one connected network where supply finds demand in seconds instead of days.
 
 ## What does the Hotline HQ network cover? {#coverage}
 
@@ -131,3 +131,5 @@ Setup takes minutes, not days. Sign up online, pick your regional room, and a pr
 There's no software to install, no inventory to upload, and no training period. If your crew can use a phone, they can use the hotline. The phone arrives ready to go with your room pre-programmed.
 
 Most yards start hearing relevant requests within their first hour on the network. Whether you respond to those requests or just listen to understand the demand in your region, you're getting value from day one.
+
+Check the [Hotline HQ marketplace](/marketplace) to see live requests and real [pricing activity](/blog/market/used-auto-parts-pricing-guide) from the network.

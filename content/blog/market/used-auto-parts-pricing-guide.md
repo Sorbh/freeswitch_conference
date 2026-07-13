@@ -34,7 +34,12 @@ faq:
     a: Self-service junkyards are almost always the cheapest option — often 30-50% less than online marketplaces. The trade-off is you pull the part yourself and there's usually no warranty. Full-service salvage yards split the difference with reasonable prices and quality checks. Online prices vary widely and shipping can add $50-$200 depending on the part's size and weight.
   - q: What affects the price of a used auto part?
     a: Four main factors — the vehicle's year, make, and model (newer and rarer costs more), part condition (tested vs. as-is), regional supply and demand (parts from vehicles common in your area cost less), and where you buy (self-service yards are cheapest, online marketplaces charge the most due to overhead and shipping).
+coverImage: /images/blog/used-auto-parts-pricing-guide/transmission_pricing.webp
+coverImageAlt: Salvage yard worker placing a used transmission on a scale at a pricing station with a price reference chart on the wall
+ogImage: /images/blog/used-auto-parts-pricing-guide/transmission_pricing.webp
 ---
+
+![Salvage yard worker placing a used transmission on a scale at a pricing station with a price reference chart on the wall](/images/blog/used-auto-parts-pricing-guide/transmission_pricing.webp)
 
 ## What used parts actually cost {#what-parts-cost}
 
@@ -92,6 +97,8 @@ Hoods run $100 to $400 depending on material (steel vs. aluminum) and condition.
 
 ## How prices change by where you buy {#where-you-buy}
 
+![Two used headlight assemblies side by side on a workbench comparing budget versus premium pricing tiers](/images/blog/used-auto-parts-pricing-guide/headlight_comparison.webp)
+
 ### Self-service / pull-a-part yards
 
 The cheapest option. You walk the yard, find the vehicle, pull the part yourself. Prices run 30-50% below full-service yards. The trade-off: no warranty, no quality check, and you need tools and time. Good for body panels, trim, interior parts, and anything you can inspect visually.
@@ -105,6 +112,8 @@ Mid-range pricing. The yard pulls the part, inspects it, and often offers a 30 t
 Prices are all over the map. eBay, Facebook Marketplace, and dedicated auto parts sites add overhead — seller fees, photography time, listing management, and shipping. A bumper that sells for $150 at a yard might list for $200 to $280 online once the seller factors in platform fees and packaging. Shipping on large parts adds $50 to $200.
 
 ## Full price comparison table {#comparison-table}
+
+![Customer at a self-service salvage yard checkout counter placing a door handle and tail light on the counter with a price list on the wall behind](/images/blog/used-auto-parts-pricing-guide/salvage_yard_checkout.webp)
 
 All prices in USD. Ranges reflect common domestic and import vehicles (2014-2022 model years).
 
@@ -152,6 +161,8 @@ Regional factors play a big role. Truck parts cost less in Texas where pickups a
 AC compressors peak in spring and summer. Heater cores and starters see more demand in fall and winter. Body panels spike after storm seasons in hail-prone regions. Yards that time their pricing to seasonal shifts capture better margins.
 
 ## How to check real prices right now {#check-real-prices}
+
+![Laptop screen showing an online used auto parts marketplace listing with a person holding a credit card ready to purchase](/images/blog/used-auto-parts-pricing-guide/parts_marketplace.webp)
 
 Static pricing guides go stale. The best way to see what parts are trading for is to watch live demand.
 

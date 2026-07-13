@@ -117,8 +117,11 @@ function markdownToHtml(md) {
     return `<ul>${items}</ul>`;
   });
 
-  // Images
+  // Images (must come before links to avoid matching ![alt](url) as a link)
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />');
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
   // Blockquotes
   html = html.replace(/^(?:> .+\n?)+/gm, (match) => {

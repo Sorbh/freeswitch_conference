@@ -32,7 +32,12 @@ faq:
     a: They solve different problems. Software tracks what you have in inventory. A voice hotline like Hotline HQ connects you with buyers who need parts right now. Most yards that use Hotline HQ also run inventory software — the two work together.
   - q: How much does salvage yard software cost?
     a: Pricing varies widely. Cloud-based tools like Dismantly charge monthly subscriptions, typically starting around $100-300/month depending on features. Frazer and YardSmart use quote-based pricing that factors in yard size and modules. Yard Manager is generally the most affordable option. Most vendors don't publish exact prices — you'll need to request a demo.
+coverImage: /images/blog/salvage-yard-software-compared/salvage-yard-manager-workstation.webp
+coverImageAlt: Salvage yard manager working at a dual-monitor workstation with inventory management and point-of-sale software
+ogImage: /images/blog/salvage-yard-software-compared/salvage-yard-manager-workstation.webp
 ---
+
+![Salvage yard manager working at a dual-monitor workstation with inventory management and point-of-sale software](/images/blog/salvage-yard-software-compared/salvage-yard-manager-workstation.webp)
 
 ## Why your yard needs inventory software {#why-software}
 
@@ -86,6 +91,8 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 - Implementation takes longer due to data migration and training
 
 ## Frazer DMS {#frazer}
+
+![Tablet mounted on a forklift dashboard showing a yard map interface with colored dots for vehicle locations](/images/blog/salvage-yard-software-compared/forklift_tablet_map.webp)
 
 **What it does:** A desktop-based dealer management system covering the full salvage yard workflow — vehicle acquisition, dismantling, inventory, sales, and accounting. Frazer has been in the auto dealer software space for decades.
 
@@ -147,6 +154,8 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 
 ## Feature comparison table {#comparison}
 
+![Woman at a salvage yard office desk doing VIN data entry on a laptop with vehicle title documents beside her](/images/blog/salvage-yard-software-compared/salvage-yard-office.webp)
+
 | Feature | Dismantly | YardSmart | Frazer DMS | Checkmate | Yard Manager |
 |---------|-----------|-----------|------------|-----------|--------------|
 | Cloud-based | Yes | Yes | No (desktop) | Partial | Varies |
@@ -176,6 +185,8 @@ Think of it this way: inventory software is your filing system. The hotline is y
 If you're evaluating technology for your yard, start with inventory software to get organized. Then add a voice network to start moving the parts that would otherwise collect dust. Read our [dismantler business guide](/blog/guides/how-auto-parts-hotlines-work) for a deeper look at how yards use these tools together.
 
 ## How to pick the right software {#picking}
+
+![Overhead shot of a salvage yard staff meeting with software comparison sheets spread across a break room table](/images/blog/salvage-yard-software-compared/salvage-yard-meeting.webp)
 
 Three things drive the decision:
 

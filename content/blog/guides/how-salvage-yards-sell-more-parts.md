@@ -35,11 +35,16 @@ faq:
     a: Yes. Network access matters more than yard size. A small yard on a voice hotline with 200+ members hears every request a larger yard hears. If you have the part, the buyer doesn't care how big your lot is.
   - q: How much does it cost to join a parts hotline?
     a: Hotline HQ charges a flat monthly membership fee with no per-call charges, listing fees, or sales commissions. A preconfigured desk phone ships with your membership. Compare that to eBay Motors, which charges listing fees plus roughly 13% on each completed parts sale.
+coverImage: /images/blog/how-salvage-yards-sell-more-parts/salvage-yard-counter.webp
+coverImageAlt: Busy salvage yard sales counter with workers taking orders and packing parts for shipping
+ogImage: /images/blog/how-salvage-yards-sell-more-parts/salvage-yard-counter.webp
 ---
+
+![Busy salvage yard sales counter with workers taking orders and packing parts for shipping](/images/blog/how-salvage-yards-sell-more-parts/salvage-yard-counter.webp)
 
 Most salvage yards depend on one or two channels to move parts. That's a problem. The [Automotive Recyclers Association](https://www.a-r-a.org/) estimates roughly 9,000 auto recycling businesses operate across the US, all chasing the same buyers. The yards that consistently clear shelves aren't the biggest. They're the ones plugged into more than one sales channel.
 
-This guide ranks five channels by speed, reach, and real ROI. We cover voice hotlines, online marketplaces, walk-in traffic, social media, and parts locating services. Each solves a different problem. You don't need all five. Pick the two or three that fit your yard's size, location, and the kinds of [most-requested used parts](/blog/guides/most-requested-used-auto-parts) you actually stock.
+This guide ranks five channels by speed, reach, and real ROI. We cover voice hotlines, online marketplaces, walk-in traffic, social media, and parts locating services. Each solves a different problem. You don't need all five. Pick the two or three that fit your yard's size, location, and the kinds of [most-requested used parts](/blog/market/most-requested-used-auto-parts) you actually stock.
 
 *Disclosure: Hotline HQ publishes this guide and operates a voice hotline network (Channel 1 below). We've ranked all five channels honestly, including the trade-offs of our own.*
 
@@ -87,6 +92,8 @@ Compare that to 30 or 60 minutes calling yards one by one. On the hotline, a bro
 [ORIGINAL DATA] Hotline HQ network data shows the California room alone has over 200 active yards, producing the highest broadcast density of any US voice parts network.
 
 ## Online Marketplaces: Broader Reach, Slower Speed {#online-marketplaces}
+
+![Worker photographing a used engine on a pallet with a smartphone for an online parts listing](/images/blog/how-salvage-yards-sell-more-parts/worker_photographing_engine.webp)
 
 Platforms like eBay Motors and Car-Part.com give dismantlers access to millions of buyers. [Car-Part.com](https://www.car-part.com/) lists over 200 million parts from yards nationwide. No other single channel puts you in front of that many eyeballs. But broader reach comes with trade-offs: fees, stale data, and a slower sales cycle.
 
@@ -142,6 +149,8 @@ You'll never reach the body shop two states away that needs the exact part gathe
 
 ## Is Social Media Worth the Effort for Parts Sales? {#social-media}
 
+![Salvage yard shipping area with a worker taping a box and a wrapped transmission on a pallet ready for freight](/images/blog/how-salvage-yards-sell-more-parts/shipping_area_salvage_yard.webp)
+
 Facebook Marketplace and local buy-sell groups have become a free sales channel for yards willing to post. [Meta](https://about.meta.com/) reports Facebook Marketplace reaches over 1 billion monthly visitors worldwide. Parts with clear photos sell, especially common items like engines, transmissions, and body panels. But results swing wildly from week to week.
 
 The work itself isn't complicated. Post a photo with year, make, model, and price. Buyers message you directly. Some yards post 10 to 20 parts per week and see consistent inquiries. Others post the same volume and hear crickets. Facebook's algorithm decides who sees your listing. You don't control that, and it shifts without warning.
@@ -190,6 +199,8 @@ Most locators charge a per-request fee or take a commission on completed sales. 
 
 ## Which Channels Should You Stack Together? {#which-channels}
 
+![Close-up of a worker scanning a QR code label on a used car door with a handheld barcode scanner](/images/blog/how-salvage-yards-sell-more-parts/scanning-car-door.webp)
+
 The most active sellers on the Hotline HQ network typically run two to three channels at once (Hotline HQ network data). No single channel covers all the demand for your parts. Here's a framework based on your biggest constraint.
 
 | Channel | Speed | Reach | Cost | Margin | Best Use |
@@ -216,4 +227,4 @@ Add Facebook for specialty or enthusiast parts when you've got them. Use locatin
 
 The parts on your shelves aren't dead weight. They're unseen. Every one of them has a buyer somewhere. The only question is whether you're wired into enough channels to find that buyer before the part rusts out or the model ages off the road.
 
-Ready to add a voice channel to your yard? See how Hotline HQ connects dismantlers to live buyers at [/sell-used-auto-parts](/sell-used-auto-parts).
+Ready to add a voice channel to your yard? See how Hotline HQ connects dismantlers to live buyers at [the Hotline HQ marketplace](/marketplace).

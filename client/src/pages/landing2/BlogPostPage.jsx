@@ -75,7 +75,7 @@ export function BlogPostPage() {
       <SiteNav />
 
       {/* ─── Dark hero ─── */}
-      <header className="bp-hero">
+      <header className="bp-hero" style={post.coverImage ? {'--bp-hero-bg': `url(${post.coverImage})`} : undefined}>
         <div className="bp-container">
           <nav className="bp-crumb" aria-label="Breadcrumb">
             <Link to="/">Home</Link><span>/</span>
@@ -237,7 +237,9 @@ const CSS = `
 .bp-container { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
 /* ═══ Dark hero ═══ */
-.bp-hero { background: #0f1117; padding: 100px 0 48px; border-bottom: 3px solid var(--red); }
+.bp-hero { background: #0f1117; padding: 100px 0 48px; border-bottom: 3px solid var(--red); position: relative; overflow: hidden; }
+.bp-hero::before { content: ''; position: absolute; inset: 0; background: var(--bp-hero-bg) center/cover no-repeat; filter: blur(5px) brightness(0.3); transform: scale(1.1); z-index: 0; }
+.bp-hero .bp-container { position: relative; z-index: 1; }
 .bp-crumb { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; font-family: var(--mono); font-size: 12.5px; }
 .bp-crumb a { color: rgba(255,255,255,0.45); text-decoration: none; }
 .bp-crumb a:hover { color: #fff; }

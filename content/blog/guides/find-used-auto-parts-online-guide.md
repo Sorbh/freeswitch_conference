@@ -35,7 +35,12 @@ faq:
     a: Accuracy depends on how often yards update their inventory listings. Car-Part.com indexes over 200 million parts, but records can be days or weeks old. A part listed as available may already be sold. Voice hotlines address this gap by confirming availability in real time with a live person at the yard.
   - q: How much does it cost to use a parts-finding service?
     a: Costs vary by method. Searching Car-Part.com is free for buyers. Voice hotline memberships like Hotline HQ charge a flat monthly fee with no per-call or commission charges. Facebook groups are free. Calling yards costs only your time. Pull-a-part lots charge per part, typically 40% to 60% below retail salvage prices.
+coverImage: /images/blog/find-used-auto-parts-online-guide/mechanic_searching_parts.webp
+coverImageAlt: Mechanic searching for used auto parts on a laptop at a repair shop desk with a removed headlight assembly nearby
+ogImage: /images/blog/find-used-auto-parts-online-guide/mechanic_searching_parts.webp
 ---
+
+![Mechanic searching for used auto parts on a laptop at a repair shop desk with a removed headlight assembly nearby](/images/blog/find-used-auto-parts-online-guide/mechanic_searching_parts.webp)
 
 You've got five ways to find used auto parts online, and none of them does everything well. Car-Part.com alone indexes over 200 million parts ([Car-Part.com](https://www.car-part.com), 2025). Voice networks get you confirmed answers in about 2 seconds. Databases cast the widest net. Voice hotlines give you the fastest confirmation. Facebook groups cost nothing but eat your time. Calling yards one by one still works. It's just slow.
 
@@ -76,13 +81,15 @@ This is the catch. Inventory data is only as current as the last upload. Some ya
 
 [UNIQUE INSIGHT] This freshness gap is the core limitation of every database approach. The larger the database, the more listings exist in a "maybe available" state. In our experience, breadth and freshness work against each other in practice.
 
-For yards sourcing parts regularly, a database search is a solid starting point. Rarely the last step, though. You still pick up the phone and confirm. For more on how pricing works across these channels, see our [used auto parts pricing](/blog/guides/used-auto-parts-pricing-guide) guide.
+For yards sourcing parts regularly, a database search is a solid starting point. Rarely the last step, though. You still pick up the phone and confirm. For more on how pricing works across these channels, see our [used auto parts pricing](/blog/market/used-auto-parts-pricing-guide) guide.
 
 > **Citation capsule:** Car-Part.com indexes over 200 million salvage parts from recyclers across North America, making it the largest online parts database (Car-Part.com, 2025). PartsHotlines.com covers 1,000+ yards. Both offer broad search reach, but inventory freshness depends on how often individual yards upload their data.
 
 [CHART: Bar chart - Inventory freshness by method: Voice hotline real-time, Direct call real-time, Pull-a-part real-time, Database days to weeks, Facebook hours to days - industry analysis]
 
 ## How Do Voice Hotlines Find Parts Faster? {#voice-hotlines}
+
+![Close-up of hands holding a smartphone over an open engine bay, searching for a used alternator with price and yard location on screen](/images/blog/find-used-auto-parts-online-guide/used_alternator_search.webp)
 
 On the Hotline HQ network, a single broadcast reaches every yard in a regional room. Average response time: about 2 seconds ([Hotline HQ network data](https://www.hotlinehq.com), 2026). The reason is dead simple. You ask a live room full of people, and someone answers if they've got the part.
 
@@ -92,7 +99,7 @@ On the Hotline HQ network, a single broadcast reaches every yard in a regional r
 
 A yard keys up on their desk phone and describes what they need: year, make, model, part. Say a 2019 Honda Civic front bumper. Every connected yard in the regional room hears that request live. First yard with the part responds. The two yards work out the sale directly. No middleman.
 
-Hotline HQ connects over 500 dismantler yards across 12 regional rooms ([Hotline HQ network data](https://www.hotlinehq.com), 2026). The four busiest rooms cover California, Texas, Arizona, and Florida. To see how this stacks up against other voice networks, read our [parts network comparison](/blog/guides/parts-hotline-network-comparison).
+Hotline HQ connects over 500 dismantler yards across 12 regional rooms ([Hotline HQ network data](https://www.hotlinehq.com), 2026). The four busiest rooms cover California, Texas, Arizona, and Florida. To see how this stacks up against other voice networks, read our [parts network comparison](/blog/guides/partshotlines-vs-car-part-vs-hotline-hq).
 
 ### Where hotlines fall short
 
@@ -118,11 +125,11 @@ Still, Facebook groups sometimes turn up parts that don't show in any database. 
 
 What about dedicated forums or Reddit communities? Same trade-offs, smaller crowd. Useful for rare or specialty parts where patience pays off. But how many yards have time to watch three forums and four Facebook groups all day?
 
-[INTERNAL-LINK: parts network comparison → /blog/guides/parts-hotline-network-comparison]
-
 > **Citation capsule:** Facebook Marketplace and auto parts industry groups handle millions of used parts listings monthly (Meta, 2025). Response times range from hours to days, and listings go unverified. Social channels function as supplementary sourcing for rare parts but lack the speed and reliability of dedicated parts networks.
 
 ## What About Calling Yards Directly or Visiting Pull-a-Part Lots? {#direct}
+
+![Customer at a self-service salvage yard kneeling beside a vehicle removing a side mirror with a socket wrench](/images/blog/find-used-auto-parts-online-guide/auto_salvage_yard.webp)
 
 Calling yards one by one, a typical dismantler gets through 10 to 15 in 30 to 60 minutes ([industry standard estimate](https://www.a-r-a.org)). You get real-time confirmation. But the math falls apart fast. If you need to check 100 yards, that's a full day on the phone.
 
@@ -164,6 +171,8 @@ That way you're covered on both breadth and speed. Use each method where it's st
 
 ## Which Method Fits Your Operation? {#which-method}
 
+![Delivery driver handing a boxed auto part to a customer at their front door with a delivery truck at the curb](/images/blog/find-used-auto-parts-online-guide/ups_delivery_auto_parts.webp)
+
 Think about how you source parts and how often. A dismantler fielding 20 customer calls a day needs speed and reliability. Period. A weekend mechanic chasing one part needs breadth and patience.
 
 If you're a professional yard doing daily sourcing, pair a voice hotline membership with database access. Broadcast urgent requests on the hotline. Search databases for broader availability. That combination handles the bulk of sourcing without burning hours on the phone.
@@ -172,11 +181,9 @@ Searching once in a while? Car-Part.com and a few phone calls will get it done. 
 
 Whatever you go with, the real question never changes: is the part actually available right now? Databases tell you it was available at some point. Voice hotlines and direct calls tell you it's there this second. When your customer is waiting, that gap matters.
 
-For pricing guidance across all these channels, see our [used auto parts pricing](/blog/guides/used-auto-parts-pricing-guide) guide. For a detailed look at how voice networks compare to each other, check our [parts network comparison](/blog/guides/parts-hotline-network-comparison).
+For pricing guidance across all these channels, see our [used auto parts pricing](/blog/market/used-auto-parts-pricing-guide) guide. For a detailed look at how voice networks compare to each other, check our [parts network comparison](/blog/guides/partshotlines-vs-car-part-vs-hotline-hq).
 
-Ready to try the fastest method? [Find used auto parts on the Hotline HQ network](/find-used-auto-parts).
-
-[INTERNAL-LINK: find used auto parts → /find-used-auto-parts]
+Ready to try the fastest method? [Find used auto parts on the Hotline HQ marketplace](/marketplace).
 
 ## Frequently Asked Questions {#faq}
 

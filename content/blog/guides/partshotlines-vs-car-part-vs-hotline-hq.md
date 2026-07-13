@@ -30,7 +30,12 @@ faq:
     a: Yes, and many yards do. Car-Part.com gives you passive reach — your inventory is searchable by anyone, anytime. Hotline HQ gives you active, real-time reach — you hear live requests and respond in seconds. They complement each other well.
   - q: Which used parts network has the fastest response time?
     a: Hotline HQ's live voice model delivers the fastest response. The average time from broadcast to first response on the Hotline HQ network is approximately 2 seconds. Database networks like Car-Part.com and PartsHotlines depend on how often inventory is updated and how quickly a seller responds to an inquiry.
+coverImage: /images/blog/partshotlines-vs-car-part-vs-hotline-hq/desk_phones_comparison.webp
+coverImageAlt: Three different desk phones side by side on a salvage yard counter representing different parts network services
+ogImage: /images/blog/partshotlines-vs-car-part-vs-hotline-hq/desk_phones_comparison.webp
 ---
+
+![Three different desk phones side by side on a salvage yard counter representing different parts network services](/images/blog/partshotlines-vs-car-part-vs-hotline-hq/desk_phones_comparison.webp)
 
 *Disclosure: Hotline HQ publishes this comparison. We've done our best to be fair and factual about all three networks. Where competitors do something better, we say so.*
 
@@ -93,6 +98,8 @@ Scale is the whole story here. A buyer looking for a 2017 Ford F-150 tailgate mi
 
 ## Hotline HQ {#hotline-hq}
 
+![Split screen showing a cold database interface on the left versus a warm sunlit salvage yard with a worker on a voice hotline on the right](/images/blog/partshotlines-vs-car-part-vs-hotline-hq/database_vs_voice.webp)
+
 **Network size:** 500+ yards across 12 regional rooms
 **Model:** Live voice network (always-on conference bridge)
 
@@ -134,6 +141,8 @@ Hotline HQ operates in 12 regional markets, with the highest yard density in Cal
 
 ## The data freshness problem {#data-freshness}
 
+![Close-up of a salvage yard worker's desk with a desk phone, laptop showing a parts marketplace, and a highlighted spreadsheet tracking network results](/images/blog/partshotlines-vs-car-part-vs-hotline-hq/salvage_yard_desk.webp)
+
 This is the core trade-off between database networks and a live voice network. And it hits every search result you see or listing you post.
 
 A salvage yard's inventory changes constantly. Vehicles arrive. Parts get pulled and sold. Cores get crushed. A busy day might mean dozens of parts changing hands. But database syncs run on a schedule — daily if you're diligent, weekly or monthly if you're not.
@@ -158,6 +167,8 @@ No wrong answer here. The wrong move is choosing nothing and riding only on walk
 
 ## Why most yards use more than one {#use-more-than-one}
 
+![Whiteboard in a salvage yard meeting room with a hand-drawn feature comparison chart for different parts networks](/images/blog/partshotlines-vs-car-part-vs-hotline-hq/salvage_yard_whiteboard.webp)
+
 Honest take: these networks aren't mutually exclusive. Plenty of yards run two or even all three.
 
 Car-Part.com gives you broad, passive reach. Your inventory sits in the largest database in the industry, and buyers find it on their own. That's worth something even when the data drifts.
@@ -166,7 +177,7 @@ PartsHotlines gives you curated exposure to serious yards. The hand-selected net
 
 Hotline HQ gives you speed and real-time demand intelligence. You hear what yards in your region need right now. Parts collecting dust on your shelves might be exactly what someone broadcasts for tomorrow morning.
 
-The yards that sell the most parts don't lean on one channel. They combine passive reach (databases) with active selling (voice networks and direct relationships). If you're [finding parts online](/find-used-auto-parts) or helping customers track down hard-to-find components, a multi-network approach covers more ground.
+The yards that sell the most parts don't lean on one channel. They combine passive reach (databases) with active selling (voice networks and direct relationships). If you're [finding parts online](/blog/guides/find-used-auto-parts-online-guide) or helping customers track down hard-to-find components, a multi-network approach covers more ground.
 
 Software tracks your inventory. Databases list it. A voice network sells it live. Different tools, different jobs.
 
