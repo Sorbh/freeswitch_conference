@@ -1,4 +1,5 @@
 import express from "express";
+import bcrypt from "bcryptjs";
 import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { invalidateDebugCache, logUser } from "../../service/logger.js";
 import { emitStateChange } from "./routesApi.js";
@@ -120,9 +121,9 @@ router.get("/accounts/:id", (req, res) => {
 router.post("/accounts", async (req, res) => {
     try {
         logUser(req.body.email, 'API', 'CREATE-ACCOUNT');
-        const { email, password, display_name, company_name, company_phone, company_address, city, state, zip, room, extension, register_ymcs, mac, sn } = req.body;
+        const { email, password, web_password, display_name, company_name, company_phone, company_address, city, state, zip, room, extension, register_ymcs, mac, sn } = req.body;
         if (!email || !password) {
-            return res.status(400).json({ status: false, error: "Email and password are required" });
+            return res.status(400).json({ status: false, error: "Email and SIP password are required" });
         }
 
         const existing = global.db.getAccountByEmail(email);
@@ -163,6 +164,11 @@ router.post("/accounts", async (req, res) => {
             room: roomId,
             extension: extension ? parseInt(extension) : null,
         });
+
+        if (web_password) {
+            const hash = await bcrypt.hash(web_password, 12);
+            global.db.updateAccount(account.id, { password_hash: hash });
+        }
 
         const sipUser = `sip:${email}`;
         const existingUser = global.db.getUserInfo(sipUser);
@@ -217,6 +223,10 @@ router.put("/accounts/:id", async (req, res) => {
                 if (key === 'room' || key === 'extension') fields[key] = req.body[key] != null ? parseInt(req.body[key]) : null;
                 else fields[key] = req.body[key];
             }
+        }
+
+        if (req.body.web_password) {
+            fields.password_hash = await bcrypt.hash(req.body.web_password, 12);
         }
 
         if (fields.extension != null) {

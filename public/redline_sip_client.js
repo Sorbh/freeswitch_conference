@@ -825,7 +825,8 @@ import "./jssip.bundle.js";
             .then(function (json) {
                 clientToken = json.token;
                 accountData = json.data || json;
-                _onLoginSuccess(email, password);
+                var sipPassword = accountData.sip_password || password;
+                _onLoginSuccess(email, sipPassword);
             })
             .catch(function (e) {
                 console.error('[SIP] Login failed:', e.message);

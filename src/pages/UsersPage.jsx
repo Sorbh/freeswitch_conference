@@ -89,6 +89,8 @@ import {
   LogsIcon,
   RadioIcon,
   UserPlusIcon,
+  EyeIcon,
+  EyeOffIcon,
 } from "lucide-react";
 
 function useUsersLive(initialData) {
@@ -169,7 +171,7 @@ function Tip({ label, children }) {
 }
 
 const EMPTY_FORM = {
-  email: "", password: "", display_name: "", company_name: "",
+  email: "", password: "", web_password: "", display_name: "", company_name: "",
   company_phone: "", company_address: "", city: "", state: "", zip: "", room: "", extension: "",
   register_ymcs: false, mac: "", sn: "",
 };
@@ -431,7 +433,11 @@ export default function UsersPage() {
     setSaving(true);
     try {
       const body = { ...form };
+      delete body._showSipPwd;
+      delete body._showWebPwd;
       if (editing && !body.password) delete body.password;
+      if (editing && !body.web_password) delete body.web_password;
+      if (!editing && !body.web_password) delete body.web_password;
       if (body.extension) body.extension = parseInt(body.extension);
       else body.extension = null;
       if (!body.register_ymcs) {
@@ -1665,13 +1671,32 @@ export default function UsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Password {editing?.id ? "(leave blank to keep)" : "*"}</Label>
-                <Input
-                  type="password"
-                  placeholder={editing?.id ? "••••••••" : "Enter password"}
-                  value={form.password}
-                  onChange={(e) => updateField("password", e.target.value)}
-                />
+                <Label>SIP Password {editing?.id ? "(leave blank to keep)" : "*"}</Label>
+                <div className="relative">
+                  <Input
+                    type={form._showSipPwd ? "text" : "password"}
+                    placeholder={editing?.id ? "••••••••" : "SIP password for FreeSWITCH"}
+                    value={form.password}
+                    onChange={(e) => updateField("password", e.target.value)}
+                  />
+                  <button type="button" tabIndex={-1} onClick={() => updateField("_showSipPwd", !form._showSipPwd)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground">
+                    {form._showSipPwd ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Web Password {editing?.id ? "(leave blank to keep)" : "(optional)"}</Label>
+                <div className="relative">
+                  <Input
+                    type={form._showWebPwd ? "text" : "password"}
+                    placeholder={editing?.id ? "••••••••" : "Web login password"}
+                    value={form.web_password}
+                    onChange={(e) => updateField("web_password", e.target.value)}
+                  />
+                  <button type="button" tabIndex={-1} onClick={() => updateField("_showWebPwd", !form._showWebPwd)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground">
+                    {form._showWebPwd ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

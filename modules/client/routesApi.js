@@ -389,7 +389,8 @@ clientRouter.post("/login", async (req, res) => {
 
         kickClientSSE(account.email);
 
-        const { password: _, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
+        const { password: sipPwd, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
+        safe.sip_password = sipPwd || global.config.SIP_DEFAULT_PASSWORD || '12345678';
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);
         if (userInfo && userInfo.currentRoom) {
             safe.current_room = userInfo.currentRoom;
