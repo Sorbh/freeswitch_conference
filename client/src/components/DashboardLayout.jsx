@@ -1374,32 +1374,50 @@ function MobilePTTBar({ muted, onToggle }) {
   const { t } = useTranslation('dashboard');
   const [held, setHeld] = useState(false);
   const wasMutedRef = useRef(true);
+  const pressAtRef = useRef(0);
+  const touchUsedRef = useRef(false);
 
+  // Tap (<300ms) toggles mute; holding is push-to-talk. Logic lives in
+  // redline_sip_client.js (pttStart/pttEnd); inline fallback for a cached
+  // older sip client that doesn't expose the PTT API yet.
+  // Touch devices also fire synthetic mouse events after touch — those would
+  // re-toggle and undo the tap, so mouse handlers are ignored once touch is seen.
   function onStart(e) {
     e.preventDefault();
     setHeld(true);
-    wasMutedRef.current = window.hotlineClient?.isMuted?.() ?? true;
+    const hc = window.hotlineClient;
+    if (hc?.pttStart) { hc.pttStart(); return; }
+    pressAtRef.current = Date.now();
+    wasMutedRef.current = hc?.isMuted?.() ?? true;
     if (wasMutedRef.current) onToggle();
   }
   function onEnd(e) {
     e.preventDefault();
     if (!held) return;
     setHeld(false);
-    if (wasMutedRef.current && window.hotlineClient && !window.hotlineClient.isMuted()) onToggle();
+    const hc = window.hotlineClient;
+    if (hc?.pttEnd) { hc.pttEnd(); return; }
+    if (Date.now() - pressAtRef.current < 300) {
+      if (!wasMutedRef.current) onToggle();
+      return;
+    }
+    if (wasMutedRef.current && hc && !hc.isMuted()) onToggle();
   }
+
+  const live = held || !muted;
 
   return (
     <button
-      onTouchStart={onStart}
+      onTouchStart={(e) => { touchUsedRef.current = true; onStart(e); }}
       onTouchEnd={onEnd}
       onTouchCancel={onEnd}
-      onMouseDown={onStart}
-      onMouseUp={onEnd}
-      onMouseLeave={onEnd}
+      onMouseDown={(e) => { if (!touchUsedRef.current) onStart(e); }}
+      onMouseUp={(e) => { if (!touchUsedRef.current) onEnd(e); }}
+      onMouseLeave={(e) => { if (!touchUsedRef.current) onEnd(e); }}
       className="w-full flex items-center justify-center gap-2 select-none"
       style={{
         height: 52,
-        background: held ? 'var(--green)' : 'var(--red)',
+        background: live ? 'var(--green)' : 'var(--red)',
         color: '#fff',
         fontSize: 14,
         fontWeight: 700,
@@ -1411,7 +1429,7 @@ function MobilePTTBar({ muted, onToggle }) {
         touchAction: 'none',
       }}
     >
-      {held ? <><MicOnIcon size={18} /> {t('layout.ptt.live')}</> : <><MicOffIcon size={18} /> {t('layout.ptt.hold')}</>}
+      {live ? <><MicOnIcon size={18} /> {t('layout.ptt.live')}</> : <><MicOffIcon size={18} /> {t('layout.ptt.hold')}</>}
     </button>
   );
 }

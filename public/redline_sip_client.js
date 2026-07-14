@@ -92,6 +92,7 @@
 //   window.hotlineClient.reconnect()                              // force reconnect SSE
 //   window.hotlineClient.disconnect()                             // stop SSE and clear grid
 //   window.hotlineClient.toggleMute()                             // Ctrl+L equivalent
+//   window.hotlineClient.pttStart() / .pttEnd()                   // press/release: tap(<300ms)=toggle, hold=push-to-talk
 //   window.hotlineClient.hangup()                                 // end current call
 //   window.hotlineClient.getRoom()                                // get current room
 //   window.hotlineClient.getRoomDetails()                         // get all rooms with online counts
@@ -932,10 +933,41 @@ import "./jssip.bundle.js";
             }
         }
 
-        // ── 12. Keyboard Shortcuts ──
+        // ── 12. Push-to-Talk + Keyboard Shortcuts ──
+        // Shared tap-vs-hold logic, used by the Space bar here and by the mobile
+        // PTT bar in the dashboard (via hotlineClient.pttStart/pttEnd):
+        //   quick press (<300ms) = toggle mute (like Ctrl+L)
+        //   longer press         = push-to-talk (live only while held)
+
+        var PTT_TAP_TOGGLE_MS = 300;
+        var _pttActive = false;
+        var _pttStartAt = 0;
+        var _pttWasMuted = false;
+
+        function pttStart() {
+            if (listenOnly || monitorMode || !accountData) return;
+            if (_pttActive) return;
+            _pttActive = true;
+            _pttStartAt = Date.now();
+            _pttWasMuted = isMuted;
+            if (isMuted) toggleMute();
+        }
+
+        function pttEnd() {
+            if (!_pttActive) return;
+            _pttActive = false;
+            var heldMs = Date.now() - _pttStartAt;
+            if (heldMs < PTT_TAP_TOGGLE_MS) {
+                // Tap = toggle. Was muted: keep the unmute from pttStart.
+                // Was already live: a tap means mute now.
+                if (!_pttWasMuted) toggleMute();
+            } else {
+                // Hold = push-to-talk: restore mute on release.
+                if (_pttWasMuted && !isMuted) toggleMute();
+            }
+        }
 
         var _spaceHeld = false;
-        var _wasMutedBeforeSpace = false;
         try {
             document.addEventListener('keydown', function (e) {
                 try {
@@ -953,8 +985,7 @@ import "./jssip.bundle.js";
                         e.preventDefault();
                         if (listenOnly || monitorMode || !accountData) return;
                         _spaceHeld = true;
-                        _wasMutedBeforeSpace = isMuted;
-                        if (isMuted) toggleMute();
+                        pttStart();
                     }
                 } catch (err) { }
             });
@@ -963,7 +994,7 @@ import "./jssip.bundle.js";
                     if (e.code === 'Space' && _spaceHeld) {
                         e.preventDefault();
                         _spaceHeld = false;
-                        if (_wasMutedBeforeSpace && !isMuted) toggleMute();
+                        pttEnd();
                     }
                 } catch (err) { }
             });
@@ -992,6 +1023,8 @@ import "./jssip.bundle.js";
             reconnect: function () { callerIdReconnectAttempts = 0; var r = accountData && (accountData.current_room || accountData.room); if (r) startCallerIdSSE(r); },
             disconnect: stopCallerIdSSE,
             toggleMute: toggleMute,
+            pttStart: pttStart,                                           // press: tap(<300ms)=toggle, hold=push-to-talk
+            pttEnd: pttEnd,                                               // release: completes the tap/hold decision
             hangup: hangup,
             getRoom: function () { return accountData && (accountData.current_room || accountData.room) || ''; },
             getRoomDetails: getRoomDetails,

@@ -112,7 +112,7 @@
     "mute": "Mute",
     "unmute": "Unmute",
     "listenOnly": "Listen Only",
-    "muteShortcutHint": "<kbd>Ctrl+L</kbd> to toggle mute · hold <kbd>Space</kbd> to push-to-talk",
+    "muteShortcutHint": "Tap <kbd>Space</kbd> to toggle mute · hold it to push-to-talk · <kbd>Ctrl+L</kbd> also toggles",
     "thisRoom": "This Room",
     "network": "Network",
     "speaking": "Speaking",
