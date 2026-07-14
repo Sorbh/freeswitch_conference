@@ -196,6 +196,9 @@ marketplaceRouter.post('/listings/:slug/respond', express.json(), (req, res) => 
         // Check listing exists
         const broadcast = global.db.getMarketplaceListingById(broadcastId);
         if (!broadcast) return res.status(404).json({ status: false, error: 'Listing not found' });
+        if (broadcast.answered) {
+            return res.status(410).json({ status: false, error: 'This request has already been filled' });
+        }
 
         // Rate limiting
         const ip = getClientIp(req);

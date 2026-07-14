@@ -356,7 +356,9 @@ if (fs.existsSync(clientDistDir)) {
             const url = `https://hotlinehq.online/parts/${slug}`;
 
             const title = `${partDesc || 'Part'} Needed in ${region} | Used Auto Parts | Hotline HQ`;
-            const description = `${region} dismantler needs a used ${partDesc}${spec ? ` (${spec})` : ''}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
+            const description = broadcast.answered
+                ? `A ${region} dismantler needed a used ${partDesc}${spec ? ` (${spec})` : ''} — this request was filled live on the Hotline HQ network. Join to hear requests like this the moment they're broadcast.`
+                : `${region} dismantler needs a used ${partDesc}${spec ? ` (${spec})` : ''}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
             const keywords = [make, model, part, 'used auto parts', 'salvage parts', region, 'car parts', 'dismantler', year].filter(Boolean).join(', ');
 
             const jsonLd = JSON.stringify({

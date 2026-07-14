@@ -58,9 +58,11 @@ function getMarketplaceListings({ page = 1, pageSize = 20, room, year, make, mod
     };
 }
 
+// Unlike the list query, answered listings ARE returned here — the public page shows
+// them in a "request filled" state instead of 404ing (they were pinged to IndexNow).
 function getMarketplaceListingById(id) {
     return sqlite.prepare(
-        `SELECT ${SAFE_COLUMNS} FROM broadcast_log b WHERE b.id = ? AND b.answered = 0 AND b.has_parts_request = 1 AND b.part_details IS NOT NULL`
+        `SELECT ${SAFE_COLUMNS}, b.answered FROM broadcast_log b WHERE b.id = ? AND b.has_parts_request = 1 AND b.part_details IS NOT NULL`
     ).get(id) || null;
 }
 

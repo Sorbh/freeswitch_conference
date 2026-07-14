@@ -22,6 +22,7 @@ import {
     generateBroadcastShareToken, revokeBroadcastShareToken,
     getBroadcastByShareToken, getBroadcastById, getBroadcastByRecordingPath,
     updateBroadcastTranscription, updateBroadcastLocalTranscription, updateBroadcastPartDetails,
+    markBroadcastHasPartsRequest,
 } from './db/broadcasts.js';
 import {
     logEvent, getEvents, logOnlineStatus, getOnlineHistory, getDashboardStats,
@@ -145,6 +146,7 @@ db.getSettingsByPrefix = getSettingsByPrefix;
 db.updateBroadcastTranscription = updateBroadcastTranscription;
 db.updateBroadcastLocalTranscription = updateBroadcastLocalTranscription;
 db.updateBroadcastPartDetails = updateBroadcastPartDetails;
+db.markBroadcastHasPartsRequest = markBroadcastHasPartsRequest;
 db.getBroadcastByRecordingPath = getBroadcastByRecordingPath;
 db.getAdminByEmail = getAdminByEmail;
 db.getAdminById = getAdminById;

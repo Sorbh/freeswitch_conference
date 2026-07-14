@@ -174,10 +174,17 @@ function updateBroadcastPartDetails(id, partDetails) {
     sqlite.prepare('UPDATE broadcast_log SET part_details = ? WHERE id = ?').run(JSON.stringify(partDetails), id);
 }
 
+// Cloud STT fallback extracts parts after local whisper already wrote has_parts_request=0;
+// without this the listing stays invisible to the marketplace queries.
+function markBroadcastHasPartsRequest(id) {
+    sqlite.prepare('UPDATE broadcast_log SET has_parts_request = 1 WHERE id = ?').run(id);
+}
+
 export {
     logBroadcast, getBroadcastStats, getRecentBroadcasts, getPaginatedBroadcasts,
     getLatestBroadcast, getHourlyBroadcasts, getTimelineBroadcasts,
     generateBroadcastShareToken, revokeBroadcastShareToken,
     getBroadcastByShareToken, getBroadcastById, getBroadcastByRecordingPath,
     updateBroadcastTranscription, updateBroadcastLocalTranscription, updateBroadcastPartDetails,
+    markBroadcastHasPartsRequest,
 };

@@ -272,12 +272,15 @@ export default function PartsListingPage() {
   const partName = isRealValue(parts.part) ? parts.part : null;
   const spec = parts.specification;
   const expired = data.is_expired;
+  const filled = Boolean(data.answered);
   const { yard, person } = parseDisplayName(data.display_name);
 
   const vehicle = [parts.year, makeModel].filter(Boolean).join(" ");
   const specText = isRealValue(spec) ? ` (${spec})` : "";
   const seoTitle = `${vehicle} ${partName || "Part"} Needed in ${data.room_name} | Used Auto Parts | Hotline HQ`;
-  const seoDesc = `${data.room_name} dismantler needs a used ${vehicle} ${partName || "part"}${specText}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
+  const seoDesc = filled
+    ? `A ${data.room_name} dismantler needed a used ${vehicle} ${partName || "part"}${specText} — this request was filled live on the Hotline HQ network. Join to hear requests like this the moment they're broadcast.`
+    : `${data.room_name} dismantler needs a used ${vehicle} ${partName || "part"}${specText}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
   const seoKeywords = [parts.make, parts.model, partName, "used auto parts", "salvage parts", data.room_name, "car parts", "dismantler", parts.year].filter(Boolean).join(", ");
 
   return (
@@ -364,7 +367,16 @@ export default function PartsListingPage() {
                     {partName && <span className="pl-part-chip">{partName}</span>}
                     {spec && isRealValue(spec) && <p className="pl-spec">{spec}</p>}
 
-                    {expired && (
+                    {filled && (
+                      <div className="pl-filled-notice">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Request filled on the live network
+                      </div>
+                    )}
+
+                    {!filled && expired && (
                       <div className="pl-expired-notice">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
@@ -374,7 +386,7 @@ export default function PartsListingPage() {
                       </div>
                     )}
 
-                    {!expired && data.response_count > 0 && (
+                    {!filled && !expired && data.response_count > 0 && (
                       <div className="pl-response-count">
                         {data.response_count} {data.response_count === 1 ? "person has" : "people have"} responded
                       </div>
@@ -383,7 +395,13 @@ export default function PartsListingPage() {
 
                   {/* Action section */}
                   <div className="pl-action">
-                    {expired ? (
+                    {filled ? (
+                      <div className="pl-action-expired">
+                        <h3>This part was found in seconds</h3>
+                        <p>A member yard heard this request live and answered on the spot. Join Hotline HQ to hear every part request the moment it's broadcast.</p>
+                        <a href={SIGNUP_URL} className="pl-cta-primary">Join Hotline HQ</a>
+                      </div>
+                    ) : expired ? (
                       <div className="pl-action-expired">
                         <h3>Parts like this are requested every day</h3>
                         <p>Join Hotline HQ and hear requests live — respond the moment someone needs what you carry.</p>
@@ -820,6 +838,21 @@ const PAGE_CSS = `
   text-transform: uppercase;
   color: var(--subtle);
   background: var(--band);
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-top: 18px;
+}
+.pl-filled-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-soft);
   padding: 10px 16px;
   border-radius: 8px;
   margin-top: 18px;

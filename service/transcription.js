@@ -499,6 +499,11 @@ async function extractPartDetails(broadcastId, text) {
 
     if (partDetails) {
         global.db.updateBroadcastPartDetails(broadcastId, partDetails);
+        // Local whisper may have written has_parts_request=0 (e.g. garbage transcript) before
+        // cloud STT extracted valid details — without this the listing stays hidden forever.
+        if (isValidPartRequest(partDetails)) {
+            global.db.markBroadcastHasPartsRequest(broadcastId);
+        }
         logSystem('PARTS', `#${broadcastId}: ${partDetails.year || '?'} ${partDetails.make || '?'} ${partDetails.model || '?'} ${partDetails.part || '?'}`);
         _pingMarketplaceListing(broadcastId, partDetails);
     } else {
