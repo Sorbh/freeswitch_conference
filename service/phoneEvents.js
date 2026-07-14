@@ -413,7 +413,7 @@ function _applyMuteState(userName, userInfo, event) {
     const mute = event === 'on_hook';
     const activeRoom = userInfo.currentRoom || userInfo.room;
 
-    if (userInfo.mute === mute) {
+    if (!!userInfo.mute === mute) {
         logUser(userName, 'MUTE_TRACE', `applyMuteState SKIP (already ${mute ? 'muted' : 'unmuted'})`);
         return;
     }
