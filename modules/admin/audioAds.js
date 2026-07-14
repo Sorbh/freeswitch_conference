@@ -3,7 +3,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from 'multer';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,7 +50,7 @@ router.post("/audio-ads", adUpload.single('audio'), async (req, res) => {
 
         // Convert to WAV 8kHz mono for FreeSWITCH
         try {
-            execFileSync('ffmpeg', ['-y', '-i', req.file.path, '-ar', '8000', '-ac', '1', wavPath], { stdio: 'ignore' });
+            await execFileAsync('ffmpeg', ['-y', '-i', req.file.path, '-ar', '8000', '-ac', '1', wavPath], { timeout: 60000 });
         } catch (err) {
             fs.unlinkSync(req.file.path);
             return res.status(500).json({ status: false, error: "Audio conversion failed" });
@@ -57,7 +60,7 @@ router.post("/audio-ads", adUpload.single('audio'), async (req, res) => {
         // Get duration
         let durationMs = 0;
         try {
-            const probe = execFileSync('ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', wavPath], { encoding: 'utf8' });
+            const { stdout: probe } = await execFileAsync('ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', wavPath], { encoding: 'utf8', timeout: 10000 });
             durationMs = Math.round(parseFloat(probe.trim()) * 1000);
         } catch {}
 
@@ -92,7 +95,7 @@ router.post("/audio-ads/:id/replace", adUpload.single('audio'), async (req, res)
         const wavPath = path.join(announcementsDir, `${Date.now()}_${originalName.replace(/[^a-zA-Z0-9._-]/g, '_')}.wav`);
 
         try {
-            execFileSync('ffmpeg', ['-y', '-i', req.file.path, '-ar', '8000', '-ac', '1', wavPath], { stdio: 'ignore' });
+            await execFileAsync('ffmpeg', ['-y', '-i', req.file.path, '-ar', '8000', '-ac', '1', wavPath], { timeout: 60000 });
         } catch (err) {
             fs.unlinkSync(req.file.path);
             return res.status(500).json({ status: false, error: "Audio conversion failed" });
@@ -103,7 +106,7 @@ router.post("/audio-ads/:id/replace", adUpload.single('audio'), async (req, res)
 
         let durationMs = 0;
         try {
-            const probe = execFileSync('ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', wavPath], { encoding: 'utf8' });
+            const { stdout: probe } = await execFileAsync('ffprobe', ['-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', wavPath], { encoding: 'utf8', timeout: 10000 });
             durationMs = Math.round(parseFloat(probe.trim()) * 1000);
         } catch {}
 

@@ -25,8 +25,27 @@ async function _useSingleFileAuthState(filePath) {
         try { data = JSON.parse(fs.readFileSync(filePath, 'utf8'), BufferJSON.reviver); } catch { data = {}; }
     }
 
+    // Baileys calls keys.set on every message (Signal key updates), which used to
+    // JSON.stringify + writeFileSync the entire auth state (>1MB) on the main loop
+    // each time. Coalesce bursts into a single serialized async write instead.
+    let _writing = false;
+    let _dirty = false;
+    const _flush = async () => {
+        while (_dirty) {
+            _dirty = false;
+            try {
+                await fs.promises.writeFile(filePath, JSON.stringify(data, BufferJSON.replacer, 2));
+            } catch (err) {
+                logSystem('WHATSAPP', `auth state write failed: ${err.message}`);
+            }
+        }
+        _writing = false;
+    };
     const writeData = () => {
-        fs.writeFileSync(filePath, JSON.stringify(data, BufferJSON.replacer, 2));
+        _dirty = true;
+        if (_writing) return;
+        _writing = true;
+        setImmediate(_flush);
     };
 
     const creds = data.creds || initAuthCreds();

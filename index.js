@@ -429,9 +429,12 @@ if (fs.existsSync(clientDistDir)) {
         const html = injectSeoMeta(clientIndexHtml, seo);
         res.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
         if (req.headers['accept-encoding']?.includes('gzip')) {
-            res.set('Content-Encoding', 'gzip');
-            res.set('Content-Type', 'text/html; charset=utf-8');
-            res.end(zlib.gzipSync(html));
+            zlib.gzip(html, (err, gz) => {
+                if (err || res.headersSent) { if (!res.headersSent) res.type("html").send(html); return; }
+                res.set('Content-Encoding', 'gzip');
+                res.set('Content-Type', 'text/html; charset=utf-8');
+                res.end(gz);
+            });
         } else {
             res.type("html").send(html);
         }

@@ -3,7 +3,7 @@
 // NOTIFY uses sendevent with contact-uri for reliable delivery through NAT.
 // Tones use conference play with member_id for per-user audio whisper.
 // TTS generates wav via flite CLI, then plays via conference play.
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import { unlinkSync } from 'fs';
 import { getConnection } from './connection.js';
 import { logUser, logSystem } from '../logger.js';
@@ -218,33 +218,33 @@ export function speak(text, { targets, room } = {}) {
     if (!conn || !text) return;
 
     const wavFile = `/tmp/tts_${Date.now()}_${++_ttsCounter}.wav`;
-    try {
-        execFileSync('flite', ['-t', text, '-o', wavFile], { timeout: 5000 });
-    } catch (e) {
-        logSystem('NOTIFY', `TTS failed: ${e.message}`);
-        return;
-    }
-
-    const cleanup = () => { try { unlinkSync(wavFile); } catch {} };
-
-    if (targets) {
-        if (!Array.isArray(targets)) targets = [targets];
-        let played = 0;
-        for (const target of targets) {
-            if (!target) continue;
-            const userName = target.startsWith('sip:') ? target : `sip:${target}`;
-            const users = global.db.filter(u => u.userName === userName);
-            const user = users[0];
-            if (!user || !user.fsMemberId || user.connectionState !== 'connected') continue;
-            const userRoom = user.currentRoom || user.room;
-            conn.api(`conference ${userRoom} play ${wavFile} ${user.fsMemberId}`, () => {});
-            played++;
+    execFile('flite', ['-t', text, '-o', wavFile], { timeout: 5000 }, (err) => {
+        if (err) {
+            logSystem('NOTIFY', `TTS failed: ${err.message}`);
+            return;
         }
-        if (played > 0) logSystem('NOTIFY', `speak -> ${played} phone${played > 1 ? 's' : ''}: "${text}"`);
-        setTimeout(cleanup, 15000);
-    } else if (room) {
-        conn.api(`conference ${room} play ${wavFile}`, () => {});
-        logSystem('NOTIFY', `speak -> room ${global.config.ROOM_NAME?.[room] || room}: "${text}"`);
-        setTimeout(cleanup, 15000);
-    }
+
+        const cleanup = () => { try { unlinkSync(wavFile); } catch {} };
+
+        if (targets) {
+            if (!Array.isArray(targets)) targets = [targets];
+            let played = 0;
+            for (const target of targets) {
+                if (!target) continue;
+                const userName = target.startsWith('sip:') ? target : `sip:${target}`;
+                const users = global.db.filter(u => u.userName === userName);
+                const user = users[0];
+                if (!user || !user.fsMemberId || user.connectionState !== 'connected') continue;
+                const userRoom = user.currentRoom || user.room;
+                conn.api(`conference ${userRoom} play ${wavFile} ${user.fsMemberId}`, () => {});
+                played++;
+            }
+            if (played > 0) logSystem('NOTIFY', `speak -> ${played} phone${played > 1 ? 's' : ''}: "${text}"`);
+            setTimeout(cleanup, 15000);
+        } else if (room) {
+            conn.api(`conference ${room} play ${wavFile}`, () => {});
+            logSystem('NOTIFY', `speak -> room ${global.config.ROOM_NAME?.[room] || room}: "${text}"`);
+            setTimeout(cleanup, 15000);
+        }
+    });
 }

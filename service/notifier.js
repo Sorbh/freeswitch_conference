@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 import { logSystem } from './logger.js';
@@ -76,16 +76,18 @@ function _buildCaption(template, vars) {
 }
 
 function _ensureOgg(recordingPath) {
-    if (!recordingPath || !fs.existsSync(recordingPath)) return null;
-    const oggPath = recordingPath.replace(/\.wav$/, '.ogg');
-    if (fs.existsSync(oggPath)) return oggPath;
-    try {
-        execFileSync('ffmpeg', ['-y', '-i', recordingPath, '-c:a', 'libopus', '-b:a', '64k', oggPath], { stdio: 'ignore' });
-        return oggPath;
-    } catch (err) {
-        logSystem('NOTIFY', `ffmpeg WAV→OGG failed: ${err.message}`);
-        return null;
-    }
+    return new Promise((resolve) => {
+        if (!recordingPath || !fs.existsSync(recordingPath)) return resolve(null);
+        const oggPath = recordingPath.replace(/\.wav$/, '.ogg');
+        if (fs.existsSync(oggPath)) return resolve(oggPath);
+        execFile('ffmpeg', ['-y', '-i', recordingPath, '-c:a', 'libopus', '-b:a', '64k', oggPath], { timeout: 60000 }, (err) => {
+            if (err) {
+                logSystem('NOTIFY', `ffmpeg WAV→OGG failed: ${err.message}`);
+                return resolve(null);
+            }
+            resolve(oggPath);
+        });
+    });
 }
 
 export { DEFAULT_TEMPLATE, TEMPLATE_VARS };
@@ -160,7 +162,7 @@ export async function notifyBroadcast(broadcastData) {
         parts: partDetail || {},
     };
 
-    const oggPath = _ensureOgg(recordingPath);
+    const oggPath = await _ensureOgg(recordingPath);
 
     for (const channel of channels) {
         try {
@@ -187,7 +189,7 @@ async function _sendTelegram(channel, caption, oggPath) {
 
     if (oggPath && fs.existsSync(oggPath)) {
         const { FormData, File } = await import('node-fetch');
-        const fileBuffer = fs.readFileSync(oggPath);
+        const fileBuffer = await fs.promises.readFile(oggPath);
         const fileName = oggPath.split('/').pop();
 
         const form = new FormData();
@@ -242,7 +244,7 @@ export async function sendCustomMessage(channel, text, imagePath) {
 
         if (imagePath && fs.existsSync(imagePath)) {
             const { FormData, File } = await import('node-fetch');
-            const fileBuffer = fs.readFileSync(imagePath);
+            const fileBuffer = await fs.promises.readFile(imagePath);
             const fileName = imagePath.split('/').pop();
             const form = new FormData();
             form.append('chat_id', chat_id);
@@ -306,7 +308,7 @@ export async function testNotificationChannel(channel) {
 
     const caption = `✅ TEST — HotlineHQ\n\n${_buildCaption(channel.message_template, testVars)}`;
     const recordingPath = _findLatestRecording();
-    const oggPath = _ensureOgg(recordingPath);
+    const oggPath = await _ensureOgg(recordingPath);
 
     try {
         if (channel.type === 'telegram') {

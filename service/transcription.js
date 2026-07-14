@@ -159,7 +159,7 @@ function _getSettings() {
 }
 
 async function _deepgramTranscribe(filePath, apiKey, model, language) {
-    const audioData = fs.readFileSync(filePath);
+    const audioData = await fs.promises.readFile(filePath);
     const params = new URLSearchParams({
         model,
         smart_format: 'true',
@@ -211,7 +211,7 @@ async function _deepgramTranscribe(filePath, apiKey, model, language) {
 }
 
 async function _openrouterTranscribe(filePath, apiKey, model, language) {
-    const audioData = fs.readFileSync(filePath);
+    const audioData = await fs.promises.readFile(filePath);
     const base64Audio = audioData.toString('base64');
     const startMs = Date.now();
 

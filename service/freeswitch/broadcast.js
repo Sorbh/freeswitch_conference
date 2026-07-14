@@ -8,7 +8,7 @@
 // - Sessions shorter than 3s are discarded (accidental unmutes).
 import fs from 'fs';
 import path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import { getConnection, getMemberIdMap, onCustomEvent } from './connection.js';
 import { logUser, logSystem, logBroadcast } from '../logger.js';
 import { isPlaying, stopAd } from '../announcements.js';
@@ -22,33 +22,42 @@ const BROADCAST_RESPONSE_WINDOW_MS = 5000;
 
 
 function _getFileDurationMs(filePath) {
-    try {
-        const out = execFileSync('ffprobe', [
+    return new Promise((resolve) => {
+        execFile('ffprobe', [
             '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'csv=p=0', filePath
-        ], { encoding: 'utf8', timeout: 5000 });
-        const secs = parseFloat(out.trim());
-        if (isFinite(secs) && secs > 0) return Math.round(secs * 1000);
-    } catch {}
-    return null;
+        ], { encoding: 'utf8', timeout: 5000 }, (err, stdout) => {
+            if (err) return resolve(null);
+            const secs = parseFloat((stdout || '').trim());
+            resolve(isFinite(secs) && secs > 0 ? Math.round(secs * 1000) : null);
+        });
+    });
 }
 
 function _trimToduration(filePath, durationMs) {
-    try {
+    return new Promise((resolve) => {
         const durationSec = (durationMs / 1000).toFixed(3);
         const tmpPath = filePath.replace(/\.wav$/, '_cut.wav');
-        execFileSync('ffmpeg', [
+        execFile('ffmpeg', [
             '-y', '-i', filePath, '-t', durationSec, '-c', 'copy', tmpPath
-        ], { stdio: 'ignore', timeout: 10000 });
-        const trimmedSize = fs.statSync(tmpPath).size;
-        if (trimmedSize > 44) {
-            fs.renameSync(tmpPath, filePath);
-            logSystem('BCAST', `Trimmed response window: cut to ${durationSec}s`);
-        } else {
-            try { fs.unlinkSync(tmpPath); } catch {}
-        }
-    } catch (e) {
-        logSystem('BCAST', `Duration trim failed: ${e.message}`);
-    }
+        ], { timeout: 10000 }, (err) => {
+            if (err) {
+                logSystem('BCAST', `Duration trim failed: ${err.message}`);
+                return resolve();
+            }
+            try {
+                const trimmedSize = fs.statSync(tmpPath).size;
+                if (trimmedSize > 44) {
+                    fs.renameSync(tmpPath, filePath);
+                    logSystem('BCAST', `Trimmed response window: cut to ${durationSec}s`);
+                } else {
+                    try { fs.unlinkSync(tmpPath); } catch {}
+                }
+            } catch (e) {
+                logSystem('BCAST', `Duration trim failed: ${e.message}`);
+            }
+            resolve();
+        });
+    });
 }
 
 // Room-level active sessions: conferenceName -> session
@@ -234,19 +243,22 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
             roomSessions.delete(conferenceName);
             getConnection().api(`conference ${conferenceName} norecord ${session.recordingPath}`, () => {});
 
-            _trimToduration(session.recordingPath, durationMs);
-            const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
-            logSystem('BCAST', `└─ UNANSWERED (${actualDurationMs}ms) — sending notification`);
+            _trimToduration(session.recordingPath, durationMs)
+                .then(() => _getFileDurationMs(session.recordingPath))
+                .then((probedMs) => {
+                    const actualDurationMs = probedMs || durationMs;
+                    logSystem('BCAST', `└─ UNANSWERED (${actualDurationMs}ms) — sending notification`);
 
-            _finalizeBroadcast(conferenceName, room, {
-                firstSpeaker,
-                allParticipants: session.allParticipants,
-                durationMs: actualDurationMs,
-                recordingPath: session.recordingPath,
-                startTime: session.startTime,
-                responseTimeMs: null,
-                listenerCount: session.listenerCount,
-            }, false, null);
+                    _finalizeBroadcast(conferenceName, room, {
+                        firstSpeaker,
+                        allParticipants: session.allParticipants,
+                        durationMs: actualDurationMs,
+                        recordingPath: session.recordingPath,
+                        startTime: session.startTime,
+                        responseTimeMs: null,
+                        listenerCount: session.listenerCount,
+                    }, false, null);
+                });
         }, BROADCAST_RESPONSE_WINDOW_MS);
 
         return;
@@ -259,18 +271,20 @@ function _handleParticipantLeft(conferenceName, memberId, room) {
     const firstSpeaker = session.allParticipants[0];
     const responders = session.allParticipants.slice(1).map(p => p.displayName).join(', ');
 
-    const actualDurationMs = _getFileDurationMs(session.recordingPath) || durationMs;
-    logSystem('BCAST', `└─ ANSWERED (${actualDurationMs}ms, ${session.allParticipants.length} participants) responders: ${responders}`);
+    _getFileDurationMs(session.recordingPath).then((probedMs) => {
+        const actualDurationMs = probedMs || durationMs;
+        logSystem('BCAST', `└─ ANSWERED (${actualDurationMs}ms, ${session.allParticipants.length} participants) responders: ${responders}`);
 
-    _finalizeBroadcast(conferenceName, room, {
-        firstSpeaker,
-        allParticipants: session.allParticipants,
-        durationMs: actualDurationMs,
-        recordingPath: session.recordingPath,
-        startTime: session.startTime,
-        responseTimeMs: session.responseTimeMs,
-        listenerCount: session.listenerCount,
-    }, true, responders);
+        _finalizeBroadcast(conferenceName, room, {
+            firstSpeaker,
+            allParticipants: session.allParticipants,
+            durationMs: actualDurationMs,
+            recordingPath: session.recordingPath,
+            startTime: session.startTime,
+            responseTimeMs: session.responseTimeMs,
+            listenerCount: session.listenerCount,
+        }, true, responders);
+    });
 }
 
 function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
