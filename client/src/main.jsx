@@ -10,6 +10,18 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Recover from stale hashed chunks after a deploy: Vite fires this when a
+// dynamic import 404s (old tab, new build). One reload fetches the fresh
+// chunk graph; the sessionStorage guard prevents reload loops.
+window.addEventListener('vite:preloadError', (event) => {
+  const last = Number(sessionStorage.getItem('chunk_reload_at') || 0);
+  if (Date.now() - last > 30000) {
+    event.preventDefault();
+    sessionStorage.setItem('chunk_reload_at', String(Date.now()));
+    window.location.reload();
+  }
+});
+
 // Auto-reload on new build: poll build-id.json on tab refocus + every 60s
 (function () {
   let knownId = null;
