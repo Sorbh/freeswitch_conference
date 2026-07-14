@@ -56,6 +56,17 @@ import ApiRouter from "./routes/api.js";
 const { json, urlencoded } = express;
 
 const app = express();
+
+// Accept the public "/fs" prefix directly (Cloudflare Origin Rule routes
+// hotlinehq.online/fs/* straight here without path rewriting). The cPanel
+// reverse proxy strips "/fs" before forwarding, so this is a no-op for that
+// path and both routes work during the migration.
+app.use((req, res, next) => {
+    if (req.url === '/fs' || req.url === '/fs/') req.url = '/';
+    else if (req.url.startsWith('/fs/')) req.url = req.url.slice(3);
+    next();
+});
+
 const setNoStoreHtml = (res) => {
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.set("Pragma", "no-cache");
@@ -132,6 +143,22 @@ app.use("/local", (req, res, next) => {
     if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
     res.status(403).json({ status: false, error: "Localhost only" });
 }, shortUrlsLocalRouter);
+
+// System health — used by uptime monitors and the event-loop probe.
+// Deliberately cheap: no child processes, one tiny DB read.
+app.get("/api/v1/health", (req, res) => {
+    let dbOk = false;
+    try { global.db.getAllRooms(); dbOk = true; } catch {}
+    let eslConnected = false;
+    try { eslConnected = !!global.freeswitch?.isConnected?.(); } catch {}
+    res.json({
+        status: dbOk && eslConnected,
+        uptime_s: Math.round(process.uptime()),
+        esl_connected: eslConnected,
+        db_ok: dbOk,
+        ts: Date.now(),
+    });
+});
 
 app.use("/api/v1/", new ApiRouter().apiRouter);
 
