@@ -398,6 +398,7 @@ clientRouter.post("/login", async (req, res) => {
         if (userInfo && Object.keys(userInfo).length > 0) {
             safe.connection_state = userInfo.connectionState || 'ideal';
             safe.client_type = userInfo.clientType || 'unknown';
+            safe.web_takeover = userInfo.webTakeover ? 1 : 0;
         }
         res.json({ status: true, token, data: safe });
     } catch (err) {
@@ -576,6 +577,11 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
         safe.sip_password = sipPwd || global.config.SIP_DEFAULT_PASSWORD || '12345678';
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);
         if (userInfo && userInfo.currentRoom) safe.current_room = userInfo.currentRoom;
+        if (userInfo && Object.keys(userInfo).length > 0) {
+            safe.connection_state = userInfo.connectionState || 'ideal';
+            safe.client_type = userInfo.clientType || 'unknown';
+            safe.web_takeover = userInfo.webTakeover ? 1 : 0;
+        }
         res.json({ status: true, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });

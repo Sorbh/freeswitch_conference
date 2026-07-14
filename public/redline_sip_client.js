@@ -519,6 +519,16 @@ import "./jssip.bundle.js";
                             if (window.RedlineDirectCall) window.RedlineDirectCall.handleEvent(data);
                             return;
                         }
+                        if (data.type === 'monitor_mode') {
+                            console.log('[SIP] Monitor mode — Yealink reclaimed, switching to monitor');
+                            monitorMode = true;
+                            hangup();
+                            if (ua) { try { ua.unregister(); ua.stop(); } catch (e) { } ua = null; }
+                            stopMicStream();
+                            notifyMonitorMode();
+                            notifyCallState('connected');
+                            return;
+                        }
                         if (data.type === 'user_logout') {
                             console.warn('[SIP] Logged out:', data.reason);
                             if (typeof window.onHotlineUserLogout === 'function') {
@@ -746,7 +756,11 @@ import "./jssip.bundle.js";
             if (config.broadcastFeed === true) initBroadcastFeed(getToken);
 
             // Monitor mode: set via config or auto-detected when Yealink already connected
-            if (!monitorMode && accountData.connection_state === 'connected' && accountData.client_type === 'yealink') {
+            // Skip monitor mode if web_takeover is active — web should SIP register
+            if (accountData.web_takeover) {
+                monitorMode = false;
+                console.log('[SIP] web_takeover active — skipping monitor mode, will SIP register');
+            } else if (!monitorMode && accountData.connection_state === 'connected' && accountData.client_type === 'yealink') {
                 monitorMode = true;
                 notifyMonitorMode();
                 console.log('[SIP] Monitor mode — Yealink already connected, SSE only');

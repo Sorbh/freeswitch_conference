@@ -166,13 +166,28 @@ function _originateToConference(userName) {
         const profile = global.config.FREESWITCH_SOFIA_PROFILE;
         const confProfile = global.config.FREESWITCH_CONFERENCE_PROFILE;
 
+        if (userInfo.webTakeover && userInfo.webTakeoverContact) {
+            logUser(userName, 'CALL', `web_takeover — using webTakeoverContact`);
+            const conn = getConnection();
+            _originate(conn, userInfo.webTakeoverContact, userName, userInfo, roomName, confProfile, resolve, reject);
+            return;
+        }
+
         const sipUser = userInfo.userName.replace('sip:', '');
         const sipUserEncoded = sipUser.includes('@') ? sipUser.replace('@', '.at.') : sipUser;
         const fsIp = global.config.FREESWITCH_PUBLIC_IP;
-        const lookupVariants = [
-            `sofia_contact ${profile}/${sipUserEncoded}@${fsIp}`,
-            `sofia_contact ${profile}/${sipUser}`,
-        ];
+        // Yealink registers as user@domain, web as user.at.domain@ip.
+        // Try the variant matching DB clientType first — it reflects which device
+        // is actively managed by our registration logic.
+        const lookupVariants = userInfo.clientType === 'web'
+            ? [
+                `sofia_contact ${profile}/${sipUserEncoded}@${fsIp}`,
+                `sofia_contact ${profile}/${sipUser}`,
+            ]
+            : [
+                `sofia_contact ${profile}/${sipUser}`,
+                `sofia_contact ${profile}/${sipUserEncoded}@${fsIp}`,
+            ];
 
         const conn = getConnection();
         const tryLookup = (idx) => {

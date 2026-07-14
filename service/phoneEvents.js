@@ -403,27 +403,28 @@ function _handleHookEvent(macAddress, event) {
         return;
     }
 
-    // Yealink on_hook: phone usually hangs up, but if it stays connected
-    // FS must still get the mute command to avoid stuck unmuted members.
-    if (event === 'on_hook') {
-        const activeRoom = userInfo.currentRoom || userInfo.room;
-        if (userInfo.fsMemberId) {
-            logUser(userInfo.userName, 'MUTE_TRACE', `syslog on_hook mute room=${activeRoom} member=${userInfo.fsMemberId}`);
-            global.freeswitch.muteByMemberId(activeRoom, userInfo.fsMemberId, userInfo.userName);
-        }
-        userInfo.mute = true;
-        global.db.setUserInfo(userInfo.userName, userInfo);
-        global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName: userInfo.userName });
-        logUser(userInfo.userName, 'PHONE', 'MUTED (on_hook)');
-        return;
-    }
-
     _applyMuteState(userInfo.userName, userInfo, event);
 }
+
+const _lastMuteAction = new Map();
+const MUTE_DEBOUNCE_MS = 300;
 
 function _applyMuteState(userName, userInfo, event) {
     const mute = event === 'on_hook';
     const activeRoom = userInfo.currentRoom || userInfo.room;
+
+    if (userInfo.mute === mute) {
+        logUser(userName, 'MUTE_TRACE', `applyMuteState SKIP (already ${mute ? 'muted' : 'unmuted'})`);
+        return;
+    }
+
+    const now = Date.now();
+    const last = _lastMuteAction.get(userName);
+    if (last && last.mute === mute && (now - last.ts) < MUTE_DEBOUNCE_MS) {
+        logUser(userName, 'MUTE_TRACE', `applyMuteState DEBOUNCE (${now - last.ts}ms since last ${mute ? 'mute' : 'unmute'})`);
+        return;
+    }
+    _lastMuteAction.set(userName, { mute, ts: now });
 
     if (mute) {
         logUser(userName, 'MUTE_TRACE', `applyMuteState mute room=${activeRoom} member=${userInfo.fsMemberId}`);

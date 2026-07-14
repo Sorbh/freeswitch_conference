@@ -122,30 +122,55 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     let cancelled = false;
+    let noSleepVideo = null;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     async function acquireWakeLock() {
       if (cancelled || document.visibilityState !== 'visible') return;
-      if (!('wakeLock' in navigator) || wakeLockRef.current) return;
 
-      try {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-        console.log('[CLIENT] Screen wake lock acquired');
-        wakeLockRef.current.addEventListener('release', () => {
-          wakeLockRef.current = null;
-          console.log('[CLIENT] Screen wake lock released');
-        });
-      } catch (err) {
-        console.warn('[CLIENT] Screen wake lock unavailable:', err.message);
+      if ('wakeLock' in navigator && !wakeLockRef.current) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          console.log('[CLIENT] Screen wake lock acquired');
+          wakeLockRef.current.addEventListener('release', () => {
+            wakeLockRef.current = null;
+            console.log('[CLIENT] Screen wake lock released');
+          });
+        } catch (err) {
+          console.warn('[CLIENT] Screen wake lock unavailable:', err.message);
+        }
+      }
+
+      if (isIOS && !noSleepVideo) {
+        noSleepVideo = document.createElement('video');
+        noSleepVideo.setAttribute('playsinline', '');
+        noSleepVideo.setAttribute('muted', '');
+        noSleepVideo.muted = true;
+        noSleepVideo.loop = true;
+        noSleepVideo.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01';
+        // tiny silent mp4 (base64) — triggers media playback to prevent iOS auto-lock
+        noSleepVideo.src = 'data:video/mp4;base64,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';
+        document.body.appendChild(noSleepVideo);
+        noSleepVideo.play().then(() => {
+          console.log('[CLIENT] iOS no-sleep video playing');
+        }).catch(() => {});
       }
     }
 
     async function releaseWakeLock() {
-      if (!wakeLockRef.current) return;
-      try {
-        const lock = wakeLockRef.current;
-        wakeLockRef.current = null;
-        await lock.release();
-      } catch {}
+      if (wakeLockRef.current) {
+        try {
+          const lock = wakeLockRef.current;
+          wakeLockRef.current = null;
+          await lock.release();
+        } catch {}
+      }
+      if (noSleepVideo) {
+        noSleepVideo.pause();
+        noSleepVideo.remove();
+        noSleepVideo = null;
+      }
     }
 
     function handleVisibilityChange() {
@@ -162,6 +187,39 @@ export default function DashboardLayout() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', acquireWakeLock);
       releaseWakeLock();
+    };
+  }, []);
+
+  // Prevent iOS overscroll bounce
+  useEffect(() => {
+    const mainEl = dashboardRef.current?.querySelector('main');
+    if (!mainEl) return;
+
+    function preventOverscroll(e) {
+      const el = mainEl;
+      const top = el.scrollTop;
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 0) { e.preventDefault(); return; }
+      if (top <= 0 && e.touches[0].clientY > (el._lastTouchY || 0)) { e.preventDefault(); }
+      else if (top >= max && e.touches[0].clientY < (el._lastTouchY || 0)) { e.preventDefault(); }
+      el._lastTouchY = e.touches[0].clientY;
+    }
+    function trackTouch(e) { mainEl._lastTouchY = e.touches[0].clientY; }
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
+    mainEl.addEventListener('touchstart', trackTouch, { passive: true });
+    mainEl.addEventListener('touchmove', preventOverscroll, { passive: false });
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      mainEl.removeEventListener('touchstart', trackTouch);
+      mainEl.removeEventListener('touchmove', preventOverscroll);
     };
   }, []);
 
@@ -491,7 +549,7 @@ export default function DashboardLayout() {
   const colors = isMonitorMode ? monitorColors : (CONN_COLORS[connState] || CONN_COLORS.idle);
 
   return (
-    <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)' }}>
+    <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)', overflow: 'hidden', position: 'fixed', inset: 0 }}>
       {/* ── Desktop sidebar (hidden on mobile) ── */}
       <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0" style={{ background: 'var(--ink)', color: '#fff' }}>
         <div className="flex items-center gap-3 px-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', height: 64 }}>
@@ -666,7 +724,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
-        <main className="flex-1 overflow-auto p-4 md:p-6 pb-40 md:pb-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 pb-40 md:pb-6" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
           <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly, isMonitorMode, setGestureActive }} />
         </main>
       </div>

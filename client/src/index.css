@@ -17,6 +17,10 @@
     --mono: ui-monospace, "SF Mono", "Cascadia Mono", monospace;
   }
 
+  html, body {
+    overscroll-behavior: none;
+  }
+
   body {
     font-family: var(--body);
     color: var(--ink);

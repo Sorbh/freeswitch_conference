@@ -5,6 +5,7 @@ import { onCustomEvent } from './connection.js';
 import { clearOnlineTimer } from './onlineSync.js';
 import { initiateCall, MAX_RETRIES } from './callGate.js';
 import { logUser, logBlocked } from '../logger.js';
+import { sendClientEventToUser } from '../../modules/client/events.js';
 
 const registrationFailures = new Map();
 
@@ -65,6 +66,68 @@ async function _handleRegistration(event) {
 
     if (Object.keys(existingUser).length > 0) {
         const wasOffline = !existingUser.online;
+
+        if (clientType === 'web') {
+            existingUser.webTakeoverContact = contact;
+        }
+
+        // Yealink reclaim: when web is connected (e.g. after server restart web registered first,
+        // or user was on web at home and came back to office) and Yealink registers, Yealink
+        // takes priority. Reset connectionState so callGate can originate to the Yealink.
+        // The web session will detect the disconnect via SSE and enter monitor mode.
+        // Bypassed when web_takeover is active (user explicitly chose web over Yealink).
+        if (existingUser.connectionState === 'connected'
+            && existingUser.clientType === 'web'
+            && clientType === 'yealink'
+            && !existingUser.webTakeover) {
+            logUser(userName, 'REG', `Yealink reclaim — web was connected, hanging up web channel for Yealink priority`);
+            const webUuid = existingUser.fsChannelUUID;
+            existingUser.connectionState = 'ideal';
+            existingUser.fsChannelUUID = null;
+            existingUser.fsMemberId = null;
+            if (webUuid && global.freeswitch?.hangupCall) {
+                global.freeswitch.hangupCall(webUuid, userName).catch(e => {
+                    logUser(userName, 'REG', `Failed to hangup web channel: ${e.message}`);
+                });
+            }
+            // Tell web client to enter monitor mode
+            sendClientEventToUser(userName, { type: 'monitor_mode', reason: 'yealink_reclaim' });
+        }
+
+        // Yealink priority guard: when Yealink is already in the conference and a web client
+        // tries to register (e.g. user opens dashboard), skip the web SIP registration so the
+        // Yealink's contact/clientType stay intact. The web client enters monitor mode instead
+        // (SSE-only, no audio). webTakeoverContact is still saved above so the takeover API can
+        // use it later. If web_takeover is active (user explicitly clicked "Join Conference"),
+        // this guard is bypassed — the web client is allowed to register and take over.
+        if (existingUser.connectionState === 'connected'
+            && existingUser.clientType === 'yealink'
+            && clientType === 'web'
+            && !existingUser.webTakeover) {
+            global.db.setUserInfo(userName, existingUser);
+            global.db.touchLastSeen(userName);
+            logUser(userName, 'REG', `Yealink connected — skipping web registration`);
+            return;
+        }
+
+        // Web takeover active: Yealink re-registers periodically (~120s) but we must not let it
+        // overwrite the web client's contact or trigger ensureInConference (which would originate
+        // a call to the Yealink instead of the web). Keep the Yealink alive/online but skip
+        // contact update and conference join.
+        if (existingUser.webTakeover && clientType !== 'web') {
+            existingUser.online = true;
+            existingUser.registrationState = 'registered';
+            if (mac) existingUser.mac = mac;
+            existingUser.authState = 'login';
+            global.db.setUserInfo(userName, existingUser);
+            global.db.touchLastSeen(userName);
+            if (wasOffline) global.db.logOnlineStatus(userName, 'online');
+            if (global.alerting) global.alerting.stopCriticalAlert(userName);
+            if (wasOffline) global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+            logUser(userName, 'REG', `web_takeover active — skipping Yealink contact/ensureInConference`);
+            return;
+        }
+
         existingUser.contact = contact;
         existingUser.ip = networkIp;
         existingUser.port = parseInt(networkPort);
@@ -135,29 +198,40 @@ async function _handleUnregister(event) {
     if (!email) return;
     const userName = `sip:${email}`;
 
-    const userInfo = global.db.getUserInfo(userName);
-    if (Object.keys(userInfo).length === 0) return;
+    const existingUser = global.db.getUserInfo(userName);
+    if (Object.keys(existingUser).length === 0) return;
+
+    const userAgent = event.getHeader('user-agent') || '';
+    const clientType = _detectClientType(userAgent);
+
+    // Web unregister (e.g. page refresh) should not wipe Yealink's connected state
+    if (clientType === 'web'
+        && existingUser.connectionState === 'connected'
+        && existingUser.clientType === 'yealink') {
+        logUser(userName, 'REG', `UNREGISTER from web — Yealink connected, ignoring`);
+        return;
+    }
 
     logUser(userName, 'REG', 'UNREGISTER');
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
-    const wasConnected = userInfo.connectionState === global.ConnectionState.CONNECTED ||
-        userInfo.connectionState === global.ConnectionState.CONNECTING;
-    const savedUuid = userInfo.fsChannelUUID;
+    const wasConnected = existingUser.connectionState === global.ConnectionState.CONNECTED ||
+        existingUser.connectionState === global.ConnectionState.CONNECTING;
+    const savedUuid = existingUser.fsChannelUUID;
 
-    userInfo.online = false;
-    userInfo.mute = true;
-    userInfo.registrationState = 'unregistered';
-    userInfo.connectionState = 'ideal';
-    userInfo.error = null;
-    userInfo.retryCount = 0;
-    userInfo.errFallbackStage = 0;
-    userInfo.errFallbackAt = null;
-    userInfo.fsChannelUUID = null;
-    userInfo.fsMemberId = null;
-    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-    global.db.setUserInfo(userName, userInfo);
-    global.db.logEvent('unregister', userName, userInfo.room, 'Explicit unregistration');
+    existingUser.online = false;
+    existingUser.mute = true;
+    existingUser.registrationState = 'unregistered';
+    existingUser.connectionState = 'ideal';
+    existingUser.error = null;
+    existingUser.retryCount = 0;
+    existingUser.errFallbackStage = 0;
+    existingUser.errFallbackAt = null;
+    existingUser.fsChannelUUID = null;
+    existingUser.fsMemberId = null;
+    existingUser.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+    global.db.setUserInfo(userName, existingUser);
+    global.db.logEvent('unregister', userName, existingUser.room, 'Explicit unregistration');
     global.db.logOnlineStatus(userName, 'offline');
     clearOnlineTimer(userName);
     global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
@@ -177,29 +251,40 @@ async function _handleExpire(event) {
     if (!email) return;
     const userName = `sip:${email}`;
 
-    const userInfo = global.db.getUserInfo(userName);
-    if (Object.keys(userInfo).length === 0) return;
+    const existingUser = global.db.getUserInfo(userName);
+    if (Object.keys(existingUser).length === 0) return;
+
+    const userAgent = event.getHeader('user-agent') || '';
+    const clientType = _detectClientType(userAgent);
+
+    // Web expiry should not wipe Yealink's connected state
+    if (clientType === 'web'
+        && existingUser.connectionState === 'connected'
+        && existingUser.clientType === 'yealink') {
+        logUser(userName, 'REG', `EXPIRED from web — Yealink connected, ignoring`);
+        return;
+    }
 
     logUser(userName, 'REG', 'EXPIRED');
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
-    const wasConnected = userInfo.connectionState === global.ConnectionState.CONNECTED ||
-        userInfo.connectionState === global.ConnectionState.CONNECTING;
-    const savedUuid = userInfo.fsChannelUUID;
+    const wasConnected = existingUser.connectionState === global.ConnectionState.CONNECTED ||
+        existingUser.connectionState === global.ConnectionState.CONNECTING;
+    const savedUuid = existingUser.fsChannelUUID;
 
-    userInfo.online = false;
-    userInfo.mute = true;
-    userInfo.registrationState = 'expired';
-    userInfo.connectionState = 'ideal';
-    userInfo.error = null;
-    userInfo.retryCount = 0;
-    userInfo.errFallbackStage = 0;
-    userInfo.errFallbackAt = null;
-    userInfo.fsChannelUUID = null;
-    userInfo.fsMemberId = null;
-    userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
-    global.db.setUserInfo(userName, userInfo);
-    global.db.logEvent('expired', userName, userInfo.room, 'Registration expired');
+    existingUser.online = false;
+    existingUser.mute = true;
+    existingUser.registrationState = 'expired';
+    existingUser.connectionState = 'ideal';
+    existingUser.error = null;
+    existingUser.retryCount = 0;
+    existingUser.errFallbackStage = 0;
+    existingUser.errFallbackAt = null;
+    existingUser.fsChannelUUID = null;
+    existingUser.fsMemberId = null;
+    existingUser.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
+    global.db.setUserInfo(userName, existingUser);
+    global.db.logEvent('expired', userName, existingUser.room, 'Registration expired');
     global.db.logOnlineStatus(userName, 'offline');
     clearOnlineTimer(userName);
     global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });

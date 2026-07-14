@@ -154,6 +154,8 @@ export function init() {
         ['last_seen', "ALTER TABLE users ADD COLUMN last_seen INTEGER"],
         ['err_fallback_stage', "ALTER TABLE users ADD COLUMN err_fallback_stage INTEGER DEFAULT 0"],
         ['err_fallback_at', "ALTER TABLE users ADD COLUMN err_fallback_at INTEGER"],
+        ['web_takeover', "ALTER TABLE users ADD COLUMN web_takeover INTEGER DEFAULT 0"],
+        ['web_takeover_contact', "ALTER TABLE users ADD COLUMN web_takeover_contact TEXT"],
     ];
     for (const [col, sql] of userMigrations) {
         if (!userCols.includes(col)) sqlite.exec(sql);
