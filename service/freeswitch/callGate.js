@@ -153,6 +153,40 @@ export async function initiateCall(userName) {
     }
 }
 
+// Yealink registers as user@domain, web as user.at.domain@fsIp — two distinct
+// AORs, so FreeSWITCH's registration DB is per-device truth. Probe one device.
+export function probeDeviceContact(userName, deviceType) {
+    return new Promise((resolve) => {
+        const conn = getConnection();
+        if (!conn) return resolve(null);
+        const sipUser = userName.replace('sip:', '');
+        const profile = global.config.FREESWITCH_SOFIA_PROFILE;
+        const fsIp = global.config.FREESWITCH_PUBLIC_IP;
+        const key = deviceType === 'web'
+            ? `${sipUser.includes('@') ? sipUser.replace('@', '.at.') : sipUser}@${fsIp}`
+            : sipUser;
+        conn.api(`sofia_contact ${profile}/${key}`, (res) => {
+            const contact = (res.getBody() || '').trim();
+            if (!contact || contact.startsWith('-ERR') || contact === 'error/user_not_registered') {
+                resolve(null);
+                return;
+            }
+            resolve(contact);
+        });
+    });
+}
+
+// Device priority: web_takeover on → web first, off → Yealink first.
+// First registered device wins; the other is the automatic fallback.
+export async function resolveTargetContact(userInfo) {
+    const order = userInfo.webTakeover ? ['web', 'yealink'] : ['yealink', 'web'];
+    for (const deviceType of order) {
+        const contact = await probeDeviceContact(userInfo.userName, deviceType);
+        if (contact) return { contact, deviceType };
+    }
+    return null;
+}
+
 function _originateToConference(userName) {
     return new Promise((resolve, reject) => {
         const userInfo = global.db.getUserInfo(userName);
@@ -163,52 +197,24 @@ function _originateToConference(userName) {
 
         const activeRoomId = userInfo.currentRoom || userInfo.room;
         const roomName = global.config.ROOM_NAME[activeRoomId] || activeRoomId || 'Unknown';
-        const profile = global.config.FREESWITCH_SOFIA_PROFILE;
         const confProfile = global.config.FREESWITCH_CONFERENCE_PROFILE;
 
-        if (userInfo.webTakeover && userInfo.webTakeoverContact) {
-            logUser(userName, 'CALL', `web_takeover — using webTakeoverContact`);
-            const conn = getConnection();
-            _originate(conn, userInfo.webTakeoverContact, userName, userInfo, roomName, confProfile, resolve, reject);
-            return;
-        }
-
-        const sipUser = userInfo.userName.replace('sip:', '');
-        const sipUserEncoded = sipUser.includes('@') ? sipUser.replace('@', '.at.') : sipUser;
-        const fsIp = global.config.FREESWITCH_PUBLIC_IP;
-        // Yealink registers as user@domain, web as user.at.domain@ip.
-        // Try the variant matching DB clientType first — it reflects which device
-        // is actively managed by our registration logic.
-        const lookupVariants = userInfo.clientType === 'web'
-            ? [
-                `sofia_contact ${profile}/${sipUserEncoded}@${fsIp}`,
-                `sofia_contact ${profile}/${sipUser}`,
-            ]
-            : [
-                `sofia_contact ${profile}/${sipUser}`,
-                `sofia_contact ${profile}/${sipUserEncoded}@${fsIp}`,
-            ];
-
-        const conn = getConnection();
-        const tryLookup = (idx) => {
-            if (idx >= lookupVariants.length) {
+        resolveTargetContact(userInfo).then((target) => {
+            if (!target) {
                 reject(new Error(`User ${userName} not registered on FreeSWITCH`));
                 return;
             }
-            conn.api(lookupVariants[idx], (contactResponse) => {
-                const contact = contactResponse.getBody().trim();
-                if (!contact || contact.startsWith('-ERR') || contact === 'error/user_not_registered') {
-                    tryLookup(idx + 1);
-                    return;
-                }
-                _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject);
-            });
-        };
-        tryLookup(0);
+            if (userInfo.webTakeover || target.deviceType !== (userInfo.clientType || 'yealink')) {
+                logUser(userName, 'CALL', `device resolve -> ${target.deviceType} (web_takeover=${userInfo.webTakeover ? 'on' : 'off'})`);
+            }
+            const conn = getConnection();
+            _originate(conn, target, userName, userInfo, roomName, confProfile, resolve, reject);
+        });
     });
 }
 
-function _originate(conn, contact, userName, userInfo, roomName, confProfile, resolve, reject) {
+function _originate(conn, target, userName, userInfo, roomName, confProfile, resolve, reject) {
+    const contact = target.contact;
     const activeRoom = userInfo.currentRoom || userInfo.room;
     const email = userName.replace('sip:', '');
     const account = global.db.getAccountByEmail(email);
@@ -237,6 +243,8 @@ function _originate(conn, contact, userName, userInfo, roomName, confProfile, re
 
             userInfo.fsChannelUUID = uuid;
             userInfo.connectionState = 'connected';
+            // clientType tracks the device that actually holds the conference leg
+            userInfo.clientType = target.deviceType;
             userInfo.lastConnectionStateUpdate = Math.floor(Date.now() / 1000);
             userInfo.error = null;
             userInfo.retryCount = 0;

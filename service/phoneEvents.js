@@ -388,10 +388,22 @@ export function handleHttpHookEvent(userName, event) {
     return true;
 }
 
+// While web takeover is active and the web client holds the conference leg,
+// the Yealink sits dormant — its physical hook events must not drive mute or
+// direct-call actions on the web leg. Release happens only via the web button.
+export function isYealinkHookSuppressed(userInfo) {
+    return !!(userInfo.webTakeover && userInfo.clientType === 'web');
+}
+
 function _handleHookEvent(macAddress, event) {
     const userInfo = global.db.findUserInfo('mac', macAddress);
     if (Object.keys(userInfo).length === 0) {
         logSystem('PHONE', `MAC ${macAddress} not found in user table`);
+        return;
+    }
+
+    if (isYealinkHookSuppressed(userInfo)) {
+        logUser(userInfo.userName, 'PHONE', `${event} ignored — web takeover active`);
         return;
     }
 

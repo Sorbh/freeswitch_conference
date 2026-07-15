@@ -1,9 +1,9 @@
 // Handles sofia::register, sofia::unregister, sofia::expire events from FreeSWITCH.
 // Updates user table with registration state, online status, and client type.
 // On unregister/expire: marks user offline, ends active calls, prevents reconnect loops.
-import { onCustomEvent } from './connection.js';
+import { onCustomEvent, getConnectionHandlers } from './connection.js';
 import { clearOnlineTimer } from './onlineSync.js';
-import { initiateCall, MAX_RETRIES } from './callGate.js';
+import { initiateCall, MAX_RETRIES, resolveTargetContact } from './callGate.js';
 import { logUser, logBlocked } from '../logger.js';
 import { sendClientEventToUser } from '../../modules/client/events.js';
 
@@ -67,8 +67,29 @@ async function _handleRegistration(event) {
     if (Object.keys(existingUser).length > 0) {
         const wasOffline = !existingUser.online;
 
-        if (clientType === 'web') {
-            existingUser.webTakeoverContact = contact;
+        // Web re-takeover: web_takeover is ON and the Yealink currently holds the
+        // conference leg — the returning web client wins. Hard switch: kill the
+        // Yealink leg here, then fall through to the normal update path whose
+        // ensureInConference re-originates (resolveTargetContact picks web first).
+        if (existingUser.webTakeover
+            && clientType === 'web'
+            && existingUser.connectionState === 'connected'
+            && existingUser.clientType === 'yealink') {
+            logUser(userName, 'REG', `web re-takeover — hanging up Yealink leg for web priority`);
+            const yealinkUuid = existingUser.fsChannelUUID;
+            existingUser.connectionState = 'ideal';
+            existingUser.fsChannelUUID = null;
+            existingUser.fsMemberId = null;
+            existingUser.mute = true;
+            // Intentional kill: drop the hangup handler so the old leg's
+            // CHANNEL_HANGUP can't stomp the new leg's state (directCall.js pattern)
+            if (yealinkUuid) getConnectionHandlers().delete(yealinkUuid);
+            if (yealinkUuid && global.freeswitch?.hangupCall) {
+                global.freeswitch.hangupCall(yealinkUuid, userName).catch(e => {
+                    logUser(userName, 'REG', `Failed to hangup Yealink channel: ${e.message}`);
+                });
+            }
+            global.db.logEvent('web_retakeover', userName, existingUser.currentRoom || existingUser.room, 'Web client returned — call moved from Yealink to web');
         }
 
         // Yealink reclaim: when web is connected (e.g. after server restart web registered first,
@@ -85,6 +106,7 @@ async function _handleRegistration(event) {
             existingUser.connectionState = 'ideal';
             existingUser.fsChannelUUID = null;
             existingUser.fsMemberId = null;
+            if (webUuid) getConnectionHandlers().delete(webUuid);
             if (webUuid && global.freeswitch?.hangupCall) {
                 global.freeswitch.hangupCall(webUuid, userName).catch(e => {
                     logUser(userName, 'REG', `Failed to hangup web channel: ${e.message}`);
@@ -110,11 +132,14 @@ async function _handleRegistration(event) {
             return;
         }
 
-        // Web takeover active: Yealink re-registers periodically (~120s) but we must not let it
-        // overwrite the web client's contact or trigger ensureInConference (which would originate
-        // a call to the Yealink instead of the web). Keep the Yealink alive/online but skip
-        // contact update and conference join.
-        if (existingUser.webTakeover && clientType !== 'web') {
+        // Web takeover active AND web holds the call: Yealink re-registers periodically (~120s)
+        // but we must not let it overwrite the web client's contact or trigger ensureInConference.
+        // Keep the Yealink alive/online but skip contact update and conference join.
+        // When web does NOT hold the call (offline/idle), fall through — the Yealink is the
+        // fallback device and must be allowed to join (resolveTargetContact still probes web first).
+        if (existingUser.webTakeover && clientType !== 'web'
+            && existingUser.connectionState === 'connected'
+            && existingUser.clientType === 'web') {
             existingUser.online = true;
             existingUser.registrationState = 'registered';
             if (mac) existingUser.mac = mac;
@@ -212,6 +237,14 @@ async function _handleUnregister(event) {
         return;
     }
 
+    // Dormant Yealink unregistering (e.g. reboot) must not tear down the web call
+    if (clientType === 'yealink'
+        && existingUser.connectionState === 'connected'
+        && existingUser.clientType === 'web') {
+        logUser(userName, 'REG', `UNREGISTER from yealink — web connected, ignoring`);
+        return;
+    }
+
     logUser(userName, 'REG', 'UNREGISTER');
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
@@ -244,6 +277,37 @@ async function _handleUnregister(event) {
             console.error(`[REG] Failed to hangup ${userName}: ${e.message}`);
         }
     }
+
+    _fallbackToOtherDevice(userName, 'unregister');
+}
+
+// Device-priority fallback: the departing registration may not be the only
+// device this account has. Probe FreeSWITCH for a surviving contact (in
+// web_takeover priority order) and reconnect through it — e.g. web tab closed
+// while takeover is on → Yealink takes the call; Yealink expired while flag is
+// off → web takes the call.
+async function _fallbackToOtherDevice(userName, trigger) {
+    try {
+        const userInfo = global.db.getUserInfo(userName);
+        if (Object.keys(userInfo).length === 0) return;
+
+        const target = await resolveTargetContact(userInfo);
+        if (!target) return;
+
+        const fresh = global.db.getUserInfo(userName);
+        fresh.online = true;
+        fresh.registrationState = 'registered';
+        fresh.connectionState = 'ideal';
+        fresh.mute = true;
+        global.db.setUserInfo(userName, fresh);
+        global.db.logOnlineStatus(userName, 'online');
+        global.db.logEvent('device_fallback', userName, fresh.currentRoom || fresh.room, `Registration ${trigger} — falling back to ${target.deviceType}`);
+        logUser(userName, 'REG', `fallback -> ${target.deviceType} (after ${trigger})`);
+        global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+        initiateCall(userName);
+    } catch (e) {
+        logUser(userName, 'REG', `fallback check failed: ${e.message}`);
+    }
 }
 
 async function _handleExpire(event) {
@@ -262,6 +326,14 @@ async function _handleExpire(event) {
         && existingUser.connectionState === 'connected'
         && existingUser.clientType === 'yealink') {
         logUser(userName, 'REG', `EXPIRED from web — Yealink connected, ignoring`);
+        return;
+    }
+
+    // Dormant Yealink expiring must not tear down the web call
+    if (clientType === 'yealink'
+        && existingUser.connectionState === 'connected'
+        && existingUser.clientType === 'web') {
+        logUser(userName, 'REG', `EXPIRED from yealink — web connected, ignoring`);
         return;
     }
 
@@ -298,6 +370,8 @@ async function _handleExpire(event) {
             console.error(`[REG] Failed to hangup ${userName}: ${e.message}`);
         }
     }
+
+    _fallbackToOtherDevice(userName, 'expire');
 }
 
 const ALLOWED_UA_PATTERNS = [

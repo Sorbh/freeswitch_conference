@@ -2,7 +2,7 @@ import express from "express";
 import { logUser, logSystem } from "../../service/logger.js";
 import { changeUserRoom } from "../admin/users.js";
 import { declineByUserName } from "../../service/freeswitch/directCall.js";
-import { handleDirectCallHookEvent } from "../../service/phoneEvents.js";
+import { handleDirectCallHookEvent, isYealinkHookSuppressed } from "../../service/phoneEvents.js";
 
 export const yealinkRouter = express.Router();
 
@@ -49,6 +49,10 @@ yealinkRouter.get("/onhook", (req, res) => {
         logSystem('YEALINK', `API /onhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
         const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
+        if (isYealinkHookSuppressed(userInfo)) {
+            logUser(userInfo.userName, 'YEALINK', 'ONHOOK ignored — web takeover active');
+            return res.json({ status: true, message: "ignored — web takeover active" });
+        }
         const directCallHook = handleDirectCallHookEvent(userInfo.userName, 'on_hook', 'yealink');
         if (directCallHook.handled) {
             logUser(userInfo.userName, 'YEALINK', `ONHOOK (${directCallHook.message})`);
@@ -71,6 +75,10 @@ yealinkRouter.get("/offhook", (req, res) => {
         logSystem('YEALINK', `API /offhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
         const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
         if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
+        if (isYealinkHookSuppressed(userInfo)) {
+            logUser(userInfo.userName, 'YEALINK', 'OFFHOOK ignored — web takeover active');
+            return res.json({ status: true, message: "ignored — web takeover active" });
+        }
         const directCallHook = handleDirectCallHookEvent(userInfo.userName, 'off_hook', 'yealink');
         if (directCallHook.handled) {
             logUser(userInfo.userName, 'YEALINK', `OFFHOOK (${directCallHook.message})`);

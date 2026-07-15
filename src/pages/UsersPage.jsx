@@ -945,6 +945,7 @@ export default function UsersPage() {
                     {user.talking ? <Badge className="gap-1 text-[10px] bg-cyan-500/15 text-cyan-400 border-cyan-500/20"><Volume2Icon className="size-3" />Talking</Badge> : null}
                     {user.account?.kickout ? <Badge variant="destructive" className="gap-1 text-[10px]"><BanIcon className="size-3" />Kicked</Badge> : null}
                     {user.clientType === "web" ? <Badge variant="outline" className="gap-1 text-[10px]"><GlobeIcon className="size-3" />Web</Badge> : null}
+                    {user.webTakeover ? <Badge variant="outline" className="gap-1 text-[10px] text-purple-400 border-purple-400/20"><GlobeIcon className="size-3" />Takeover</Badge> : null}
                     {user.sseConnected ? <Badge variant="outline" className="gap-1 text-[10px] text-blue-400 border-blue-400/20"><RadioIcon className="size-3" />SSE</Badge> : null}
                     {user.syslogActive ? <Badge variant="outline" className="gap-1 text-[10px] text-emerald-400 border-emerald-400/20"><LogsIcon className="size-3" />Syslog</Badge> : null}
                     {user.syslogWarning ? <Badge variant="outline" className="gap-1 text-[10px] text-amber-500 border-amber-500/20 animate-pulse"><TriangleAlertIcon className="size-3" />No Syslog</Badge> : null}

@@ -107,6 +107,9 @@
 //   window.hotlineClient.isMuted()                                // true if muted
 //   window.hotlineClient.isListenOnly()                           // true if listen-only mode
 //   window.hotlineClient.isMonitorMode()                          // true if monitor mode (Yealink or config)
+//   window.hotlineClient.takeOver()                               // enable web_takeover: browser gets device priority
+//   window.hotlineClient.releaseTakeover()                        // disable web_takeover: Yealink regains priority
+//   window.hotlineClient.isWebTakeover()                          // true if web_takeover flag is on
 //   window.RedlineExtensionDirectory.open()                       // open extension search
 //
 // SSE EVENTS HANDLED:
@@ -143,6 +146,8 @@ import "./jssip.bundle.js";
         var listenOnlySilentStream = null;
         var accountData = null;
         var clientToken = null;
+        var lastLoginEmail = '';
+        var lastLoginPassword = '';
         var loggingOut = false;
         var regRetryTimer = null;
         var callerIdSource = null;
@@ -730,6 +735,8 @@ import "./jssip.bundle.js";
         // ── 9. Login Flow ──
 
         function _onLoginSuccess(email, password) {
+            lastLoginEmail = email;
+            lastLoginPassword = password;
             var lsData = getLocalStorageUserData();
 
             if (!accountData.room && lsData && lsData.room) {
@@ -933,6 +940,60 @@ import "./jssip.bundle.js";
             }
         }
 
+        // ── 11b. Web Takeover ──
+        // takeOver(): enable web_takeover — this browser gets device priority.
+        // The server hard-switches immediately if we're already SIP-registered;
+        // otherwise our registration right after triggers the switch server-side.
+        // releaseTakeover(): Yealink regains priority. If the server moves the
+        // call back to the phone it sends a monitor_mode SSE, which unregisters
+        // the UA and flips the UI to monitor mode (existing handler).
+
+        function _notifyTakeoverState() {
+            if (typeof window.onHotlineTakeoverState === 'function') {
+                try { window.onHotlineTakeoverState(!!(accountData && accountData.web_takeover)); } catch (e) { }
+            }
+        }
+
+        function takeOver() {
+            if (!clientToken) { return Promise.reject(new Error('Not logged in')); }
+            return fetch(apiBase + '/api/v1/client/takeover', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+            })
+            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
+            .then(function (json) {
+                console.log('[SIP] Web takeover enabled');
+                if (accountData) accountData.web_takeover = 1;
+                monitorMode = false;
+                _notifyTakeoverState();
+                if (!ua && lastLoginEmail) {
+                    checkMicPermission().then(function (result) {
+                        if (result === true || result === 'listen-only') {
+                            _startSipRegistration(lastLoginEmail, lastLoginPassword);
+                        } else {
+                            console.warn('[SIP] takeover: mic permission denied — SIP registration skipped');
+                        }
+                    });
+                }
+                return json;
+            });
+        }
+
+        function releaseTakeover() {
+            if (!clientToken) { return Promise.reject(new Error('Not logged in')); }
+            return fetch(apiBase + '/api/v1/client/release', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
+            })
+            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
+            .then(function (json) {
+                console.log('[SIP] Web takeover released', json.switched_to_yealink ? '(call moved to Yealink)' : '(web keeps call — Yealink offline)');
+                if (accountData) accountData.web_takeover = 0;
+                _notifyTakeoverState();
+                return json;
+            });
+        }
+
         // ── 12. Push-to-Talk + Keyboard Shortcuts ──
         // Shared tap-vs-hold logic, used by the Space bar here and by the mobile
         // PTT bar in the dashboard (via hotlineClient.pttStart/pttEnd):
@@ -1037,6 +1098,9 @@ import "./jssip.bundle.js";
             isMuted: function () { return isMuted; },
             isListenOnly: function () { return listenOnly; },
             isMonitorMode: function () { return monitorMode; },
+            takeOver: takeOver,                                           // enable web_takeover: browser gets device priority
+            releaseTakeover: releaseTakeover,                             // disable: Yealink regains priority
+            isWebTakeover: function () { return !!(accountData && accountData.web_takeover); },
             startBroadcastFeed: startBroadcastFeed,
             stopBroadcastFeed: stopBroadcastFeed,
             getBroadcasts: function (room, options) { return window.HotlineBroadcastFeed ? window.HotlineBroadcastFeed.getBroadcasts(room, options) : Promise.reject(new Error('Broadcast feed not loaded. Set broadcastFeed: true in config.')); },

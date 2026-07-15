@@ -10,7 +10,9 @@ import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
 import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification, sendWelcomeEmail } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
-import { clientEventsRouter, buildOnlineCounts, kickClientSSE } from "./events.js";
+import { clientEventsRouter, buildOnlineCounts, kickClientSSE, sendClientEventToUser } from "./events.js";
+import { initiateCall, probeDeviceContact } from "../../service/freeswitch/callGate.js";
+import { getConnectionHandlers } from "../../service/freeswitch/connection.js";
 import { getVapidPublicKey, sendToAccount } from "../../service/webPush.js";
 
 function enrichBroadcast(b) {
@@ -584,6 +586,108 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
         }
         res.json({ status: true, data: safe });
     } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /takeover — enable web takeover: web client gets device priority.
+// If the Yealink currently holds the conference leg and the web client is
+// already SIP-registered, hard-switch now (kill-then-originate). Otherwise the
+// client registers right after this call and registration.js performs the
+// switch on sofia::register.
+clientRouter.post("/takeover", requireClientAuth, async (req, res) => {
+    try {
+        const account = global.db.getAccountById(req.client.sub);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        const userName = `sip:${account.email}`;
+        const userInfo = global.db.getUserInfo(userName);
+        if (Object.keys(userInfo).length === 0) {
+            return res.status(409).json({ status: false, error: "No SIP state for this account yet" });
+        }
+
+        if (!userInfo.webTakeover) {
+            userInfo.webTakeover = true;
+            global.db.setUserInfo(userName, userInfo);
+            global.db.logEvent('web_takeover_on', userName, userInfo.currentRoom || userInfo.room, 'Take over from browser enabled');
+            global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+            logSystem('CLIENT', `API /takeover enabled user=${userName}`);
+        }
+
+        if (userInfo.connectionState === 'connected' && userInfo.clientType === 'yealink') {
+            const webContact = await probeDeviceContact(userName, 'web');
+            if (webContact) {
+                const fresh = global.db.getUserInfo(userName);
+                const yealinkUuid = fresh.fsChannelUUID;
+                fresh.connectionState = 'ideal';
+                fresh.fsChannelUUID = null;
+                fresh.fsMemberId = null;
+                fresh.mute = true;
+                global.db.setUserInfo(userName, fresh);
+                // Intentional kill: drop the hangup handler so the old leg's
+                // CHANNEL_HANGUP can't stomp the new leg's state
+                if (yealinkUuid) getConnectionHandlers().delete(yealinkUuid);
+                if (yealinkUuid && global.freeswitch?.hangupCall) {
+                    await global.freeswitch.hangupCall(yealinkUuid, userName).catch(() => {});
+                }
+                global.db.logEvent('web_retakeover', userName, fresh.currentRoom || fresh.room, 'Takeover button — call moved from Yealink to web');
+                initiateCall(userName);
+            }
+        }
+
+        res.json({ status: true, web_takeover: 1 });
+    } catch (err) {
+        logSystem('CLIENT', `API /takeover failed error=${err.message}`);
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /release — disable web takeover: Yealink regains device priority.
+// If the web client holds the conference leg and the Yealink is registered,
+// hard-switch back. If the Yealink is offline, the web keeps the call — it is
+// the legitimate fallback device.
+clientRouter.post("/release", requireClientAuth, async (req, res) => {
+    try {
+        const account = global.db.getAccountById(req.client.sub);
+        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        const userName = `sip:${account.email}`;
+        const userInfo = global.db.getUserInfo(userName);
+        if (Object.keys(userInfo).length === 0) {
+            return res.status(409).json({ status: false, error: "No SIP state for this account yet" });
+        }
+
+        if (userInfo.webTakeover) {
+            userInfo.webTakeover = false;
+            global.db.setUserInfo(userName, userInfo);
+            global.db.logEvent('web_takeover_off', userName, userInfo.currentRoom || userInfo.room, 'Released back to phone');
+            global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+            logSystem('CLIENT', `API /release user=${userName}`);
+        }
+
+        let switched = false;
+        if (userInfo.connectionState === 'connected' && userInfo.clientType === 'web') {
+            const yealinkContact = await probeDeviceContact(userName, 'yealink');
+            if (yealinkContact) {
+                const fresh = global.db.getUserInfo(userName);
+                const webUuid = fresh.fsChannelUUID;
+                fresh.connectionState = 'ideal';
+                fresh.fsChannelUUID = null;
+                fresh.fsMemberId = null;
+                fresh.mute = true;
+                global.db.setUserInfo(userName, fresh);
+                if (webUuid) getConnectionHandlers().delete(webUuid);
+                if (webUuid && global.freeswitch?.hangupCall) {
+                    await global.freeswitch.hangupCall(webUuid, userName).catch(() => {});
+                }
+                global.db.logEvent('device_fallback', userName, fresh.currentRoom || fresh.room, 'Release button — call moved from web to Yealink');
+                sendClientEventToUser(userName, { type: 'monitor_mode', reason: 'released_to_phone' });
+                initiateCall(userName);
+                switched = true;
+            }
+        }
+
+        res.json({ status: true, web_takeover: 0, switched_to_yealink: switched });
+    } catch (err) {
+        logSystem('CLIENT', `API /release failed error=${err.message}`);
         res.status(500).json({ status: false, error: err.message });
     }
 });
