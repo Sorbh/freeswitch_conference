@@ -373,25 +373,6 @@ const CSS = `
 .bp-rc p { font-size: 13px; line-height: 1.5; color: var(--muted); margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
 .bp-rc-foot { display: flex; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--muted); }
 
-/* ═══ Dark mode ═══ */
-@media (prefers-color-scheme: dark) {
-  .bp-sb-card { background: #1a1a1f; border-color: rgba(255,255,255,0.06); }
-  .bp-sb-card h4 { color: #e4e0db; }
-  .bp-sb-toc a { color: #a09b93; border-color: rgba(255,255,255,0.04); }
-  .bp-sb-toc li { border-color: rgba(255,255,255,0.04); }
-  .bp-sb-share-btn { background: #111114; border-color: rgba(255,255,255,0.08); color: #7a756d; }
-  .bp-sb-explore-text { color: #a09b93; }
-  .bp-faq-item { background: #1a1a1f; border-color: rgba(255,255,255,0.06); }
-  .bp-related { background: #0f1117; }
-  .bp-rc { background: #1a1a1f; border-color: rgba(255,255,255,0.06); }
-  .bp-rc:hover { border-color: rgba(217,45,32,0.3); box-shadow: 0 6px 20px -6px rgba(0,0,0,0.4); }
-  .bp-rc h3 { color: #e4e0db; }
-  .bp-rc-foot { border-color: rgba(255,255,255,0.06); }
-  .bp-body code { background: rgba(255,255,255,0.07); }
-  .bp-body th { background: #1a1a1f; }
-  .bp-body td { border-color: rgba(255,255,255,0.06); }
-}
-
 /* ═══ Mobile: sidebar stacks below ═══ */
 @media (max-width: 900px) {
   .bp-grid { grid-template-columns: 1fr; gap: 0; }

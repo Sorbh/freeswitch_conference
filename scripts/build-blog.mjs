@@ -88,9 +88,11 @@ function markdownToHtml(md) {
 
   // Tables
   html = html.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/gm, (_, header, sep, rows) => {
-    const ths = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    // strip boundary pipes only — interior empty cells (e.g. corner header cell) must survive
+    const splitCells = line => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+    const ths = splitCells(header).map(c => `<th>${c}</th>`).join('');
     const trs = rows.trim().split('\n').map(row => {
-      const tds = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
+      const tds = splitCells(row).map(c => `<td>${c}</td>`).join('');
       return `<tr>${tds}</tr>`;
     }).join('');
     return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;

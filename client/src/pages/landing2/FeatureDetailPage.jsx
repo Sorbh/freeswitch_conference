@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL } from "./site";
+import { BLOG_POSTS, BLOG_CATEGORIES } from "./blogRegistry";
 
 const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
@@ -26,6 +27,37 @@ const TOC_ITEMS = [
   { id: "faq", label: "FAQ" },
   { id: "related", label: "Related Features" },
 ];
+
+function formatDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function resolveResource(r) {
+  const m = r.href.match(/^\/blog\/([^/]+)\/([^/]+)$/);
+  const post = m ? BLOG_POSTS.find(p => p.category === m[1] && p.slug === m[2]) : null;
+  if (post) {
+    return {
+      href: r.href,
+      cat: BLOG_CATEGORIES[post.category]?.label || "Blog",
+      date: formatDate(post.date),
+      title: post.title,
+      desc: post.description,
+      read: post.readTime,
+    };
+  }
+  const isRegional = r.href.startsWith("/used-auto-parts/");
+  return {
+    href: r.href,
+    cat: isRegional ? "Regional Guide" : "Resource",
+    date: null,
+    title: r.label,
+    desc: isRegional
+      ? "Browse yards, coverage, and how to source used auto parts in this region through the Hotline HQ network."
+      : "Learn more about this topic on Hotline HQ.",
+    read: null,
+  };
+}
 
 function TableOfContents({ items, activeId }) {
   return (
@@ -286,11 +318,25 @@ export function FeatureDetailPage() {
           {f.resources?.length > 0 && (
             <section>
               <h2 id="resources" style={{ scrollMarginTop: 100 }}>Keep Exploring</h2>
-              <ul>
-                {f.resources.map(r => (
-                  <li key={r.href}><Link to={r.href}>{r.label}</Link></li>
-                ))}
-              </ul>
+              <div className="fd-resources-grid">
+                {f.resources.map(r => {
+                  const card = resolveResource(r);
+                  return (
+                    <Link to={card.href} className="fd-res-card" key={r.href}>
+                      <div className="fd-res-top">
+                        <span className="fd-res-cat">{card.cat}</span>
+                        {card.date && <span className="fd-res-date">{card.date}</span>}
+                      </div>
+                      <h3 className="fd-res-title">{card.title}</h3>
+                      <p className="fd-res-desc">{card.desc}</p>
+                      <div className="fd-res-bottom">
+                        <span className="fd-res-read">{card.read || "View page"}</span>
+                        <span className="fd-res-arrow">&rarr;</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             </section>
           )}
         </article>
@@ -551,9 +597,95 @@ const PAGE_CSS = `
   color: var(--muted); margin: 0 !important;
 }
 
+/* Keep Exploring — blog-style card grid (mirrors .bi-card on /blog) */
+.fd-resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin: 16px 0;
+}
+.fd-res-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px 24px 20px;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px rgba(22,24,29,0.05), 0 8px 24px -12px rgba(22,24,29,0.1);
+}
+.fd-res-card:hover {
+  border-color: var(--red);
+  transform: translateY(-3px);
+  box-shadow: 0 2px 4px rgba(22,24,29,0.08), 0 16px 40px -12px rgba(22,24,29,0.18);
+}
+.fd-res-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.fd-res-cat {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red);
+  background: var(--red-soft);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.fd-res-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.fd-res-card .fd-res-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.fd-res-card .fd-res-desc {
+  font-size: 13.5px !important;
+  line-height: 1.6 !important;
+  color: var(--muted);
+  margin: 0 !important;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fd-res-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.fd-res-read {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.fd-res-arrow {
+  font-size: 18px;
+  color: var(--red);
+  transition: transform 0.2s;
+}
+.fd-res-card:hover .fd-res-arrow { transform: translateX(4px); }
+
 @media (max-width: 640px) {
   .fd-benefits-grid { grid-template-columns: 1fr; }
   .fd-scenario-box { padding: 18px 16px; }
+  .fd-resources-grid { grid-template-columns: 1fr; }
 }
 `;
 

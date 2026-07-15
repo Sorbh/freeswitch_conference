@@ -671,11 +671,4 @@ const BLOG_CSS = `
   .bl-grid { grid-template-columns: 1fr 1fr; }
 }
 
-/* Dark mode callout overrides */
-@media (prefers-color-scheme: dark) {
-  .bl-callout-info { background: #111827; border-color: #1e3a5f; }
-  .bl-callout-info .bl-callout-title { color: #60a5fa; }
-  .bl-callout-tip { background: #1a0e0d; border-color: #3a1816; }
-  .bl-table tr:first-child td { background: rgba(217,45,32,0.06); }
-}
 `;
