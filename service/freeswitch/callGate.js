@@ -215,6 +215,15 @@ function _originateToConference(userName) {
 
 function _originate(conn, target, userName, userInfo, roomName, confProfile, resolve, reject) {
     const contact = target.contact;
+    // Claim clientType at INVITE time, not at success: during a hard switch the
+    // old device's unregister lands while the new leg is still connecting, and
+    // the registration ignore-guard compares against clientType — if it still
+    // names the OLD device, that departure looks like the holder leaving and
+    // triggers a duplicate fallback INVITE (USER_BUSY on the new device).
+    if (userInfo.clientType !== target.deviceType) {
+        userInfo.clientType = target.deviceType;
+        global.db.setUserInfo(userName, userInfo);
+    }
     const activeRoom = userInfo.currentRoom || userInfo.room;
     const email = userName.replace('sip:', '');
     const account = global.db.getAccountByEmail(email);
