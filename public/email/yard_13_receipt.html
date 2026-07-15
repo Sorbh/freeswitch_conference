@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Receipt - Hotline HQ</title>
+  <!--
+    SUBJECT OPTIONS:
+    - receipt: $1,800 Camaro transmission — sold to someone else
+    - {{ contact.COMPANY }}, here's what you lost this week
+    - your weekly missed-sales receipt
+
+    PREVIEW: 3 parts requests. $3,150+ in value. 0 went to {{ contact.COMPANY }}.
+  -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f5f5f4;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .preheader {
+      display: none;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      color: transparent;
+    }
+    .wrap {
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 32px 16px;
+    }
+    .receipt {
+      background: #ffffff;
+      border: 1px dashed #d6d3d1;
+      border-radius: 4px;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .receipt-header {
+      padding: 28px 24px 20px;
+      text-align: center;
+      border-bottom: 1px dashed #d6d3d1;
+    }
+    .receipt-logo {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1c1917;
+      letter-spacing: 0.05em;
+      margin: 0 0 4px;
+    }
+    .receipt-logo span { color: #dc2626; }
+    .receipt-type {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #a8a29e;
+      margin: 0 0 10px;
+    }
+    .receipt-date {
+      font-size: 12px;
+      color: #78716c;
+      margin: 0;
+    }
+    .receipt-for {
+      padding: 16px 24px;
+      border-bottom: 1px dashed #d6d3d1;
+      font-size: 12px;
+      color: #78716c;
+    }
+    .receipt-for strong {
+      color: #1c1917;
+    }
+    .items {
+      padding: 20px 24px;
+      border-bottom: 1px dashed #d6d3d1;
+    }
+    .item {
+      padding: 12px 0;
+      border-bottom: 1px dotted #e7e5e4;
+    }
+    .item:last-child { border-bottom: 0; }
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .item-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1c1917;
+      line-height: 1.3;
+      max-width: 230px;
+    }
+    .item-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: #dc2626;
+      white-space: nowrap;
+    }
+    .item-meta {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #a8a29e;
+    }
+    .item-meta .sold { color: #16a34a; font-weight: 700; }
+    .item-listen {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #dc2626;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .totals {
+      padding: 16px 24px;
+      border-bottom: 1px dashed #d6d3d1;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 13px;
+      color: #78716c;
+    }
+    .total-row.grand {
+      padding: 10px 0 0;
+      margin-top: 8px;
+      border-top: 1px solid #1c1917;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1c1917;
+    }
+    .total-row.grand .val { color: #dc2626; }
+    .total-row .val { text-align: right; }
+    .receipt-msg {
+      padding: 20px 24px;
+      text-align: center;
+      border-bottom: 1px dashed #d6d3d1;
+    }
+    .receipt-msg p {
+      margin: 0 0 8px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #57534e;
+    }
+    .receipt-msg strong { color: #1c1917; }
+    .receipt-cta {
+      padding: 20px 24px;
+      text-align: center;
+    }
+    .cta-link {
+      display: inline-block;
+      padding: 12px 28px;
+      background: #1c1917;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+    .receipt-footer {
+      padding: 20px 24px;
+      text-align: center;
+      border-top: 1px dashed #d6d3d1;
+    }
+    .receipt-footer p {
+      margin: 0 0 4px;
+      font-size: 10px;
+      color: #a8a29e;
+      line-height: 1.5;
+    }
+    .receipt-footer a { color: #a8a29e; }
+    .barcode {
+      margin: 12px auto 0;
+      text-align: center;
+      font-size: 8px;
+      letter-spacing: 0.3em;
+      color: #d6d3d1;
+    }
+    @media (max-width: 480px) {
+      .wrap { padding: 16px 8px; }
+      .items, .totals, .receipt-msg, .receipt-cta, .receipt-header, .receipt-for, .receipt-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="preheader">3 parts requests. $3,150+ in value. 0 went to {{ contact.COMPANY | default : "your yard" }}. Here's the receipt.</div>
+  <div class="wrap">
+    <div class="receipt">
+      <div class="receipt-header">
+        <p class="receipt-logo">HOTLINE <span>HQ</span></p>
+        <p class="receipt-type">- Missed Sales Receipt -</p>
+        <p class="receipt-date">Week of July 13, 2026</p>
+      </div>
+
+      <div class="receipt-for">
+        TO: <strong>{{ contact.COMPANY | default : "Your Yard" }}</strong><br>
+        {{ contact.CITY | default : "" }} {{ contact.STATE | default : "" }}
+      </div>
+
+      <div class="items">
+        <div class="item">
+          <div class="item-top">
+            <span class="item-name">2011 Camaro 3.6 auto transmission</span>
+            <span class="item-price">$1,800</span>
+          </div>
+          <div class="item-meta">128 listeners &middot; <span class="sold">SOLD</span> &middot; 5 yards responded</div>
+          <a class="item-listen" href="https://hotlinehq.online/b/218bd3f7-92b7-4689-9cfa-323691eae7bb?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">&#9658; HEAR THE CALL</a>
+        </div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-name">2003 Honda Civic 1.7L motor</span>
+            <span class="item-price">$1,200</span>
+          </div>
+          <div class="item-meta">130 listeners &middot; <span class="sold">SOLD</span> &middot; answered</div>
+          <a class="item-listen" href="https://hotlinehq.online/b/0ebfd21b-3f02-4f80-a406-a3c6d496baf5?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">&#9658; HEAR THE CALL</a>
+        </div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-name">Honda Accord V6 cat converter</span>
+            <span class="item-price">$350</span>
+          </div>
+          <div class="item-meta">130 listeners &middot; <span class="sold">SOLD</span> &middot; answered</div>
+          <a class="item-listen" href="https://hotlinehq.online/b/285c1563-8538-4bbe-a193-9ae1369af2c3?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">&#9658; HEAR THE CALL</a>
+        </div>
+      </div>
+
+      <div class="totals">
+        <div class="total-row">
+          <span>Parts requests today</span>
+          <span class="val">300+</span>
+        </div>
+        <div class="total-row">
+          <span>Heard by {{ contact.COMPANY | default : "your yard" }}</span>
+          <span class="val">0</span>
+        </div>
+        <div class="total-row grand">
+          <span>MISSED SALES</span>
+          <span class="val">$3,350+</span>
+        </div>
+      </div>
+
+      <div class="receipt-msg">
+        <p><strong>This is just 3 out of 300+ requests today.</strong></p>
+        <p>Every broadcast is a sale going to the yard that answers first. Free to join. Works from any browser. 30 seconds to set up.</p>
+      </div>
+
+      <div class="receipt-cta">
+        <a class="cta-link" href="https://hotlinehq.online/client/signup?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">STOP MISSING SALES &rarr;</a>
+      </div>
+
+      <div class="receipt-footer">
+        <p>Hotline HQ &middot; Parts-locating voice network</p>
+        <p>Part values are representative estimates, not guaranteed prices.</p>
+        <p><a href="{{ unsubscribe }}">Unsubscribe</a></p>
+        <div class="barcode">||||| |||| ||||| ||| |||| ||||| |||| |||||</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

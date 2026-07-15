@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Ticker - Hotline HQ</title>
+  <!--
+    SUBJECT OPTIONS:
+    - 10:47am camaro trans — 10:52am civic motor — 10:58am accord cat — you missed all 3
+    - this is what scrolled past in the last hour
+    - live from the parts network: {{ contact.COMPANY }} missed 12 requests today
+
+    PREVIEW: Real requests. Real money. Real yards closing deals right now.
+  -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0a;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    }
+    .preheader {
+      display: none;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      color: transparent;
+    }
+    .wrap {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 28px 16px;
+    }
+    .terminal {
+      background: #0f0f0f;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .term-bar {
+      padding: 10px 16px;
+      background: #171717;
+      border-bottom: 1px solid #262626;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot.r { background: #ef4444; }
+    .dot.y { background: #eab308; }
+    .dot.g { background: #22c55e; }
+    .term-title {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: #525252;
+      font-weight: 600;
+    }
+    .term-body {
+      padding: 20px 18px;
+    }
+    .line {
+      margin: 0 0 2px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .line .time { color: #525252; }
+    .line .cmd { color: #22c55e; }
+    .line .info { color: #a3a3a3; }
+    .line .warn { color: #eab308; }
+    .line .err { color: #ef4444; }
+    .line .money { color: #22c55e; font-weight: 700; }
+    .line .white { color: #e5e5e5; font-weight: 600; }
+    .line .dim { color: #404040; }
+    .line .link {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    .line .link:hover { text-decoration: underline; }
+    .sep {
+      margin: 14px 0;
+      border: 0;
+      border-top: 1px solid #1a1a1a;
+    }
+    .blink {
+      color: #22c55e;
+    }
+    .feed-item {
+      margin: 0 0 16px;
+      padding: 14px;
+      background: #171717;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      border-left: 3px solid #ef4444;
+    }
+    .feed-item.answered {
+      border-left-color: #22c55e;
+    }
+    .feed-head {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #e5e5e5;
+    }
+    .feed-details {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #737373;
+    }
+    .feed-details span {
+      margin-right: 12px;
+      white-space: nowrap;
+    }
+    .feed-details .val { color: #a3a3a3; font-weight: 600; }
+    .feed-details .green { color: #22c55e; }
+    .feed-details .gold { color: #eab308; }
+    .feed-play {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      background: #262626;
+      border: 1px solid #3f3f46;
+      border-radius: 4px;
+      color: #ef4444 !important;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .prompt-block {
+      margin: 20px 0 0;
+      padding: 18px;
+      background: #171717;
+      border: 1px solid #22c55e;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .prompt-block p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #a3a3a3;
+      line-height: 1.5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+    .prompt-block strong { color: #e5e5e5; }
+    .prompt-btn {
+      display: inline-block;
+      padding: 10px 24px;
+      background: #22c55e;
+      color: #0a0a0a !important;
+      text-decoration: none;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 6px;
+    }
+    .footer {
+      padding: 20px 0 0;
+      text-align: center;
+    }
+    .footer p {
+      margin: 0 0 4px;
+      font-size: 10px;
+      color: #404040;
+      line-height: 1.5;
+      font-family: -apple-system, sans-serif;
+    }
+    .footer a { color: #525252; text-decoration: underline; }
+    @media (max-width: 480px) {
+      .wrap { padding: 12px 8px; }
+      .line { font-size: 11.5px; }
+      .feed-head { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="preheader">$ hotline --feed --live | 10:47 CAMARO TRANS $1,800 | 10:52 CIVIC MOTOR $1,200 | 10:58 ACCORD CAT $350 | {{ contact.COMPANY | default : "your yard" }}: NOT CONNECTED</div>
+  <div class="wrap">
+    <div class="terminal">
+      <div class="term-bar">
+        <span class="dot r"></span>
+        <span class="dot y"></span>
+        <span class="dot g"></span>
+        <span class="term-title">hotline-hq &mdash; live network feed</span>
+      </div>
+
+      <div class="term-body">
+        <p class="line"><span class="time">[system]</span> <span class="cmd">connected to hotline-hq network</span></p>
+        <p class="line"><span class="time">[system]</span> <span class="info">monitoring 130 active yards...</span></p>
+        <p class="line"><span class="time">[system]</span> <span class="info">today's broadcast count: </span><span class="white">347</span></p>
+        <p class="line"><span class="time">[system]</span> <span class="warn">{{ contact.COMPANY | default : "YOUR YARD" }}: </span><span class="err">NOT CONNECTED</span></p>
+
+        <hr class="sep">
+
+        <div class="feed-item answered">
+          <p class="feed-head">10:47 AM &mdash; 2011 Camaro 3.6 auto transmission</p>
+          <div class="feed-details">
+            <span>yards: <span class="val">128</span></span>
+            <span>responded: <span class="green">5</span></span>
+            <span>value: <span class="gold">$750&ndash;$1,800</span></span>
+            <span>status: <span class="green">ANSWERED</span></span>
+          </div>
+          <a class="feed-play" href="https://hotlinehq.online/b/218bd3f7-92b7-4689-9cfa-323691eae7bb?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">&#9658; PLAY RECORDING</a>
+        </div>
+
+        <div class="feed-item answered">
+          <p class="feed-head">10:52 AM &mdash; 2003 Honda Civic 1.7L motor</p>
+          <div class="feed-details">
+            <span>yards: <span class="val">130</span></span>
+            <span>responded: <span class="green">3</span></span>
+            <span>value: <span class="gold">$600&ndash;$1,500</span></span>
+            <span>status: <span class="green">ANSWERED</span></span>
+          </div>
+          <a class="feed-play" href="https://hotlinehq.online/b/0ebfd21b-3f02-4f80-a406-a3c6d496baf5?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">&#9658; PLAY RECORDING</a>
+        </div>
+
+        <div class="feed-item answered">
+          <p class="feed-head">10:58 AM &mdash; Honda Accord V6 cat converter</p>
+          <div class="feed-details">
+            <span>yards: <span class="val">130</span></span>
+            <span>responded: <span class="green">4</span></span>
+            <span>value: <span class="gold">$200&ndash;$500</span></span>
+            <span>status: <span class="green">ANSWERED</span></span>
+          </div>
+          <a class="feed-play" href="https://hotlinehq.online/b/285c1563-8538-4bbe-a193-9ae1369af2c3?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">&#9658; PLAY RECORDING</a>
+        </div>
+
+        <hr class="sep">
+
+        <p class="line"><span class="dim">...</span><span class="info"> 344 more requests today. </span><span class="err">{{ contact.COMPANY | default : "YOUR YARD" }} heard 0.</span></p>
+        <p class="line"><span class="blink">_</span></p>
+
+        <div class="prompt-block">
+          <p><strong>Free. No hardware. 30 seconds.</strong><br>Start hearing what 130 yards already hear.</p>
+          <a class="prompt-btn" href="https://hotlinehq.online/client/signup?email={{ contact.EMAIL }}&company_name={{ contact.COMPANY }}&room={{ contact.STATE }}&utm_source=brevo&utm_medium=email" target="_blank" rel="noopener noreferrer">Connect {{ contact.COMPANY | default : "your yard" }} now</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Hotline HQ &middot; Parts-locating voice network for auto recyclers</p>
+      <p>Part values are representative estimates. Times are illustrative.</p>
+      <p><a href="{{ unsubscribe }}">Unsubscribe</a></p>
+    </div>
+  </div>
+</body>
+</html>
