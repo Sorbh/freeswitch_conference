@@ -590,12 +590,12 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
     }
 });
 
-// POST /takeover — enable web takeover: web client gets device priority.
+// POST /web_takeover — enable web takeover: web client gets device priority.
 // If the Yealink currently holds the conference leg and the web client is
 // already SIP-registered, hard-switch now (kill-then-originate). Otherwise the
 // client registers right after this call and registration.js performs the
 // switch on sofia::register.
-clientRouter.post("/takeover", requireClientAuth, async (req, res) => {
+clientRouter.post("/web_takeover", requireClientAuth, async (req, res) => {
     try {
         const account = global.db.getAccountById(req.client.sub);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
@@ -610,7 +610,7 @@ clientRouter.post("/takeover", requireClientAuth, async (req, res) => {
             global.db.setUserInfo(userName, userInfo);
             global.db.logEvent('web_takeover_on', userName, userInfo.currentRoom || userInfo.room, 'Take over from browser enabled');
             global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
-            logSystem('CLIENT', `API /takeover enabled user=${userName}`);
+            logSystem('CLIENT', `API /web_takeover enabled user=${userName}`);
         }
 
         if (userInfo.connectionState === 'connected' && userInfo.clientType === 'yealink') {
@@ -636,16 +636,16 @@ clientRouter.post("/takeover", requireClientAuth, async (req, res) => {
 
         res.json({ status: true, web_takeover: 1 });
     } catch (err) {
-        logSystem('CLIENT', `API /takeover failed error=${err.message}`);
+        logSystem('CLIENT', `API /web_takeover failed error=${err.message}`);
         res.status(500).json({ status: false, error: err.message });
     }
 });
 
-// POST /release — disable web takeover: Yealink regains device priority.
+// DELETE /web_takeover — disable web takeover: Yealink regains device priority.
 // If the web client holds the conference leg and the Yealink is registered,
 // hard-switch back. If the Yealink is offline, the web keeps the call — it is
 // the legitimate fallback device.
-clientRouter.post("/release", requireClientAuth, async (req, res) => {
+clientRouter.delete("/web_takeover", requireClientAuth, async (req, res) => {
     try {
         const account = global.db.getAccountById(req.client.sub);
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
@@ -660,7 +660,7 @@ clientRouter.post("/release", requireClientAuth, async (req, res) => {
             global.db.setUserInfo(userName, userInfo);
             global.db.logEvent('web_takeover_off', userName, userInfo.currentRoom || userInfo.room, 'Released back to phone');
             global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
-            logSystem('CLIENT', `API /release user=${userName}`);
+            logSystem('CLIENT', `API /web_takeover DELETE user=${userName}`);
         }
 
         let switched = false;
@@ -687,7 +687,7 @@ clientRouter.post("/release", requireClientAuth, async (req, res) => {
 
         res.json({ status: true, web_takeover: 0, switched_to_yealink: switched });
     } catch (err) {
-        logSystem('CLIENT', `API /release failed error=${err.message}`);
+        logSystem('CLIENT', `API /web_takeover DELETE failed error=${err.message}`);
         res.status(500).json({ status: false, error: err.message });
     }
 });

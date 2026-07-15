@@ -3,7 +3,7 @@
 // On unregister/expire: marks user offline, ends active calls, prevents reconnect loops.
 import { onCustomEvent, getConnectionHandlers } from './connection.js';
 import { clearOnlineTimer } from './onlineSync.js';
-import { initiateCall, MAX_RETRIES, resolveTargetContact } from './callGate.js';
+import { initiateCall, MAX_RETRIES, probeDeviceContact } from './callGate.js';
 import { logUser, logBlocked } from '../logger.js';
 import { sendClientEventToUser } from '../../modules/client/events.js';
 
@@ -16,10 +16,35 @@ onCustomEvent((event) => {
     else if (subclass === 'sofia::unregister') _handleUnregister(event);
 });
 
+// Which device does this event belong to? Same UA classifier as registration.
+// Exception: socket-disconnection unregisters (web page closed/reloaded) carry
+// NO user-agent header at all (FS sofia.c MY_EVENT_UNREGISTER socket path) —
+// for those, fall back to the AOR form: web registers as user.at.domain.
+function _deviceTypeFromEvent(event) {
+    const uaType = _detectClientType(event.getHeader('user-agent') || '');
+    if (uaType === 'web' || uaType === 'yealink') return uaType;
+    const aor = event.getHeader('from-user') || event.getHeader('user') || '';
+    return aor.includes('.at.') ? 'web' : 'yealink';
+}
+
+// True when the departing registration belongs to a device that is NOT the one
+// holding the connected conference leg. Only trust clientType values written by
+// callGate at originate time (web/yealink).
+function _isNonHolderDeparture(existingUser, departedType) {
+    // 'connecting' counts too: the web's own unregister (its reaction to the
+    // monitor_mode push) lands while the reclaim INVITE is still in flight —
+    // tearing down then would re-INVITE the same device into USER_BUSY.
+    return (existingUser.connectionState === 'connected' || existingUser.connectionState === 'connecting')
+        && (existingUser.clientType === 'web' || existingUser.clientType === 'yealink')
+        && departedType !== existingUser.clientType;
+}
+
+// unregister events carry from-user/from-host; expire events carry user/host
+// (no from-* headers at all — sofia_reg.c emits them with different names).
 function _parseEmailFromEvent(event) {
-    const fromUser = event.getHeader('from-user');
+    const fromUser = event.getHeader('from-user') || event.getHeader('user');
     if (!fromUser) return null;
-    const fromHost = event.getHeader('from-host');
+    const fromHost = event.getHeader('from-host') || event.getHeader('host') || '';
     const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(fromHost);
     return fromUser.includes('.at.') ? fromUser.replace('.at.', '@') : (isIp ? fromUser : `${fromUser}@${fromHost}`);
 }
@@ -32,8 +57,8 @@ async function _handleRegistration(event) {
     const networkPort = event.getHeader('network-port');
     const userAgent = event.getHeader('user-agent') || '';
 
-    const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(fromHost);
-    let email = fromUser.includes('.at.') ? fromUser.replace('.at.', '@') : (isIp ? fromUser : `${fromUser}@${fromHost}`);
+    const email = _parseEmailFromEvent(event);
+    if (!email) return;
 
     const macRegex = /([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})/;
     const macMatch = userAgent.match(macRegex)
@@ -92,64 +117,51 @@ async function _handleRegistration(event) {
             global.db.logEvent('web_retakeover', userName, existingUser.currentRoom || existingUser.room, 'Web client returned — call moved from Yealink to web');
         }
 
-        // Yealink reclaim: when web is connected (e.g. after server restart web registered first,
-        // or user was on web at home and came back to office) and Yealink registers, Yealink
-        // takes priority. Reset connectionState so callGate can originate to the Yealink.
-        // The web session will detect the disconnect via SSE and enter monitor mode.
-        // Bypassed when web_takeover is active (user explicitly chose web over Yealink).
-        if (existingUser.connectionState === 'connected'
-            && existingUser.clientType === 'web'
+        // Yealink reclaim: web_takeover is OFF and the web client holds the
+        // conference leg (it was the fallback while the Yealink was offline).
+        // The Yealink registering means the priority device is back — hard
+        // switch: kill the web leg, tell the web client to enter monitor mode,
+        // then fall through so ensureInConference re-originates
+        // (resolveTargetContact picks Yealink first with the flag off).
+        if (!existingUser.webTakeover
             && clientType === 'yealink'
-            && !existingUser.webTakeover) {
-            logUser(userName, 'REG', `Yealink reclaim — web was connected, hanging up web channel for Yealink priority`);
+            && existingUser.connectionState === 'connected'
+            && existingUser.clientType === 'web') {
+            logUser(userName, 'REG', `Yealink reclaim — web was fallback, hanging up web leg for Yealink priority`);
             const webUuid = existingUser.fsChannelUUID;
             existingUser.connectionState = 'ideal';
             existingUser.fsChannelUUID = null;
             existingUser.fsMemberId = null;
+            existingUser.mute = true;
             if (webUuid) getConnectionHandlers().delete(webUuid);
             if (webUuid && global.freeswitch?.hangupCall) {
                 global.freeswitch.hangupCall(webUuid, userName).catch(e => {
                     logUser(userName, 'REG', `Failed to hangup web channel: ${e.message}`);
                 });
             }
-            // Tell web client to enter monitor mode
+            global.db.logEvent('yealink_reclaim', userName, existingUser.currentRoom || existingUser.room, 'Yealink back online — call moved from web to Yealink');
             sendClientEventToUser(userName, { type: 'monitor_mode', reason: 'yealink_reclaim' });
         }
 
-        // Yealink priority guard: when Yealink is already in the conference and a web client
-        // tries to register (e.g. user opens dashboard), skip the web SIP registration so the
-        // Yealink's contact/clientType stay intact. The web client enters monitor mode instead
-        // (SSE-only, no audio). webTakeoverContact is still saved above so the takeover API can
-        // use it later. If web_takeover is active (user explicitly clicked "Join Conference"),
-        // this guard is bypassed — the web client is allowed to register and take over.
+        // Non-priority device registering while the OTHER device holds the leg
+        // (flag ON + Yealink registers, or flag OFF + web registers): liveness
+        // refresh only — it must not overwrite the leg holder's contact/clientType
+        // (that would route hook-driven mute to the wrong leg) or trigger
+        // ensureInConference. The priority device's registration is handled by
+        // the two hard-switch guards above.
         if (existingUser.connectionState === 'connected'
-            && existingUser.clientType === 'yealink'
-            && clientType === 'web'
-            && !existingUser.webTakeover) {
-            global.db.setUserInfo(userName, existingUser);
-            global.db.touchLastSeen(userName);
-            logUser(userName, 'REG', `Yealink connected — skipping web registration`);
-            return;
-        }
-
-        // Web takeover active AND web holds the call: Yealink re-registers periodically (~120s)
-        // but we must not let it overwrite the web client's contact or trigger ensureInConference.
-        // Keep the Yealink alive/online but skip contact update and conference join.
-        // When web does NOT hold the call (offline/idle), fall through — the Yealink is the
-        // fallback device and must be allowed to join (resolveTargetContact still probes web first).
-        if (existingUser.webTakeover && clientType !== 'web'
-            && existingUser.connectionState === 'connected'
-            && existingUser.clientType === 'web') {
-            existingUser.online = true;
-            existingUser.registrationState = 'registered';
-            if (mac) existingUser.mac = mac;
-            existingUser.authState = 'login';
-            global.db.setUserInfo(userName, existingUser);
-            global.db.touchLastSeen(userName);
-            if (wasOffline) global.db.logOnlineStatus(userName, 'online');
-            if (global.alerting) global.alerting.stopCriticalAlert(userName);
-            if (wasOffline) global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
-            logUser(userName, 'REG', `web_takeover active — skipping Yealink contact/ensureInConference`);
+            && existingUser.clientType
+            && clientType !== existingUser.clientType) {
+            // existingUser.online = true;
+            // existingUser.registrationState = 'registered';
+            // if (mac) existingUser.mac = mac;
+            // existingUser.authState = 'login';
+            // global.db.setUserInfo(userName, existingUser);
+            // global.db.touchLastSeen(userName);
+            // if (wasOffline) global.db.logOnlineStatus(userName, 'online');
+            // if (global.alerting) global.alerting.stopCriticalAlert(userName);
+            // if (wasOffline) global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+            logUser(userName, 'REG', `${clientType} registered — ${existingUser.clientType} holds the call, liveness only`);
             return;
         }
 
@@ -226,22 +238,15 @@ async function _handleUnregister(event) {
     const existingUser = global.db.getUserInfo(userName);
     if (Object.keys(existingUser).length === 0) return;
 
-    const userAgent = event.getHeader('user-agent') || '';
-    const clientType = _detectClientType(userAgent);
+    // Same classifier as registration — unregister and expire both carry the
+    // user-agent (expire emits the register-time UA from the FS reg table).
+    const departedType = _deviceTypeFromEvent(event);
 
-    // Web unregister (e.g. page refresh) should not wipe Yealink's connected state
-    if (clientType === 'web'
-        && existingUser.connectionState === 'connected'
-        && existingUser.clientType === 'yealink') {
-        logUser(userName, 'REG', `UNREGISTER from web — Yealink connected, ignoring`);
-        return;
-    }
-
-    // Dormant Yealink unregistering (e.g. reboot) must not tear down the web call
-    if (clientType === 'yealink'
-        && existingUser.connectionState === 'connected'
-        && existingUser.clientType === 'web') {
-        logUser(userName, 'REG', `UNREGISTER from yealink — web connected, ignoring`);
+    // A device that doesn't hold the connected leg going away must not tear
+    // down the active call (web page refresh while the Yealink talks, dormant
+    // Yealink rebooting while web holds the call).
+    if (_isNonHolderDeparture(existingUser, departedType)) {
+        logUser(userName, 'REG', `UNREGISTER from ${departedType} — ${existingUser.clientType} connected, ignoring`);
         return;
     }
 
@@ -278,7 +283,7 @@ async function _handleUnregister(event) {
         }
     }
 
-    _fallbackToOtherDevice(userName, 'unregister');
+    _fallbackToOtherDevice(userName, 'unregister', departedType);
 }
 
 // Device-priority fallback: the departing registration may not be the only
@@ -286,13 +291,38 @@ async function _handleUnregister(event) {
 // web_takeover priority order) and reconnect through it — e.g. web tab closed
 // while takeover is on → Yealink takes the call; Yealink expired while flag is
 // off → web takes the call.
-async function _fallbackToOtherDevice(userName, trigger) {
+async function _fallbackToOtherDevice(userName, trigger, departedType) {
     try {
         const userInfo = global.db.getUserInfo(userName);
         if (Object.keys(userInfo).length === 0) return;
 
-        const target = await resolveTargetContact(userInfo);
-        if (!target) return;
+        // Never probe the device that just departed: its expire event fires
+        // BEFORE FS purges the registration row, so sofia_contact can still
+        // return a ghost contact for a few ms — and we'd "fall back" to the
+        // very device that just left.
+        const order = (userInfo.webTakeover ? ['web', 'yealink'] : ['yealink', 'web'])
+            .filter(t => t !== departedType);
+        let target = null;
+        for (const deviceType of order) {
+            const contact = await probeDeviceContact(userName, deviceType);
+            if (contact) { target = { contact, deviceType }; break; }
+        }
+        if (!target) {
+            // No surviving registration at all. A web tab in monitor mode is
+            // invisible here (monitor mode unregisters the UA) but still holds
+            // its SSE connection — wake it so it registers and becomes the
+            // fallback; the register-time gate then originates to it.
+            // Only when the YEALINK departed: a monitor tab is unregistered by
+            // definition, so it can never be the departing device — if the web
+            // itself left (tab closed/reloaded), there is no tab to wake.
+            if (departedType === 'yealink') {
+                logUser(userName, 'REG', `no surviving device after ${trigger} — sending exit_monitor to web SSE`);
+                sendClientEventToUser(userName, { type: 'exit_monitor', reason: trigger });
+            } else {
+                logUser(userName, 'REG', `no surviving device after ${trigger} (${departedType} departed)`);
+            }
+            return;
+        }
 
         const fresh = global.db.getUserInfo(userName);
         fresh.online = true;
@@ -318,22 +348,10 @@ async function _handleExpire(event) {
     const existingUser = global.db.getUserInfo(userName);
     if (Object.keys(existingUser).length === 0) return;
 
-    const userAgent = event.getHeader('user-agent') || '';
-    const clientType = _detectClientType(userAgent);
+    const departedType = _deviceTypeFromEvent(event);
 
-    // Web expiry should not wipe Yealink's connected state
-    if (clientType === 'web'
-        && existingUser.connectionState === 'connected'
-        && existingUser.clientType === 'yealink') {
-        logUser(userName, 'REG', `EXPIRED from web — Yealink connected, ignoring`);
-        return;
-    }
-
-    // Dormant Yealink expiring must not tear down the web call
-    if (clientType === 'yealink'
-        && existingUser.connectionState === 'connected'
-        && existingUser.clientType === 'web') {
-        logUser(userName, 'REG', `EXPIRED from yealink — web connected, ignoring`);
+    if (_isNonHolderDeparture(existingUser, departedType)) {
+        logUser(userName, 'REG', `EXPIRED from ${departedType} — ${existingUser.clientType} connected, ignoring`);
         return;
     }
 
@@ -371,7 +389,7 @@ async function _handleExpire(event) {
         }
     }
 
-    _fallbackToOtherDevice(userName, 'expire');
+    _fallbackToOtherDevice(userName, 'expire', departedType);
 }
 
 const ALLOWED_UA_PATTERNS = [

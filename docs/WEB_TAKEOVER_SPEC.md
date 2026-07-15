@@ -41,11 +41,11 @@ spec covers the missing trigger-half and the corrected routing model.
   `accounts` column; if a users row is recreated the flag resets to 0 —
   accepted.
 - New authenticated client API endpoints (modules/client/routesApi.js):
-  - `POST /api/client/takeover` → set flag=1; if a Yealink conference leg is
-    live, hard-switch to web.
-  - `POST /api/client/release` → set flag=0; if a web conference leg is live
-    and Yealink is registered, hard-switch to Yealink; if Yealink offline, web
-    keeps the call (it is the fallback).
+  - `POST /api/v1/client/web_takeover` → set flag=1; if a Yealink conference
+    leg is live, hard-switch to web.
+  - `DELETE /api/v1/client/web_takeover` → set flag=0; if a web conference leg
+    is live and Yealink is registered, hard-switch to Yealink; if Yealink
+    offline, web keeps the call (it is the fallback).
 - Endpoints operate only on the authenticated account's own user row.
 
 ### Routing (single resolution function)
@@ -71,6 +71,23 @@ and direct calls. Replaces the stored `web_takeover_contact` direct-originate
 
 Auto re-takeover: flag ON + web `sofia::register` while Yealink holds the call
 → hard switch to web automatically.
+
+Monitor-mode wake-up (`exit_monitor`, added 2026-07-15): a web tab in monitor
+mode is unregistered, so when the Yealink departs and `resolveTargetContact`
+finds no surviving contact, the fallback would dead-end even though the tab is
+open. The server now pushes `{ type: 'exit_monitor', reason }` over the
+caller-ID SSE; the client (only if in monitor mode with no UA) exits monitor
+mode, re-checks mic permission, and SIP-registers — the register-time gate
+then originates to it. When the Yealink returns, the existing reclaim pushes
+the tab back to monitor mode, closing the loop.
+
+Symmetric reclaim (finalized 2026-07-15 after live testing): the flag-priority
+device reclaims the call when it registers — flag ON + web registers → web
+re-takeover; flag OFF + Yealink registers → Yealink reclaim (web leg killed,
+web client pushed to monitor mode via SSE). A NON-priority device registering
+while the other holds the leg only refreshes liveness; it never overwrites the
+holder's contact/clientType and never steals. `DELETE /web_takeover` also
+force-switches to the Yealink even if the flag was already 0.
 
 ### Originate failure (flag ON, web registered, originate fails)
 **Web only, keep retrying** — never fall back to Yealink while the web AOR is
@@ -149,3 +166,6 @@ already covers this. No new work.
 | 12 | Direct calls | Same priority rule via shared resolver | — |
 | 13 | Liveness source of truth | Live `sofia_contact` probes, ordered by flag; no DB shadow state | Replaces stale `web_takeover_contact` bypass |
 | 14 | Rollout | Default off; test account + test room before announcing | Restart only in quiet window with approval |
+| 15 | Register-time guards | Final model: the flag-priority device hard-switches the call to itself on register (web when flag ON, Yealink when flag OFF); the non-priority device's register is liveness-only and never overwrites the leg holder's contact/clientType | Iterated live: first removed old guards as "manual only", then testing showed flag OFF + Yealink return must reclaim per whiteboard; Yealink hook suppression stays flag-independent (any web-held call) |
+| 16 | Zombie registrations | `online = registered && reachable` derived in the 30s poll; a registered-but-ping-dead contact goes offline (gate stops retry INVITEs) without touching its registration, and recovers on the next reachable poll | Claude proposed flush_inbound_reg; user rejected (transient 30s net blips must not force re-registration) and chose the derived model; fleet audit showed all 150 healthy devices reachable=1, only 3 kicked-out zombies affected |
+| 17 | Monitor-mode exit | Server-pushed `exit_monitor` SSE when a device departs and no registration survives; monitor-mode tab wakes, registers, becomes the fallback | Closes the silent-yard gap: monitor mode unregisters the UA, so sofia_contact fallback probing could never see the open tab; reload and the takeover switch remain the manual exits |

@@ -86,15 +86,20 @@ function _applyRegSync(allUsers, fsUsers) {
         const fsState = fsUsers.get(user.userName);
         const isRegistered = fsState ? fsState.registered : false;
         const isReachable = fsState ? fsState.reachable : false;
+        // online is the derived verdict the call gate trusts:
+        // registered (FS has the contact) AND reachable (the contact answers pings).
+        // A zombie registration (dead tab/phone waiting out its expiry) is not online,
+        // so the gate stops re-INVITing it; a transient blip recovers on the next
+        // poll without ever touching the registration.
+        const isOnline = isRegistered && isReachable;
         let changed = false;
 
-        // Registration state
-        if (isRegistered && !user.online) {
+        if (isOnline && !user.online) {
             user.online = true;
             user.registrationState = 'registered';
             invalidateContactCache(user.userName);
             global.db.logOnlineStatus(user.userName, 'online');
-            logUser(user.userName, 'POLL', 'online (registered)');
+            logUser(user.userName, 'POLL', 'online (registered+reachable)');
             changed = true;
             global.db.setUserInfo(user.userName, user);
             initiateCall(user.userName);
@@ -104,18 +109,24 @@ function _applyRegSync(allUsers, fsUsers) {
             user.registrationState = 'registered';
             invalidateContactCache(user.userName);
             changed = true;
-        } else if (!isRegistered && user.online) {
+        } else if (!isOnline && user.online) {
             user.online = false;
-            user.mute = true;
-            user.registrationState = 'unregistered';
-            user.connectionState = 'ideal';
-            user.error = null;
-            user.retryCount = 0;
-            user.errFallbackStage = 0;
-            user.errFallbackAt = null;
+            // registration_state stays the raw FS fact — a zombie is still registered
+            user.registrationState = isRegistered ? 'registered' : 'unregistered';
+            // Presence only — call state belongs to the call flow. Clean up stale
+            // retry/error residue ONLY when no live leg exists; a blip mid-call must
+            // not stomp 'connected' or force-mute a talking member via _syncMuteState.
+            if (user.connectionState !== 'connected' || !user.fsChannelUUID) {
+                user.mute = true;
+                user.connectionState = 'ideal';
+                user.error = null;
+                user.retryCount = 0;
+                user.errFallbackStage = 0;
+                user.errFallbackAt = null;
+            }
             invalidateContactCache(user.userName);
             global.db.logOnlineStatus(user.userName, 'offline');
-            logUser(user.userName, 'POLL', 'offline (unregistered)');
+            logUser(user.userName, 'POLL', isRegistered ? 'offline (unreachable)' : 'offline (unregistered)');
             changed = true;
         } else if (!isRegistered && user.registrationState === 'registered') {
             user.registrationState = 'unregistered';

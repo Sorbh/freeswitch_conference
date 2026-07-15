@@ -388,11 +388,13 @@ export function handleHttpHookEvent(userName, event) {
     return true;
 }
 
-// While web takeover is active and the web client holds the conference leg,
-// the Yealink sits dormant — its physical hook events must not drive mute or
-// direct-call actions on the web leg. Release happens only via the web button.
+// While the web client holds the conference leg (web_takeover, or web running
+// as fallback while the Yealink was offline), the Yealink sits dormant — its
+// physical hook events must not drive mute or direct-call actions on the web
+// leg (fsMemberId belongs to the web channel). The call moves back to the
+// phone only via the web_takeover API or the next reconnect.
 export function isYealinkHookSuppressed(userInfo) {
-    return !!(userInfo.webTakeover && userInfo.clientType === 'web');
+    return !!(userInfo.clientType === 'web' && userInfo.connectionState === 'connected');
 }
 
 function _handleHookEvent(macAddress, event) {
