@@ -27,6 +27,73 @@ function PrefToggle({ label, checked, onChange }) {
   );
 }
 
+function WebTakeoverCard() {
+  const { t } = useTranslation('dashboard');
+  const { account, refreshAccount } = useAuth();
+  const [enabled, setEnabled] = useState(!!account?.web_takeover);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { setEnabled(!!account?.web_takeover); }, [account?.web_takeover]);
+
+  useEffect(() => {
+    window.onHotlineTakeoverState = (active) => setEnabled(!!active);
+    return () => { delete window.onHotlineTakeoverState; };
+  }, []);
+
+  async function handleChange(next) {
+    if (busy || !window.hotlineClient) return;
+    setBusy(true); setError('');
+    try {
+      if (next) await window.hotlineClient.takeOver();
+      else await window.hotlineClient.releaseTakeover();
+      setEnabled(next);
+      refreshAccount();
+    } catch (err) {
+      setError(err.message);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="hq-card p-6 mt-6">
+      <h3 className="hq-label mb-1">{t('settings.callDevice', 'Call Device')}</h3>
+      <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
+        {t('settings.callDeviceBody', 'Choose which device carries the hotline call — your Yealink desk phone or this browser.')}
+      </p>
+      {error && <div className="hq-alert-error">{error}</div>}
+      <div className="flex items-center justify-between gap-4 py-2" style={{ opacity: busy ? 0.6 : 1 }}>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+            {enabled ? t('settings.yealinkRelease', 'Yealink Release') : t('settings.webTakeOver', 'Web Take Over')}
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+            {enabled
+              ? t('settings.yealinkReleaseSub', 'This browser has the call. Switch off to hand it back to your Yealink desk phone.')
+              : t('settings.webTakeOverSub', 'Switch on to move the call to this browser. Your Yealink stays idle until you release it.')}
+          </div>
+        </div>
+        <span
+          role="switch"
+          aria-checked={enabled}
+          onClick={() => handleChange(!enabled)}
+          style={{
+            width: 40, height: 22, borderRadius: 11, position: 'relative', flexShrink: 0,
+            background: enabled ? 'var(--green)' : 'var(--line)', transition: 'background 0.15s',
+            cursor: busy ? 'wait' : 'pointer',
+          }}
+        >
+          <span style={{
+            position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18,
+            borderRadius: '50%', background: '#fff', transition: 'left 0.15s',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          }} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function NotificationsCard() {
   const { t } = useTranslation('dashboard');
   const { supported, needsInstallHint, permission, subscribed, busy, prefs, enable, disable, updatePrefs, sendTest } = usePushNotifications();
@@ -282,6 +349,8 @@ export default function AccountSettingsPage() {
           <button type="submit" disabled={pwLoading} className="hq-btn px-6 py-2.5">{pwLoading ? t('settings.updating') : t('settings.updatePassword')}</button>
         </form>
       </div>
+
+      <WebTakeoverCard />
 
       <NotificationsCard />
 

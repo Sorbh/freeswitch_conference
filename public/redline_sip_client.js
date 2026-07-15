@@ -49,7 +49,7 @@
 //     apiBase: '',               // API base URL (default: https://hotlinehq.online/fs/)
 //     baseUrl: '',               // origin serving the shared helper scripts (hotlinehq_push_notification.js,
 //                                // hotlinehq_extensions.js); default: https://hotlinehq.online
-//     defaultPassword: '12345678', // SIP password (also used for /client/login)
+//     password: '12345678',        // SIP password (also used for /client/login); legacy alias: defaultPassword
 //     token: '',                  // pre-existing JWT token — skips POST /login, fetches account via GET /account
 //     extensions: true,           // set false to disable loading extension/direct-call module (default: true)
 //     extensionWidget: true,     // set false to hide the floating extension directory UI (default: true)
@@ -81,7 +81,8 @@
 //   window.onHotlineRoomChange = function(data) { ... }                // { source, room, roomName } — called on room change (API or SSE)
 //   window.onHotlineUserRefresh = function(data) { ... }               // { email, reason } — admin requested refresh; default (no callback): full page reload
 //   window.onHotlineUserLogout = function(data) { ... }                // { type, reason } — logged out by server (e.g. signed in from another location)
-//   window.onHotlineMonitorMode = function(active) { ... }             // true when monitor mode activated (Yealink connected, view-only dashboard)
+//   window.onHotlineMonitorMode = function(active) { ... }             // true when monitor mode active (Yealink has the call, view-only dashboard); false when exited (e.g. web takeover)
+//   window.onHotlineTakeoverState = function(active) { ... }           // web_takeover flag changed via takeOver()/releaseTakeover(); true = browser has device priority
 //   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
 //   window.onHotlineBroadcast = function(data) { ... }                 // { type:'broadcast', data:{...broadcast row...}, ts }
 //   window.onCallerIdUpdate = function(data) { ... }                   // { callerIds, callerIdHtml, userCount, unmutedCount, online, ts }
@@ -96,7 +97,7 @@
 //   window.hotlineClient.hangup()                                 // end current call
 //   window.hotlineClient.getRoom()                                // get current room
 //   window.hotlineClient.getRoomDetails()                         // get all rooms with online counts
-//   window.hotlineClient.changeRoom(roomId)                       // switch to a different room (reloads page)
+//   window.hotlineClient.changeRoom(roomId)                       // switch to a different room (SIP session survives; reloads page only if no onHotlineRoomChange callback)
 //   window.hotlineClient.requestRoom({ city, state, message })    // request a new room
 //   window.hotlineClient.getAccount()                             // get loaded account data
 //   window.hotlineClient.getToken()                               // get current JWT token
@@ -115,9 +116,11 @@
 // SSE EVENTS HANDLED:
 //   callerid      — caller ID HTML + online counts
 //   online_update — online/offline count changes
-//   room_change   — user changed room (auto-reloads if current user)
+//   room_change   — user changed room (SSE rebound to new room; reloads only without onHotlineRoomChange)
 //   user_refresh  — admin requested browser refresh (reloads page unless onHotlineUserRefresh is set)
 //   user_logout   — server-initiated logout (e.g. signed in from another location); calls logout()
+//   monitor_mode  — Yealink reclaimed the call: hang up, unregister, view-only dashboard
+//   exit_monitor  — reverse of monitor_mode: no device left (Yealink gone), wake up and SIP register
 //   direct_call_* — incoming/outgoing direct call notifications
 //
 // ═══════════════════════════════════════════════════════════════════════════
@@ -136,7 +139,7 @@ import "./jssip.bundle.js";
         var apiBase = config.apiBase || 'https://hotlinehq.online/fs';
         var wsServer = config.wsServer || 'wss://hotlinehq.online/fs_wss/';
         var sipDomain = '50.28.84.57';
-        var defaultPassword = config.defaultPassword || '12345678';
+        var password = config.password || config.defaultPassword || '12345678';
 
         var ua = null;
         var currentSession = null;
@@ -222,10 +225,20 @@ import "./jssip.bundle.js";
         }
 
         function notifyMonitorMode() {
-            try { if (typeof window.onHotlineMonitorMode === 'function') window.onHotlineMonitorMode(true); } catch (e) { }
+            // Reports the CURRENT state — callers set monitorMode first, then notify.
+            // Must be able to report false, or the UI can never exit monitor mode.
+            try { if (typeof window.onHotlineMonitorMode === 'function') window.onHotlineMonitorMode(monitorMode); } catch (e) { }
         }
 
         function _notifyRoomChange(data) {
+            // Keep the live session in sync — the server has already moved the
+            // conference leg (kill + re-INVITE to the new room), so the SIP
+            // session must NOT be torn down: just follow with our own room
+            // bookkeeping and reconnect the caller-ID SSE to the new room.
+            if (accountData && data.room) {
+                accountData.current_room = data.room;
+                startCallerIdSSE(data.room);
+            }
             if (typeof window.onHotlineRoomChange === 'function') {
                 window.onHotlineRoomChange(data);
             } else {
@@ -446,7 +459,7 @@ import "./jssip.bundle.js";
                 _activateListenOnly();
                 hideMicPermissionModal();
                 var email = accountData && accountData.email;
-                if (email) _startSipRegistration(email, accountData.sip_password || defaultPassword);
+                if (email) _startSipRegistration(email, accountData.sip_password || password);
             };
         }
 
@@ -533,6 +546,25 @@ import "./jssip.bundle.js";
                             stopMicStream();
                             notifyMonitorMode();
                             notifyCallState('connected');
+                            return;
+                        }
+                        if (data.type === 'exit_monitor') {
+                            // Reverse of monitor_mode: the Yealink went away and no
+                            // registration survives (monitor mode unregistered us).
+                            // Wake up and register; the server then moves the call here.
+                            if (!monitorMode || ua) return;
+                            console.log('[SIP] Exit monitor — server requested web fallback:', data.reason || '');
+                            monitorMode = false;
+                            notifyMonitorMode();
+                            if (lastLoginEmail) {
+                                checkMicPermission().then(function (result) {
+                                    if (result === true || result === 'listen-only') {
+                                        _startSipRegistration(lastLoginEmail, lastLoginPassword);
+                                    } else {
+                                        console.warn('[SIP] exit_monitor: mic permission denied — SIP registration skipped');
+                                    }
+                                });
+                            }
                             return;
                         }
                         if (data.type === 'user_logout') {
@@ -806,28 +838,27 @@ import "./jssip.bundle.js";
                 fetch(apiBase + '/api/v1/client/account', {
                     headers: { 'Authorization': 'Bearer ' + clientToken },
                 })
-                .then(function (r) {
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return r.json();
-                })
-                .then(function (json) {
-                    accountData = json.data || json;
-                    var sipPassword = accountData.sip_password || defaultPassword;
-                    _onLoginSuccess(accountData.email || '', sipPassword);
-                })
-                .catch(function (e) {
-                    console.error('[SIP] Account fetch failed:', e.message);
-                    if (typeof window.onHotlineLoginFailed === 'function') {
-                        window.onHotlineLoginFailed(e.message);
-                    }
-                });
+                    .then(function (r) {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.json();
+                    })
+                    .then(function (json) {
+                        accountData = json.data || json;
+                        var sipPassword = accountData.sip_password || password;
+                        _onLoginSuccess(accountData.email || '', sipPassword);
+                    })
+                    .catch(function (e) {
+                        console.error('[SIP] Account fetch failed:', e.message);
+                        if (typeof window.onHotlineLoginFailed === 'function') {
+                            window.onHotlineLoginFailed(e.message);
+                        }
+                    });
                 return;
             }
 
             // Normal mode: authenticate with email + password
             var lsData = getLocalStorageUserData();
             var email = emailArg || (lsData && lsData.email) || '';
-            var password = defaultPassword;
 
             if (!email) {
                 console.error('[SIP] No email provided and none found in localStorage');
@@ -840,22 +871,22 @@ import "./jssip.bundle.js";
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email, password: password }),
             })
-            .then(function (r) {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            })
-            .then(function (json) {
-                clientToken = json.token;
-                accountData = json.data || json;
-                var sipPassword = accountData.sip_password || password;
-                _onLoginSuccess(email, sipPassword);
-            })
-            .catch(function (e) {
-                console.error('[SIP] Login failed:', e.message);
-                if (typeof window.onHotlineLoginFailed === 'function') {
-                    window.onHotlineLoginFailed(e.message);
-                }
-            });
+                .then(function (r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function (json) {
+                    clientToken = json.token;
+                    accountData = json.data || json;
+                    var sipPassword = accountData.sip_password || password;
+                    _onLoginSuccess(email, sipPassword);
+                })
+                .catch(function (e) {
+                    console.error('[SIP] Login failed:', e.message);
+                    if (typeof window.onHotlineLoginFailed === 'function') {
+                        window.onHotlineLoginFailed(e.message);
+                    }
+                });
         }
 
         // ── 10. Room API ──
@@ -865,7 +896,7 @@ import "./jssip.bundle.js";
             return fetch(apiBase + '/api/v1/client/rooms/details', {
                 headers: { 'Authorization': 'Bearer ' + clientToken },
             })
-            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json.data; }); });
+                .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json.data; }); });
         }
 
         function changeRoom(newRoomId) {
@@ -875,12 +906,12 @@ import "./jssip.bundle.js";
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
                 body: JSON.stringify({ room: newRoomId }),
             })
-            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
-            .then(function (json) {
-                console.log('[SIP] Room changed to', json.room, json.roomName);
-                _notifyRoomChange({ source: 'api', room: json.room, roomName: json.roomName });
-                return json;
-            });
+                .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
+                .then(function (json) {
+                    console.log('[SIP] Room changed to', json.room, json.roomName);
+                    _notifyRoomChange({ source: 'api', room: json.room, roomName: json.roomName });
+                    return json;
+                });
         }
 
         function requestRoom(data) {
@@ -890,7 +921,7 @@ import "./jssip.bundle.js";
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
                 body: JSON.stringify(data),
             })
-            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); });
+                .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); });
         }
 
         // ── 11. Actions ──
@@ -948,7 +979,7 @@ import "./jssip.bundle.js";
         // call back to the phone it sends a monitor_mode SSE, which unregisters
         // the UA and flips the UI to monitor mode (existing handler).
 
-        function _notifyTakeoverState() {
+        function notifyTakeoverState() {
             if (typeof window.onHotlineTakeoverState === 'function') {
                 try { window.onHotlineTakeoverState(!!(accountData && accountData.web_takeover)); } catch (e) { }
             }
@@ -956,42 +987,43 @@ import "./jssip.bundle.js";
 
         function takeOver() {
             if (!clientToken) { return Promise.reject(new Error('Not logged in')); }
-            return fetch(apiBase + '/api/v1/client/takeover', {
+            return fetch(apiBase + '/api/v1/client/web_takeover', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
             })
-            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
-            .then(function (json) {
-                console.log('[SIP] Web takeover enabled');
-                if (accountData) accountData.web_takeover = 1;
-                monitorMode = false;
-                _notifyTakeoverState();
-                if (!ua && lastLoginEmail) {
-                    checkMicPermission().then(function (result) {
-                        if (result === true || result === 'listen-only') {
-                            _startSipRegistration(lastLoginEmail, lastLoginPassword);
-                        } else {
-                            console.warn('[SIP] takeover: mic permission denied — SIP registration skipped');
-                        }
-                    });
-                }
-                return json;
-            });
+                .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
+                .then(function (json) {
+                    console.log('[SIP] Web takeover enabled');
+                    if (accountData) accountData.web_takeover = 1;
+                    monitorMode = false;
+                    notifyMonitorMode();
+                    notifyTakeoverState();
+                    if (!ua && lastLoginEmail) {
+                        checkMicPermission().then(function (result) {
+                            if (result === true || result === 'listen-only') {
+                                _startSipRegistration(lastLoginEmail, lastLoginPassword);
+                            } else {
+                                console.warn('[SIP] takeover: mic permission denied — SIP registration skipped');
+                            }
+                        });
+                    }
+                    return json;
+                });
         }
 
         function releaseTakeover() {
             if (!clientToken) { return Promise.reject(new Error('Not logged in')); }
-            return fetch(apiBase + '/api/v1/client/release', {
-                method: 'POST',
+            return fetch(apiBase + '/api/v1/client/web_takeover', {
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + clientToken },
             })
-            .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
-            .then(function (json) {
-                console.log('[SIP] Web takeover released', json.switched_to_yealink ? '(call moved to Yealink)' : '(web keeps call — Yealink offline)');
-                if (accountData) accountData.web_takeover = 0;
-                _notifyTakeoverState();
-                return json;
-            });
+                .then(function (res) { return res.json().then(function (json) { if (!res.ok || !json.status) throw new Error(json.error || 'HTTP ' + res.status); return json; }); })
+                .then(function (json) {
+                    console.log('[SIP] Web takeover released', json.switched_to_yealink ? '(call moved to Yealink)' : '(web keeps call — Yealink offline)');
+                    if (accountData) accountData.web_takeover = 0;
+                    notifyTakeoverState();
+                    return json;
+                });
         }
 
         // ── 12. Push-to-Talk + Keyboard Shortcuts ──

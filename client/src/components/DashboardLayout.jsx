@@ -264,7 +264,7 @@ export default function DashboardLayout() {
     sipInitRef.current = true;
 
     const sipPwd = sessionStorage.getItem('hq_sip_pwd') || undefined;
-    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, broadcastFeed: true, email: account.email, ...(sipPwd ? { defaultPassword: sipPwd } : { token }) };
+    window.HOTLINE_CONFIG = { ...(window.HOTLINE_CONFIG || {}), extensionWidget: false, directCallAnswerButton: true, broadcastFeed: true, email: account.email, ...(sipPwd ? { password: sipPwd } : { token }) };
 
     if (!document.getElementById('sip-client-script')) {
       const script = document.createElement('script');
@@ -286,9 +286,11 @@ export default function DashboardLayout() {
   // Register room change callback — called by redline_sip_client.js / redline_callerid.js
   useEffect(() => {
     window.onHotlineRoomChange = async (data) => {
+      // No reload: the SIP client keeps its session and rebinds its SSE to the
+      // new room; refreshing the account context re-renders everything
+      // room-dependent (BroadcastPanel feed, room name, online counts).
       console.log('[DASHBOARD] Room changed:', data);
       await refreshAccount();
-      window.location.reload();
     };
     return () => { delete window.onHotlineRoomChange; };
   }, [refreshAccount]);
@@ -366,8 +368,8 @@ export default function DashboardLayout() {
         if (window.hotlineClient.isListenOnly && window.hotlineClient.isListenOnly()) {
           setIsListenOnly(true);
         }
-        if (window.hotlineClient.isMonitorMode && window.hotlineClient.isMonitorMode()) {
-          setIsMonitorMode(true);
+        if (window.hotlineClient.isMonitorMode) {
+          setIsMonitorMode(window.hotlineClient.isMonitorMode());
         }
       }
     }, 2000);

@@ -129,9 +129,12 @@ export function AuthProvider({ children }) {
     } catch { return null; }
   }, [apiFetch]);
 
+  // Always re-sync on boot: the cached hq_account renders instantly, but
+  // server-derived fields (web_takeover, connection_state, current_room)
+  // change outside this tab and must not stay frozen at login-time values.
   useEffect(() => {
-    if (token && !account) refreshAccount();
-  }, [token, account, refreshAccount]);
+    if (token) refreshAccount();
+  }, [token, refreshAccount]);
 
   return (
     <AuthContext.Provider value={{ token, account, loading, login, logout, apiFetch, refreshAccount, isAuthenticated: !!token }}>
