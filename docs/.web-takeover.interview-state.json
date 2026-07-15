@@ -1,0 +1,25 @@
+{
+  "spec": "WEB_TAKEOVER_SPEC.md",
+  "timestamp": "2026-07-15",
+  "input": "Whiteboard photo (WhatsApp Image 2026-07-15 at 09.47.38.jpeg) + artifact 480b77bd (inaccessible, reconstructed from commit abba868)",
+  "previewGenerated": false,
+  "feedbackRounds": [],
+  "codebaseAnalysis": "Consume-half of takeover committed in abba868 (users.web_takeover/web_takeover_contact, registration guards, callGate direct-originate, client force-register). Missing: any setter/API/UI, priority inversion, off-path, per-device liveness. Web/Yealink distinguished by AOR trick (user.at.domain) + User-Agent.",
+  "qa": [
+    {"q": "Persistent preference vs momentary action?", "a": "Flag toggled by 'Take over from browser' button; ON=web priority, OFF=Yealink priority"},
+    {"q": "Where does the button live?", "a": "Web client only"},
+    {"q": "Flag lifetime on web offline?", "a": "Persists; auto re-takeover when web returns"},
+    {"q": "Offline detection aggressiveness?", "a": "Strictly SIP registration events (re-confirmed after pushback; rejected CHANNEL_HANGUP fast-fallback)"},
+    {"q": "Switchover choreography?", "a": "Hard switch, kill-then-originate"},
+    {"q": "Mute state on new leg / in-flight broadcast?", "a": "Always join muted; broadcast session ends with old leg"},
+    {"q": "Flag storage?", "a": "users table only (existing column)"},
+    {"q": "Second web session same account?", "a": "Existing behavior: first web session logs out when second logs in"},
+    {"q": "Originate to web fails while flag on?", "a": "Web only, keep retrying; never Yealink while web registered"},
+    {"q": "Yealink off-hook during takeover?", "a": "Ignore it"},
+    {"q": "Admin visibility?", "a": "Badge + event_log"},
+    {"q": "Direct call routing?", "a": "Same priority rule"},
+    {"q": "Per-device liveness check?", "a": "Ask FreeSWITCH live via ordered sofia_contact probes"},
+    {"q": "Rollout?", "a": "Test account in test room first; default off"}
+  ],
+  "coverage": {"problem": "done", "semantics": "done", "ownership": "done", "lifetime": "done", "detection": "done", "switchover": "done", "mute": "done", "dataModel": "done", "edgeCases": "done", "failPolicy": "done", "offHook": "done", "adminVisibility": "done", "directCalls": "done", "rollout": "done", "liveness": "done"}
+}
