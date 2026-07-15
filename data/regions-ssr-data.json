@@ -1,0 +1,122 @@
+{
+  "california": {
+    "intro": "California has more licensed auto dismantlers than any other state — hundreds of yards spread from San Diego to the Oregon border. Hotline HQ's California room is the busiest on the network, with over 2,500 part requests broadcast to date. Instead of calling yards one at a time, you key up once and every CA yard on the line hears you. The first yard holding your part answers in seconds, live.",
+    "geography": "The CA room covers every major recycling corridor in the state: Greater Los Angeles and the 605 salvage belt, the Inland Empire along I-10, San Diego County, the Central Valley from Bakersfield to Sacramento, and the Bay Area. Whether you're sourcing a transmission in Fresno or a bumper in Long Beach, your request reaches the whole state at once.",
+    "popular": "Ford, Toyota, and Honda lead California requests, with bumpers, transmissions, and fenders as the top part categories. High-demand vehicles include the Honda Civic, Toyota Camry, Ford F-150, and Nissan Altima — the cars Californians drive most are the parts they need most.",
+    "whyVoice": "Online databases go stale the moment a yard pulls a part. A live voice request doesn't — a real person checks real inventory and answers you on the spot. That's why counter staff who grew up on the old party-line hotlines still swear by voice: one broadcast replaces an hour of phone calls.",
+    "cities": [
+      { "name": "Los Angeles", "blurb": "The largest used-parts market in the country. LA-area yards from the harbor to the San Fernando Valley respond on the CA room daily." },
+      { "name": "San Diego", "blurb": "Border-adjacent yards with deep import inventory — Toyota, Honda, and Nissan parts move fast here." },
+      { "name": "Sacramento", "blurb": "The capital region anchors Northern California coverage, pulling inventory from yards along I-5 and Highway 99." },
+      { "name": "Fresno", "blurb": "Central Valley yards are truck country — F-150, Silverado, and Ram parts are always in rotation." },
+      { "name": "San Jose & the Bay Area", "blurb": "High vehicle turnover means steady late-model salvage. Bay Area yards list newer parts than most regions." },
+      { "name": "Bakersfield", "blurb": "A key stop on the Valley salvage corridor, strong on domestic trucks and work vehicles." },
+      { "name": "Riverside & San Bernardino", "blurb": "The Inland Empire's yards sit on some of the biggest acreage in the state — wide selection, fast pulls." },
+      { "name": "Long Beach", "blurb": "Port-side yards with high-volume body parts — bumpers, doors, and fenders ship out daily." }
+    ],
+    "faqs": [
+      { "q": "How do I find used auto parts in California?", "a": "Join the Hotline HQ California room free, then broadcast the year, make, model, and part you need. Every CA yard on the network hears your request live, and the first yard that has the part answers in about 2 seconds. No database searching, no phone tag." },
+      { "q": "Which California cities does the hotline cover?", "a": "The CA room covers yards statewide — Los Angeles, San Diego, Sacramento, Fresno, San Jose, Bakersfield, the Inland Empire, and Long Beach among them. Because it's one live voice room, a request from any city reaches every member yard in the state simultaneously." },
+      { "q": "What are the most requested parts in California?", "a": "Bumpers, transmissions, and fenders top the CA room's request log, with Ford, Toyota, and Honda the most-called makes. The Honda Civic, Toyota Camry, and Ford F-150 generate the most part requests of any vehicles on the California line." },
+      { "q": "Is the California parts hotline free to join?", "a": "Yes — joining the network is free, with no per-call charges and no commission on sales. You can be on the line from a desk phone, mobile browser, or laptop within minutes of signing up." },
+      { "q": "Can body shops and mechanics use the hotline, or just salvage yards?", "a": "Both. Dismantler yards make up the core of the network, but shops that buy used parts regularly use the room to source them directly — no middleman markup, straight from the yard that has the part." }
+    ],
+    "resources": [
+      { "label": "How to find used auto parts online — full guide", "href": "/blog/guides/find-used-auto-parts-online-guide" },
+      { "label": "Used auto parts pricing guide", "href": "/blog/market/used-auto-parts-pricing-guide" },
+      { "label": "The most requested used auto parts", "href": "/blog/market/most-requested-used-auto-parts" },
+      { "label": "Use the hotline from any device", "href": "/features/any-device" },
+      { "label": "Browse live California part requests", "href": "/marketplace" }
+    ]
+  },
+  "texas": {
+    "intro": "Texas runs on trucks, and Texas yards run on truck parts. The Hotline HQ Texas room connects dismantlers across Dallas–Fort Worth, Houston, San Antonio, Austin, and the border corridors on one live voice line. Broadcast a part request once and every TX yard hears it at the same moment — the first yard with the part keys up and you're talking to a real person, not a voicemail.",
+    "geography": "Coverage follows the state's salvage corridors: the DFW metroplex, the Houston ship-channel yards, the I-35 spine through Austin and San Antonio, East Texas salvage country, and the I-10 route out to El Paso. It's one room for the whole state, so a Lubbock yard hears a Houston request the second it goes out.",
+    "popular": "Ford and Chevrolet truck parts dominate the Texas line — F-150, Silverado, and Ram requests outnumber everything else. Transmissions, motors, and body panels are the top categories, and diesel drivetrain parts move faster here than in any other room.",
+    "whyVoice": "Texas distances make cold-calling yards brutal — there's a lot of state between you and the part you need. One live broadcast covers all of it. Yards that used to spend afternoons working the phones now ask once and let the network answer.",
+    "cities": [
+      { "name": "Houston", "blurb": "The biggest salvage market in Texas. Ship-channel yards carry deep truck and import inventory alike." },
+      { "name": "Dallas–Fort Worth", "blurb": "Metroplex yards along the loop highways answer more TX room requests than any other cluster." },
+      { "name": "San Antonio", "blurb": "South Texas hub with strong domestic truck stock and quick access to border-market inventory." },
+      { "name": "Austin", "blurb": "Fast-growing market on the I-35 corridor — late-model salvage arrives here steadily." },
+      { "name": "El Paso", "blurb": "West Texas anchor on I-10. Dry-climate storage keeps body panels and trim in clean condition." },
+      { "name": "Corpus Christi", "blurb": "Gulf Coast yards serving the coastal bend, strong on work trucks and fleet vehicles." },
+      { "name": "Lubbock", "blurb": "Panhandle coverage — farm and ranch truck parts are the specialty out here." },
+      { "name": "Laredo", "blurb": "Border-corridor yards with high inventory turnover and cross-market demand." }
+    ],
+    "faqs": [
+      { "q": "How do I find used auto parts in Texas?", "a": "Sign up free for the Hotline HQ Texas room and broadcast what you need — year, make, model, part. Every Texas yard on the network hears it live and the first one holding the part responds in seconds. It's the fastest way to cover a state this size." },
+      { "q": "What parts are most requested on the Texas hotline?", "a": "Truck parts, by a wide margin. F-150, Silverado, and Ram requests lead the room, with transmissions, motors, and body panels the top categories. Diesel drivetrain components move faster in Texas than anywhere else on the network." },
+      { "q": "Which Texas cities are on the hotline?", "a": "Yards across Houston, Dallas–Fort Worth, San Antonio, Austin, El Paso, Corpus Christi, Lubbock, and Laredo participate in the TX room. One broadcast reaches all of them simultaneously — no separate calls per metro." },
+      { "q": "Does it cost anything to join the Texas room?", "a": "Joining is free — no credit card, no per-call fees, no commission on parts you sell. Yards pay a flat membership; buyers can listen and request at no cost from any phone or browser." },
+      { "q": "I run a yard in Texas. Why should I be on the line?", "a": "Because every broadcast is a buyer with money ready, telling you exactly what they need. Yards answer requests that match their inventory and close the sale on the spot — it's inbound demand without running a single ad." }
+    ],
+    "resources": [
+      { "label": "How salvage yards sell more parts", "href": "/blog/guides/how-salvage-yards-sell-more-parts" },
+      { "label": "Used auto parts pricing guide", "href": "/blog/market/used-auto-parts-pricing-guide" },
+      { "label": "How auto parts hotlines work", "href": "/blog/guides/how-auto-parts-hotlines-work" },
+      { "label": "Never miss a request — unanswered call capture", "href": "/features/unanswered-capture" },
+      { "label": "Browse live Texas part requests", "href": "/marketplace" }
+    ]
+  },
+  "florida": {
+    "intro": "Florida's dismantler network runs the full length of the state — Jacksonville down I-95 to Miami, and the I-4 corridor through Orlando and Tampa. The Hotline HQ Florida room puts every one of those yards on a single live voice line. Ask for a part once, and yards from the Panhandle to the Keys hear it the moment you say it. The first yard with your part answers live.",
+    "geography": "Yard clusters concentrate along I-4 (Tampa, Orlando, Daytona), the I-95 coast (Jacksonville, the Space Coast, Fort Lauderdale, Miami-Dade), and the Gulf side down through Fort Myers. Panhandle yards near Pensacola round out statewide coverage. One broadcast covers all of it.",
+    "popular": "Florida requests lean toward Honda, Toyota, and Nissan passenger cars. Bumpers, headlights, and AC compressors are the top categories — AC parts especially, given the year-round heat. Late-model body parts also move quickly after storm seasons.",
+    "whyVoice": "In a state where inventory turns over fast — and where storm salvage floods the market unevenly — a live question beats a stale database. You hear which yard actually has the part today, and you can ask about condition, history, and shipping before you commit. Buyers use that to steer around waterlogged parts; yards use it to move clean stock first.",
+    "cities": [
+      { "name": "Miami", "blurb": "South Florida's biggest market — import-heavy inventory and high-volume body parts across Miami-Dade yards." },
+      { "name": "Orlando", "blurb": "The I-4 corridor hub. Central Florida yards answer a steady stream of late-model requests." },
+      { "name": "Tampa", "blurb": "Gulf Coast anchor with a dense yard cluster — strong on passenger car parts and quick pulls." },
+      { "name": "Jacksonville", "blurb": "North Florida's gateway market, pulling from Georgia-border salvage as well as local stock." },
+      { "name": "Fort Lauderdale", "blurb": "Broward County yards with fast-turn import inventory serving the whole southeast coast." },
+      { "name": "St. Petersburg", "blurb": "Bay-area coverage alongside Tampa — body panels and lighting parts are the local strength." },
+      { "name": "Fort Myers", "blurb": "Southwest Florida market where post-storm salvage brings waves of late-model inventory." },
+      { "name": "Ocala", "blurb": "Central Florida crossroads on I-75, connecting Gulf and Atlantic-side yards." }
+    ],
+    "faqs": [
+      { "q": "How do I find used auto parts in Florida?", "a": "Join the Hotline HQ Florida room free and broadcast the year, make, model, and part you're after. Every FL yard on the network hears you live, and whoever has it answers in seconds. You talk condition and price directly with the yard — no middleman." },
+      { "q": "What are the most requested parts in Florida?", "a": "Bumpers, headlights, and AC compressors lead the Florida room, with Honda, Toyota, and Nissan the top makes. AC parts are a Florida constant, and body parts spike after every storm season as repairs ramp up statewide." },
+      { "q": "How do I avoid flood-damaged parts when buying salvage in Florida?", "a": "Ask the yard directly — that's the advantage of a live voice network. Before you buy, you can ask where the donor vehicle came from and whether it was storm salvage. Reputable FL yards disclose flood history, and electrical parts from flooded vehicles are priced accordingly or scrapped." },
+      { "q": "Which Florida cities does the hotline cover?", "a": "Miami, Orlando, Tampa, Jacksonville, Fort Lauderdale, St. Petersburg, Fort Myers, Ocala, and the yards in between — the FL room is statewide. A single broadcast reaches the Panhandle and South Florida at the same instant." },
+      { "q": "Is the Florida hotline free?", "a": "Joining is free with no per-call charges and no commission. You can be on the line from a desk phone, your mobile browser, or a laptop — most members are broadcasting their first request within minutes of signing up." }
+    ],
+    "resources": [
+      { "label": "How to find used auto parts online — full guide", "href": "/blog/guides/find-used-auto-parts-online-guide" },
+      { "label": "The most requested used auto parts", "href": "/blog/market/most-requested-used-auto-parts" },
+      { "label": "How auto parts hotlines work", "href": "/blog/guides/how-auto-parts-hotlines-work" },
+      { "label": "Use the hotline from any device", "href": "/features/any-device" },
+      { "label": "Browse live Florida part requests", "href": "/marketplace" }
+    ]
+  },
+  "arizona": {
+    "intro": "Arizona is where used auto parts stay good. The dry desert climate means vehicles rust slower and sheet metal, glass, and trim survive in condition that salt-belt states can't match. The Hotline HQ Arizona room — second-most active on the network with over 500 broadcasts — connects yards across Phoenix, Tucson, and the I-10 corridor on one live voice line. Ask once, and every AZ yard hears you.",
+    "geography": "Coverage centers on the Phoenix metro — the largest salvage market in the Southwest — and runs through Mesa, Chandler, and Glendale, south to Tucson, and out along I-10 and I-17 to Yuma and Flagstaff. Desert-stored inventory from Scottsdale to the border means cleaner parts and better selection.",
+    "popular": "Toyota, Honda, and Ford lead Arizona requests. The dry climate drives outsized demand for body panels, fenders, and doors — parts that arrive rust-free in a way buyers from humid states pay a premium for. Glass and exterior trim are also room staples.",
+    "whyVoice": "Out-of-state buyers work the AZ room specifically for rust-free sheet metal, and a live broadcast is how they find it: ask, hear which yards have it, and confirm condition with a person who's looking at the part. For Arizona yards, that's a buyer pipeline that reaches far beyond the local market.",
+    "cities": [
+      { "name": "Phoenix", "blurb": "The Southwest's largest salvage market. Valley yards carry everything from late-model imports to work trucks." },
+      { "name": "Tucson", "blurb": "Southern Arizona anchor with deep stock and I-10 access — strong on trucks and SUVs." },
+      { "name": "Mesa", "blurb": "East Valley yards known for clean body parts and fast pulls on passenger vehicles." },
+      { "name": "Glendale", "blurb": "West Valley coverage with high-volume inventory turnover close to the Loop 101." },
+      { "name": "Scottsdale", "blurb": "Source of late-model and premium-make salvage — desert-stored and clean." },
+      { "name": "Chandler", "blurb": "Southeast Valley market with steady import inventory — Toyota and Honda parts move quickly." },
+      { "name": "Yuma", "blurb": "Border-corridor yards on I-8 serving buyers from two states and Mexico." },
+      { "name": "Flagstaff", "blurb": "Northern Arizona coverage — truck and SUV parts for the high country." }
+    ],
+    "faqs": [
+      { "q": "Why buy used auto parts from Arizona?", "a": "Rust. Or rather, the lack of it. Arizona's dry climate preserves body panels, doors, fenders, and glass far better than humid or salt-belt states. Buyers nationwide source Arizona sheet metal because it arrives straight and clean, often saving hours of bodywork." },
+      { "q": "How do I find used auto parts in Arizona?", "a": "Join the Hotline HQ Arizona room free and broadcast the part you need. Every AZ yard on the line hears it live — Phoenix, Tucson, Mesa, and beyond — and the first yard with the part answers in seconds. You deal directly with the yard, no middleman." },
+      { "q": "What are the most requested parts on the Arizona hotline?", "a": "Body panels, fenders, and doors lead the AZ room — the rust-free advantage makes Arizona exterior parts the network's most sought-after. Toyota, Honda, and Ford are the top makes, and the room has logged over 500 broadcasts and counting." },
+      { "q": "Can I buy Arizona parts if I'm not in Arizona?", "a": "Yes. Plenty of AZ room activity comes from out-of-state buyers sourcing desert-stored sheet metal. Broadcast what you need, confirm condition and shipping with the yard directly, and have it freighted — most yards ship body panels routinely." },
+      { "q": "Is the Arizona hotline free to join?", "a": "Joining is free — no credit card, no per-broadcast fees, no commission. Desk phone, mobile browser, or laptop all work, so you can be listening to live AZ part traffic within minutes." }
+    ],
+    "resources": [
+      { "label": "Used auto parts pricing guide", "href": "/blog/market/used-auto-parts-pricing-guide" },
+      { "label": "How to find used auto parts online — full guide", "href": "/blog/guides/find-used-auto-parts-online-guide" },
+      { "label": "How salvage yards sell more parts", "href": "/blog/guides/how-salvage-yards-sell-more-parts" },
+      { "label": "Direct calls between yards", "href": "/features/direct-calls" },
+      { "label": "Browse live Arizona part requests", "href": "/marketplace" }
+    ]
+  }
+}

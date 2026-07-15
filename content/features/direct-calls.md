@@ -48,4 +48,11 @@ related:
   - caller-id
   - any-device
   - notifications
+resources:
+  - label: How salvage yards sell more parts
+    href: /blog/guides/how-salvage-yards-sell-more-parts
+  - label: Used auto parts pricing guide
+    href: /blog/market/used-auto-parts-pricing-guide
+  - label: Used auto parts in Arizona
+    href: /used-auto-parts/arizona
 ---

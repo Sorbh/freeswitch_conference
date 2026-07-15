@@ -48,4 +48,11 @@ related:
   - parts-marketplace
   - broadcast-recording
   - notifications
+resources:
+  - label: How salvage yards sell more parts
+    href: /blog/guides/how-salvage-yards-sell-more-parts
+  - label: The auto dismantler business guide
+    href: /blog/guides/auto-dismantler-business-guide
+  - label: Used auto parts in Texas
+    href: /used-auto-parts/texas
 ---

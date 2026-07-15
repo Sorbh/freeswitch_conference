@@ -48,4 +48,11 @@ related:
   - admin-dashboard
   - always-on-voice-network
   - broadcast-recording
+resources:
+  - label: Salvage yard software compared
+    href: /blog/guides/salvage-yard-software-compared
+  - label: Own a hotline in your industry
+    href: /own-a-hotline
+  - label: The auto dismantler business guide
+    href: /blog/guides/auto-dismantler-business-guide
 ---

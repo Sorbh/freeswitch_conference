@@ -46,4 +46,11 @@ related:
   - broadcast-recording
   - unanswered-capture
   - any-device
+resources:
+  - label: How salvage yards sell more parts
+    href: /blog/guides/how-salvage-yards-sell-more-parts
+  - label: Used auto parts in Florida
+    href: /used-auto-parts/florida
+  - label: Browse live part requests
+    href: /marketplace
 ---

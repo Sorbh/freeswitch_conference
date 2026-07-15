@@ -197,3 +197,7 @@ Three things drive the decision:
 **Your budget.** Yard Manager gets you in the door for less. Dismantly and Checkmate sit in the mid-range. YardSmart and Frazer cost more but cover more ground.
 
 No software does everything. The yards that move the most parts combine solid inventory management with active selling channels — online marketplaces, walk-in traffic, and live voice networks. The software keeps your house in order. Everything else is about getting the right part in front of the right buyer at the right time.
+
+## Software Is Half the Picture {#regional}
+
+Whatever yard-management system you run, it doesn't generate demand — a live network does. Hotline HQ's regional rooms in [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona) put real buyer requests in your ear all day, and [broadcast recording](/features/broadcast-recording) keeps a record of every one.

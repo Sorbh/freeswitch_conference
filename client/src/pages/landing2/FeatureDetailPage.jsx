@@ -281,6 +281,18 @@ export function FeatureDetailPage() {
               </div>
             </section>
           )}
+
+          {/* Guides & regional pages */}
+          {f.resources?.length > 0 && (
+            <section>
+              <h2 id="resources" style={{ scrollMarginTop: 100 }}>Keep Exploring</h2>
+              <ul>
+                {f.resources.map(r => (
+                  <li key={r.href}><Link to={r.href}>{r.label}</Link></li>
+                ))}
+              </ul>
+            </section>
+          )}
         </article>
 
         {/* Right sidebar */}

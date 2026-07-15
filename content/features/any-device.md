@@ -48,4 +48,13 @@ related:
   - always-on-voice-network
   - direct-calls
   - notifications
+resources:
+  - label: How auto parts hotlines work
+    href: /blog/guides/how-auto-parts-hotlines-work
+  - label: How to find used auto parts online
+    href: /blog/guides/find-used-auto-parts-online-guide
+  - label: Used auto parts in Florida
+    href: /used-auto-parts/florida
+  - label: Used auto parts in Arizona
+    href: /used-auto-parts/arizona
 ---

@@ -368,6 +368,7 @@ function scanFeatures() {
       scenario: meta.scenario || {},
       faqs: meta.faqs || [],
       related: meta.related || [],
+      resources: meta.resources || [],
     };
   }
 

@@ -240,6 +240,10 @@ Most yards piece together personal savings with SBA financing. SBA 7(a) loans co
 
 <!-- Citation capsule: Auto dismantler startups typically require $50,000-$75,000 in owner capital plus SBA financing, per Small Business Administration guidelines. Total first-year costs range from $75,000 to $200,000, with well-run yards reaching profitability within 12 months of opening. -->
 
+## Plug Into a Regional Network {#regional}
+
+A dismantler business grows faster when buyers come to you. Hotline HQ operates live voice rooms across [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona), with a [web dashboard](/features/admin-dashboard) for tracking every request that touches your yard.
+
 ## Frequently Asked Questions {#faq}
 
 ### How much does it cost to start a salvage yard?

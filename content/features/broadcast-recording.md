@@ -48,4 +48,11 @@ related:
   - unanswered-capture
   - parts-marketplace
   - caller-id
+resources:
+  - label: How salvage yards sell more parts
+    href: /blog/guides/how-salvage-yards-sell-more-parts
+  - label: How auto parts hotlines work
+    href: /blog/guides/how-auto-parts-hotlines-work
+  - label: Browse live part requests
+    href: /marketplace
 ---

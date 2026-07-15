@@ -46,4 +46,13 @@ related:
   - unanswered-capture
   - broadcast-recording
   - caller-id
+resources:
+  - label: The most requested used auto parts
+    href: /blog/market/most-requested-used-auto-parts
+  - label: Used auto parts pricing guide
+    href: /blog/market/used-auto-parts-pricing-guide
+  - label: Used auto parts in California
+    href: /used-auto-parts/california
+  - label: Browse the live marketplace
+    href: /marketplace
 ---

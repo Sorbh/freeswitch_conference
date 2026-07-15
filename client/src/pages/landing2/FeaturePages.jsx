@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 import BlogLayout from "./BlogLayout";
+import REGION_CONTENT from "../../../../data/regions-ssr-data.json";
 
 const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
@@ -367,6 +368,7 @@ function formatTimeAgo(unixSeconds) {
 
 export function RegionalPartsPage({ state }) {
   const region = REGION_DATA[state];
+  const rich = REGION_CONTENT[state] || null;
   const [stats, setStats] = useState(null);
   const [recentListings, setRecentListings] = useState([]);
 
@@ -403,12 +405,24 @@ export function RegionalPartsPage({ state }) {
         {...(!region.active ? { robots: "noindex, follow" } : {})}
         jsonLd={{
           "@context": "https://schema.org",
-          "@type": "Service",
-          name: `Hotline HQ — Used Auto Parts in ${region.name}`,
-          serviceType: "Used Auto Parts Network",
-          provider: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") },
-          areaServed: { "@type": "AdministrativeArea", name: region.name },
-          description: description,
+          "@graph": [
+            {
+              "@type": "Service",
+              name: `Hotline HQ — Used Auto Parts in ${region.name}`,
+              serviceType: "Used Auto Parts Network",
+              provider: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") },
+              areaServed: { "@type": "AdministrativeArea", name: region.name },
+              description: description,
+            },
+            ...(region.active && rich?.faqs?.length ? [{
+              "@type": "FAQPage",
+              mainEntity: rich.faqs.map(f => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            }] : []),
+          ],
         }}
       />
       <SiteNav />
@@ -454,18 +468,44 @@ export function RegionalPartsPage({ state }) {
         </div>
       </section>
 
-      {region.active && region.content && (
+      {region.active && (rich || region.content) && (
         <section className="fp-section">
           <div className="fp-section-head">
             <p className="fp-kicker">{region.abbr} DISMANTLER NETWORK</p>
             <h2>Used Auto Parts in {region.name} — How It Works</h2>
           </div>
           <div className="fp-content-text">
-            <p>{region.content.intro}</p>
+            <p>{(rich || region.content).intro}</p>
             <h3>{region.name} Coverage Area</h3>
-            <p>{region.content.geography}</p>
+            <p>{(rich || region.content).geography}</p>
             <h3>Most-Requested Parts in {region.abbr}</h3>
-            <p>{region.content.popular}</p>
+            <p>{(rich || region.content).popular}</p>
+            {rich?.whyVoice && (
+              <>
+                <h3>Why a Live Voice Network Beats a Parts Database</h3>
+                <p>{rich.whyVoice}</p>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      {region.active && rich?.cities?.length > 0 && (
+        <section className="fp-section">
+          <div className="fp-section-head">
+            <p className="fp-kicker">CITY COVERAGE</p>
+            <h2>Used auto parts across {region.name}</h2>
+            <p className="fp-lede">
+              One live room covers every major market in the state — local yards, statewide reach.
+            </p>
+          </div>
+          <div className="fp-steps">
+            {rich.cities.map(c => (
+              <div className="fp-step" key={c.name}>
+                <h3>{c.name}</h3>
+                <p>{c.blurb}</p>
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -526,6 +566,39 @@ export function RegionalPartsPage({ state }) {
               No active requests right now — join to be first to hear new ones.
             </div>
           )}
+        </section>
+      )}
+
+      {region.active && rich?.faqs?.length > 0 && (
+        <section className="fp-section">
+          <div className="fp-section-head">
+            <p className="fp-kicker">FAQ</p>
+            <h2>{region.name} used auto parts — common questions</h2>
+          </div>
+          <div className="fp-content-text">
+            {rich.faqs.map(f => (
+              <div key={f.q}>
+                <h3>{f.q}</h3>
+                <p>{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {region.active && rich?.resources?.length > 0 && (
+        <section className="fp-section">
+          <div className="fp-section-head">
+            <p className="fp-kicker">KEEP EXPLORING</p>
+            <h2>Guides and tools for {region.name} buyers and yards</h2>
+          </div>
+          <div className="fp-content-text">
+            <ul>
+              {rich.resources.map(r => (
+                <li key={r.href}><Link to={r.href}>{r.label}</Link></li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
 

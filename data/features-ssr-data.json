@@ -79,6 +79,20 @@
         "caller-id",
         "broadcast-recording",
         "notifications"
+      ],
+      "resources": [
+        {
+          "label": "Salvage yard software compared",
+          "href": "/blog/guides/salvage-yard-software-compared"
+        },
+        {
+          "label": "The auto dismantler business guide",
+          "href": "/blog/guides/auto-dismantler-business-guide"
+        },
+        {
+          "label": "Own a hotline in your industry",
+          "href": "/own-a-hotline"
+        }
       ]
     },
     "always-on-voice-network": {
@@ -164,6 +178,24 @@
         "caller-id",
         "any-device",
         "broadcast-recording"
+      ],
+      "resources": [
+        {
+          "label": "How auto parts hotlines work — the full story",
+          "href": "/blog/guides/how-auto-parts-hotlines-work"
+        },
+        {
+          "label": "Parts hotlines vs Car-Part vs Hotline HQ",
+          "href": "/blog/guides/partshotlines-vs-car-part-vs-hotline-hq"
+        },
+        {
+          "label": "Used auto parts in California",
+          "href": "/used-auto-parts/california"
+        },
+        {
+          "label": "Used auto parts in Texas",
+          "href": "/used-auto-parts/texas"
+        }
       ]
     },
     "any-device": {
@@ -249,6 +281,24 @@
         "always-on-voice-network",
         "direct-calls",
         "notifications"
+      ],
+      "resources": [
+        {
+          "label": "How auto parts hotlines work",
+          "href": "/blog/guides/how-auto-parts-hotlines-work"
+        },
+        {
+          "label": "How to find used auto parts online",
+          "href": "/blog/guides/find-used-auto-parts-online-guide"
+        },
+        {
+          "label": "Used auto parts in Florida",
+          "href": "/used-auto-parts/florida"
+        },
+        {
+          "label": "Used auto parts in Arizona",
+          "href": "/used-auto-parts/arizona"
+        }
       ]
     },
     "broadcast-recording": {
@@ -334,6 +384,20 @@
         "unanswered-capture",
         "parts-marketplace",
         "caller-id"
+      ],
+      "resources": [
+        {
+          "label": "How salvage yards sell more parts",
+          "href": "/blog/guides/how-salvage-yards-sell-more-parts"
+        },
+        {
+          "label": "How auto parts hotlines work",
+          "href": "/blog/guides/how-auto-parts-hotlines-work"
+        },
+        {
+          "label": "Browse live part requests",
+          "href": "/marketplace"
+        }
       ]
     },
     "caller-id": {
@@ -415,6 +479,20 @@
         "always-on-voice-network",
         "broadcast-recording",
         "notifications"
+      ],
+      "resources": [
+        {
+          "label": "How auto parts hotlines work",
+          "href": "/blog/guides/how-auto-parts-hotlines-work"
+        },
+        {
+          "label": "The auto dismantler business guide",
+          "href": "/blog/guides/auto-dismantler-business-guide"
+        },
+        {
+          "label": "Used auto parts in Texas",
+          "href": "/used-auto-parts/texas"
+        }
       ]
     },
     "direct-calls": {
@@ -500,6 +578,20 @@
         "caller-id",
         "any-device",
         "notifications"
+      ],
+      "resources": [
+        {
+          "label": "How salvage yards sell more parts",
+          "href": "/blog/guides/how-salvage-yards-sell-more-parts"
+        },
+        {
+          "label": "Used auto parts pricing guide",
+          "href": "/blog/market/used-auto-parts-pricing-guide"
+        },
+        {
+          "label": "Used auto parts in Arizona",
+          "href": "/used-auto-parts/arizona"
+        }
       ]
     },
     "enterprise-security": {
@@ -585,6 +677,20 @@
         "admin-dashboard",
         "always-on-voice-network",
         "broadcast-recording"
+      ],
+      "resources": [
+        {
+          "label": "Salvage yard software compared",
+          "href": "/blog/guides/salvage-yard-software-compared"
+        },
+        {
+          "label": "Own a hotline in your industry",
+          "href": "/own-a-hotline"
+        },
+        {
+          "label": "The auto dismantler business guide",
+          "href": "/blog/guides/auto-dismantler-business-guide"
+        }
       ]
     },
     "multi-language": {
@@ -666,6 +772,20 @@
         "any-device",
         "direct-calls",
         "admin-dashboard"
+      ],
+      "resources": [
+        {
+          "label": "How auto parts hotlines work",
+          "href": "/blog/guides/how-auto-parts-hotlines-work"
+        },
+        {
+          "label": "Used auto parts in California",
+          "href": "/used-auto-parts/california"
+        },
+        {
+          "label": "Find used auto parts near you",
+          "href": "/find-used-auto-parts"
+        }
       ]
     },
     "notifications": {
@@ -747,6 +867,20 @@
         "broadcast-recording",
         "unanswered-capture",
         "any-device"
+      ],
+      "resources": [
+        {
+          "label": "How salvage yards sell more parts",
+          "href": "/blog/guides/how-salvage-yards-sell-more-parts"
+        },
+        {
+          "label": "Used auto parts in Florida",
+          "href": "/used-auto-parts/florida"
+        },
+        {
+          "label": "Browse live part requests",
+          "href": "/marketplace"
+        }
       ]
     },
     "parts-marketplace": {
@@ -828,6 +962,24 @@
         "unanswered-capture",
         "broadcast-recording",
         "caller-id"
+      ],
+      "resources": [
+        {
+          "label": "The most requested used auto parts",
+          "href": "/blog/market/most-requested-used-auto-parts"
+        },
+        {
+          "label": "Used auto parts pricing guide",
+          "href": "/blog/market/used-auto-parts-pricing-guide"
+        },
+        {
+          "label": "Used auto parts in California",
+          "href": "/used-auto-parts/california"
+        },
+        {
+          "label": "Browse the live marketplace",
+          "href": "/marketplace"
+        }
       ]
     },
     "unanswered-capture": {
@@ -913,6 +1065,20 @@
         "parts-marketplace",
         "broadcast-recording",
         "notifications"
+      ],
+      "resources": [
+        {
+          "label": "How salvage yards sell more parts",
+          "href": "/blog/guides/how-salvage-yards-sell-more-parts"
+        },
+        {
+          "label": "The auto dismantler business guide",
+          "href": "/blog/guides/auto-dismantler-business-guide"
+        },
+        {
+          "label": "Used auto parts in Texas",
+          "href": "/used-auto-parts/texas"
+        }
       ]
     }
   }

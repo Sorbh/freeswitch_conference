@@ -46,4 +46,11 @@ related:
   - caller-id
   - broadcast-recording
   - notifications
+resources:
+  - label: Salvage yard software compared
+    href: /blog/guides/salvage-yard-software-compared
+  - label: The auto dismantler business guide
+    href: /blog/guides/auto-dismantler-business-guide
+  - label: Own a hotline in your industry
+    href: /own-a-hotline
 ---

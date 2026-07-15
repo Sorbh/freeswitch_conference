@@ -46,4 +46,11 @@ related:
   - any-device
   - direct-calls
   - admin-dashboard
+resources:
+  - label: How auto parts hotlines work
+    href: /blog/guides/how-auto-parts-hotlines-work
+  - label: Used auto parts in California
+    href: /used-auto-parts/california
+  - label: Find used auto parts near you
+    href: /find-used-auto-parts
 ---

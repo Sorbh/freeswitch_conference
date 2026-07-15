@@ -46,4 +46,11 @@ related:
   - always-on-voice-network
   - broadcast-recording
   - notifications
+resources:
+  - label: How auto parts hotlines work
+    href: /blog/guides/how-auto-parts-hotlines-work
+  - label: The auto dismantler business guide
+    href: /blog/guides/auto-dismantler-business-guide
+  - label: Used auto parts in Texas
+    href: /used-auto-parts/texas
 ---

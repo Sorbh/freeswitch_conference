@@ -48,4 +48,13 @@ related:
   - caller-id
   - any-device
   - broadcast-recording
+resources:
+  - label: How auto parts hotlines work — the full story
+    href: /blog/guides/how-auto-parts-hotlines-work
+  - label: Parts hotlines vs Car-Part vs Hotline HQ
+    href: /blog/guides/partshotlines-vs-car-part-vs-hotline-hq
+  - label: Used auto parts in California
+    href: /used-auto-parts/california
+  - label: Used auto parts in Texas
+    href: /used-auto-parts/texas
 ---

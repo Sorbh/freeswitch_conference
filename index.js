@@ -802,12 +802,22 @@ if (fs.existsSync(clientDistDir)) {
         if (!f) { res.status(404); return sendClientIndex(req, res); }
         const seo = f.seo;
         const faqJsonLd = f.faqs?.length ? [{ "@type": "FAQPage", mainEntity: f.faqs.map(item => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) }] : [];
+
+        // Crawler-visible content: problem, steps, benefits, scenario, FAQs, resources
+        const stepsHtml = f.steps?.length ? `<h2>How It Works</h2><ol>${f.steps.map(s => `<li><strong>${s.title}.</strong> ${s.desc}</li>`).join('')}</ol>` : '';
+        const benefitsHtml = f.benefits?.length ? `<h2>Key Benefits</h2><ul>${f.benefits.map(b => `<li><strong>${b.title}.</strong> ${b.desc}</li>`).join('')}</ul>` : '';
+        const problemHtml = f.problem?.text ? `<h2>${f.problem.heading || 'The Problem'}</h2><p>${f.problem.text}</p>` : '';
+        const scenarioHtml = f.scenario?.text ? `<h2>${f.scenario.heading || 'Real-World Scenario'}</h2><p>${f.scenario.text}</p>` : '';
+        const featFaqHtml = f.faqs?.length ? `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${f.faqs.map(item => `<div class="ssr-faq"><h3>${item.q}</h3><p>${item.a}</p></div>`).join('')}</div>` : '';
+        const featResourcesHtml = f.resources?.length ? `<h2>Keep Exploring</h2><ul>${f.resources.map(r => `<li><a href="${BASE_URL}${r.href}">${r.label}</a></li>`).join('')}</ul>` : '';
+        const featContentHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 40px">${problemHtml}${stepsHtml}${benefitsHtml}${scenarioHtml}${featResourcesHtml}</article>${featFaqHtml}`;
+
         sendSeoPage(req, res, {
             title: seo.title,
             description: seo.description,
             keywords: seo.keywords,
             url: `${BASE_URL}/features/${req.params.slug}`,
-            shell: ssrShell(f.hero.kicker, f.hero.heading, f.hero.lede, 'Sign Up Free', `${BASE_URL}/client/signup`),
+            shell: ssrShell(f.hero.kicker, f.hero.heading, f.hero.lede, 'Sign Up Free', `${BASE_URL}/client/signup`) + featContentHtml,
             jsonLd: {
                 "@context": "https://schema.org",
                 "@graph": [
@@ -864,6 +874,11 @@ if (fs.existsSync(clientDistDir)) {
 
     // SEO: Regional used auto parts pages
     const ACTIVE_REGIONS = new Set(['california', 'texas', 'florida', 'arizona']);
+    let regionsContent = {};
+    try {
+        regionsContent = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'regions-ssr-data.json'), 'utf8'));
+        console.log('Regions content loaded —', Object.keys(regionsContent).length, 'regions');
+    } catch (e) { console.error('Regions content load failed:', e.message); }
     const REGIONS = {
         california: { name: 'California', abbr: 'CA' },
         texas: { name: 'Texas', abbr: 'TX' },
@@ -909,6 +924,56 @@ if (fs.existsSync(clientDistDir)) {
 
         const title = `Used Auto Parts in ${region.name} — ${region.abbr} Dismantler Network | Hotline HQ`;
         const description = `Find and sell used auto parts in ${region.name}. ${yardText} on a live voice network${recentText}.${makesText} Broadcast what you need and get answers in seconds.`;
+
+        // Crawler-visible content sections from regions-ssr-data.json
+        const rc = ACTIVE_REGIONS.has(req.params.state) ? regionsContent[req.params.state] : null;
+        let contentHtml = '';
+        if (rc) {
+            const citiesHtml = (rc.cities || []).map(c => `<div class="ssr-faq"><h3>${c.name}</h3><p>${c.blurb}</p></div>`).join('');
+            const faqHtml = (rc.faqs || []).map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('');
+            const resourcesHtml = (rc.resources || []).map(r => `<li><a href="${BASE_URL}${r.href}">${r.label}</a></li>`).join('');
+            contentHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 40px">
+                <h2>Used Auto Parts in ${region.name} — How It Works</h2>
+                <p>${rc.intro}</p>
+                <h3>${region.name} Coverage Area</h3>
+                <p>${rc.geography}</p>
+                <h3>Most-Requested Parts in ${region.abbr}</h3>
+                <p>${rc.popular}</p>
+                ${rc.whyVoice ? `<h3>Why a Live Voice Network Beats a Parts Database</h3><p>${rc.whyVoice}</p>` : ''}
+            </article>
+            ${citiesHtml ? `<div class="ssr-faq-section"><h2>Used auto parts across ${region.name}</h2>${citiesHtml}</div>` : ''}
+            ${faqHtml ? `<div class="ssr-faq-section"><h2>${region.name} used auto parts — common questions</h2>${faqHtml}</div>` : ''}
+            ${resourcesHtml ? `<div class="ssr-faq-section"><h2>Guides and tools for ${region.name} buyers and yards</h2><ul>${resourcesHtml}</ul></div>` : ''}`;
+        }
+
+        const jsonLdGraph = [
+            {
+                "@type": "Service",
+                name: `Hotline HQ — Used Auto Parts in ${region.name}`,
+                serviceType: "Used Auto Parts Network",
+                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                areaServed: { "@type": "AdministrativeArea", name: region.name },
+                description
+            },
+            {
+                "@type": "BreadcrumbList", itemListElement: [
+                    { "@type": "ListItem", position: 1, name: "Home", item: `${BASE_URL}/` },
+                    { "@type": "ListItem", position: 2, name: "Find Used Auto Parts", item: `${BASE_URL}/find-used-auto-parts` },
+                    { "@type": "ListItem", position: 3, name: `Used Auto Parts in ${region.name}`, item: `${BASE_URL}/used-auto-parts/${req.params.state}` },
+                ]
+            },
+        ];
+        if (rc?.faqs?.length) {
+            jsonLdGraph.push({
+                "@type": "FAQPage",
+                mainEntity: rc.faqs.map(f => ({
+                    "@type": "Question",
+                    name: f.q,
+                    acceptedAnswer: { "@type": "Answer", text: f.a }
+                }))
+            });
+        }
+
         sendSeoPage(req, res, {
             title,
             description,
@@ -921,16 +986,8 @@ if (fs.existsSync(clientDistDir)) {
                 `Hotline HQ's ${region.name} room connects ${yardText} on a live voice hotline${recentText}. Broadcast what you need — every yard in ${region.name} hears it instantly.`,
                 `Join ${region.name} Room — Free`, `${BASE_URL}/client/signup?room=${encodeURIComponent(region.name)}`,
                 stats
-            ),
-            jsonLd: {
-                "@context": "https://schema.org",
-                "@type": "Service",
-                name: `Hotline HQ — Used Auto Parts in ${region.name}`,
-                serviceType: "Used Auto Parts Network",
-                provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
-                areaServed: { "@type": "AdministrativeArea", name: region.name },
-                description
-            }
+            ) + contentHtml,
+            jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
         });
     });
 
