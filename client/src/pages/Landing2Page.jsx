@@ -754,6 +754,7 @@ const CSS = `
 .l2-nav-login {
   color: var(--ink) !important;
   font-weight: 600;
+  white-space: nowrap; flex-shrink: 0;
   padding: 9px 16px; border-radius: 9px;
   transition: background .2s;
 }
@@ -761,6 +762,7 @@ const CSS = `
 .l2-nav-cta {
   color: #fff !important;
   background: var(--red);
+  white-space: nowrap; flex-shrink: 0;
   padding: 9px 18px; border-radius: 9px;
   transition: background .2s;
 }

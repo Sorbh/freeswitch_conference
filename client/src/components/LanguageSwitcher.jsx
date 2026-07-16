@@ -65,9 +65,9 @@ export default function LanguageSwitcher({ light = false }) {
 }
 
 const CSS = `
-.lang-sw { position: relative; display: inline-flex; z-index: 100; }
+.lang-sw { position: relative; display: inline-flex; z-index: 100; flex-shrink: 0; }
 .lang-sw-btn {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   padding: 7px 12px; border-radius: 8px;
   border: 1px solid var(--line, #e7e4dd);
   background: rgba(255,255,255,0.7);

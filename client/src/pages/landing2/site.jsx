@@ -385,16 +385,20 @@ export const SITE_CSS = `
 .l2-nav-links a { color: var(--muted); transition: color .2s; }
 .l2-nav-links a:hover { color: var(--ink); }
 .l2-nav-login {
-  color: var(--ink) !important; font-weight: 600;
+  color: var(--ink) !important; font-weight: 600; white-space: nowrap; flex-shrink: 0;
   padding: 9px 16px; border-radius: 9px; transition: background .2s;
 }
 .l2-nav-login:hover { background: rgba(0,0,0,0.04); }
 .l2-nav-cta {
-  color: #fff !important; background: var(--red);
+  color: #fff !important; background: var(--red); white-space: nowrap; flex-shrink: 0;
   padding: 9px 18px; border-radius: 9px; transition: background .2s;
 }
 .l2-nav-cta:hover { background: var(--red-deep); }
 @media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta):not(.l2-nav-login) { display: none; } }
+@media (max-width: 480px) {
+  .l2-nav .l2-logo-text { display: none; }
+  .l2-nav .l2-logowrap { gap: 0; }
+}
 
 /* footer */
 .l2f { background: #111316; color: #b9bcc4; }
