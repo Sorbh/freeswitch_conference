@@ -785,7 +785,7 @@ const CSS = `
     radial-gradient(#dcd7cc 1px, transparent 1.4px);
   background-size: 100% 100%, 100% 100%, 26px 26px;
 }
-.l2-hero-copy { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; text-align: center; pointer-events: none; }
+.l2-hero-copy { position: relative; z-index: 2; max-width: min(800px, 100%); margin: 0 auto; text-align: center; pointer-events: none; }
 .l2-hero-copy a, .l2-hero-copy button { pointer-events: auto; }
 .l2-eyebrow {
   font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
@@ -837,6 +837,7 @@ const CSS = `
 /* hero listen button */
 .l2-listen-btn {
   display: inline-flex; align-items: center; gap: 14px;
+  max-width: 100%;
   margin-top: 28px;
   padding: 12px 24px 12px 16px;
   background: rgba(22,24,29,0.85);
@@ -864,12 +865,13 @@ const CSS = `
 }
 .l2-listen-text {
   display: flex; flex-direction: column; gap: 2px; text-align: left;
+  min-width: 0;
 }
 .l2-listen-text strong { font-family: var(--body); font-size: 15px; font-weight: 700; color: #fff; }
 .l2-listen-text span {
   font-family: var(--mono); font-size: 11.5px; color: rgba(255,255,255,0.55);
   letter-spacing: 0.02em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: min(260px, 100%);
 }
 
 /* EQ bars inside listen button */
