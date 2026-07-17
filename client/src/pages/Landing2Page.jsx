@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { HQLogo, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
+import { HQLogo, NavMenu, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import PublicBroadcastActivity from "../components/PublicBroadcastActivity";
 
@@ -456,6 +456,16 @@ export default function Landing2Page() {
             {t("common:nav.signUpFree")}
           </a>
           <LanguageSwitcher />
+          <NavMenu
+            links={[
+              { label: "Find Parts", href: "./find-used-auto-parts" },
+              { label: "Sell Parts", href: "./sell-used-auto-parts" },
+              { label: t("common:nav.ownHotline"), href: "./own-a-hotline" },
+              { label: "Marketplace", href: "./marketplace" },
+              { label: "Blog", href: "./blog" },
+              { label: t("common:nav.login"), href: loginUrl, sep: true },
+            ]}
+          />
         </nav>
       </header>
 
@@ -767,7 +777,7 @@ const CSS = `
   transition: background .2s;
 }
 .l2-nav-cta:hover { background: var(--red-deep); }
-@media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta):not(.l2-nav-login) { display: none; } }
+@media (max-width: 1080px) { .l2-nav-links > a:not(.l2-nav-cta) { display: none; } }
 
 /* hero */
 .l2-hero {
@@ -1180,7 +1190,7 @@ const CSS = `
 
 /* features */
 .l2-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-@media (max-width: 1000px) { .l2-features { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1080px) { .l2-features { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .l2-features { grid-template-columns: 1fr; } }
 .l2-feature {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);

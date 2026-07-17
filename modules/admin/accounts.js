@@ -282,6 +282,21 @@ router.put("/accounts/:id", async (req, res) => {
             }
         }
 
+        // Notify the user's web client of a kickout change over SSE
+        if (fields.kickout !== undefined) {
+            const kicked = fields.kickout === 1 || fields.kickout === true;
+            global.db.eventEmitter.emit('CLIENT_EVENT', {
+                userName: `sip:${account.email}`,
+                event: {
+                    type: 'kickout',
+                    kickout: kicked ? 1 : 0,
+                    reason: kicked
+                        ? 'You have been removed from the hotline by an administrator'
+                        : 'Your hotline access has been restored',
+                },
+            });
+        }
+
         let ymcsResult = null;
         const { register_ymcs, mac, sn } = req.body;
         if (register_ymcs) {

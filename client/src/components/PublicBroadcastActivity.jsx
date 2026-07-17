@@ -124,6 +124,7 @@ const CSS = `
 .l2-ba-card-time {
   font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: #8c908f;
 }
+.l2-ba-card-head-right { display: inline-flex; align-items: center; gap: 8px; }
 .l2-ba-card-body { padding: 12px 14px 14px; }
 .l2-ba-who {
   display: flex; align-items: center; gap: 11px; min-width: 0;
@@ -229,10 +230,16 @@ const CSS = `
 }
 `;
 
+function broadcastKey(broadcast) {
+  if (!broadcast) return null;
+  return `${broadcast.id ?? ""}|${broadcast.created_at ?? ""}|${broadcast.url ?? ""}`;
+}
+
 export default function PublicBroadcastActivity() {
   const [latest, setLatest] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [notices, setNotices] = useState([]);
+  const [dismissedKey, setDismissedKey] = useState(null);
   const audioContextRef = useRef(null);
   const noticeTimersRef = useRef(new Set());
 
@@ -348,14 +355,24 @@ export default function PublicBroadcastActivity() {
           </div>
         )}
 
-        {loaded && latest && (
+        {loaded && latest && broadcastKey(latest) !== dismissedKey && (
           <aside className="l2-ba-card" aria-label="Latest broadcast">
             <div className="l2-ba-card-head">
               <span className="l2-ba-card-badge">
                 <span className="l2-ba-dot" />
                 Latest broadcast
               </span>
-              <time className="l2-ba-card-time">{timeAgo(latest.created_at)}</time>
+              <span className="l2-ba-card-head-right">
+                <time className="l2-ba-card-time">{timeAgo(latest.created_at)}</time>
+                <button
+                  className="l2-ba-toast-dismiss"
+                  type="button"
+                  onClick={() => setDismissedKey(broadcastKey(latest))}
+                  aria-label="Dismiss latest broadcast"
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              </span>
             </div>
             <div className="l2-ba-card-body">
               <div className="l2-ba-who">

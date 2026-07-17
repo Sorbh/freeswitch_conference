@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { Toaster, toast } from 'sonner';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
@@ -349,6 +350,13 @@ export default function DashboardLayout() {
       logout();
       navigate('/client/login?session=replaced');
     }
+    function handleKickout(data) {
+      if (data?.kickout) {
+        toast.error(data.reason || 'You have been removed from the hotline by an administrator', { duration: 10000 });
+      } else {
+        toast.success(data?.reason || 'Your hotline access has been restored', { duration: 10000 });
+      }
+    }
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
     window.onHotlineLoginFailed = handleLoginFailed;
@@ -356,6 +364,7 @@ export default function DashboardLayout() {
     window.onHotlineListenOnly = handleListenOnly;
     window.onHotlineMonitorMode = handleMonitorMode;
     window.onHotlineUserLogout = handleUserLogout;
+    window.onHotlineKickout = handleKickout;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
         if (window.hotlineClient.isConnected()) {
@@ -383,6 +392,7 @@ export default function DashboardLayout() {
       if (window.onHotlineListenOnly === handleListenOnly) delete window.onHotlineListenOnly;
       if (window.onHotlineMonitorMode === handleMonitorMode) delete window.onHotlineMonitorMode;
       if (window.onHotlineUserLogout === handleUserLogout) delete window.onHotlineUserLogout;
+      if (window.onHotlineKickout === handleKickout) delete window.onHotlineKickout;
     };
   }, []);
 
@@ -552,6 +562,7 @@ export default function DashboardLayout() {
 
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)', overflow: 'hidden', position: 'fixed', inset: 0 }}>
+      <Toaster position="top-center" richColors />
       {/* ── Desktop sidebar (hidden on mobile) ── */}
       <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0" style={{ background: 'var(--ink)', color: '#fff' }}>
         <div className="flex items-center gap-3 px-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', height: 64 }}>

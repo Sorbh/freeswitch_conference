@@ -23,6 +23,7 @@ package-lock.json
 
 # MCP config (contains API tokens)
 .mcp.json
+.codex/config.toml
 
 # TLS certificates (self-signed or production)
 config/tls/*.pem

@@ -393,6 +393,7 @@ clientRouter.post("/login", async (req, res) => {
 
         const { password: sipPwd, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
         safe.sip_password = sipPwd || global.config.SIP_DEFAULT_PASSWORD || '12345678';
+        safe.kickout = account.kickout ? 1 : 0;
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);
         if (userInfo && userInfo.currentRoom) {
             safe.current_room = userInfo.currentRoom;
@@ -577,6 +578,7 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
         if (!account) return res.status(404).json({ status: false, error: "Account not found" });
         const { password: sipPwd, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
         safe.sip_password = sipPwd || global.config.SIP_DEFAULT_PASSWORD || '12345678';
+        safe.kickout = account.kickout ? 1 : 0;
         const userInfo = global.db.getUserInfo(`sip:${account.email}`);
         if (userInfo && userInfo.currentRoom) safe.current_room = userInfo.currentRoom;
         if (userInfo && Object.keys(userInfo).length > 0) {

@@ -81,6 +81,7 @@
 //   window.onHotlineRoomChange = function(data) { ... }                // { source, room, roomName } — called on room change (API or SSE)
 //   window.onHotlineUserRefresh = function(data) { ... }               // { email, reason } — admin requested refresh; default (no callback): full page reload
 //   window.onHotlineUserLogout = function(data) { ... }                // { type, reason } — logged out by server (e.g. signed in from another location)
+//   window.onHotlineKickout = function(data) { ... }                   // { type, kickout: 1|0, reason } — admin toggled kickout; 1 = removed from hotline, 0 = access restored
 //   window.onHotlineMonitorMode = function(active) { ... }             // true when monitor mode active (Yealink has the call, view-only dashboard); false when exited (e.g. web takeover)
 //   window.onHotlineTakeoverState = function(active) { ... }           // web_takeover flag changed via takeOver()/releaseTakeover(); true = browser has device priority
 //   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
@@ -119,6 +120,7 @@
 //   room_change   — user changed room (SSE rebound to new room; reloads only without onHotlineRoomChange)
 //   user_refresh  — admin requested browser refresh (reloads page unless onHotlineUserRefresh is set)
 //   user_logout   — server-initiated logout (e.g. signed in from another location); calls logout()
+//   kickout       — admin toggled the kickout flag; kickout=1 hangs up (server blocks re-entry), kickout=0 means access restored (server reconnects on next register)
 //   monitor_mode  — Yealink reclaimed the call: hang up, unregister, view-only dashboard
 //   exit_monitor  — reverse of monitor_mode: no device left (Yealink gone), wake up and SIP register
 //   direct_call_* — incoming/outgoing direct call notifications
@@ -573,6 +575,19 @@ import "./jssip.bundle.js";
                                 window.onHotlineUserLogout(data);
                             }
                             logout();
+                            return;
+                        }
+                        if (data.type === 'kickout') {
+                            if (accountData) accountData.kickout = data.kickout ? 1 : 0;
+                            if (data.kickout) {
+                                console.warn('[SIP] Kicked out:', data.reason || '');
+                                hangup();
+                            } else {
+                                console.log('[SIP] Kickout lifted:', data.reason || '');
+                            }
+                            if (typeof window.onHotlineKickout === 'function') {
+                                window.onHotlineKickout(data);
+                            }
                             return;
                         }
                         if (data.type === 'user_refresh') {

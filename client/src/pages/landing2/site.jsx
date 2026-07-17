@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
@@ -174,6 +174,59 @@ export function landingJsonLd() {
   };
 }
 
+/* Burger menu exposing the page links hidden from the bar on mobile/tablet. */
+export function NavMenu({ links }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, []);
+
+  return (
+    <div className="l2-nav-menu-wrap" ref={ref}>
+      <button
+        type="button"
+        className="l2-nav-burger"
+        aria-label="Menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? (
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        )}
+      </button>
+      {open && (
+        <nav className="l2-nav-menu">
+          {links.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className={l.sep ? "l2-nav-menu-sep" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
 /* Slim nav for the about/legal pages. */
 export function SiteNav() {
   const { t } = useTranslation("common");
@@ -193,6 +246,17 @@ export function SiteNav() {
           {t("nav.signUpFree")}
         </a>
         <LanguageSwitcher />
+        <NavMenu
+          links={[
+            { label: t("nav.home"), href: buildSiteUrl("/") },
+            { label: "Find Parts", href: buildSiteUrl("/find-used-auto-parts") },
+            { label: "Sell Parts", href: buildSiteUrl("/sell-used-auto-parts") },
+            { label: t("nav.ownHotline"), href: buildSiteUrl("/own-a-hotline") },
+            { label: "Marketplace", href: buildSiteUrl("/marketplace") },
+            { label: "Blog", href: buildSiteUrl("/blog") },
+            { label: t("nav.login"), href: HOTLINE_LOGIN_URL, sep: true },
+          ]}
+        />
       </nav>
     </header>
   );
@@ -394,7 +458,37 @@ export const SITE_CSS = `
   padding: 9px 18px; border-radius: 9px; transition: background .2s;
 }
 .l2-nav-cta:hover { background: var(--red-deep); }
-@media (max-width: 860px) { .l2-nav-links a:not(.l2-nav-cta):not(.l2-nav-login) { display: none; } }
+
+/* burger menu (mobile/tablet) */
+.l2-nav-menu-wrap { position: relative; display: none; flex-shrink: 0; }
+.l2-nav-burger {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; padding: 0; flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: rgba(255,255,255,0.7); cursor: pointer;
+  color: var(--ink); transition: border-color .2s, background .2s;
+}
+.l2-nav-burger:hover { border-color: var(--red); }
+.l2-nav-menu {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  min-width: 200px; padding: 8px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 12px 40px -10px rgba(22,24,29,0.28);
+  display: flex; flex-direction: column;
+  z-index: 60;
+}
+.l2-nav-menu a {
+  display: block; padding: 11px 14px; border-radius: 9px;
+  font-size: 14.5px; font-weight: 500; color: var(--ink) !important;
+  white-space: nowrap;
+}
+.l2-nav-menu a:hover { background: var(--band, #f4f2ee); }
+.l2-nav-menu a.l2-nav-menu-sep { margin-top: 6px; border-top: 1px solid var(--line); border-radius: 0 0 9px 9px; padding-top: 13px; font-weight: 600; }
+
+@media (max-width: 1080px) {
+  .l2-nav-links > a:not(.l2-nav-cta) { display: none; }
+  .l2-nav-menu-wrap { display: inline-flex; }
+}
 @media (max-width: 480px) {
   .l2-nav .l2-logo-text { display: none; }
   .l2-nav .l2-logowrap { gap: 0; }
@@ -439,10 +533,16 @@ export const SITE_CSS = `
   .l2-nav-links { gap: 8px; }
   .l2-nav-login { padding: 8px 10px; font-size: 13px; }
   .l2-nav-cta { padding: 8px 14px; font-size: 13px; }
+  .l2-nav-burger { width: 36px; height: 36px; }
   .l2f-inner { padding: 48px 16px 32px; gap: 32px; }
   .l2f-note { padding: 0 16px 20px; }
   .l2f-bottom { padding: 16px; }
   .l2-doc { padding: 120px 16px 60px; }
+}
+@media (max-width: 400px) {
+  .l2-nav-login { padding: 6px 8px; font-size: 12px; }
+  .l2-nav-cta { padding: 6px 10px; font-size: 12px; }
+  .l2-nav-burger { width: 34px; height: 34px; }
 }
 
 /* document pages (about / legal) */
