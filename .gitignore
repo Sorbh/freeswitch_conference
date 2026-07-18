@@ -58,3 +58,11 @@ hotlinehq.online-audit/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local working data — never commit
+credentials.md
+credentials/
+brevo_lead_scores.json
+dealers_enriched.json
+jara_members.json
+prompt.txt
