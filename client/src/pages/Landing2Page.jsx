@@ -232,7 +232,7 @@ export default function Landing2Page() {
   const formRef = useRef(null);
 
   // Offset lifts the widget above the fixed broadcast-activity card (bottom-right).
-  useEffect(() => { loadSupportgram(null, { offset: 130 }); }, []);
+  useEffect(() => { loadSupportgram(null, { offset: 190 }); }, []);
 
   const STEPS = [
     { n: "1", title: t("steps.step1.title"), copy: t("steps.step1.copy") },
