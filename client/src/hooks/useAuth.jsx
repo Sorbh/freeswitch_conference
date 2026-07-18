@@ -122,6 +122,7 @@ export function AuthProvider({ children }) {
     try { sessionStorage.removeItem('hq_sip_pwd'); } catch {};
     clearProfilePromptSession();
     if (window.hotlineClient?.logout) window.hotlineClient.logout();
+    try { if (window.Supportgram) window.Supportgram.reset(); } catch { /* widget not loaded */ }
   }, []);
 
   const refreshAccount = useCallback(async () => {
