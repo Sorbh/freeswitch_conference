@@ -4,6 +4,7 @@ import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import LanguageSwitcher from './LanguageSwitcher';
+import { loadSupportgram } from '../lib/supportgram';
 
 const BroadcastPanel = lazy(() => import('./BroadcastPanel'));
 
@@ -120,6 +121,11 @@ export default function DashboardLayout() {
     document.head.appendChild(fontLink);
     return () => { fontLink.remove(); };
   }, []);
+
+  useEffect(() => {
+    if (!account?.email) return;
+    loadSupportgram({ name: account.display_name || account.email, email: account.email });
+  }, [account?.email, account?.display_name]);
 
   useEffect(() => {
     let cancelled = false;

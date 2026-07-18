@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { HQLogo, NavMenu, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import PublicBroadcastActivity from "../components/PublicBroadcastActivity";
+import { loadSupportgram } from "../lib/supportgram";
 
 const ListenLive = lazy(() => import("../components/ListenLive"));
 
@@ -229,6 +230,8 @@ export default function Landing2Page() {
   const rootRef = useRef(null);
   const wireRef = useRef(null);
   const formRef = useRef(null);
+
+  useEffect(() => { loadSupportgram(); }, []);
 
   const STEPS = [
     { n: "1", title: t("steps.step1.title"), copy: t("steps.step1.copy") },
