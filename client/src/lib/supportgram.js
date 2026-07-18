@@ -7,7 +7,7 @@ const WIDGET_KEY = 'pk_7ddc4b6bdd4ed3331af1cdf7';
 const SCRIPT_ID = 'supportgram-widget';
 const BRAND_COLOR = '#d92d20'; // Hotline HQ --red
 
-export function loadSupportgram(identity) {
+export function loadSupportgram(identity, options = {}) {
   if (typeof document === 'undefined') return;
 
   if (identity?.name && identity?.email) {
@@ -24,5 +24,6 @@ export function loadSupportgram(identity) {
   script.setAttribute('data-color', BRAND_COLOR);
   script.setAttribute('data-title', 'Hotline HQ');
   script.setAttribute('data-greeting', 'Let me know if you have any questions!');
+  if (options.offset) script.setAttribute('data-offset', String(options.offset));
   document.body.appendChild(script);
 }
