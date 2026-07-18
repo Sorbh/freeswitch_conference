@@ -87,6 +87,8 @@
 //   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
 //   window.onHotlineBroadcast = function(data) { ... }                 // { type:'broadcast', data:{...broadcast row...}, ts }
 //   window.onCallerIdUpdate = function(data) { ... }                   // { callerIds, callerIdHtml, userCount, unmutedCount, online, ts }
+//   window.onHotlineError = function(err) { ... }                      // { type: 'login'|'account_fetch', status, code, message } — API failure;
+//                                                                      // host page decides (e.g. status 401 → session dead, redirect to login)
 //
 // MANUAL CONTROL (if needed):
 //   window.hotlineClient.login('email@example.com')               // login with specific email
@@ -230,6 +232,31 @@ import "./jssip.bundle.js";
             // Reports the CURRENT state — callers set monitorMode first, then notify.
             // Must be able to report false, or the UI can never exit monitor mode.
             try { if (typeof window.onHotlineMonitorMode === 'function') window.onHotlineMonitorMode(monitorMode); } catch (e) { }
+        }
+
+        function notifyError(type, err) {
+            // Generic error channel: { type, status, code, message }. The host page
+            // decides what to do (e.g. 401 on 'account_fetch' → redirect to login).
+            try {
+                if (typeof window.onHotlineError === 'function') {
+                    window.onHotlineError({
+                        type: type,
+                        status: err.status || 0,
+                        code: err.code || '',
+                        message: err.message || '',
+                    });
+                }
+            } catch (e) { }
+        }
+
+        function _httpError(r) {
+            // Build an Error carrying HTTP status + server error body for notifyError
+            return r.json().catch(function () { return {}; }).then(function (json) {
+                var err = new Error(json.error || 'HTTP ' + r.status);
+                err.status = r.status;
+                err.code = json.code || '';
+                throw err;
+            });
         }
 
         function _notifyRoomChange(data) {
@@ -854,7 +881,7 @@ import "./jssip.bundle.js";
                     headers: { 'Authorization': 'Bearer ' + clientToken },
                 })
                     .then(function (r) {
-                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        if (!r.ok) return _httpError(r);
                         return r.json();
                     })
                     .then(function (json) {
@@ -864,6 +891,7 @@ import "./jssip.bundle.js";
                     })
                     .catch(function (e) {
                         console.error('[SIP] Account fetch failed:', e.message);
+                        notifyError('account_fetch', e);
                         if (typeof window.onHotlineLoginFailed === 'function') {
                             window.onHotlineLoginFailed(e.message);
                         }
@@ -887,7 +915,7 @@ import "./jssip.bundle.js";
                 body: JSON.stringify({ email: email, password: password }),
             })
                 .then(function (r) {
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    if (!r.ok) return _httpError(r);
                     return r.json();
                 })
                 .then(function (json) {
@@ -898,6 +926,7 @@ import "./jssip.bundle.js";
                 })
                 .catch(function (e) {
                     console.error('[SIP] Login failed:', e.message);
+                    notifyError('login', e);
                     if (typeof window.onHotlineLoginFailed === 'function') {
                         window.onHotlineLoginFailed(e.message);
                     }

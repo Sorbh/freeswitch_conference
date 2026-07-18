@@ -179,7 +179,7 @@ async function _deepgramTranscribe(filePath, apiKey, model, language) {
         method: 'POST',
         headers: {
             'Authorization': `Token ${apiKey}`,
-            'Content-Type': 'audio/wav',
+            'Content-Type': filePath.endsWith('.mp3') ? 'audio/mpeg' : 'audio/wav',
         },
         body: audioData,
     });
@@ -378,6 +378,23 @@ export function whisperTranscribe(audioPath) {
     if (!fs.existsSync(config.WHISPER_MODEL)) throw new Error('whisper model not found');
     if (!audioPath || !fs.existsSync(audioPath)) throw new Error('Audio file not found');
 
+    // whisper.cpp only reads WAV — recordings are archived as MP3 after the
+    // initial pipeline, so decode to a temp 16kHz WAV for re-transcription.
+    if (!audioPath.endsWith('.wav')) {
+        const tmpWav = audioPath.replace(/\.[^.]+$/, '') + '_whisper_tmp.wav';
+        return new Promise((resolve, reject) => {
+            execFile('ffmpeg', ['-y', '-i', audioPath, '-ar', '16000', '-ac', '1', tmpWav], { timeout: 30000 }, (err) => {
+                if (err) return reject(new Error(`ffmpeg decode failed: ${err.message}`));
+                _whisperRunWav(tmpWav)
+                    .then(resolve, reject)
+                    .finally(() => { try { fs.unlinkSync(tmpWav); } catch {} });
+            });
+        });
+    }
+    return _whisperRunWav(audioPath);
+}
+
+function _whisperRunWav(audioPath) {
     const startMs = Date.now();
     return new Promise((resolve, reject) => {
         execFile(config.WHISPER_CLI, [

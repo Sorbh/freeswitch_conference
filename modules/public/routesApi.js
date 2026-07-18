@@ -47,9 +47,11 @@ publicRouter.get("/broadcast/:token/audio", (req, res) => {
     const rootDir = path.resolve(__dirname, '../..');
     const filePath = broadcast.recording_path.startsWith('/') ? broadcast.recording_path : path.join(rootDir, broadcast.recording_path);
     if (!fs.existsSync(filePath)) return res.status(404).json({ status: false, error: "Recording file not found" });
-    res.setHeader('Content-Type', 'audio/wav');
-    res.setHeader('Accept-Ranges', 'bytes');
-    fs.createReadStream(filePath).pipe(res);
+    // sendFile gives real Range/206 support (iOS needs it to start playback
+    // fast) plus ETag; recordings never change, so cache aggressively.
+    res.sendFile(filePath, { maxAge: '365d', immutable: true }, (err) => {
+        if (err && !res.headersSent) res.status(500).json({ status: false, error: err.message });
+    });
 });
 
 // --- Live listen (landing page, listen-only) ---

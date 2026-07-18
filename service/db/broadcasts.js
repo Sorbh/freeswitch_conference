@@ -155,6 +155,10 @@ function getBroadcastByRecordingPath(recordingPath) {
     return sqlite.prepare('SELECT id, room FROM broadcast_log WHERE recording_path = ? ORDER BY id DESC LIMIT 1').get(recordingPath) || null;
 }
 
+function updateBroadcastRecordingPath(id, recordingPath) {
+    sqlite.prepare('UPDATE broadcast_log SET recording_path = ? WHERE id = ?').run(recordingPath, id);
+}
+
 function updateBroadcastTranscription(id, { transcription, status, error }) {
     const sets = [];
     const vals = [];
@@ -185,6 +189,7 @@ export {
     getLatestBroadcast, getHourlyBroadcasts, getTimelineBroadcasts,
     generateBroadcastShareToken, revokeBroadcastShareToken,
     getBroadcastByShareToken, getBroadcastById, getBroadcastByRecordingPath,
+    updateBroadcastRecordingPath,
     updateBroadcastTranscription, updateBroadcastLocalTranscription, updateBroadcastPartDetails,
     markBroadcastHasPartsRequest,
 };

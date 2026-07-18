@@ -55,6 +55,19 @@ function _clientLoginToken(account) {
     );
 }
 
+// Sliding renewal: once a valid token is past half its life, attach a fresh
+// 7-day token via response header so active clients never hit the hard expiry.
+function _maybeRenewClientToken(res, payload) {
+    try {
+        if (!payload.iat || !payload.exp) return;
+        const now = Math.floor(Date.now() / 1000);
+        if (now - payload.iat < (payload.exp - payload.iat) / 2) return;
+        const account = global.db.getAccountById(payload.sub);
+        if (!account || !account.active) return;
+        res.set('X-Refreshed-Token', _clientLoginToken(account));
+    } catch {}
+}
+
 export const clientRouter = express.Router();
 
 function _getClientIp(req) {
@@ -78,6 +91,7 @@ function requireClientAuth(req, res, next) {
             return res.status(401).json({ status: false, error: 'Invalid token type' });
         }
         req.client = payload;
+        _maybeRenewClientToken(res, payload);
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
@@ -90,10 +104,16 @@ function requireClientAuth(req, res, next) {
 // Mount client SSE events sub-router
 clientRouter.use("/events", clientEventsRouter);
 
-// GET /rooms — public list of rooms for signup form
+// GET /rooms — public list of rooms for signup form, busiest markets first
 clientRouter.get("/rooms", (req, res) => {
     try {
-        const rooms = global.db.getAllRooms().map(r => ({ id: r.id, name: r.name }));
+        const countByRoom = {};
+        for (const a of global.db.getAllAccounts()) {
+            if (a.room && a.active) countByRoom[a.room] = (countByRoom[a.room] || 0) + 1;
+        }
+        const rooms = global.db.getAllRooms()
+            .map(r => ({ id: r.id, name: r.name, short_code: r.short_code || '', account_count: countByRoom[r.id] || 0 }))
+            .sort((a, b) => b.account_count - a.account_count);
         res.json({ status: true, data: rooms });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -108,7 +128,7 @@ clientRouter.post("/signup", async (req, res) => {
             return res.status(429).json({ status: false, error: "Too many signup attempts. Please try again later." });
         }
 
-        const { email, password, company_name, display_name, company_phone, city, zip, room, referral_code } = req.body;
+        const { email, password, company_name, display_name, company_phone, city, zip, room, referral_code, requested_room_city, requested_room_state } = req.body;
         const cleanEmail = String(email || '').toLowerCase().trim();
         const cleanCompanyName = String(company_name || '').trim();
         const cleanDisplayName = String(display_name || '').trim();
@@ -116,6 +136,8 @@ clientRouter.post("/signup", async (req, res) => {
         const cleanCity = String(city || '').trim();
         const cleanZip = String(zip || '').trim();
         const cleanReferralCode = String(referral_code || '').trim().toUpperCase();
+        const cleanRequestedCity = String(requested_room_city || '').trim().slice(0, 80);
+        const cleanRequestedState = String(requested_room_state || '').trim().slice(0, 80);
 
         if (!cleanEmail || !password || !cleanCompanyName) {
             return res.status(400).json({ status: false, error: "Company name, email, and password are required" });
@@ -180,8 +202,16 @@ clientRouter.post("/signup", async (req, res) => {
 
         logSystem('CLIENT', `API /signup email=${cleanEmail} company=${cleanCompanyName} room=${roomId || ''} ip=${ip}`);
 
+        const requestedAreaLabel = [cleanRequestedCity, cleanRequestedState].filter(Boolean).join(', ');
+
         try {
-            await sendVerificationEmail({ email: account.email, token: verificationToken, displayName: fallbackDisplayName, roomName: roomData?.name });
+            await sendVerificationEmail({
+                email: account.email,
+                token: verificationToken,
+                displayName: fallbackDisplayName,
+                roomName: roomData?.name,
+                requestedArea: requestedAreaLabel || undefined,
+            });
         } catch (emailErr) {
             console.error('[SIGNUP] Verification email failed:', emailErr.message);
         }
@@ -194,6 +224,34 @@ clientRouter.post("/signup", async (req, res) => {
             roomName: roomData?.name || '',
             zip: cleanZip,
         }).catch(() => {});
+
+        // Dealer's market isn't covered yet — record demand (the account still
+        // lands in the default room above) and alert the admin. Never fails signup.
+        if (cleanRequestedCity || cleanRequestedState) {
+            try {
+                global.db.createRoomRequest({
+                    accountId: account.id,
+                    email: cleanEmail,
+                    requestedCity: cleanRequestedCity,
+                    requestedState: cleanRequestedState,
+                    source: 'signup',
+                });
+                logSystem('CLIENT', `API /signup room-request email=${cleanEmail} area="${[cleanRequestedCity, cleanRequestedState].filter(Boolean).join(', ')}"`);
+                sendRoomRequestEmail({
+                    email: cleanEmail,
+                    requestedRoom: cleanRequestedCity,
+                    requestedState: cleanRequestedState,
+                    message: '(requested during signup)',
+                    companyName: cleanCompanyName,
+                    displayName: fallbackDisplayName,
+                    currentRoom: roomId,
+                    currentRoomName: roomData?.name,
+                    ip,
+                }).catch(() => {});
+            } catch (reqErr) {
+                logSystem('CLIENT', `API /signup room-request failed error=${reqErr.message}`);
+            }
+        }
 
         res.json({ status: true, message: "Account created. Please check your email to verify your account." });
     } catch (err) {
@@ -231,11 +289,16 @@ clientRouter.get("/verify", (req, res) => {
 
         const rooms = {};
         for (const room of global.db.getAllRooms()) rooms[room.id] = room.name;
+        const pendingRequest = global.db.getPendingRoomRequestByAccount(account.id);
+        const requestedArea = pendingRequest
+            ? [pendingRequest.requested_city, pendingRequest.requested_state].filter(Boolean).join(', ')
+            : '';
         sendWelcomeEmail({
             email: account.email,
             displayName: account.display_name,
             companyName: account.company_name,
             roomName: rooms[account.room] || '',
+            requestedArea: requestedArea || undefined,
         }).catch(err => logSystem('CLIENT', `API /verify welcome email failed: ${err.message}`));
 
         // Auto-login: pass a client JWT (same as POST /login issues) in the URL fragment.
@@ -575,7 +638,9 @@ clientRouter.post("/extension-request", requireClientAuth, async (req, res) => {
 clientRouter.get("/account", requireClientAuth, (req, res) => {
     try {
         const account = global.db.getAccountById(req.client.sub);
-        if (!account) return res.status(404).json({ status: false, error: "Account not found" });
+        // 401 (not 404): the token references a deleted account — the session is
+        // dead, so clients treat this like an expired token and return to login.
+        if (!account) return res.status(401).json({ status: false, error: "Account no longer exists", code: 'ACCOUNT_NOT_FOUND' });
         const { password: sipPwd, password_hash: _h, verification_token: _v, reset_token: _r, ...safe } = account;
         safe.sip_password = sipPwd || global.config.SIP_DEFAULT_PASSWORD || '12345678';
         safe.kickout = account.kickout ? 1 : 0;
@@ -884,6 +949,15 @@ clientRouter.post("/room-request", requireClientAuth, async (req, res) => {
             rooms[room.id] = room.name;
         }
 
+        global.db.createRoomRequest({
+            accountId: account.id,
+            email,
+            requestedCity: requestedRoom,
+            requestedState,
+            message,
+            source: 'dashboard',
+        });
+
         await sendRoomRequestEmail({
             email,
             requestedRoom,
@@ -1071,9 +1145,11 @@ clientRouter.get("/broadcasts/:id/audio", (req, res) => {
         if (!broadcast.recording_path) return res.status(404).json({ status: false, error: "No recording available" });
         const filePath = broadcast.recording_path.startsWith('/') ? broadcast.recording_path : path.join(process.cwd(), broadcast.recording_path);
         if (!fs.existsSync(filePath)) return res.status(404).json({ status: false, error: "Recording file not found" });
-        res.setHeader('Content-Type', 'audio/wav');
-        res.setHeader('Accept-Ranges', 'bytes');
-        fs.createReadStream(filePath).pipe(res);
+        // sendFile gives real Range/206 support (iOS needs it to start playback
+        // fast) plus ETag; recordings never change, so cache aggressively.
+        res.sendFile(filePath, { maxAge: '365d', immutable: true }, (err) => {
+            if (err && !res.headersSent) res.status(500).json({ status: false, error: err.message });
+        });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

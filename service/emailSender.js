@@ -61,14 +61,17 @@ export async function sendMail({ to, subject, text, html }) {
     await _sendgrid({ apiKey, to: recipient, from, fromName, subject, text, html });
 }
 
-export async function sendVerificationEmail({ email, token, displayName, roomName }) {
+export async function sendVerificationEmail({ email, token, displayName, roomName, requestedArea }) {
     const config = global.config || {};
     const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
     const verifyUrl = `${baseUrl}/api/v1/client/verify?token=${encodeURIComponent(token)}`;
     const name = displayName || 'there';
     const room = roomName || 'your regional room';
+    // Requested-area signups: don't sell the fallback room as "their" room —
+    // acknowledge the waiting list and frame the assigned room as the meantime.
+    const roomPhrase = requestedArea ? `${room} (your home base while we open ${requestedArea})` : room;
 
-    const vars = { '{{NAME}}': name, '{{ROOM}}': room, '{{VERIFY_URL}}': verifyUrl };
+    const vars = { '{{NAME}}': name, '{{ROOM}}': roomPhrase, '{{VERIFY_URL}}': verifyUrl };
 
     let html;
     try {
@@ -92,6 +95,10 @@ export async function sendVerificationEmail({ email, token, displayName, roomNam
         '1. Verify your email (click above)',
         '2. Log in to your dashboard',
         `3. Start hearing live parts calls in ${room}`,
+        ...(requestedArea ? [
+            '',
+            `You're on the waiting list for ${requestedArea} — we'll email you the moment that room opens. Until then, ${room} is your home base.`,
+        ] : []),
         '',
         'This link expires in 24 hours.',
         '',
@@ -102,23 +109,26 @@ export async function sendVerificationEmail({ email, token, displayName, roomNam
 
     await sendMail({
         to: email,
-        subject: `Verify your email — ${room} is waiting`,
+        subject: requestedArea
+            ? `Verify your email — you're on the ${requestedArea} waiting list`
+            : `Verify your email — ${room} is waiting`,
         text,
         html,
     });
 }
 
-export async function sendWelcomeEmail({ email, displayName, companyName, roomName }) {
+export async function sendWelcomeEmail({ email, displayName, companyName, roomName, requestedArea }) {
     const config = global.config || {};
     const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
     const dashboardUrl = `${baseUrl}/client/dashboard`;
     const name = displayName || companyName || 'there';
     const room = roomName || 'your room';
+    const roomPhrase = requestedArea ? `${room} (your home base while we open ${requestedArea})` : room;
 
     const vars = {
         '{{NAME}}': name,
         '{{COMPANY}}': companyName || '-',
-        '{{ROOM}}': room,
+        '{{ROOM}}': roomPhrase,
         '{{EMAIL}}': email,
         '{{DASHBOARD_URL}}': dashboardUrl,
         '{{UNSUBSCRIBE_URL}}': `${baseUrl}/client/dashboard/settings`,
@@ -141,7 +151,10 @@ export async function sendWelcomeEmail({ email, displayName, companyName, roomNa
         'Your email is verified and your Hotline HQ account is active.',
         '',
         `Company: ${companyName || '-'}`,
-        `Room: ${room}`,
+        `Room: ${roomPhrase}`,
+        ...(requestedArea ? [
+            `Waiting list: ${requestedArea} — we'll email you the moment it opens.`,
+        ] : []),
         '',
         'Open your dashboard: ' + dashboardUrl,
         '',
@@ -156,7 +169,9 @@ export async function sendWelcomeEmail({ email, displayName, companyName, roomNa
 
     await sendMail({
         to: email,
-        subject: `Welcome to Hotline HQ — you're in the ${room} room`,
+        subject: requestedArea
+            ? `Welcome to Hotline HQ — you're on the ${requestedArea} waiting list`
+            : `Welcome to Hotline HQ — you're in the ${room} room`,
         text,
         html,
     });
@@ -235,6 +250,57 @@ export async function sendExtensionRequestEmail(payload) {
         to,
         subject: `Extension request: ${payload.email} wants *${payload.requestedExtension}`,
         text: lines.join('\n'),
+    });
+}
+
+export async function sendRoomOpenedEmail({ email, displayName, roomName, moved }) {
+    const config = global.config || {};
+    const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
+    const dashboardUrl = `${baseUrl}/client/dashboard`;
+    const name = (displayName || 'there').trim();
+    const room = String(roomName || '').trim();
+    const statusNote = moved
+        ? "live now, and your account is already in it"
+        : "live now — switch anytime from your dashboard";
+
+    const vars = {
+        '{{NAME}}': name,
+        '{{ROOM}}': room,
+        '{{STATUS_NOTE}}': statusNote,
+        '{{DASHBOARD_URL}}': dashboardUrl,
+    };
+
+    let html;
+    try {
+        let tpl = readFileSync(join(__dirname, '..', 'public', 'email_template', 'room_opened.html'), 'utf8');
+        for (const [key, val] of Object.entries(vars)) {
+            tpl = tpl.replaceAll(key, val);
+        }
+        html = tpl;
+    } catch (err) {
+        console.error('[EMAIL] Failed to load room_opened template:', err.message);
+    }
+
+    const text = [
+        `Hi ${name},`,
+        '',
+        `Good news — the ${room} room you asked for is now live on Hotline HQ.`,
+        '',
+        moved
+            ? `Your account has been moved to ${room}, so you're already connected — just pick up your phone or open the dashboard.`
+            : `You can switch to ${room} anytime from your dashboard.`,
+        '',
+        'Open your dashboard: ' + dashboardUrl,
+        '',
+        'Talk soon,',
+        'Hotline HQ',
+    ].join('\n');
+
+    await sendMail({
+        to: email,
+        subject: `The ${room} room you asked for is now live`,
+        text,
+        html,
     });
 }
 

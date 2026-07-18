@@ -231,6 +231,167 @@ function getLocalTime(tz) {
 const EMPTY_ROOM_FORM = { id: "", name: "", short_code: "", timezone: "America/Chicago", auto_transcribe: false };
 
 // ── Main Page ──
+function RoomRequestsCard({ roomNames }) {
+  const { data, loading, refetch } = useFetch("/api/v1/admin/room-requests");
+  const [fulfillTarget, setFulfillTarget] = useState(null); // state string being fulfilled
+  const [fulfillRoom, setFulfillRoom] = useState("");
+  const [fulfillMove, setFulfillMove] = useState(true);
+  const [fulfilling, setFulfilling] = useState(false);
+  const [fulfillResult, setFulfillResult] = useState("");
+
+  const requests = data?.requests || [];
+  const byState = data?.byState || [];
+  const pending = requests.filter(r => r.status === "pending");
+
+  async function dismiss(id) {
+    try {
+      const res = await apiFetch(`/api/v1/admin/room-requests/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "dismissed" }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      refetch();
+    } catch (e) {
+      console.error("Dismiss room request failed:", e);
+    }
+  }
+
+  function openFulfill(state) {
+    setFulfillTarget(state);
+    setFulfillRoom("");
+    setFulfillMove(true);
+    setFulfillResult("");
+  }
+
+  async function handleFulfill() {
+    if (!fulfillRoom) return;
+    setFulfilling(true);
+    try {
+      const res = await apiFetch("/api/v1/admin/room-requests/fulfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: fulfillTarget, room_id: parseInt(fulfillRoom), move: fulfillMove }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      const d = json.data || {};
+      setFulfillResult(`${d.fulfilled || 0} request(s) fulfilled, ${d.emailed || 0} emailed${fulfillMove ? `, ${d.moved || 0} account(s) moved` : ""}`);
+      refetch();
+    } catch (e) {
+      setFulfillResult(`Failed: ${e.message}`);
+    } finally {
+      setFulfilling(false);
+    }
+  }
+
+  if (loading || requests.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <RadioIcon className="size-4 text-amber-400" />
+          Room Requests
+          {pending.length > 0 && <Badge variant="secondary">{pending.length} pending</Badge>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {byState.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {byState.map(s => (
+              <div key={s.state} className="flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-1.5">
+                <span className="text-sm font-medium">{s.state === "UNKNOWN" ? "Unspecified" : s.state}</span>
+                <Badge variant="secondary" className="font-mono tabular-nums">{s.pending}</Badge>
+                {s.state !== "UNKNOWN" && (
+                  <Button size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => openFulfill(s.state)}>
+                    Open room
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pending.length > 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Requester</TableHead>
+                  <TableHead>Requested area</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pending.map(r => (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <div className="text-sm font-medium">{r.company_name || r.display_name || "—"}</div>
+                      <div className="text-xs text-muted-foreground">{r.email}</div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {[r.requested_city, r.requested_state].filter(Boolean).join(", ") || "—"}
+                    </TableCell>
+                    <TableCell><Badge variant="outline">{r.source}</Badge></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {r.created_at ? new Date(r.created_at * 1000).toLocaleDateString() : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Tip label="Dismiss request">
+                        <Button size="icon" variant="ghost" className="size-7" onClick={() => dismiss(r.id)}>
+                          <Trash2Icon className="size-3.5" />
+                        </Button>
+                      </Tip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        <Dialog open={!!fulfillTarget} onOpenChange={(open) => { if (!open) setFulfillTarget(null); }}>
+          <DialogContent className="sm:max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>Open room for {fulfillTarget}</DialogTitle>
+              <DialogDescription>
+                Marks all pending {fulfillTarget} requests as fulfilled and emails the waiting dealers. Create the room first if it doesn't exist yet.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Room</Label>
+                <Select value={fulfillRoom} onValueChange={setFulfillRoom}>
+                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(roomNames || {}).map(([id, name]) => (
+                      <SelectItem key={id} value={String(id)}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={fulfillMove} onChange={e => setFulfillMove(e.target.checked)} className="accent-primary" />
+                Move waiting dealers' accounts into this room
+              </label>
+              {fulfillResult && <p className="text-sm text-muted-foreground">{fulfillResult}</p>}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setFulfillTarget(null)}>Close</Button>
+                <Button onClick={handleFulfill} disabled={!fulfillRoom || fulfilling}>
+                  {fulfilling ? <Loader2Icon className="size-4 animate-spin" /> : "Fulfill & notify"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function RoomsPage() {
   const { names: ROOM_NAMES, codes: ROOM_CODES, refetch: refetchRoomConfig } = useRooms();
   const { data: roomsRaw, loading, refetch } = useFetch("/api/v1/admin/rooms");
@@ -393,6 +554,9 @@ export default function RoomsPage() {
         <StatCard title="Avg Accounts / Room" value={rooms.length ? Math.round(totalAccounts / rooms.length) : 0} icon={<ActivityIcon className="size-4" />} color="#f59e0b" subtitle={`max ${Math.max(...rooms.map(r => r.accountCount || 0))}`} />
         <StatCard title="Empty Rooms" value={rooms.filter(r => (r.online || 0) === 0).length} icon={<VolumeXIcon className="size-4" />} color="#8b8b8b" subtitle={`${rooms.filter(r => (r.online || 0) > 0).length} with users online`} />
       </div>
+
+      {/* Market demand from signup + dashboard room requests */}
+      <RoomRequestsCard roomNames={ROOM_NAMES} />
 
       {/* Listen Bar */}
       {listenRoom && (

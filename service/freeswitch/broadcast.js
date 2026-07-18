@@ -60,6 +60,28 @@ function _trimToduration(filePath, durationMs) {
     });
 }
 
+// Archive the recording as 64kbps mono MP3 (~12x smaller than the 48kHz PCM
+// WAV) and delete the WAV. Must run only AFTER transcription + notifications:
+// whisper.cpp and Deepgram consume the WAV, Telegram derives its .ogg from it.
+function _compressRecording(wavPath) {
+    if (!wavPath || !wavPath.endsWith('.wav') || !fs.existsSync(wavPath)) return;
+    const mp3Path = wavPath.replace(/\.wav$/, '.mp3');
+    execFile('ffmpeg', [
+        '-y', '-i', wavPath, '-codec:a', 'libmp3lame', '-b:a', '64k', '-ac', '1', mp3Path
+    ], { timeout: 60000 }, (err) => {
+        if (err) {
+            logSystem('BCAST', `WAV→MP3 compress failed (keeping WAV): ${err.message}`);
+            try { fs.unlinkSync(mp3Path); } catch {}
+            return;
+        }
+        const row = global.db.getBroadcastByRecordingPath(wavPath);
+        if (row) global.db.updateBroadcastRecordingPath(row.id, mp3Path);
+        try { fs.unlinkSync(wavPath); } catch {}
+        try { fs.unlinkSync(wavPath.replace(/\.wav$/, '.ogg')); } catch {}
+        logSystem('BCAST', `Recording archived as MP3: ${path.basename(mp3Path)}`);
+    });
+}
+
 // Room-level active sessions: conferenceName -> session
 const roomSessions = new Map();
 
@@ -325,13 +347,15 @@ function _finalizeBroadcast(conferenceName, room, data, answered, respondedBy) {
         recordingPath: data.recordingPath,
     };
 
-    // Deepgram (if enabled) → Local whisper → Extract parts → Notify
+    // Deepgram (if enabled) → Local whisper → Extract parts → Notify → Compress
     processBroadcastTranscription(null, data.recordingPath)
         .then(result => { broadcastNotifyData.hasPartsRequest = result.hasPartsRequest; })
         .catch(err => logSystem('BCAST', `Transcription pipeline failed: ${err.message}`))
         .finally(() => {
-            notifyBroadcast(broadcastNotifyData).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`));
-            notifyBroadcastPush(broadcastNotifyData).catch(err => logSystem('PUSH', `Failed: ${err.message}`));
+            Promise.allSettled([
+                notifyBroadcast(broadcastNotifyData).catch(err => logSystem('NOTIFY', `Failed: ${err.message}`)),
+                notifyBroadcastPush(broadcastNotifyData).catch(err => logSystem('PUSH', `Failed: ${err.message}`)),
+            ]).then(() => _compressRecording(data.recordingPath));
         });
 
 }

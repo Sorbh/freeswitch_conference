@@ -1,8 +1,85 @@
 import express from "express";
-import { logUser } from "../../service/logger.js";
+import { logUser, logSystem } from "../../service/logger.js";
+import { sendRoomOpenedEmail } from "../../service/emailSender.js";
 import { emitStateChange } from "./routesApi.js";
 
 const router = express.Router();
+
+// ── Room requests (market demand from signup + client dashboard) ──
+
+// GET /room-requests — all requests plus pending counts grouped by state
+router.get("/room-requests", (req, res) => {
+    try {
+        const status = req.query.status ? String(req.query.status) : undefined;
+        res.json({
+            status: true,
+            data: {
+                requests: global.db.getRoomRequests(status),
+                byState: global.db.getRoomRequestStats(),
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// PUT /room-requests/:id — set status (pending | dismissed | opened)
+router.put("/room-requests/:id", (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { status, room_id } = req.body || {};
+        if (!id || !['pending', 'dismissed', 'opened'].includes(status)) {
+            return res.status(400).json({ status: false, error: "Valid id and status required" });
+        }
+        global.db.updateRoomRequestStatus(id, status, room_id ? parseInt(room_id) : null);
+        res.json({ status: true });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /room-requests/fulfill — a requested market went live: mark all pending
+// requests for that state as opened, email the waiting dealers, and (optionally)
+// move their accounts' default room to the new room.
+router.post("/room-requests/fulfill", async (req, res) => {
+    try {
+        const { state, room_id, move } = req.body || {};
+        const roomId = parseInt(room_id);
+        const room = roomId ? global.db.getRoom(roomId) : null;
+        if (!state || !room) {
+            return res.status(400).json({ status: false, error: "state and a valid room_id are required" });
+        }
+
+        const pending = global.db.getPendingRoomRequestsByState(String(state));
+        let emailed = 0, moved = 0;
+        for (const request of pending) {
+            global.db.updateRoomRequestStatus(request.id, 'opened', roomId);
+            if (move && request.account_id) {
+                try {
+                    global.db.updateAccount(request.account_id, { room: roomId });
+                    moved++;
+                } catch (e) {
+                    logSystem('ROOMS', `fulfill: move account ${request.account_id} failed: ${e.message}`);
+                }
+            }
+            if (request.email) {
+                sendRoomOpenedEmail({
+                    email: request.email,
+                    displayName: request.display_name,
+                    roomName: room.name,
+                    moved: !!(move && request.account_id),
+                }).then(() => {}, e => logSystem('ROOMS', `fulfill: email ${request.email} failed: ${e.message}`));
+                emailed++;
+            }
+        }
+
+        global.db.logEvent('room_requests_fulfilled', null, roomId, `${pending.length} request(s) for "${state}" fulfilled by ${room.name}${move ? `, ${moved} account(s) moved` : ''}`);
+        emitStateChange('rooms');
+        res.json({ status: true, data: { fulfilled: pending.length, emailed, moved } });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
 
 // GET /rooms — returns room stats + member list per room
 router.get("/rooms", (req, res) => {

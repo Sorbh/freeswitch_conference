@@ -66,8 +66,13 @@ export function AuthProvider({ children }) {
     const headers = { 'Content-Type': 'application/json', ...opts.headers };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+    const refreshed = res.headers.get('x-refreshed-token');
+    if (refreshed) {
+      localStorage.setItem('hq_token', refreshed);
+      setToken(refreshed);
+    }
     const json = await res.json().catch(() => ({}));
-    if (res.status === 401 && json.code === 'TOKEN_EXPIRED') {
+    if (res.status === 401 && (json.code === 'TOKEN_EXPIRED' || json.code === 'ACCOUNT_NOT_FOUND')) {
       setToken(null);
       setAccount(null);
       localStorage.removeItem('hq_token');

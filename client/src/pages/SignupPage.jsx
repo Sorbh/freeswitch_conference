@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster, toast } from 'sonner';
 
+// Instant-render fallback only — the live list (with new markets, ordered by
+// activity) is fetched from /api/v1/client/rooms and replaces this on load.
 const PUBLIC_SIGNUP_ROOMS = [
   { id: 123456701, name: 'California', code: 'CA' },
   { id: 123456712, name: 'Arizona', code: 'AZ' },
@@ -23,7 +25,9 @@ const PUBLIC_SIGNUP_ROOMS = [
 
 export default function SignupPage() {
   const { t } = useTranslation("auth");
-  const [form, setForm] = useState({ email: '', password: '', company_name: '', room: '', referral_code: '' });
+  const [form, setForm] = useState({ email: '', password: '', company_name: '', room: '', referral_code: '', requested_area: '' });
+  const [requestArea, setRequestArea] = useState(false);
+  const [requestedAreaLabel, setRequestedAreaLabel] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -76,6 +80,32 @@ export default function SignupPage() {
     }
   }, []);
 
+  // Replace the hardcoded fallback with the live room list: new markets appear
+  // without a deploy, busiest rooms first, URL-requested room pinned on top.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/v1/client/rooms')
+      .then(r => r.json())
+      .then(json => {
+        if (cancelled || !json?.status || !Array.isArray(json.data) || json.data.length === 0) return;
+        const live = json.data.map(r => ({ id: r.id, name: r.name, code: r.short_code || '', count: r.account_count || 0 }));
+        const roomParam = (new URLSearchParams(window.location.search).get('room') || '').toLowerCase();
+        const match = roomParam ? live.find(item => (
+          String(item.id) === roomParam ||
+          item.name.toLowerCase() === roomParam ||
+          (item.code || '').toLowerCase() === roomParam
+        )) : null;
+        const ordered = match ? [match, ...live.filter(r => r.id !== match.id)] : live;
+        setOrderedRooms(ordered);
+        if (match) {
+          setHasUrlRoom(true);
+          setForm(f => ({ ...f, room: String(match.id) }));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   function update(field) {
     return e => setForm(f => ({ ...f, [field]: e.target.value }));
   }
@@ -85,7 +115,18 @@ export default function SignupPage() {
   }
 
   function selectRoom(roomId) {
+    setRequestArea(false);
     setForm(f => ({ ...f, room: String(f.room) === String(roomId) ? '' : String(roomId) }));
+  }
+
+  function toggleRequestArea() {
+    setRequestArea(v => {
+      const next = !v;
+      // Requesting a new area deselects any room — the server assigns the
+      // default room so the dealer still lands somewhere active.
+      if (next) setForm(f => ({ ...f, room: '' }));
+      return next;
+    });
   }
 
   function roomLabel(room) {
@@ -109,6 +150,15 @@ export default function SignupPage() {
         room: form.room,
         referral_code: form.referral_code.trim(),
       };
+      // Single "City, State" field — last comma segment is the state for
+      // demand grouping; no comma means they typed just the state/region.
+      const areaText = form.requested_area.trim();
+      const wantsNewArea = requestArea && areaText.length > 0;
+      if (wantsNewArea) {
+        const parts = areaText.split(',').map(s => s.trim()).filter(Boolean);
+        payload.requested_room_state = parts.length > 1 ? parts[parts.length - 1] : areaText;
+        payload.requested_room_city = parts.length > 1 ? parts.slice(0, -1).join(', ') : '';
+      }
       const res = await fetch('/api/v1/client/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,6 +166,7 @@ export default function SignupPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      if (wantsNewArea) setRequestedAreaLabel(areaText);
       setSuccess(json.message || t("signup.accountCreated"));
     } catch (err) {
       setError(err.message);
@@ -156,6 +207,11 @@ export default function SignupPage() {
           </div>
           <h2 className="text-xl font-bold mb-2">{t("signup.checkEmail")}</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>{success}</p>
+          {requestedAreaLabel && (
+            <div className="rounded-lg px-4 py-3 mb-6 text-sm" style={{ background: 'rgba(18,183,106,0.08)', border: '1px solid rgba(18,183,106,0.25)', color: 'var(--ink)' }}>
+              {t("signup.waitlistNote", { area: requestedAreaLabel })}
+            </div>
+          )}
           <Link to="/client/login" className="hq-btn inline-block px-6 py-3">
             {t("signup.goToLogin")}
           </Link>
@@ -288,7 +344,7 @@ export default function SignupPage() {
                         key={room.id}
                         type="button"
                         onClick={() => selectRoom(room.id)}
-                        className="px-4 py-2 rounded-lg text-sm font-normal"
+                        className="px-4 py-2 rounded-lg text-sm font-normal inline-flex items-center gap-1.5"
                         style={{
                           background: selected ? 'var(--red-soft)' : 'var(--surface)',
                           border: selected ? '1px solid var(--red)' : '1px solid var(--line)',
@@ -297,9 +353,32 @@ export default function SignupPage() {
                         }}
                       >
                         {roomLabel(room)}
+                        {room.count >= 5 && (
+                          <span
+                            className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
+                            style={{
+                              background: selected ? 'var(--red)' : 'var(--red-soft)',
+                              color: selected ? '#fff' : 'var(--red)',
+                            }}
+                          >
+                            {t("signup.yardCount", { count: room.count })}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
+                  <button
+                    type="button"
+                    onClick={toggleRequestArea}
+                    className="px-4 py-2 rounded-lg text-sm font-normal"
+                    style={{
+                      background: requestArea ? 'var(--red-soft)' : 'transparent',
+                      border: requestArea ? '1px solid var(--red)' : '1px dashed var(--line)',
+                      color: requestArea ? 'var(--red)' : 'var(--muted)',
+                    }}
+                  >
+                    + {t("signup.areaNotListed")}
+                  </button>
                 </div>
                 {hiddenRoomCount > 0 && (
                   <button
@@ -316,6 +395,24 @@ export default function SignupPage() {
                   >
                     {showMoreRooms ? t("signup.showFewerRooms") : t("signup.showMoreRooms", { count: hiddenRoomCount })}
                   </button>
+                )}
+                {requestArea && (
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      value={form.requested_area}
+                      onChange={update('requested_area')}
+                      onBlur={trimField('requested_area')}
+                      maxLength={120}
+                      required
+                      autoFocus
+                      className="hq-input"
+                      placeholder={t("signup.requestAreaPlaceholder")}
+                    />
+                    <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>
+                      {t("signup.requestAreaHint")}
+                    </p>
+                  </div>
                 )}
               </div>
             )}

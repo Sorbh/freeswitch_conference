@@ -17,10 +17,16 @@ import {
 } from './db/accounts.js';
 import { getAllRooms, getRoom, createRoom, updateRoom, deleteRoom } from './db/rooms.js';
 import {
+    createRoomRequest, getRoomRequests, getRoomRequestStats,
+    updateRoomRequestStatus, getPendingRoomRequestsByState,
+    getPendingRoomRequestByAccount,
+} from './db/roomRequests.js';
+import {
     logBroadcast, getBroadcastStats, getRecentBroadcasts, getPaginatedBroadcasts,
     getLatestBroadcast, getHourlyBroadcasts, getTimelineBroadcasts,
     generateBroadcastShareToken, revokeBroadcastShareToken,
     getBroadcastByShareToken, getBroadcastById, getBroadcastByRecordingPath,
+    updateBroadcastRecordingPath,
     updateBroadcastTranscription, updateBroadcastLocalTranscription, updateBroadcastPartDetails,
     markBroadcastHasPartsRequest,
 } from './db/broadcasts.js';
@@ -148,6 +154,13 @@ db.updateBroadcastLocalTranscription = updateBroadcastLocalTranscription;
 db.updateBroadcastPartDetails = updateBroadcastPartDetails;
 db.markBroadcastHasPartsRequest = markBroadcastHasPartsRequest;
 db.getBroadcastByRecordingPath = getBroadcastByRecordingPath;
+db.updateBroadcastRecordingPath = updateBroadcastRecordingPath;
+db.createRoomRequest = createRoomRequest;
+db.getRoomRequests = getRoomRequests;
+db.getRoomRequestStats = getRoomRequestStats;
+db.updateRoomRequestStatus = updateRoomRequestStatus;
+db.getPendingRoomRequestsByState = getPendingRoomRequestsByState;
+db.getPendingRoomRequestByAccount = getPendingRoomRequestByAccount;
 db.getAdminByEmail = getAdminByEmail;
 db.getAdminById = getAdminById;
 db.getAllAdmins = getAllAdmins;

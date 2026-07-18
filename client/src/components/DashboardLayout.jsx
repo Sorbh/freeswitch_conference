@@ -326,6 +326,14 @@ export default function DashboardLayout() {
       setConnState('error');
       setConnError(msg || t('layout.loginFailed'));
     }
+    function handleHotlineError(err) {
+      // 401 from the SIP client's login/account fetch = dead session (expired
+      // token or deleted account) — same exit as apiFetch's TOKEN_EXPIRED path.
+      if (err?.status === 401) {
+        logout();
+        window.location.replace('/client/login?session=expired');
+      }
+    }
     window.onHotlineReady = function () {
       if (window.hotlineClient?.isConnected()) {
         setConnState('connected');
@@ -360,6 +368,7 @@ export default function DashboardLayout() {
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
     window.onHotlineLoginFailed = handleLoginFailed;
+    window.onHotlineError = handleHotlineError;
     window.onHotlineDirectCallState = handleDirectCallState;
     window.onHotlineListenOnly = handleListenOnly;
     window.onHotlineMonitorMode = handleMonitorMode;
@@ -388,6 +397,7 @@ export default function DashboardLayout() {
       if (window.onHotlineCallState === handleCallState) delete window.onHotlineCallState;
       if (window.onHotlineMuteState === handleMuteState) delete window.onHotlineMuteState;
       if (window.onHotlineLoginFailed === handleLoginFailed) delete window.onHotlineLoginFailed;
+      if (window.onHotlineError === handleHotlineError) delete window.onHotlineError;
       if (window.onHotlineDirectCallState === handleDirectCallState) delete window.onHotlineDirectCallState;
       if (window.onHotlineListenOnly === handleListenOnly) delete window.onHotlineListenOnly;
       if (window.onHotlineMonitorMode === handleMonitorMode) delete window.onHotlineMonitorMode;

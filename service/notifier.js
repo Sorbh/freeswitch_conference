@@ -78,7 +78,9 @@ function _buildCaption(template, vars) {
 function _ensureOgg(recordingPath) {
     return new Promise((resolve) => {
         if (!recordingPath || !fs.existsSync(recordingPath)) return resolve(null);
-        const oggPath = recordingPath.replace(/\.wav$/, '.ogg');
+        // Recordings may be .wav (fresh) or .mp3 (archived) — either converts to ogg
+        const oggPath = recordingPath.replace(/\.(wav|mp3)$/, '.ogg');
+        if (oggPath === recordingPath) return resolve(null);
         if (fs.existsSync(oggPath)) return resolve(oggPath);
         execFile('ffmpeg', ['-y', '-i', recordingPath, '-c:a', 'libopus', '-b:a', '64k', oggPath], { timeout: 60000 }, (err) => {
             if (err) {

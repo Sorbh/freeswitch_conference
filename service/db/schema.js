@@ -435,6 +435,22 @@ export function init() {
     `);
 
     sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS room_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account_id INTEGER,
+            email TEXT,
+            requested_city TEXT,
+            requested_state TEXT,
+            message TEXT,
+            source TEXT DEFAULT 'dashboard',
+            status TEXT DEFAULT 'pending',
+            room_id INTEGER,
+            created_at INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_room_requests_status ON room_requests(status);
+    `);
+
+    sqlite.exec(`
         CREATE TABLE IF NOT EXISTS push_subscriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             account_id INTEGER NOT NULL,
