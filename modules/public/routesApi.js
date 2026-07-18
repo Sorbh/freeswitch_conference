@@ -272,7 +272,19 @@ function _ensurePublicBroadcastListeners() {
 
 publicRouter.get('/broadcasts/latest', (req, res) => {
     try {
-        res.json({ status: true, data: _latestPublicBroadcast() });
+        // `recent`: latest + previous recorded broadcasts, share-tokenized, so
+        // the landing page can prefetch their audio. Additive — `data` unchanged.
+        const recent = global.db.getRecentBroadcasts(10)
+            .filter(b => b.recording_path)
+            .slice(0, 4)
+            .map(b => {
+                const full = global.db.getBroadcastById(b.id);
+                if (!full) return null;
+                if (!full.share_token) full.share_token = global.db.generateBroadcastShareToken(full.id);
+                return _publicBroadcast(full);
+            })
+            .filter(Boolean);
+        res.json({ status: true, data: _latestPublicBroadcast(), recent });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

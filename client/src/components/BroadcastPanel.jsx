@@ -75,10 +75,32 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
   const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState(null);
   const [playingId, setPlayingId] = useState(null);
+  const [bufferingId, setBufferingId] = useState(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const audioRef = useRef(null);
   const feedStartedRef = useRef(false);
+  const prefetchedRef = useRef(new Set());
+
+  // Warm the browser HTTP cache for the recordings people most often tap —
+  // the audio endpoint serves immutable+max-age, so a prefetched broadcast
+  // plays instantly from cache. Sequential to keep mobile bandwidth polite.
+  function prefetchAudio(items) {
+    const targets = (items || [])
+      .filter(b => b && b.id && (b.has_recording || b.recording_path))
+      .slice(0, 10)
+      .filter(b => !prefetchedRef.current.has(b.id));
+    if (targets.length === 0) return;
+    targets.forEach(b => prefetchedRef.current.add(b.id));
+    (async () => {
+      for (const b of targets) {
+        try {
+          const res = await fetch('/api/v1/client/broadcasts/' + b.id + '/audio?token=' + token, { priority: 'low' });
+          if (res.ok) await res.blob(); // drain so the full file lands in cache
+        } catch {}
+      }
+    })();
+  }
 
   // Register broadcast callbacks + start feed when ready
   useEffect(() => {
@@ -89,10 +111,12 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
       setBroadcasts(data.data || []);
       setTotal(data.total || 0);
       setPage(1);
+      prefetchAudio(data.data);
     }
     function handleBroadcast(data) {
       setBroadcasts(prev => [data.data, ...prev]);
       setTotal(prev => prev + 1);
+      prefetchAudio([data.data]);
     }
     function tryStart() {
       if (feedStartedRef.current) return;
@@ -135,14 +159,20 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
     if (playingId === b.id) {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setPlayingId(null);
+      setBufferingId(null);
       return;
     }
     if (audioRef.current) { audioRef.current.pause(); }
     const audio = new Audio('/api/v1/client/broadcasts/' + b.id + '/audio?token=' + token);
-    audio.play().catch(() => {});
-    audio.onended = () => setPlayingId(null);
+    // Spinner from tap until audio actually starts (and again on mid-play stalls)
+    audio.onplaying = () => setBufferingId(prev => (prev === b.id ? null : prev));
+    audio.onwaiting = () => setBufferingId(b.id);
+    audio.onerror = () => { setBufferingId(null); setPlayingId(null); };
+    audio.onended = () => { setPlayingId(null); setBufferingId(null); };
+    audio.play().catch(() => { setBufferingId(null); setPlayingId(null); });
     audioRef.current = audio;
     setPlayingId(b.id);
+    setBufferingId(b.id);
   }
 
   function callExtension(ext) {
@@ -206,6 +236,7 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
             b={b}
             expanded={expandedId != null && expandedId === b.id}
             playing={playingId != null && playingId === b.id}
+            buffering={bufferingId != null && bufferingId === b.id}
             onToggle={() => setExpandedId(prev => prev === b.id ? null : b.id)}
             onPlay={e => playAudio(e, b)}
             onCall={callExtension}
@@ -231,7 +262,7 @@ export default function BroadcastPanel({ rooms = [], collapsed, onToggle, hideHe
   );
 }
 
-function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
+function BroadcastRow({ b, expanded, playing, buffering, onToggle, onPlay, onCall }) {
   const { t } = useTranslation('dashboard');
   const participants = parseParticipants(b.participants);
   const broadcaster = participants[0];
@@ -284,7 +315,7 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
               background: playing ? 'var(--ink)' : (isAnswered ? 'var(--green)' : 'var(--red)'),
             }}
           >
-            {playing ? <PauseIcon /> : <PlayIcon />}
+            {buffering ? <SpinnerIcon /> : playing ? <PauseIcon /> : <PlayIcon />}
           </button>
         ) : (
           <div
@@ -404,6 +435,14 @@ function BroadcastRow({ b, expanded, playing, onToggle, onPlay, onCall }) {
         </div>
       )}
     </div>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <path d="M21 12a9 9 0 1 1-6.2-8.56" />
+    </svg>
   );
 }
 

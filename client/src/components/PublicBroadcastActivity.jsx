@@ -242,6 +242,26 @@ export default function PublicBroadcastActivity() {
   const [dismissedKey, setDismissedKey] = useState(null);
   const audioContextRef = useRef(null);
   const noticeTimersRef = useRef(new Set());
+  const prefetchedRef = useRef(new Set());
+
+  // Warm the browser cache for the latest recordings — the public audio
+  // endpoint serves immutable+max-age, so the /b/<token> share page (waveform
+  // fetch + player, same URL) starts instantly. Sequential + low priority.
+  const prefetchAudio = useCallback((items) => {
+    const targets = (items || [])
+      .filter((b) => b && b.token && b.has_recording)
+      .filter((b) => !prefetchedRef.current.has(b.token));
+    if (targets.length === 0) return;
+    targets.forEach((b) => prefetchedRef.current.add(b.token));
+    (async () => {
+      for (const b of targets) {
+        try {
+          const res = await fetch(`/api/v1/public/broadcast/${b.token}/audio`, { priority: "low" });
+          if (res.ok) await res.blob(); // drain so the full file lands in cache
+        } catch {}
+      }
+    })();
+  }, []);
 
   const unlockSound = useCallback(() => {
     if (audioContextRef.current) {
@@ -274,7 +294,11 @@ export default function PublicBroadcastActivity() {
   useEffect(() => {
     fetch("/api/v1/public/broadcasts/latest")
       .then((r) => r.json())
-      .then((p) => { if (p.status) setLatest(p.data || null); })
+      .then((p) => {
+        if (!p.status) return;
+        setLatest(p.data || null);
+        prefetchAudio(Array.isArray(p.recent) && p.recent.length ? p.recent : [p.data]);
+      })
       .catch(() => {})
       .finally(() => setLoaded(true));
 
@@ -311,6 +335,7 @@ export default function PublicBroadcastActivity() {
         }
         if (event.type === "broadcast_finished" && event.data) {
           setLatest(event.data);
+          prefetchAudio([event.data]);
         }
       } catch {}
     };
@@ -322,7 +347,7 @@ export default function PublicBroadcastActivity() {
       noticeTimersRef.current.clear();
       audioContextRef.current?.close?.().catch(() => {});
     };
-  }, [showNotice, unlockSound]);
+  }, [showNotice, unlockSound, prefetchAudio]);
 
   const responders = getResponderNames(latest);
 
