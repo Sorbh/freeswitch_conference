@@ -871,7 +871,21 @@ import "./jssip.bundle.js";
             if (accountData.web_takeover) {
                 monitorMode = false;
                 console.log('[SIP] web_takeover active — skipping monitor mode, will SIP register');
+            } else if (!monitorMode && accountData.has_yealink) {
+                // Yealink-equipped account with takeover OFF: the browser NEVER
+                // SIP-registers — monitor mode only, the Yealink owns the call.
+                // If the phone is offline right now, raise the takeover modal so
+                // the user can opt in; "Take over" (web_takeover on) is the only
+                // way this browser registers. If the phone is online, stay quiet:
+                // it holds or will reconnect to the call on its own.
+                monitorMode = true;
+                notifyMonitorMode();
+                console.log('[SIP] Monitor mode — Yealink account, takeover off (yealink ' + (accountData.yealink_online ? 'online' : 'offline') + '), no SIP registration');
+                if (!accountData.yealink_online && typeof window.onHotlineYealinkLost === 'function') {
+                    try { window.onHotlineYealinkLost({ type: 'yealink_lost', reason: 'login' }); } catch (e) { }
+                }
             } else if (!monitorMode && accountData.connection_state === 'connected' && accountData.client_type === 'yealink') {
+                // Non-YMCS accounts whose Yealink holds the call (no has_yealink flag)
                 monitorMode = true;
                 notifyMonitorMode();
                 console.log('[SIP] Monitor mode — Yealink already connected, SSE only');
