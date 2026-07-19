@@ -23,7 +23,10 @@
     "logout": "Cerrar sesión",
     "fullscreenUnsupported": "Este navegador no permite pantalla completa. Use Agregar a pantalla de inicio para la mejor vista en el celular.",
     "fullscreenFailed": "No se pudo activar la pantalla completa. Toque el botón otra vez.",
-    "ptt": { "hold": "Mantener para Hablar", "live": "En Vivo — Suelta para Silenciar" },
+    "ptt": {
+      "hold": "Mantener para Hablar",
+      "live": "En Vivo — Suelta para Silenciar"
+    },
     "loginFailed": "No se pudo iniciar sesión",
     "gotIt": "Entendido",
     "cancel": "Cancelar",
@@ -99,6 +102,25 @@
       "textShort": "Reciba un <b>sitio web gratis</b>",
       "request": "Solicitar",
       "dismiss": "Descartar"
+    },
+    "deskPhone": "Yealink",
+    "deskPhoneOnline": "Teléfono de escritorio Yealink conectado",
+    "deskPhoneOffline": "Teléfono de escritorio Yealink desconectado",
+    "yealinkLost": {
+      "title": "Teléfono Yealink desconectado",
+      "body": "Su teléfono de escritorio se desconectó de la línea. Tome la llamada desde este navegador o espere a que el teléfono se reconecte.",
+      "note": "Mientras espera, estará fuera de la línea y no escuchará llamadas. Al tomar el control se conecta de inmediato; podrá devolver la llamada al teléfono cuando vuelva.",
+      "takeOver": "Tomar control en la web",
+      "takingOver": "Conectando…",
+      "wait": "Esperar al teléfono",
+      "tookOver": "Está conectado desde el navegador",
+      "takeOverFailed": "No se pudo tomar el control"
+    },
+    "yealinkBack": {
+      "title": "Su teléfono Yealink está de nuevo en línea",
+      "body": "Ahora está en el navegador. ¿Devolver la llamada a su teléfono de escritorio?",
+      "release": "Devolver al teléfono",
+      "released": "Llamada movida a su teléfono de escritorio"
     }
   },
   "conference": {

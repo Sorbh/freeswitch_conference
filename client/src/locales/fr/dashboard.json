@@ -23,7 +23,10 @@
     "logout": "Deconnexion",
     "fullscreenUnsupported": "Le plein ecran n'est pas pris en charge par ce navigateur. Utilisez Ajouter a l'ecran d'accueil pour un meilleur affichage mobile.",
     "fullscreenFailed": "Le passage en plein ecran a echoue. Appuyez a nouveau sur le bouton.",
-    "ptt": { "hold": "Maintenir pour Parler", "live": "En Direct — Relâcher pour Couper" },
+    "ptt": {
+      "hold": "Maintenir pour Parler",
+      "live": "En Direct — Relâcher pour Couper"
+    },
     "loginFailed": "Echec de la connexion",
     "gotIt": "Compris",
     "cancel": "Annuler",
@@ -99,6 +102,25 @@
       "textShort": "Obtenez un <b>site web gratuit</b>",
       "request": "Demander",
       "dismiss": "Fermer"
+    },
+    "deskPhone": "Yealink",
+    "deskPhoneOnline": "Téléphone de bureau Yealink connecté",
+    "deskPhoneOffline": "Téléphone de bureau Yealink hors ligne",
+    "yealinkLost": {
+      "title": "Téléphone Yealink déconnecté",
+      "body": "Votre téléphone de bureau a quitté la ligne. Reprenez l'appel depuis ce navigateur ou attendez que le téléphone se reconnecte.",
+      "note": "Pendant l'attente, vous êtes hors ligne et n'entendrez pas les appels. La reprise vous connecte immédiatement — vous pourrez rendre l'appel au téléphone à son retour.",
+      "takeOver": "Reprendre sur le web",
+      "takingOver": "Connexion…",
+      "wait": "Attendre le téléphone",
+      "tookOver": "Vous êtes connecté depuis le navigateur",
+      "takeOverFailed": "Échec de la reprise"
+    },
+    "yealinkBack": {
+      "title": "Votre téléphone Yealink est de nouveau en ligne",
+      "body": "Vous êtes actuellement sur le navigateur. Rendre l'appel à votre téléphone de bureau ?",
+      "release": "Rendre au téléphone",
+      "released": "Appel transféré vers votre téléphone de bureau"
     }
   },
   "conference": {

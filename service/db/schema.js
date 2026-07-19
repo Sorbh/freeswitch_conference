@@ -155,10 +155,16 @@ export function init() {
         ['err_fallback_stage', "ALTER TABLE users ADD COLUMN err_fallback_stage INTEGER DEFAULT 0"],
         ['err_fallback_at', "ALTER TABLE users ADD COLUMN err_fallback_at INTEGER"],
         ['web_takeover', "ALTER TABLE users ADD COLUMN web_takeover INTEGER DEFAULT 0"],
-        ['web_takeover_contact', "ALTER TABLE users ADD COLUMN web_takeover_contact TEXT"],
+        ['yealink_online', "ALTER TABLE users ADD COLUMN yealink_online INTEGER DEFAULT 0"],
     ];
     for (const [col, sql] of userMigrations) {
         if (!userCols.includes(col)) sqlite.exec(sql);
+    }
+
+    // web_takeover_contact was never written by any code path (contacts are
+    // always resolved live via sofia_contact) — drop it where it exists.
+    if (userCols.includes('web_takeover_contact')) {
+        sqlite.exec("ALTER TABLE users DROP COLUMN web_takeover_contact");
     }
 
     // Backfill: cloud-STT extractions before the markBroadcastHasPartsRequest fix left

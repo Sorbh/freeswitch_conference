@@ -92,6 +92,23 @@ async function _handleRegistration(event) {
     if (Object.keys(existingUser).length > 0) {
         const wasOffline = !existingUser.online;
 
+        // Yealink presence tracking: flip yealink_online on the offline→online
+        // transition only (Yealinks re-REGISTER every refresh interval — without
+        // the guard every refresh would re-emit the SSE and re-toast the panel).
+        const yealinkCameOnline = clientType === 'yealink' && !existingUser.yealinkOnline;
+        if (yealinkCameOnline) {
+            existingUser.yealinkOnline = true;
+            sendClientEventToUser(userName, { type: 'device_status', yealink_online: 1 });
+            // Web holds the call with takeover ON: the user explicitly chose the
+            // browser, so no automatic reclaim — offer the release instead.
+            if (existingUser.webTakeover
+                && existingUser.connectionState === 'connected'
+                && existingUser.clientType === 'web') {
+                logUser(userName, 'REG', `Yealink back while web holds the call (takeover on) — offering release`);
+                sendClientEventToUser(userName, { type: 'yealink_available' });
+            }
+        }
+
         // Web re-takeover: web_takeover is ON and the Yealink currently holds the
         // conference leg — the returning web client wins. Hard switch: kill the
         // Yealink leg here, then fall through to the normal update path whose
@@ -161,6 +178,7 @@ async function _handleRegistration(event) {
             // if (wasOffline) global.db.logOnlineStatus(userName, 'online');
             // if (global.alerting) global.alerting.stopCriticalAlert(userName);
             // if (wasOffline) global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+            if (yealinkCameOnline) global.db.updateUserInfo(userName, { yealinkOnline: true });
             logUser(userName, 'REG', `${clientType} registered — ${existingUser.clientType} holds the call, liveness only`);
             return;
         }
@@ -216,6 +234,7 @@ async function _handleRegistration(event) {
         payment: false,
         userAgent: userAgent,
         clientType: clientType,
+        yealinkOnline: clientType === 'yealink',
         registrationState: 'registered',
         callerIdName: `${account.company_name || ''} / ${account.display_name || email}`,
     };
@@ -228,6 +247,24 @@ async function _handleRegistration(event) {
 
     global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
     ensureInConference(userName);
+}
+
+// A Yealink going away (unregister or expire) flips yealink_online and tells
+// the browser panel via SSE — regardless of whether the departure also tears
+// down a call. `persist` is for paths that never reach their own setUserInfo
+// (the non-holder-departure ignore path).
+function _markYealinkOffline(userName, existingUser, departedType, persist) {
+    if (departedType !== 'yealink' || !existingUser.yealinkOnline) return;
+    existingUser.yealinkOnline = false;
+    if (persist) global.db.updateUserInfo(userName, { yealinkOnline: false });
+    sendClientEventToUser(userName, { type: 'device_status', yealink_online: 0 });
+}
+
+// Accounts are considered Yealink-equipped when linked to a YMCS device —
+// gates the takeover prompts so pure-web members keep the silent behavior.
+function _accountHasYealink(userName) {
+    const account = global.db.getAccountByEmail(userName.replace(/^sip:/, ''));
+    return !!(account && account.ymcs_device_id);
 }
 
 async function _handleUnregister(event) {
@@ -246,11 +283,13 @@ async function _handleUnregister(event) {
     // down the active call (web page refresh while the Yealink talks, dormant
     // Yealink rebooting while web holds the call).
     if (_isNonHolderDeparture(existingUser, departedType)) {
+        _markYealinkOffline(userName, existingUser, departedType, true);
         logUser(userName, 'REG', `UNREGISTER from ${departedType} — ${existingUser.clientType} connected, ignoring`);
         return;
     }
 
     logUser(userName, 'REG', 'UNREGISTER');
+    _markYealinkOffline(userName, existingUser, departedType, false);
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
     const wasConnected = existingUser.connectionState === global.ConnectionState.CONNECTED ||
@@ -295,6 +334,21 @@ async function _fallbackToOtherDevice(userName, trigger, departedType) {
     try {
         const userInfo = global.db.getUserInfo(userName);
         if (Object.keys(userInfo).length === 0) return;
+
+        // Yealink-equipped account lost its Yealink: don't silently move the
+        // call to the browser — show the takeover modal and wait for the member
+        // to choose (yealink_lost → web panel). Automatic fallback only remains
+        // for accounts without a YMCS-linked phone, or when no browser tab is
+        // listening (nobody to ask).
+        if (departedType === 'yealink' && _accountHasYealink(userName)) {
+            const delivered = sendClientEventToUser(userName, { type: 'yealink_lost', reason: trigger });
+            if (delivered > 0) {
+                global.db.logEvent('yealink_lost_prompt', userName, userInfo.currentRoom || userInfo.room, 'Yealink went away — waiting for web takeover choice');
+                logUser(userName, 'REG', `Yealink departed (${trigger}) — prompting browser instead of auto-fallback`);
+                return;
+            }
+            logUser(userName, 'REG', `Yealink departed (${trigger}) — no browser listening, using auto-fallback`);
+        }
 
         // Never probe the device that just departed: its expire event fires
         // BEFORE FS purges the registration row, so sofia_contact can still
@@ -351,11 +405,13 @@ async function _handleExpire(event) {
     const departedType = _deviceTypeFromEvent(event);
 
     if (_isNonHolderDeparture(existingUser, departedType)) {
+        _markYealinkOffline(userName, existingUser, departedType, true);
         logUser(userName, 'REG', `EXPIRED from ${departedType} — ${existingUser.clientType} connected, ignoring`);
         return;
     }
 
     logUser(userName, 'REG', 'EXPIRED');
+    _markYealinkOffline(userName, existingUser, departedType, false);
 
     // Mark offline BEFORE ending call — prevents _onCallHangup from retrying
     const wasConnected = existingUser.connectionState === global.ConnectionState.CONNECTED ||

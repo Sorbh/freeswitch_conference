@@ -105,6 +105,9 @@ export default function DashboardLayout() {
   const [extensionHelpOpen, setExtensionHelpOpen] = useState(false);
   const [roomChangeHelpOpen, setRoomChangeHelpOpen] = useState(false);
   const [gestureActive, setGestureActive] = useState(false);
+  const [yealinkOnline, setYealinkOnline] = useState(false);
+  const [yealinkLostOpen, setYealinkLostOpen] = useState(false);
+  const [takingOver, setTakingOver] = useState(false);
   const [broadcastPanelOpen, setBroadcastPanelOpen] = useState(() => {
     try { return localStorage.getItem('hq_broadcast_panel') !== '0'; } catch { return true; }
   });
@@ -290,6 +293,11 @@ export default function DashboardLayout() {
     }
   }, [account, token]);
 
+  // Seed the desk-phone indicator from the account payload; SSE keeps it live
+  useEffect(() => {
+    if (account) setYealinkOnline(!!account.yealink_online);
+  }, [account]);
+
   // Register room change callback — called by redline_sip_client.js / redline_callerid.js
   useEffect(() => {
     window.onHotlineRoomChange = async (data) => {
@@ -371,6 +379,31 @@ export default function DashboardLayout() {
         toast.success(data?.reason || 'Your hotline access has been restored', { duration: 10000 });
       }
     }
+    function handleDeviceStatus(data) {
+      const online = !!data?.yealink_online;
+      setYealinkOnline(online);
+      // Yealink came back while the disconnect modal is up — nothing to decide
+      if (online) setYealinkLostOpen(false);
+    }
+    function handleYealinkLost() {
+      setYealinkOnline(false);
+      setYealinkLostOpen(true);
+    }
+    function handleYealinkAvailable() {
+      setYealinkOnline(true);
+      toast(t('layout.yealinkBack.title', 'Your Yealink desk phone is back online'), {
+        description: t('layout.yealinkBack.body', 'You are on the browser right now. Release the call back to your desk phone?'),
+        duration: 20000,
+        action: {
+          label: t('layout.yealinkBack.release', 'Release to phone'),
+          onClick: () => {
+            window.hotlineClient?.releaseTakeover?.()
+              .then(() => toast.success(t('layout.yealinkBack.released', 'Call moved to your desk phone')))
+              .catch(err => toast.error(err?.message || 'Release failed'));
+          },
+        },
+      });
+    }
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
     window.onHotlineLoginFailed = handleLoginFailed;
@@ -380,6 +413,9 @@ export default function DashboardLayout() {
     window.onHotlineMonitorMode = handleMonitorMode;
     window.onHotlineUserLogout = handleUserLogout;
     window.onHotlineKickout = handleKickout;
+    window.onHotlineDeviceStatus = handleDeviceStatus;
+    window.onHotlineYealinkLost = handleYealinkLost;
+    window.onHotlineYealinkAvailable = handleYealinkAvailable;
     const checkInterval = setInterval(() => {
       if (window.hotlineClient) {
         if (window.hotlineClient.isConnected()) {
@@ -409,6 +445,9 @@ export default function DashboardLayout() {
       if (window.onHotlineMonitorMode === handleMonitorMode) delete window.onHotlineMonitorMode;
       if (window.onHotlineUserLogout === handleUserLogout) delete window.onHotlineUserLogout;
       if (window.onHotlineKickout === handleKickout) delete window.onHotlineKickout;
+      if (window.onHotlineDeviceStatus === handleDeviceStatus) delete window.onHotlineDeviceStatus;
+      if (window.onHotlineYealinkLost === handleYealinkLost) delete window.onHotlineYealinkLost;
+      if (window.onHotlineYealinkAvailable === handleYealinkAvailable) delete window.onHotlineYealinkAvailable;
     };
   }, []);
 
@@ -468,6 +507,20 @@ export default function DashboardLayout() {
     setPendingRoomChange(null);
     logout();
     navigate('/client/login');
+  }
+
+  async function confirmWebTakeover() {
+    if (takingOver) return;
+    setTakingOver(true);
+    try {
+      await window.hotlineClient?.takeOver?.();
+      setYealinkLostOpen(false);
+      toast.success(t('layout.yealinkLost.tookOver', 'You are connected from the browser'));
+    } catch (err) {
+      toast.error(err?.message || t('layout.yealinkLost.takeOverFailed', 'Takeover failed'));
+    } finally {
+      setTakingOver(false);
+    }
   }
 
   async function handleRoomChange(newRoomId) {
@@ -701,6 +754,25 @@ export default function DashboardLayout() {
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Yealink desk phone status — only for YMCS-linked accounts */}
+              {!!account?.has_yealink && (
+                <div
+                  title={yealinkOnline
+                    ? t('layout.deskPhoneOnline', 'Yealink desk phone connected')
+                    : t('layout.deskPhoneOffline', 'Yealink desk phone offline')}
+                  className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg"
+                  style={{ border: '1px solid var(--line)', color: yealinkOnline ? 'var(--ink)' : 'var(--muted)' }}
+                >
+                  <PhoneIcon size={13} />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: yealinkOnline ? 'var(--green)' : '#9ca3af', boxShadow: yealinkOnline ? '0 0 0 3px rgba(18,183,106,0.15)' : 'none' }}
+                  />
+                  <span className="hidden md:inline text-[9px] font-bold tracking-widest uppercase" style={{ fontFamily: 'var(--mono)' }}>
+                    {t('layout.deskPhone', 'Yealink')}
+                  </span>
+                </div>
+              )}
               {/* Mobile broadcast panel toggle */}
               <button
                 onClick={() => setMobileBroadcastOpen(true)}
@@ -838,6 +910,14 @@ export default function DashboardLayout() {
         />
       )}
 
+      {yealinkLostOpen && (
+        <YealinkLostDialog
+          takingOver={takingOver}
+          onTakeOver={confirmWebTakeover}
+          onWait={() => setYealinkLostOpen(false)}
+        />
+      )}
+
       {pendingRoomChange && (
         <RoomChangeConfirmDialog
           currentRoom={currentRoom}
@@ -926,6 +1006,56 @@ function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changin
             style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
           >
             {t('layout.cancel')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function YealinkLostDialog({ takingOver, onTakeOver, onWait }) {
+  const { t } = useTranslation('dashboard');
+
+  return (
+    <div
+      className="fixed inset-0 z-[130] flex items-end md:items-center justify-center px-0 md:px-4 pt-6"
+      style={{ background: 'rgba(17,24,39,0.42)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="hq-card w-full md:max-w-md p-5 md:p-6 animate-fadeIn rounded-b-none md:rounded-b-[inherit] max-h-[calc(100vh-1rem)] overflow-auto"
+        style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        <div className="md:hidden w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--line)' }} />
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
+            <PhoneIcon size={19} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.yealinkLost.title', 'Yealink desk phone disconnected')}</h2>
+            <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
+              {t('layout.yealinkLost.body', 'Your desk phone dropped off the hotline. Take over the call from this browser, or wait for the desk phone to reconnect.')}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-xl px-4 py-3" style={{ background: 'var(--band)', border: '1px solid var(--line)' }}>
+          <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.45 }}>
+            {t('layout.yealinkLost.note', 'While you wait you are off the hotline and will not hear calls. Taking over connects you right away — you can release back to the desk phone when it returns.')}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-5">
+          <button type="button" onClick={onTakeOver} disabled={takingOver} className="hq-btn py-3">
+            {takingOver ? t('layout.yealinkLost.takingOver', 'Connecting…') : t('layout.yealinkLost.takeOver', 'Take over on web')}
+          </button>
+          <button
+            type="button"
+            onClick={onWait}
+            disabled={takingOver}
+            className="px-5 py-3 rounded-xl text-sm font-semibold"
+            style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
+          >
+            {t('layout.yealinkLost.wait', 'Wait for desk phone')}
           </button>
         </div>
       </div>

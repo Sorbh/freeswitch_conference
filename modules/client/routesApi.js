@@ -465,7 +465,9 @@ clientRouter.post("/login", async (req, res) => {
             safe.connection_state = userInfo.connectionState || 'ideal';
             safe.client_type = userInfo.clientType || 'unknown';
             safe.web_takeover = userInfo.webTakeover ? 1 : 0;
+            safe.yealink_online = userInfo.yealinkOnline ? 1 : 0;
         }
+        safe.has_yealink = account.ymcs_device_id ? 1 : 0;
         res.json({ status: true, token, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -650,7 +652,9 @@ clientRouter.get("/account", requireClientAuth, (req, res) => {
             safe.connection_state = userInfo.connectionState || 'ideal';
             safe.client_type = userInfo.clientType || 'unknown';
             safe.web_takeover = userInfo.webTakeover ? 1 : 0;
+            safe.yealink_online = userInfo.yealinkOnline ? 1 : 0;
         }
+        safe.has_yealink = account.ymcs_device_id ? 1 : 0;
         res.json({ status: true, data: safe });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
@@ -697,6 +701,24 @@ clientRouter.post("/web_takeover", requireClientAuth, async (req, res) => {
                     await global.freeswitch.hangupCall(yealinkUuid, userName).catch(() => {});
                 }
                 global.db.logEvent('web_retakeover', userName, fresh.currentRoom || fresh.room, 'Takeover button — call moved from Yealink to web');
+                initiateCall(userName);
+            }
+        } else if (userInfo.connectionState !== 'connected' && userInfo.connectionState !== 'connecting') {
+            // Takeover from the yealink_lost modal: nothing holds a call, and the
+            // Yealink's unregister marked the user offline — which blocks the call
+            // gate. If the web UA is already registered, revive and originate now;
+            // otherwise the client SIP-registers right after this call and the
+            // register path originates.
+            const webContact = await probeDeviceContact(userName, 'web');
+            if (webContact) {
+                const fresh = global.db.getUserInfo(userName);
+                fresh.online = true;
+                fresh.registrationState = 'registered';
+                fresh.connectionState = 'ideal';
+                fresh.mute = true;
+                global.db.setUserInfo(userName, fresh);
+                global.db.logOnlineStatus(userName, 'online');
+                global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
                 initiateCall(userName);
             }
         }

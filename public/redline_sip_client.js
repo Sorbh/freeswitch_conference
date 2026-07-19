@@ -577,6 +577,35 @@ import "./jssip.bundle.js";
                             notifyCallState('connected');
                             return;
                         }
+                        if (data.type === 'device_status') {
+                            // Live Yealink registration status for the panel indicator
+                            if (accountData) accountData.yealink_online = data.yealink_online ? 1 : 0;
+                            if (typeof window.onHotlineDeviceStatus === 'function') {
+                                try { window.onHotlineDeviceStatus(data); } catch (e) { }
+                            }
+                            return;
+                        }
+                        if (data.type === 'yealink_lost') {
+                            // Yealink went away — server is waiting for the user to
+                            // choose web takeover (modal in the dashboard) instead of
+                            // auto-falling back.
+                            console.log('[SIP] Yealink lost — server waiting for takeover choice:', data.reason || '');
+                            if (accountData) accountData.yealink_online = 0;
+                            if (typeof window.onHotlineYealinkLost === 'function') {
+                                try { window.onHotlineYealinkLost(data); } catch (e) { }
+                            }
+                            return;
+                        }
+                        if (data.type === 'yealink_available') {
+                            // Yealink came back while this browser holds the call with
+                            // takeover ON — dashboard offers "release to phone".
+                            console.log('[SIP] Yealink available again — release offer');
+                            if (accountData) accountData.yealink_online = 1;
+                            if (typeof window.onHotlineYealinkAvailable === 'function') {
+                                try { window.onHotlineYealinkAvailable(data); } catch (e) { }
+                            }
+                            return;
+                        }
                         if (data.type === 'exit_monitor') {
                             // Reverse of monitor_mode: the Yealink went away and no
                             // registration survives (monitor mode unregistered us).

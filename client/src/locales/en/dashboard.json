@@ -102,6 +102,25 @@
       "textShort": "Get a <b>free website</b>",
       "request": "Request",
       "dismiss": "Dismiss"
+    },
+    "deskPhone": "Yealink",
+    "deskPhoneOnline": "Yealink desk phone connected",
+    "deskPhoneOffline": "Yealink desk phone offline",
+    "yealinkLost": {
+      "title": "Yealink desk phone disconnected",
+      "body": "Your desk phone dropped off the hotline. Take over the call from this browser, or wait for the desk phone to reconnect.",
+      "note": "While you wait you are off the hotline and will not hear calls. Taking over connects you right away — you can release back to the desk phone when it returns.",
+      "takeOver": "Take over on web",
+      "takingOver": "Connecting…",
+      "wait": "Wait for desk phone",
+      "tookOver": "You are connected from the browser",
+      "takeOverFailed": "Takeover failed"
+    },
+    "yealinkBack": {
+      "title": "Your Yealink desk phone is back online",
+      "body": "You are on the browser right now. Release the call back to your desk phone?",
+      "release": "Release to phone",
+      "released": "Call moved to your desk phone"
     }
   },
   "conference": {

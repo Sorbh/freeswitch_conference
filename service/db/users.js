@@ -20,7 +20,7 @@ function setUserInfo(userName, userInfo) {
                 caller_id_name = ?, caller_id_html = ?, user_agent = ?, error = ?,
                 redline_data = ?, client_type = ?, registration_state = ?, reachable = ?,
                 err_fallback_stage = ?, err_fallback_at = ?,
-                web_takeover = ?, web_takeover_contact = ?,
+                web_takeover = ?, yealink_online = ?,
                 last_seen = COALESCE(?, last_seen),
                 updated_at = strftime('%s', 'now')
             WHERE user_name = ?
@@ -35,7 +35,8 @@ function setUserInfo(userName, userInfo) {
             userInfo.registrationState || 'unregistered',
             userInfo.reachable ? 1 : 0,
             userInfo.errFallbackStage || 0, userInfo.errFallbackAt || null,
-            userInfo.webTakeover ? 1 : 0, userInfo.webTakeoverContact || null,
+            userInfo.webTakeover ? 1 : 0,
+            userInfo.yealinkOnline ? 1 : 0,
             userInfo.lastSeen || null,
             userName
         );
@@ -48,7 +49,7 @@ function setUserInfo(userName, userInfo) {
                 last_connection_state_update, fs_channel_uuid, fs_member_id,
                 caller_id_name, caller_id_html, user_agent, error, redline_data, client_type,
                 registration_state, reachable, err_fallback_stage, err_fallback_at,
-                web_takeover, web_takeover_contact, last_seen
+                web_takeover, yealink_online, last_seen
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             userName, userInfo.userId, userInfo.contact, userInfo.mac, userInfo.ip, userInfo.port,
@@ -61,7 +62,8 @@ function setUserInfo(userName, userInfo) {
             userInfo.registrationState || 'unregistered',
             userInfo.reachable ? 1 : 0,
             userInfo.errFallbackStage || 0, userInfo.errFallbackAt || null,
-            userInfo.webTakeover ? 1 : 0, userInfo.webTakeoverContact || null,
+            userInfo.webTakeover ? 1 : 0,
+            userInfo.yealinkOnline ? 1 : 0,
             userInfo.lastSeen || null
         );
     }
@@ -173,7 +175,7 @@ function _rowToUserInfo(row) {
         errFallbackStage: row.err_fallback_stage || 0,
         errFallbackAt: row.err_fallback_at || null,
         webTakeover: !!row.web_takeover,
-        webTakeoverContact: row.web_takeover_contact || null,
+        yealinkOnline: !!row.yealink_online,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
