@@ -345,7 +345,7 @@ export default function MarketplacePage() {
       <style>{SITE_CSS}</style>
       <style>{PAGE_CSS}</style>
       <Seo
-        title="Used Auto Parts Wanted — Parts Marketplace | Hotline HQ"
+        title="Car Parts Wanted — Live Parts Marketplace | Hotline HQ"
         description="Browse unanswered used auto parts requests from 500+ dismantler yards across the US. Have the part they need? Respond and get connected directly."
         keywords="used auto parts, auto parts marketplace, car parts wanted, dismantler parts, junkyard parts, salvage auto parts, used car parts near me"
         path="/marketplace"
@@ -377,7 +377,7 @@ export default function MarketplacePage() {
                 <span className="mp-hero-label">unanswered part requests</span>
               </h1>
               <p className="mp-hero-sub">
-                Real broadcasts from the Hotline&nbsp;HQ voice network that still need a seller. Have the part? Respond and get connected.
+                Real broadcasts from the Hotline&nbsp;HQ <Link to="/own-a-hotline" className="mp-hero-sub-link">live voice network</Link> that still need a seller. Have the part? Respond and get connected.
               </p>
               <div className="mp-hero-stats">
                 <div className="mp-hero-stat">
@@ -574,6 +574,14 @@ const PAGE_CSS = `
   max-width: 560px;
   margin: 0;
   font-weight: 500;
+}
+.mp-hero-sub-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mp-hero-sub-link:hover {
+  color: var(--hot, #d92d20);
 }
 .mp-hero-stats {
   display: flex;
