@@ -27,7 +27,6 @@ const CONN_COLORS = {
 };
 
 const HOTLINE_SIP_CLIENT_URL = 'https://hotlinehq.online/redline_sip_client.js';
-const BROADCAST_HELP_SEEN_KEY = 'hq_broadcast_help_seen';
 const PROFILE_PROMPT_LOGIN_KEY = 'hq_profile_prompt_login';
 const PROFILE_PROMPT_HANDLED_KEY = 'hq_profile_prompt_handled_login';
 
@@ -101,9 +100,7 @@ export default function DashboardLayout() {
   const [profilePromptSaving, setProfilePromptSaving] = useState(false);
   const [profilePromptError, setProfilePromptError] = useState('');
   const [profilePromptHandled, setProfilePromptHandled] = useState(false);
-  const [broadcastHelpOpen, setBroadcastHelpOpen] = useState(false);
   const [extensionHelpOpen, setExtensionHelpOpen] = useState(false);
-  const [roomChangeHelpOpen, setRoomChangeHelpOpen] = useState(false);
   const [gestureActive, setGestureActive] = useState(false);
   const [yealinkOnline, setYealinkOnline] = useState(false);
   const [yealinkLostOpen, setYealinkLostOpen] = useState(false);
@@ -261,13 +258,6 @@ export default function DashboardLayout() {
     markProfilePromptHandledForLogin(account);
     setProfilePromptHandled(true);
   }, [account, profilePromptHandled]);
-
-  useEffect(() => {
-    if (!account || profilePromptOpen) return;
-    if (localStorage.getItem(BROADCAST_HELP_SEEN_KEY)) return;
-    const timer = window.setTimeout(() => setBroadcastHelpOpen(true), 600);
-    return () => window.clearTimeout(timer);
-  }, [account, profilePromptOpen]);
 
   useEffect(() => {
     if (!account || !token || sipInitRef.current) return;
@@ -501,9 +491,7 @@ export default function DashboardLayout() {
     clearProfilePromptSession();
     setProfilePromptHandled(false);
     setProfilePromptOpen(false);
-    setBroadcastHelpOpen(false);
     setExtensionHelpOpen(false);
-    setRoomChangeHelpOpen(false);
     setPendingRoomChange(null);
     logout();
     navigate('/client/login');
@@ -528,7 +516,6 @@ export default function DashboardLayout() {
     const nextRoom = rooms.find(r => String(r.id) === String(newRoomId));
     if (location.pathname === '/client/dashboard') {
       setRoomDropdownOpen(false);
-      setRoomChangeHelpOpen(false);
       setPendingRoomChange(nextRoom || { id: newRoomId, name: t('layout.roomFallback', { id: newRoomId }) });
       return;
     }
@@ -600,18 +587,6 @@ export default function DashboardLayout() {
     } finally {
       setProfilePromptSaving(false);
     }
-  }
-
-  function openRoomChangeHelp() {
-    setRoomDropdownOpen(false);
-    setRoomChangeHelpOpen(true);
-    setBroadcastHelpOpen(false);
-    setExtensionHelpOpen(false);
-  }
-
-  function closeBroadcastHelp(markSeen = true) {
-    if (markSeen) localStorage.setItem(BROADCAST_HELP_SEEN_KEY, '1');
-    setBroadcastHelpOpen(false);
   }
 
   function toggleBroadcastPanel() {
@@ -703,15 +678,6 @@ export default function DashboardLayout() {
                       >
                         {changingRoom ? t('layout.switching') : roomLabel}
                         <ChevronDownIcon />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={openRoomChangeHelp}
-                        title={t('layout.roomChangeHelpTitle')}
-                        className="w-5 h-5 rounded-md flex items-center justify-center transition-colors hover:bg-red-50"
-                        style={{ color: 'var(--muted)', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
-                      >
-                        <InfoIcon size={13} />
                       </button>
                     </div>
                     {roomDropdownOpen && rooms.length > 0 && (
@@ -890,24 +856,8 @@ export default function DashboardLayout() {
         />
       )}
 
-      {broadcastHelpOpen && (
-        <BroadcastHelpOverlay
-          connected={isConnected}
-          muted={muted}
-          onClose={() => closeBroadcastHelp(true)}
-        />
-      )}
-
       {extensionHelpOpen && (
         <ExtensionHelpModal onClose={() => setExtensionHelpOpen(false)} />
-      )}
-
-      {roomChangeHelpOpen && (
-        <RoomChangeHelpOverlay
-          currentRoom={currentRoom}
-          currentRoomId={currentRoomId}
-          onClose={() => setRoomChangeHelpOpen(false)}
-        />
       )}
 
       {yealinkLostOpen && (
@@ -1063,52 +1013,6 @@ function YealinkLostDialog({ takingOver, onTakeOver, onWait }) {
   );
 }
 
-function RoomChangeHelpOverlay({ currentRoom, currentRoomId, onClose }) {
-  const { t } = useTranslation('dashboard');
-  const currentLabel = currentRoom?.name || (currentRoomId ? t('layout.roomFallback', { id: currentRoomId }) : t('layout.currentRoomFallback'));
-
-  return (
-    <div className="fixed inset-0 z-[120] pointer-events-none">
-      <div
-        className="absolute inset-0"
-        style={{ background: 'rgba(17,24,39,0.18)', backdropFilter: 'blur(1px)' }}
-      />
-
-      <div
-        className="absolute left-8 top-20 md:left-[350px] md:top-24"
-        style={{ color: 'var(--red)', filter: 'drop-shadow(0 10px 22px rgba(217,45,32,0.2))' }}
-      >
-        <ArrowUpLeftIcon />
-      </div>
-
-      <div className="absolute left-4 right-4 top-36 md:left-[380px] md:right-auto md:top-40 md:w-96 pointer-events-auto">
-        <div className="hq-card p-5 animate-fadeIn" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)' }}>
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
-            <SwitchRoomIcon />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.roomChangeHelp.title')}</h2>
-            <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-              <Trans t={t} i18nKey="layout.roomChangeHelp.body" values={{ room: currentLabel }} components={{ b: <span className="font-semibold" style={{ color: 'var(--ink)' }} /> }} />
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          <HelpPoint title={t('layout.roomChangeHelp.point1Title')} text={t('layout.roomChangeHelp.point1Text')} />
-          <HelpPoint title={t('layout.roomChangeHelp.point2Title')} text={t('layout.roomChangeHelp.point2Text')} />
-          <HelpPoint title={t('layout.roomChangeHelp.point3Title')} text={t('layout.roomChangeHelp.point3Text')} />
-        </div>
-
-        <button type="button" onClick={onClose} className="hq-btn w-full py-3 mt-5">
-          {t('layout.gotIt')}
-        </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ExtensionHelpModal({ onClose }) {
   const { t } = useTranslation('dashboard');
@@ -1156,59 +1060,6 @@ function HelpPoint({ title, text }) {
   );
 }
 
-function BroadcastHelpOverlay({ connected, muted, onClose }) {
-  const { t } = useTranslation('dashboard');
-  return (
-    <div className="fixed inset-0 z-[110] pointer-events-none">
-      <div
-        className="absolute inset-0"
-        style={{ background: 'rgba(17,24,39,0.18)', backdropFilter: 'blur(1px)' }}
-      />
-
-      <div
-        className="absolute right-12 bottom-28 hidden md:block"
-        style={{ color: 'var(--red)', filter: 'drop-shadow(0 10px 22px rgba(217,45,32,0.22))' }}
-      >
-        <ArrowDownRightIcon />
-      </div>
-      <div
-        className="absolute left-1/2 -translate-x-1/2 bottom-[calc(60px+env(safe-area-inset-bottom)+88px)] md:hidden"
-        style={{ color: 'var(--red)', filter: 'drop-shadow(0 8px 18px rgba(217,45,32,0.2))' }}
-      >
-        <ArrowDownIcon />
-      </div>
-
-      <div className="absolute left-4 right-4 bottom-[calc(60px+env(safe-area-inset-bottom)+126px)] md:left-auto md:right-28 md:bottom-52 md:w-80 pointer-events-auto">
-        <div className="hq-card p-5" style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)' }}>
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red-soft)', color: 'var(--red)' }}>
-              <MicOnIcon size={18} />
-            </div>
-            <div>
-              <h2 className="text-base font-bold" style={{ color: 'var(--ink)' }}>{t('layout.broadcastHelp.title')}</h2>
-              <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
-                {t('layout.broadcastHelp.body')}
-              </p>
-              {!connected && (
-                <p className="text-xs mt-2" style={{ color: 'var(--red)' }}>
-                  {t('layout.broadcastHelp.notConnected')}
-                </p>
-              )}
-              {connected && (
-                <p className="text-xs mt-2" style={{ color: muted ? 'var(--muted)' : 'var(--green)' }}>
-                  {muted ? t('layout.broadcastHelp.micStateMuted') : t('layout.broadcastHelp.micStateLive')}
-                </p>
-              )}
-            </div>
-          </div>
-          <button type="button" onClick={onClose} className="hq-btn w-full py-2.5 mt-4">
-            {t('layout.gotIt')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ProfileCompletionModal({ fields, form, saving, error, onChange, onSave, onSkip }) {
   const { t } = useTranslation('dashboard');
@@ -1775,15 +1626,6 @@ function ChevronDownIcon() {
   );
 }
 
-function InfoIcon({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="16" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  );
-}
 
 function SwitchRoomIcon() {
   return (
@@ -1796,33 +1638,8 @@ function SwitchRoomIcon() {
   );
 }
 
-function ArrowUpLeftIcon() {
-  return (
-    <svg width="70" height="70" viewBox="0 0 70 70" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M57 57C43 35 27 22 12 14" />
-      <path d="M12 14l18-2" />
-      <path d="M12 14l7 16" />
-    </svg>
-  );
-}
 
-function ArrowDownRightIcon() {
-  return (
-    <svg width="86" height="86" viewBox="0 0 86 86" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M15 18c17 0 44 15 52 45" />
-      <path d="M52 58l17 8 6-18" />
-    </svg>
-  );
-}
 
-function ArrowDownIcon() {
-  return (
-    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M26 6v34" />
-      <path d="m15 30 11 11 11-11" />
-    </svg>
-  );
-}
 
 function MicOnIcon({ size = 16 }) {
   return (
