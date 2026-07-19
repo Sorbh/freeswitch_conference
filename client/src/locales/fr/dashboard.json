@@ -118,9 +118,13 @@
     },
     "yealinkBack": {
       "title": "Votre téléphone Yealink est de nouveau en ligne",
-      "body": "Vous êtes actuellement sur le navigateur. Rendre l'appel à votre téléphone de bureau ?",
+      "body": "Vous êtes actuellement sur le navigateur. Rendez l'appel à votre téléphone de bureau ou continuez à parler d'ici.",
       "release": "Rendre au téléphone",
-      "released": "Appel transféré vers votre téléphone de bureau"
+      "released": "Appel transféré vers votre téléphone de bureau",
+      "note": "Rendre l'appel le transfère au téléphone et désactive la prise en main web. Rester conserve l'appel dans ce navigateur — vous pourrez le rendre plus tard depuis les Réglages.",
+      "releasing": "Transfert…",
+      "stay": "Rester sur le web",
+      "releaseFailed": "Échec du transfert"
     }
   },
   "conference": {

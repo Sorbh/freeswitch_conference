@@ -105,6 +105,8 @@ export default function DashboardLayout() {
   const [yealinkOnline, setYealinkOnline] = useState(false);
   const [yealinkLostOpen, setYealinkLostOpen] = useState(false);
   const [takingOver, setTakingOver] = useState(false);
+  const [yealinkBackOpen, setYealinkBackOpen] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const [broadcastPanelOpen, setBroadcastPanelOpen] = useState(() => {
     try { return localStorage.getItem('hq_broadcast_panel') !== '0'; } catch { return true; }
   });
@@ -372,8 +374,10 @@ export default function DashboardLayout() {
     function handleDeviceStatus(data) {
       const online = !!data?.yealink_online;
       setYealinkOnline(online);
-      // Yealink came back while the disconnect modal is up — nothing to decide
+      // Yealink came back while the disconnect modal is up — nothing to decide;
+      // Yealink dropped again while the release modal is up — nothing to release to.
       if (online) setYealinkLostOpen(false);
+      else setYealinkBackOpen(false);
     }
     function handleYealinkLost() {
       setYealinkOnline(false);
@@ -381,18 +385,7 @@ export default function DashboardLayout() {
     }
     function handleYealinkAvailable() {
       setYealinkOnline(true);
-      toast(t('layout.yealinkBack.title', 'Your Yealink desk phone is back online'), {
-        description: t('layout.yealinkBack.body', 'You are on the browser right now. Release the call back to your desk phone?'),
-        duration: 20000,
-        action: {
-          label: t('layout.yealinkBack.release', 'Release to phone'),
-          onClick: () => {
-            window.hotlineClient?.releaseTakeover?.()
-              .then(() => toast.success(t('layout.yealinkBack.released', 'Call moved to your desk phone')))
-              .catch(err => toast.error(err?.message || 'Release failed'));
-          },
-        },
-      });
+      setYealinkBackOpen(true);
     }
     window.onHotlineCallState = handleCallState;
     window.onHotlineMuteState = handleMuteState;
@@ -508,6 +501,20 @@ export default function DashboardLayout() {
       toast.error(err?.message || t('layout.yealinkLost.takeOverFailed', 'Takeover failed'));
     } finally {
       setTakingOver(false);
+    }
+  }
+
+  async function confirmReleaseToPhone() {
+    if (releasing) return;
+    setReleasing(true);
+    try {
+      await window.hotlineClient?.releaseTakeover?.();
+      setYealinkBackOpen(false);
+      toast.success(t('layout.yealinkBack.released', 'Call moved to your desk phone'));
+    } catch (err) {
+      toast.error(err?.message || t('layout.yealinkBack.releaseFailed', 'Release failed'));
+    } finally {
+      setReleasing(false);
     }
   }
 
@@ -868,6 +875,14 @@ export default function DashboardLayout() {
         />
       )}
 
+      {yealinkBackOpen && (
+        <YealinkBackDialog
+          releasing={releasing}
+          onRelease={confirmReleaseToPhone}
+          onStay={() => setYealinkBackOpen(false)}
+        />
+      )}
+
       {pendingRoomChange && (
         <RoomChangeConfirmDialog
           currentRoom={currentRoom}
@@ -1013,6 +1028,56 @@ function YealinkLostDialog({ takingOver, onTakeOver, onWait }) {
   );
 }
 
+
+function YealinkBackDialog({ releasing, onRelease, onStay }) {
+  const { t } = useTranslation('dashboard');
+
+  return (
+    <div
+      className="fixed inset-0 z-[130] flex items-end md:items-center justify-center px-0 md:px-4 pt-6"
+      style={{ background: 'rgba(17,24,39,0.42)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="hq-card w-full md:max-w-md p-5 md:p-6 animate-fadeIn rounded-b-none md:rounded-b-[inherit] max-h-[calc(100vh-1rem)] overflow-auto"
+        style={{ boxShadow: '0 24px 70px rgba(17,24,39,0.24)', paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        <div className="md:hidden w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'var(--line)' }} />
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(18,183,106,0.12)', color: 'var(--green)' }}>
+            <PhoneIcon size={19} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--ink)' }}>{t('layout.yealinkBack.title', 'Your Yealink desk phone is back online')}</h2>
+            <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>
+              {t('layout.yealinkBack.body', 'You are on the browser right now. Release the call back to your desk phone, or keep talking from here.')}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-xl px-4 py-3" style={{ background: 'var(--band)', border: '1px solid var(--line)' }}>
+          <p className="text-sm" style={{ color: 'var(--muted)', lineHeight: 1.45 }}>
+            {t('layout.yealinkBack.note', 'Releasing hands the call to the desk phone and turns web takeover off. Staying keeps the call in this browser — you can release later from Settings.')}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-5">
+          <button type="button" onClick={onRelease} disabled={releasing} className="hq-btn py-3">
+            {releasing ? t('layout.yealinkBack.releasing', 'Releasing…') : t('layout.yealinkBack.release', 'Release to phone')}
+          </button>
+          <button
+            type="button"
+            onClick={onStay}
+            disabled={releasing}
+            className="px-5 py-3 rounded-xl text-sm font-semibold"
+            style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
+          >
+            {t('layout.yealinkBack.stay', 'Stay on web')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ExtensionHelpModal({ onClose }) {
   const { t } = useTranslation('dashboard');

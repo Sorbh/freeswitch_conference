@@ -118,9 +118,13 @@
     },
     "yealinkBack": {
       "title": "Your Yealink desk phone is back online",
-      "body": "You are on the browser right now. Release the call back to your desk phone?",
+      "body": "You are on the browser right now. Release the call back to your desk phone, or keep talking from here.",
       "release": "Release to phone",
-      "released": "Call moved to your desk phone"
+      "released": "Call moved to your desk phone",
+      "note": "Releasing hands the call to the desk phone and turns web takeover off. Staying keeps the call in this browser — you can release later from Settings.",
+      "releasing": "Releasing…",
+      "stay": "Stay on web",
+      "releaseFailed": "Release failed"
     }
   },
   "conference": {

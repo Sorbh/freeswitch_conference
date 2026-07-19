@@ -118,9 +118,13 @@
     },
     "yealinkBack": {
       "title": "Su teléfono Yealink está de nuevo en línea",
-      "body": "Ahora está en el navegador. ¿Devolver la llamada a su teléfono de escritorio?",
+      "body": "Ahora está en el navegador. Devuelva la llamada a su teléfono de escritorio o siga hablando desde aquí.",
       "release": "Devolver al teléfono",
-      "released": "Llamada movida a su teléfono de escritorio"
+      "released": "Llamada movida a su teléfono de escritorio",
+      "note": "Al devolver, la llamada pasa al teléfono y se desactiva el control web. Si se queda, la llamada sigue en este navegador; puede devolverla luego desde Ajustes.",
+      "releasing": "Devolviendo…",
+      "stay": "Quedarse en la web",
+      "releaseFailed": "No se pudo devolver"
     }
   },
   "conference": {

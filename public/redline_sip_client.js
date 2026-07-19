@@ -58,7 +58,8 @@
 //     directCallAnswerButton: false, // set true to show Answer button for incoming direct calls
 //     listenOnly: false,          // set true to force listen-only mode (SIP registers with silent audio, no mic)
 //     monitorMode: false,         // set true to skip SIP entirely — SSE caller ID only, no audio, no mute (view-only)
-//                                 // also auto-activated when login detects Yealink already connected
+//                                 // also auto-activated at login for Yealink-equipped accounts (has_yealink) with
+//                                 // web_takeover off — the browser never SIP-registers without takeover consent
 //   };
 //
 // API ENDPOINTS USED:
@@ -84,6 +85,11 @@
 //   window.onHotlineKickout = function(data) { ... }                   // { type, kickout: 1|0, reason } — admin toggled kickout; 1 = removed from hotline, 0 = access restored
 //   window.onHotlineMonitorMode = function(active) { ... }             // true when monitor mode active (Yealink has the call, view-only dashboard); false when exited (e.g. web takeover)
 //   window.onHotlineTakeoverState = function(active) { ... }           // web_takeover flag changed via takeOver()/releaseTakeover(); true = browser has device priority
+//   window.onHotlineDeviceStatus = function(data) { ... }              // { type:'device_status', yealink_online: 1|0 } — Yealink registration presence changed (SSE push, transition only)
+//   window.onHotlineYealinkLost = function(data) { ... }               // { type:'yealink_lost', reason:'unregister'|'expire'|'login' } — Yealink offline, server/login waits for consent;
+//                                                                      // host page shows takeover dialog: confirm → hotlineClient.takeOver(), decline → stay monitor-only until Yealink returns
+//   window.onHotlineYealinkAvailable = function(data) { ... }          // { type:'yealink_available', reason?:'login' } — Yealink back while browser holds the call (takeover on);
+//                                                                      // host page offers release dialog: confirm → hotlineClient.releaseTakeover()
 //   window.onHotlineBroadcastConnected = function(data) { ... }        // { type:'connected', data:[...], total, page, pageSize, totalPages }
 //   window.onHotlineBroadcast = function(data) { ... }                 // { type:'broadcast', data:{...broadcast row...}, ts }
 //   window.onCallerIdUpdate = function(data) { ... }                   // { callerIds, callerIdHtml, userCount, unmutedCount, online, ts }
@@ -125,6 +131,9 @@
 //   kickout       — admin toggled the kickout flag; kickout=1 hangs up (server blocks re-entry), kickout=0 means access restored (server reconnects on next register)
 //   monitor_mode  — Yealink reclaimed the call: hang up, unregister, view-only dashboard
 //   exit_monitor  — reverse of monitor_mode: no device left (Yealink gone), wake up and SIP register
+//   device_status — Yealink registration presence changed → onHotlineDeviceStatus
+//   yealink_lost  — Yealink offline, server waits for takeover consent → onHotlineYealinkLost
+//   yealink_available — Yealink back while web holds the call (takeover on) → onHotlineYealinkAvailable
 //   direct_call_* — incoming/outgoing direct call notifications
 //
 // ═══════════════════════════════════════════════════════════════════════════
@@ -871,6 +880,14 @@ import "./jssip.bundle.js";
             if (accountData.web_takeover) {
                 monitorMode = false;
                 console.log('[SIP] web_takeover active — skipping monitor mode, will SIP register');
+                // Takeover is standing consent, so the web leg connects — but the
+                // Yealink is registered and idle, so surface the release modal on
+                // top (same dialog as the mid-session yealink_available push).
+                if (accountData.has_yealink && accountData.yealink_online
+                    && typeof window.onHotlineYealinkAvailable === 'function') {
+                    console.log('[SIP] Yealink online while takeover on — offering release');
+                    try { window.onHotlineYealinkAvailable({ type: 'yealink_available', reason: 'login' }); } catch (e) { }
+                }
             } else if (!monitorMode && accountData.has_yealink) {
                 // Yealink-equipped account with takeover OFF: the browser NEVER
                 // SIP-registers — monitor mode only, the Yealink owns the call.
