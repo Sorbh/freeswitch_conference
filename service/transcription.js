@@ -81,6 +81,7 @@ import { execFile } from 'child_process';
 import config from '../config/config.js';
 import { logSystem } from './logger.js';
 import { pingIndexNow } from './indexnow.js';
+import { pingGoogleIndexing } from './googleIndexing.js';
 
 function _logSTT(title, lines) {
     console.log('');
@@ -491,15 +492,20 @@ export async function processBroadcastTranscription(broadcastId, recordingPath) 
 
 function _pingMarketplaceListing(broadcastId, pd) {
     try {
+        // Only ping search engines for listings the marketplace will actually show:
+        // unanswered broadcasts with a full year/make/model/part extraction.
+        if (!isValidPartRequest(pd)) return;
+        const row = global.db.getBroadcastById(broadcastId);
+        if (!row || row.answered !== 0) return;
         const segments = [pd.year, pd.make, pd.model, pd.part]
             .filter(v => v && v !== 'null')
             .map(s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
-        const row = global.db.getBroadcastById(broadcastId);
         const room = row?.room ? global.db.getRoom(row.room) : null;
         if (room?.short_code) segments.push(room.short_code.toLowerCase());
         segments.push(String(broadcastId));
         const slug = segments.join('-');
         pingIndexNow(`/parts/${slug}`).catch(() => {});
+        pingGoogleIndexing(`/parts/${slug}`).catch(() => {});
     } catch {}
 }
 
