@@ -33,6 +33,11 @@ function WebTakeoverCard() {
   const [enabled, setEnabled] = useState(!!account?.web_takeover);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('hq_yealink_lost_dismiss') === '1' || localStorage.getItem('hq_yealink_back_dismiss') === '1';
+    } catch { return false; }
+  });
 
   useEffect(() => { setEnabled(!!account?.web_takeover); }, [account?.web_takeover]);
 
@@ -90,6 +95,22 @@ function WebTakeoverCard() {
           }} />
         </span>
       </div>
+      {dismissed && (
+        <button
+          type="button"
+          onClick={() => {
+            try {
+              localStorage.removeItem('hq_yealink_lost_dismiss');
+              localStorage.removeItem('hq_yealink_back_dismiss');
+            } catch {}
+            setDismissed(false);
+          }}
+          className="text-xs mt-3 underline"
+          style={{ color: 'var(--muted)' }}
+        >
+          {t('settings.resetDismissedDialogs', 'Reset dismissed desk phone dialogs')}
+        </button>
+      )}
     </div>
   );
 }

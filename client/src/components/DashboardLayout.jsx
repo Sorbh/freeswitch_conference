@@ -4,6 +4,7 @@ import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import LanguageSwitcher from './LanguageSwitcher';
+import { LANGUAGES } from '../i18n';
 import { loadSupportgram } from '../lib/supportgram';
 
 const BroadcastPanel = lazy(() => import('./BroadcastPanel'));
@@ -79,7 +80,7 @@ function getMissingProfileFields(account) {
 }
 
 export default function DashboardLayout() {
-  const { t } = useTranslation('dashboard');
+  const { t, i18n } = useTranslation('dashboard');
   const { account, token, logout, apiFetch, refreshAccount } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,7 +112,9 @@ export default function DashboardLayout() {
     try { return localStorage.getItem('hq_broadcast_panel') !== '0'; } catch { return true; }
   });
   const [mobileBroadcastOpen, setMobileBroadcastOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const moreMenuRef = useRef(null);
   const wakeLockRef = useRef(null);
   const sipInitRef = useRef(false);
   const dashboardRef = useRef(null);
@@ -314,6 +317,14 @@ export default function DashboardLayout() {
   }, [roomDropdownOpen]);
 
   useEffect(() => {
+    function handleClick(e) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false);
+    }
+    if (moreMenuOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [moreMenuOpen]);
+
+  useEffect(() => {
     function handleCallState(state) {
       if (state === 'connected') {
         setConnState('connected');
@@ -381,10 +392,12 @@ export default function DashboardLayout() {
     }
     function handleYealinkLost() {
       setYealinkOnline(false);
+      try { if (localStorage.getItem('hq_yealink_lost_dismiss') === '1') return; } catch {}
       setYealinkLostOpen(true);
     }
     function handleYealinkAvailable() {
       setYealinkOnline(true);
+      try { if (localStorage.getItem('hq_yealink_back_dismiss') === '1') return; } catch {}
       setYealinkBackOpen(true);
     }
     window.onHotlineCallState = handleCallState;
@@ -764,23 +777,83 @@ export default function DashboardLayout() {
               >
                 <BroadcastNavIcon />
               </button>
+              {/* Desktop: show all actions inline */}
               <button
                 onClick={toggleFullscreen}
                 title={isFullscreen ? t('layout.exitFullscreen') : t('layout.enterFullscreen')}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                className="hidden md:flex w-8 h-8 rounded-lg items-center justify-center transition-colors hover:bg-red-50"
                 style={{ color: isFullscreen ? 'var(--red)' : 'var(--muted)' }}
               >
                 {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
               </button>
-              <LanguageSwitcher />
+              <div className="hidden md:block"><LanguageSwitcher /></div>
               <button
                 onClick={handleLogout}
                 title={t('layout.logout')}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                className="hidden md:flex w-8 h-8 rounded-lg items-center justify-center transition-colors hover:bg-red-50"
                 style={{ color: 'var(--muted)' }}
               >
                 <LogoutIcon />
               </button>
+              {/* Mobile: overflow menu for fullscreen, language, logout */}
+              <div className="relative md:hidden" ref={moreMenuRef}>
+                <button
+                  onClick={() => setMoreMenuOpen(o => !o)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-red-50"
+                  style={{ color: 'var(--muted)' }}
+                  aria-label="More"
+                >
+                  <MoreDotsIcon />
+                </button>
+                {moreMenuOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-1.5 z-50 rounded-xl shadow-xl overflow-hidden py-1"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--line)', minWidth: 180 }}
+                  >
+                    <button
+                      onClick={() => { toggleFullscreen(); setMoreMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors"
+                      style={{ color: isFullscreen ? 'var(--red)' : 'var(--ink)', background: 'transparent' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--band)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+                      {isFullscreen ? t('layout.exitFullscreen', 'Exit fullscreen') : t('layout.enterFullscreen', 'Fullscreen')}
+                    </button>
+                    <div className="my-1" style={{ height: 1, background: 'var(--line)' }} />
+                    <div className="px-4 py-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{t('layout.language', 'Language')}</span>
+                    </div>
+                    {LANGUAGES.map(lang => {
+                      const active = i18n.language === lang.code || i18n.language?.startsWith(lang.code);
+                      return (
+                        <button
+                          key={lang.code}
+                          onClick={() => { i18n.changeLanguage(lang.code); setMoreMenuOpen(false); }}
+                          className="w-full flex items-center justify-between px-4 py-2 text-sm text-left transition-colors"
+                          style={{ color: active ? 'var(--red)' : 'var(--ink)', fontWeight: active ? 600 : 400, background: active ? 'var(--red-soft)' : 'transparent' }}
+                          onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--band)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = active ? 'var(--red-soft)' : 'transparent'; }}
+                        >
+                          {lang.label}
+                          <span className="text-[10px] tracking-wider" style={{ fontFamily: 'var(--mono)', color: active ? 'var(--red)' : 'var(--muted)' }}>{lang.code.toUpperCase()}</span>
+                        </button>
+                      );
+                    })}
+                    <div className="my-1" style={{ height: 1, background: 'var(--line)' }} />
+                    <button
+                      onClick={() => { handleLogout(); setMoreMenuOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors"
+                      style={{ color: 'var(--ink)', background: 'transparent' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--band)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <LogoutIcon />
+                      {t('layout.logout', 'Log out')}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -871,7 +944,10 @@ export default function DashboardLayout() {
         <YealinkLostDialog
           takingOver={takingOver}
           onTakeOver={confirmWebTakeover}
-          onWait={() => setYealinkLostOpen(false)}
+          onWait={(dontAsk) => {
+            if (dontAsk) try { localStorage.setItem('hq_yealink_lost_dismiss', '1'); } catch {}
+            setYealinkLostOpen(false);
+          }}
         />
       )}
 
@@ -879,7 +955,10 @@ export default function DashboardLayout() {
         <YealinkBackDialog
           releasing={releasing}
           onRelease={confirmReleaseToPhone}
-          onStay={() => setYealinkBackOpen(false)}
+          onStay={(dontAsk) => {
+            if (dontAsk) try { localStorage.setItem('hq_yealink_back_dismiss', '1'); } catch {}
+            setYealinkBackOpen(false);
+          }}
         />
       )}
 
@@ -980,6 +1059,7 @@ function RoomChangeConfirmDialog({ currentRoom, currentRoomId, nextRoom, changin
 
 function YealinkLostDialog({ takingOver, onTakeOver, onWait }) {
   const { t } = useTranslation('dashboard');
+  const [dontAsk, setDontAsk] = useState(false);
 
   return (
     <div
@@ -1009,13 +1089,18 @@ function YealinkLostDialog({ takingOver, onTakeOver, onWait }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-5">
+        <label className="flex items-center gap-2 mt-4 cursor-pointer select-none">
+          <input type="checkbox" checked={dontAsk} onChange={e => setDontAsk(e.target.checked)} className="w-4 h-4 rounded accent-current" style={{ accentColor: 'var(--accent)' }} />
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>{t('layout.dontAskAgain', "Don't ask me again")}</span>
+        </label>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-4">
           <button type="button" onClick={onTakeOver} disabled={takingOver} className="hq-btn py-3">
             {takingOver ? t('layout.yealinkLost.takingOver', 'Connecting…') : t('layout.yealinkLost.takeOver', 'Take over on web')}
           </button>
           <button
             type="button"
-            onClick={onWait}
+            onClick={() => onWait(dontAsk)}
             disabled={takingOver}
             className="px-5 py-3 rounded-xl text-sm font-semibold"
             style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
@@ -1031,6 +1116,7 @@ function YealinkLostDialog({ takingOver, onTakeOver, onWait }) {
 
 function YealinkBackDialog({ releasing, onRelease, onStay }) {
   const { t } = useTranslation('dashboard');
+  const [dontAsk, setDontAsk] = useState(false);
 
   return (
     <div
@@ -1060,13 +1146,18 @@ function YealinkBackDialog({ releasing, onRelease, onStay }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-5">
+        <label className="flex items-center gap-2 mt-4 cursor-pointer select-none">
+          <input type="checkbox" checked={dontAsk} onChange={e => setDontAsk(e.target.checked)} className="w-4 h-4 rounded accent-current" style={{ accentColor: 'var(--accent)' }} />
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>{t('layout.dontAskAgain', "Don't ask me again")}</span>
+        </label>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 mt-4">
           <button type="button" onClick={onRelease} disabled={releasing} className="hq-btn py-3">
             {releasing ? t('layout.yealinkBack.releasing', 'Releasing…') : t('layout.yealinkBack.release', 'Release to phone')}
           </button>
           <button
             type="button"
-            onClick={onStay}
+            onClick={() => onStay(dontAsk)}
             disabled={releasing}
             className="px-5 py-3 rounded-xl text-sm font-semibold"
             style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--muted)' }}
@@ -1752,6 +1843,14 @@ function LogoutIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+function MoreDotsIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
     </svg>
   );
 }
