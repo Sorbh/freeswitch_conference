@@ -290,6 +290,46 @@ publicRouter.get('/broadcasts/latest', (req, res) => {
     }
 });
 
+// Yealink Remote Phone Book — XML directory for T31P contacts button
+publicRouter.get('/phonebook.xml', (req, res) => {
+    try {
+        const accounts = global.db.getAllAccounts()
+            .filter(a => a.active && a.extension)
+            .sort((a, b) => a.extension - b.extension);
+
+        const rooms = {};
+        for (const r of global.db.getAllRooms()) rooms[r.id] = { name: r.name, shortCode: r.short_code };
+
+        const grouped = {};
+        for (const a of accounts) {
+            const shortCode = rooms[a.room]?.shortCode || 'Other';
+            if (!grouped[shortCode]) grouped[shortCode] = [];
+            const parts = [a.company_name, a.display_name].filter(Boolean);
+            const callerId = parts.length ? parts.join(' / ') : a.email;
+            const safeName = callerId.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            grouped[shortCode].push({ name: safeName, ext: a.extension });
+        }
+
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        xml += '<YealinkIPPhoneBook>\n';
+        xml += '  <Title>Hotline HQ</Title>\n';
+        for (const [shortCode, contacts] of Object.entries(grouped)) {
+            xml += `  <Menu Name="${shortCode}">\n`;
+            for (const c of contacts) {
+                xml += `    <Unit Name="${c.name}" Phone1="${c.ext}" Phone2="" Phone3="" default_photo="Resource:"/>\n`;
+            }
+            xml += '  </Menu>\n';
+        }
+        xml += '</YealinkIPPhoneBook>';
+
+        res.set('Content-Type', 'application/xml');
+        res.send(xml);
+    } catch (err) {
+        console.error('Phonebook XML error:', err.message);
+        res.status(500).set('Content-Type', 'application/xml').send('<?xml version="1.0"?><YealinkIPPhoneBook><Title>Hotline HQ</Title></YealinkIPPhoneBook>');
+    }
+});
+
 publicRouter.get('/broadcasts/events', (req, res) => {
     _ensurePublicBroadcastListeners();
     res.writeHead(200, {

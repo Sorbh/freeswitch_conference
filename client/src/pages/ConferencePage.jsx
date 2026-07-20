@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { useGestureControl, isGestureEnabled } from '../hooks/useGestureControl';
@@ -60,6 +60,7 @@ export default function ConferencePage() {
   const room = account?.current_room || account?.room;
   const currentRoomData = rooms.find(r => r.id === room);
   const roomDisplayName = currentRoomData ? currentRoomData.name : (room ? t('layout.roomFallback', { id: room }) : t('conference.roomNotAvailable'));
+  const roomShortCode = currentRoomData?.short_code || roomDisplayName;
 
   const [showBanner, setShowBanner] = useState(() => localStorage.getItem('hideReferralBanner') !== 'true');
 
@@ -96,7 +97,7 @@ export default function ConferencePage() {
         {connected && !isListenOnly && !isMonitorMode && (
           <div className="flex items-center gap-3">
             <button onClick={handleToggleMute} className="hq-btn flex items-center gap-2 px-4 py-2" style={{ background: muted ? 'var(--red)' : 'var(--green)', boxShadow: muted ? '0 8px 18px rgba(217,45,32,0.3)' : '0 8px 18px rgba(18,183,106,0.3)' }}>
-              {muted ? <><MicOffIcon /> {t('conference.unmute')}</> : <><MicOnIcon /> {t('conference.mute')}</>}
+              {muted ? <><MicOffIcon /> {t('conference.unmute')}</> : <><MicOnIcon /> {t('conference.mute', 'Mute')}</>}
             </button>
           </div>
         )}
@@ -125,7 +126,7 @@ export default function ConferencePage() {
         >
           <span style={{ fontSize: 22 }}>✋</span>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Gesture Control</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Hands-free Mute</div>
             <div className="text-xs" style={{ color: 'var(--muted)' }}>
               {gesture.status === 'error' ? (gesture.errorMsg || 'Failed — tap to retry') : 'Tap to start camera for hands-free mute'}
             </div>
@@ -139,11 +140,14 @@ export default function ConferencePage() {
       {/* Online stats bar — visible as soon as SSE data flows */}
       {(connected || totalOnline > 0) && (
         <div className="flex items-center gap-3 mb-4">
-          <StatPill label={t('conference.thisRoom')} value={roomOnline} color="var(--green)" />
-          <StatPill label={t('conference.network')} value={totalOnline} color="var(--red)" />
+          <StatPill label={t('conference.thisRoom', { room: roomShortCode, defaultValue: roomShortCode })} value={roomOnline} color="var(--green)" unit={roomOnline === 1 ? 'yard' : 'yards'} />
+          <StatPill label={t('conference.network')} value={totalOnline} color="var(--red)" unit={totalOnline === 1 ? 'yard' : 'yards'} />
           <StatPill label={t('conference.speaking')} value={unmutedCount} color="#f59e0b" />
         </div>
       )}
+
+      {/* Contextual nudge */}
+      <NudgeBanner connected={connected} roomOnline={roomOnline} totalOnline={totalOnline} roomName={roomShortCode} account={account} t={t} />
 
       {/* Caller ID card */}
       <div className="hq-card p-5 min-h-[200px]">
@@ -190,15 +194,100 @@ export default function ConferencePage() {
   );
 }
 
-function StatPill({ label, value, color }) {
+function StatPill({ label, value, color, unit }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 rounded-xl flex-1" style={{ background: 'var(--surface)', border: '1px solid var(--line)' }}>
       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
       <div className="min-w-0">
-        <div className="text-base font-bold" style={{ fontFamily: 'var(--display)', color: 'var(--ink)', lineHeight: 1 }}>{value}</div>
+        <div className="text-base font-bold" style={{ fontFamily: 'var(--display)', color: 'var(--ink)', lineHeight: 1 }}>{value}{unit && <span className="text-[10px] font-semibold ml-1" style={{ color: 'var(--muted)' }}>{unit}</span>}</div>
         <div className="text-[9px] font-semibold tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'var(--muted)' }}>{label}</div>
       </div>
     </div>
+  );
+}
+
+function NudgeBanner({ connected, roomOnline, totalOnline, roomName, account, t }) {
+  const navigate = useNavigate();
+  const { apiFetch } = useAuth();
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem('hq_nudge_dismissed') === '1'; } catch { return false; }
+  });
+  const [copied, setCopied] = useState(false);
+
+  if (dismissed) return null;
+
+  let message = null;
+  let icon = '💡';
+  let action = null;
+
+  if (connected && roomOnline <= 1 && totalOnline <= 1) {
+    message = t('conference.nudgeNobodyOnline');
+    icon = '☀️';
+    action = { label: t('conference.nudgeActionShare', 'Invite'), type: 'share' };
+  } else if (connected && roomOnline <= 2 && roomOnline > 0) {
+    message = t('conference.nudgeAlone');
+    icon = '🤝';
+    action = { label: t('conference.nudgeActionShare', 'Invite'), type: 'share' };
+  } else if (connected && roomOnline >= 8) {
+    message = t('conference.nudgeBusyRoom', { count: roomOnline, room: roomName });
+    icon = '🔥';
+  } else if (connected && !account?.extension) {
+    message = t('conference.nudgeNoExtension');
+    icon = '📞';
+    action = { label: t('conference.nudgeActionGetNumber', 'Get Number'), type: 'extension' };
+  }
+
+  if (!message) return null;
+
+  function dismiss() {
+    setDismissed(true);
+    try { sessionStorage.setItem('hq_nudge_dismissed', '1'); } catch {}
+  }
+
+  async function handleAction() {
+    if (action.type === 'share') {
+      try {
+        const json = await apiFetch('/referral');
+        const link = json.data?.referral_link;
+        if (link && navigator.share) {
+          navigator.share({ title: 'Hotline HQ', text: t('conference.nudgeShareText', 'Join me on Hotline HQ — we both save 10%!'), url: link }).catch(() => {});
+        } else if (link) {
+          navigator.clipboard.writeText(link);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      } catch {}
+    } else if (action.type === 'extension') {
+      navigate('/client/dashboard/members');
+    }
+  }
+
+  return (
+    <div className="mb-4 px-4 py-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(217,45,32,0.05)', border: '1px solid rgba(217,45,32,0.1)' }}>
+      <span className="text-lg flex-shrink-0">{icon}</span>
+      <p className="text-sm flex-1 min-w-0" style={{ color: 'var(--muted)' }}>{message}</p>
+      {action && (
+        <button onClick={handleAction} className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--red)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          {action.type === 'share' ? (
+            copied ? <>{t('settings.copied', 'Copied!')}</> : <><ShareIcon />{action.label}</>
+          ) : (
+            <>{action.label}</>
+          )}
+        </button>
+      )}
+      <button onClick={dismiss} className="flex-shrink-0 p-1 rounded-lg" style={{ color: 'var(--muted)' }} aria-label="Dismiss">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
   );
 }
 

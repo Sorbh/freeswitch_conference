@@ -633,7 +633,6 @@ export default function DashboardLayout() {
           <HQMarkSVG size={36} />
           <div>
             <div className="text-sm font-bold tracking-tight" style={{ fontFamily: 'var(--display)' }}>Hotline HQ</div>
-            <div className="text-[10px] font-medium tracking-widest uppercase" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.4)' }}>{t('layout.client')}</div>
           </div>
         </div>
 
@@ -755,7 +754,7 @@ export default function DashboardLayout() {
                     style={{ background: yealinkOnline ? 'var(--green)' : '#9ca3af', boxShadow: yealinkOnline ? '0 0 0 3px rgba(18,183,106,0.15)' : 'none' }}
                   />
                   <span className="hidden md:inline text-[9px] font-bold tracking-widest uppercase" style={{ fontFamily: 'var(--mono)' }}>
-                    {t('layout.deskPhone', 'Yealink')}
+                    {t('layout.deskPhone', 'Desk Phone')}
                   </span>
                 </div>
               )}

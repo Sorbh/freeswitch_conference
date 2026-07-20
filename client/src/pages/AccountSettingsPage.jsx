@@ -200,18 +200,19 @@ function NotificationsCard() {
 }
 
 function GestureControlCard() {
+  const { t } = useTranslation('dashboard');
   const [enabled, setEnabled] = useState(isGestureEnabled);
   return (
     <div className="hq-card p-6 mt-6">
       <div className="flex items-center gap-2 mb-1">
-        <h3 className="hq-label" style={{ marginBottom: 0 }}>Gesture Control</h3>
-        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'var(--red)', color: '#fff' }}>Experimental</span>
+        <h3 className="hq-label" style={{ marginBottom: 0 }}>{t('settings.gestureControl', 'Hands-free Mute')}</h3>
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'var(--red)', color: '#fff' }}>{t('settings.gestureExperimental', 'Experimental')}</span>
       </div>
       <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>
-        Mute and unmute hands-free using your camera.
+        {t('settings.gestureBody', 'Use your camera to mute and unmute without touching the screen.')}
       </p>
       <PrefToggle
-        label="Enable gesture control"
+        label={t('settings.gestureEnable', 'Enable hands-free mute')}
         checked={enabled}
         onChange={(v) => { setEnabled(v); setGestureEnabled(v); }}
       />
@@ -220,19 +221,19 @@ function GestureControlCard() {
           <div className="flex items-center gap-3 mb-2">
             <span style={{ fontSize: 20 }}>✋</span>
             <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Hand in view → Unmute</div>
-              <div className="text-xs" style={{ color: 'var(--muted)' }}>Hold your hand in front of the camera to go live</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{t('settings.gestureHandIn', 'Hand in view → Go Live')}</div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>{t('settings.gestureHandInSub', 'Hold your hand in front of the camera to go live')}</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <span style={{ fontSize: 20 }}>👋</span>
             <div>
-              <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Hand away → Mute</div>
-              <div className="text-xs" style={{ color: 'var(--muted)' }}>Remove your hand to mute automatically</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{t('settings.gestureHandAway', 'Hand away → Mute')}</div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>{t('settings.gestureHandAwaySub', 'Move your hand away to mute automatically')}</div>
             </div>
           </div>
           <p className="text-xs mt-3" style={{ color: 'var(--muted)' }}>
-            Camera activates only during a live call. Video stays on your device — nothing is sent to the server.
+            {t('settings.gesturePrivacy', 'Camera only turns on during a live call. Video stays on your device — nothing is sent anywhere.')}
           </p>
         </div>
       )}
