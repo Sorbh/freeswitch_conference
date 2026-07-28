@@ -261,6 +261,34 @@ if (fs.existsSync(clientDistDir)) {
     });
     app.use(express.static(clientDistDir, { index: false }));
 
+    // Pre-rendered static pages — serve before SPA catch-all so crawlers
+    // get complete HTML without JavaScript. Falls through to Express SSR
+    // routes if prerender file doesn't exist.
+    const prerenderDir = path.join(clientDistDir, 'prerender');
+    if (fs.existsSync(prerenderDir)) {
+        app.use((req, res, next) => {
+            if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+            if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/client/')) return next();
+            if (path.extname(req.path) && !req.path.endsWith('.html')) return next();
+
+            const route = req.path === '/' ? 'index' : req.path.slice(1);
+            const htmlPath = path.join(prerenderDir, `${route}.html`);
+            const gzPath = `${htmlPath}.gz`;
+
+            if (!fs.existsSync(htmlPath)) return next();
+
+            res.set('Content-Type', 'text/html; charset=utf-8');
+            res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60');
+            if (req.headers['accept-encoding']?.includes('gzip') && fs.existsSync(gzPath)) {
+                res.set('Content-Encoding', 'gzip');
+                res.sendFile(gzPath);
+            } else {
+                res.sendFile(htmlPath);
+            }
+        });
+        console.log('Pre-rendered pages active — serving from dist-client/prerender/');
+    }
+
     // Dynamic marketplace sitemap — all individual part listing URLs
     app.get("/sitemap-marketplace.xml", (req, res) => {
         try {
@@ -442,6 +470,7 @@ if (fs.existsSync(clientDistDir)) {
     <meta name="twitter:image" content="${ogImage || OG_IMAGE}">
     ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}`;
         let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
+        html = html.replace(/<meta name="description"[^>]*\/?>/, '');
         html = html.replace('</head>', `${metaTags}\n</head>`);
         if (shell) {
             html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/,  `<div id="root">${shell}</div>\n<script`);
@@ -487,10 +516,10 @@ if (fs.existsSync(clientDistDir)) {
     app.get("/", (req, res) => {
         if (req.path !== '/' && req.path !== '') return sendClientIndex(req, res);
         sendSeoPage(req, res, {
-            title: 'Hotline HQ — Used Auto Parts Hotline Network for Salvage Yards',
-            description: 'Join 500+ salvage yards on the always-on parts hotline. Broadcast a part request once — a nearby yard answers in about 2 seconds.',
+            title: 'Hotline HQ — Find Used Auto Parts from 500+ Salvage Yards in Seconds',
+            description: 'Broadcast what part you need to 500+ salvage yards at once. The first yard with your part answers in about 2 seconds. No fees, no commissions.',
             url: `${BASE_URL}/`,
-            keywords: 'used auto parts hotline, auto dismantler network, salvage yard hotline, parts locating, used car parts, auto recycler network',
+            keywords: 'parts hotline, hotline hq, used auto parts network, salvage yard hotline, parts locating hotline',
             shell: ssrShell(
                 'USED AUTO PARTS HOTLINE NETWORK',
                 'One broadcast.<br>Every yard hears it.',
@@ -569,38 +598,84 @@ if (fs.existsSync(clientDistDir)) {
     // SEO: /sell-used-auto-parts
     app.get("/sell-used-auto-parts", (req, res) => {
         const faqItems = [
-            { q: "How do I sell used auto parts on Hotline HQ?", a: "Join the network and select your regional room. When someone needs a part, you hear their request live through your desk phone or web client. If you have the part, you key up and respond. The requester contacts you directly to close the deal. There is no middleman and no commission — you keep 100% of the sale." },
-            { q: "Do I need to list my inventory?", a: "No. Hotline HQ is not an inventory database. You listen for requests and respond when you have what someone needs. This means you can sell parts you have not cataloged yet — the network surfaces demand you would never find on your own." },
-            { q: "How many part requests happen per day?", a: "The California room alone has processed over 2,500 part requests. Active rooms see dozens of broadcasts per day covering everything from Honda Civic bumpers to Ford F-150 transmissions. The network operates 24/7 so you hear requests around the clock." },
-            { q: "What does Hotline HQ cost for sellers?", a: "Hotline HQ charges a flat monthly membership fee. There are no listing fees, no per-call charges, and no commissions on sales you make through the network. A preconfigured desk phone is included and shipped to your yard." },
-            { q: "What regions does Hotline HQ cover?", a: "Hotline HQ operates 12 regional rooms covering California, Texas, Florida, Arizona, and other US markets. Each room connects the yards in that region. The California room is the largest with 200+ active yards, followed by Texas and Arizona." },
+            { q: "What is the best way to sell used auto parts online?", a: "It depends on volume. For salvage yards selling dozens of parts daily, voice hotline networks like Hotline HQ offer the fastest turnaround — one broadcast reaches 100+ yards and responses arrive in about 2 seconds. For individual sellers moving one or two parts, eBay Motors or Facebook Marketplace provide the widest buyer reach. Most profitable yards combine two to three channels rather than relying on just one." },
+            { q: "How much does it cost to sell auto parts on eBay?", a: "eBay Motors charges an insertion fee (often waived for the first 250 listings per month) plus a final value fee of approximately 13.25% of the sale price. For a $200 transmission, that's roughly $26.50 in fees. eBay also charges payment processing fees. Compare that to Hotline HQ, which charges a flat monthly membership with no per-sale fees or commissions." },
+            { q: "Can I sell used auto parts without listing inventory online?", a: "Yes. On voice hotline networks, you listen for live part requests and respond when you have what someone needs. There is no inventory database to maintain. This works especially well for yards with large, uncataloged inventory — the network surfaces demand you would never find through listings alone." },
+            { q: "How do I sell used auto parts on Facebook Marketplace?", a: "Create a listing with clear photos (multiple angles), accurate part details (year, make, model, OEM part number), condition description, and a competitive price. Use keywords buyers actually search — 'Ford F-150 headlight assembly' performs better than 'truck headlight.' Respond to messages quickly; buyers on Facebook expect answers within an hour." },
+            { q: "What used auto parts sell the fastest?", a: "On the Hotline HQ network, the most-requested parts are bumpers, transmissions, fenders, motors, doors, headlights, and AC compressors. The most-requested makes are Ford, Toyota, Honda, Chevrolet, and Nissan. Parts from common vehicles in the 5–15 year old range sell fastest because demand is highest and supply keeps pace." },
+            { q: "Is it legal to sell used auto parts?", a: "Yes. Selling used auto parts is legal in all 50 US states. Salvage yards need a state-issued dismantler or auto recycler license (requirements vary by state). Individual sellers can sell parts from their own vehicles without a license in most states. Certain regulated parts like catalytic converters and airbags have additional requirements." },
+            { q: "How do I price used auto parts?", a: "Start with Car-Part.com to check what other yards charge for the same part. Price by condition: Grade A (low mileage, excellent) commands 60–70% of new OEM price, Grade B (average wear) 40–50%, and Grade C (functional but cosmetically imperfect) 25–35%. High-demand parts from common vehicles can be priced higher." },
         ];
         const faqHtml = faqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('');
+
+        const guideHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 64px">
+<p>The used auto parts market in the US generates roughly $32 billion in annual revenue across more than 9,000 yards. If you run a salvage yard or have parts to move, your choice of sales channel determines whether a part sits on a shelf for months or sells within hours.</p>
+<p>This guide compares seven ways to sell used auto parts online — from high-volume platforms like eBay Motors to yard-to-yard voice networks. Each has different fees, speed, and reach.</p>
+<p><em>Disclosure: Hotline HQ publishes this guide and operates a voice hotline network (Method 5 below). We have ranked all seven methods by their actual strengths and weaknesses.</em></p>
+<blockquote><strong>Key Takeaways</strong><br>Voice hotline networks deliver the fastest yard-to-yard sales — about 2 seconds per broadcast. eBay Motors offers the widest national reach but takes 13% in fees. Facebook Marketplace is free but time-intensive. Most profitable yards stack two to three channels, not just one.</blockquote>
+<h2>Method 1: eBay Motors</h2>
+<p>eBay Motors is the largest online marketplace for used auto parts with over 80 million live part listings. Sellers range from individual car owners to large salvage operations.</p>
+<p><strong>Fees:</strong> Final value fee of approximately 13.25% of the total sale price (including shipping), plus a $0.30 per-order fee. For a $300 part, expect to pay roughly $40 in total fees.</p>
+<p><strong>Speed:</strong> Parts can take days to weeks to sell. High-demand items move faster. Shipping adds 3–7 business days.</p>
+<p><strong>Best for:</strong> Yards with cataloged inventory and staff to photograph, list, pack, and ship individual parts.</p>
+<h2>Method 2: Facebook Marketplace</h2>
+<p>Facebook Marketplace reaches over 1 billion users worldwide. Especially strong for local pickup sales.</p>
+<p><strong>Fees:</strong> Free for local pickup listings. Shipped orders incur a 6% selling fee.</p>
+<p><strong>Speed:</strong> Local sales can happen same day. You will spend significant time answering messages — many inquiries don't convert.</p>
+<p><strong>Best for:</strong> Individual sellers and small yards selling locally. Effective for large, heavy parts where shipping is prohibitive.</p>
+<h2>Method 3: Car-Part.com</h2>
+<p>Car-Part.com is the industry standard, connecting professional buyers with recycler inventory. Over 200 million parts listed.</p>
+<p><strong>Fees:</strong> Monthly subscription (varies by yard size). No per-transaction fees. Requires compatible yard management software.</p>
+<p><strong>Best for:</strong> Established yards with inventory management systems already in place.</p>
+<h2>Method 4: Craigslist</h2>
+<p>Free, attracts price-conscious buyers. Strictly local, cash transactions.</p>
+<p><strong>Best for:</strong> Occasional sellers clearing out low-value or bulk parts.</p>
+<h2>Method 5: Voice Hotline Networks (Hotline HQ)</h2>
+<p>When one yard needs a part, they broadcast the request to every yard in the room. Any yard with that part responds instantly. One broadcast reaches 100+ yards, average response: 2 seconds.</p>
+<p><strong>Fees:</strong> Flat monthly membership. No per-call charges, no listing fees, no commissions. Desk phone included.</p>
+<p><strong>Best for:</strong> Salvage yards selling to other yards. No inventory listing needed — just listen and respond.</p>
+<h2>Method 6: PartCycle</h2>
+<p>B2B marketplace connecting recyclers with repair shops, insurance companies, and fleet operators.</p>
+<p><strong>Best for:</strong> Yards focused on B2B sales with graded, warrantied parts.</p>
+<h2>Method 7: Your Own Website</h2>
+<p>Full control over branding, pricing, and customer relationships. Requires marketing investment.</p>
+<p><strong>Best for:</strong> Larger operations with marketing resources, as a complement to other channels.</p>
+<h2>Which Method Should You Use?</h2>
+<ul>
+<li><strong>High-volume yard-to-yard:</strong> Voice hotline (fastest, no per-sale fees)</li>
+<li><strong>National reach:</strong> eBay Motors (widest audience, highest fees)</li>
+<li><strong>Local large parts:</strong> Facebook Marketplace or Craigslist (free)</li>
+<li><strong>Professional B2B:</strong> Car-Part.com + PartCycle</li>
+</ul>
+<p>Most profitable yards run two to three channels. <a href="${BASE_URL}/blog/guides/how-salvage-yards-sell-more-parts">Read our full guide on stacking sales channels</a>.</p>
+</article>`;
+
         const shell = ssrShell(
             'SELL PARTS FASTER',
-            'Sell used auto parts the moment <em>someone needs them</em>',
-            'Stop waiting for customers to find you. On Hotline HQ, you hear every part request in your region the instant it\'s broadcast. If you have it, you answer. Sale made.',
+            'How to sell used auto parts online — <em>7 methods compared</em>',
+            'Compare eBay, Facebook Marketplace, Car-Part.com, voice hotlines, and more. See real fees, speed, and reach for each channel so you pick the right ones for your yard.',
             'Join the Network — Free', `${BASE_URL}/client/signup`,
             [['500+', 'Yards on network'], ['12', 'Regional rooms'], ['~115', 'Listeners per call'], ['24/7', 'Always on']]
-        ) + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${faqHtml}</div>`;
+        ) + guideHtml + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${faqHtml}</div>`;
 
         sendSeoPage(req, res, {
-            title: 'Sell Used Auto Parts — Reach 500+ Yards Instantly | Hotline HQ',
-            description: 'Sell used auto parts faster on Hotline HQ. Hear live part requests from dismantlers in your region and respond in seconds. No listing fees, no commissions.',
+            title: 'How to Sell Used Auto Parts Online — 7 Methods Compared (2026)',
+            description: 'Compare eBay, Facebook Marketplace, Car-Part.com, and 4 more ways to sell used auto parts online. See which channel sells fastest with real data.',
             url: `${BASE_URL}/sell-used-auto-parts`,
-            keywords: 'sell used auto parts, auto parts buyer, dismantler network, sell salvage parts, auto parts sales channel, junkyard sales, sell car parts',
+            keywords: 'sell used auto parts online, how to sell used auto parts, best place to sell used auto parts, sell auto parts, where to sell used auto parts',
             shell,
             jsonLd: {
                 "@context": "https://schema.org",
                 "@graph": [
                     {
-                        "@type": "Service",
-                        name: "Hotline HQ — Sell Used Auto Parts",
-                        serviceType: "Used Auto Parts Sales Network",
-                        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
-                        areaServed: { "@type": "Country", name: "US" },
-                        description: "Live voice network for auto dismantlers to hear and respond to part requests in real-time. No listing fees or commissions.",
-                        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+                        "@type": "Article",
+                        headline: "How to Sell Used Auto Parts Online — 7 Methods Compared (2026)",
+                        description: "Compare eBay, Facebook Marketplace, Car-Part.com, and 4 more ways to sell used auto parts online.",
+                        url: `${BASE_URL}/sell-used-auto-parts`,
+                        publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+                        datePublished: "2026-07-28",
+                        dateModified: "2026-07-28",
+                        mainEntityOfPage: `${BASE_URL}/sell-used-auto-parts`,
                     },
                     {
                         "@type": "FAQPage",
@@ -743,10 +818,10 @@ if (fs.existsSync(clientDistDir)) {
     // SEO: /own-a-hotline
     app.get("/own-a-hotline", (req, res) => {
         sendSeoPage(req, res, {
-            title: 'Own a Hotline — Start a Voice Hotline Network in Your Industry | Hotline HQ',
-            description: 'Launch your own always-on voice hotline network. Hotline HQ provides the platform, phones, and support — you own the membership revenue. Proven with 500+ auto yards.',
+            title: 'Start an Auto Parts Hotline Business — Own a Regional Network | Hotline HQ',
+            description: 'Launch your own voice hotline network for auto dismantlers. Platform, phones, and support included — you collect the membership revenue.',
             url: `${BASE_URL}/own-a-hotline`,
-            keywords: 'own a hotline, start a hotline business, voice hotline network, auto parts hotline, used auto parts hotline, hotline franchise',
+            keywords: 'own a hotline, start a hotline business, start auto parts business, voice hotline franchise, hotline network owner',
             shell: ssrShell(
                 'OWN THE HOTLINE',
                 'Launch a voice hotline network <em>in your industry</em>',
@@ -836,8 +911,8 @@ if (fs.existsSync(clientDistDir)) {
     // SEO: /about
     app.get("/about", (req, res) => {
         sendSeoPage(req, res, {
-            title: 'About Hotline HQ — The Team Behind the Parts Hotline Network',
-            description: 'Hotline HQ is an always-on voice network connecting 500+ salvage yards to locate and sell used auto parts. Meet the team and the story behind the hotline.',
+            title: 'About Hotline HQ — Built by Dismantlers, for Dismantlers Since 2011',
+            description: 'Started as a single phone line between two California salvage yards in 2011. Today Hotline HQ connects 500+ yards across 12 rooms — the largest voice parts network in the US.',
             url: `${BASE_URL}/about`,
             shell: ssrShell(
                 'COMPANY',

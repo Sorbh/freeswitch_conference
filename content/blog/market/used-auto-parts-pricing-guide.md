@@ -170,4 +170,4 @@ On the [Hotline HQ marketplace](/marketplace), you can see real part requests co
 
 If you're pricing your inventory, watching live requests for a week tells you more than any guide. You see which parts get asked for five times a day (bumpers, transmissions) and which go quiet. You see which makes and models drive the most demand. That's how you price to sell — based on what buyers are asking for right now, not what a spreadsheet said last month.
 
-Check the [Hotline HQ marketplace](/marketplace) to see live requests and real pricing activity from the network.
+Check the [Hotline HQ marketplace](/marketplace) to see live requests and real pricing activity from the network. Once you've set your prices, head to our [sell used auto parts](/sell-used-auto-parts) page to explore the best channels for moving inventory.

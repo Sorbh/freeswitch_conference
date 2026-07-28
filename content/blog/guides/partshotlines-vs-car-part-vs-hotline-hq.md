@@ -187,4 +187,4 @@ The question isn't which network to pick. It's which combination matches how you
 
 ## Try a Live Room in Your State {#regional}
 
-The comparison above is theory; the line itself is practice. Hotline HQ's most active rooms are [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona). Joining is free, and the [always-on voice network](/features/always-on-voice-network) works from any phone you already own.
+The comparison above is theory; the line itself is practice. Hotline HQ's most active rooms are [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona). Joining is free, and the [always-on voice network](/features/always-on-voice-network) works from any phone you already own. For a broader look at all the ways to [sell used auto parts online](/sell-used-auto-parts), see our main selling page.

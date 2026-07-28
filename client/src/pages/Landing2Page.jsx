@@ -6,6 +6,7 @@ import { HQLogo, NavMenu, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAI
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import PublicBroadcastActivity from "../components/PublicBroadcastActivity";
 import { loadSupportgram } from "../lib/supportgram";
+import { BLOG_POSTS, BLOG_CATEGORIES, getPostUrl } from "./landing2/blogRegistry";
 
 const ListenLive = lazy(() => import("../components/ListenLive"));
 
@@ -653,6 +654,30 @@ export default function Landing2Page() {
         <MarketplacePreview />
       </LazySection>
 
+      {/* ───────────────── from the blog ───────────────── */}
+      <section className="l2-section l2-blog-section">
+        <div className="l2-section-head l2-reveal">
+          <p className="l2-kicker">FROM THE BLOG</p>
+          <h2>Industry guides &amp; insights</h2>
+        </div>
+        <div className="l2-blog-grid">
+          {BLOG_POSTS.slice(0, 3).map((post, i) => (
+            <Link to={getPostUrl(post)} className="l2-blog-card l2-reveal" key={post.slug} style={{ transitionDelay: `${i * 80}ms` }}>
+              <span className="l2-blog-cat">
+                {BLOG_CATEGORIES[post.category]?.label || post.category}
+                <span className="l2-blog-dot">&middot;</span>
+                {post.readTime}
+              </span>
+              <h3>{post.title}</h3>
+              <p>{post.description}</p>
+            </Link>
+          ))}
+        </div>
+        <div className="l2-reveal" style={{ textAlign: 'center', marginTop: '40px' }}>
+          <Link to="/blog" className="l2-btn l2-btn-ghost">All articles</Link>
+        </div>
+      </section>
+
       {/* ───────────────── join ───────────────── */}
       <section className="l2-join" id="join">
         <div className="l2-join-inner">
@@ -1203,6 +1228,25 @@ const CSS = `
 }
 .l2-feature { cursor: default; }
 .l2-feature:hover { border-color: rgba(217,45,32,0.15); }
+
+/* blog section */
+.l2-blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+@media (max-width: 900px) { .l2-blog-grid { grid-template-columns: 1fr; } }
+.l2-blog-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 28px 26px 32px; box-shadow: var(--shadow); text-decoration: none; color: var(--ink);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.l2-blog-card:hover { border-color: rgba(217,45,32,0.2); transform: translateY(-2px); box-shadow: 0 12px 32px -8px rgba(0,0,0,0.08); }
+.l2-blog-cat { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--red); }
+.l2-blog-dot { margin: 0 6px; color: var(--muted); }
+.l2-blog-card h3 { font-size: 18px; font-weight: 700; line-height: 1.3; margin: 4px 0 0; }
+.l2-blog-card p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 0; flex: 1; }
+@media (max-width: 640px) {
+  .l2-blog-card h3 { font-size: 16px; }
+  .l2-blog-card { padding: 20px 18px 24px; }
+}
 .l2-feature-code {
   width: 44px; height: 44px; border-radius: 12px;
   background: var(--red-soft); color: var(--red);

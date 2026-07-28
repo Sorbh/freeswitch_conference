@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
+import { BLOG_POSTS, getPostUrl } from "./blogRegistry";
 
 /* ------------------------------------------------------------------ */
 /*  Hotline HQ — shared site chrome: SVG logo, nav, footer, doc shell  */
@@ -353,6 +354,7 @@ export function SiteFooter() {
         <div className="l2f-col">
           <p className="l2f-head">{t("footer.company")}</p>
           <Link to="/about">{t("footer.aboutUs")}</Link>
+          <Link to="/blog">Blog</Link>
           <Link to="/privacy-policy">{t("footer.privacyPolicy")}</Link>
           <Link to="/terms-and-conditions">{t("footer.termsConditions")}</Link>
           <Link to="/disclaimer">{t("footer.disclaimer")}</Link>
@@ -360,6 +362,16 @@ export function SiteFooter() {
             {t("footer.contact")}
           </a>
           <a href={HOTLINE_ADMIN_URL}>{t("footer.admin")}</a>
+        </div>
+
+        <div className="l2f-col l2f-blog-col">
+          <p className="l2f-head">From the Blog</p>
+          {BLOG_POSTS.slice(0, 4).map(post => (
+            <Link key={post.slug} to={getPostUrl(post)}>
+              {post.title}
+            </Link>
+          ))}
+          <Link to="/blog" className="l2f-more">All articles</Link>
         </div>
       </div>
 
@@ -498,8 +510,9 @@ export const SITE_CSS = `
 .l2f { background: #111316; color: #b9bcc4; }
 .l2f-inner {
   max-width: 1280px; margin: 0 auto; padding: 72px 32px 48px;
-  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 40px;
+  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1.2fr; gap: 40px;
 }
+@media (max-width: 1200px) { .l2f-inner { grid-template-columns: 1.4fr 1fr 1fr 1fr; } }
 @media (max-width: 980px) { .l2f-inner { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .l2f-inner { grid-template-columns: 1fr; } }
 .l2f-brand p { font-size: 14.5px; line-height: 1.65; margin: 18px 0; max-width: 320px; color: #8d919b; }

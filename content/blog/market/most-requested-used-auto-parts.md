@@ -162,4 +162,4 @@ On the [Hotline HQ marketplace](/marketplace), you can watch requests as they co
 
 If you're a yard owner, watching the marketplace for a week tells you more about your region's demand than any report. You'll see which parts get requested over and over and which go quiet. You'll see whether your region runs Ford-heavy or Toyota-heavy. And you'll start making dismantling and auction decisions based on what people are asking for instead of gut feel.
 
-Check the [Hotline HQ marketplace](/marketplace) to see what yards are requesting right now.
+Check the [Hotline HQ marketplace](/marketplace) to see what yards are requesting right now. If you're a buyer looking for any of these parts, our [find used auto parts](/find-used-auto-parts) page shows you how to search the entire network at once.

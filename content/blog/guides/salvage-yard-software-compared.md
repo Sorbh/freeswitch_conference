@@ -200,4 +200,4 @@ No software does everything. The yards that move the most parts combine solid in
 
 ## Software Is Half the Picture {#regional}
 
-Whatever yard-management system you run, it doesn't generate demand — a live network does. Hotline HQ's regional rooms in [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona) put real buyer requests in your ear all day, and [broadcast recording](/features/broadcast-recording) keeps a record of every one.
+Whatever yard-management system you run, it doesn't generate demand — a live network does. Hotline HQ's regional rooms in [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona) put real buyer requests in your ear all day, and [broadcast recording](/features/broadcast-recording) keeps a record of every one. For a complete picture of how software fits into the broader business, see our [auto dismantler business guide](/blog/guides/auto-dismantler-business-guide).

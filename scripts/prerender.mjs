@@ -1,0 +1,658 @@
+#!/usr/bin/env node
+/**
+ * Static pre-rendering — generates complete HTML files for all SEO pages.
+ *
+ * Runs AFTER `cd client && npm run build` so dist-client/index.html exists.
+ * Reads blog-ssr-data.json, features-ssr-data.json, regions-ssr-data.json
+ * and produces one .html per route in dist-client/prerender/.
+ *
+ * Express serves these static files before the SPA catch-all, so Googlebot
+ * (and AI crawlers like Perplexity/ChatGPT) get complete HTML without
+ * executing any JavaScript.
+ *
+ * Run: node scripts/prerender.mjs
+ * Runs automatically as part of: npm run build / npm run deploy
+ */
+
+import fs from 'fs';
+import path from 'path';
+import zlib from 'zlib';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.join(__dirname, '..');
+const DIST_CLIENT = path.join(ROOT, 'dist-client');
+const PRERENDER_DIR = path.join(DIST_CLIENT, 'prerender');
+const INDEX_PATH = path.join(DIST_CLIENT, 'index.html');
+
+const BASE_URL = 'https://hotlinehq.online';
+const OG_IMAGE = `${BASE_URL}/og-default.png`;
+
+// ── SSR helpers (same logic as index.js) ────────────────────────────
+
+const SSR_STYLE = `<style id="ssr-s">:root{--ink:#16181d;--red:#d92d20;--bg:#fbfaf8;--muted:#5d6370;--line:#e7e4dd;--mono:ui-monospace,"SF Mono","Cascadia Mono",monospace;--body:system-ui,-apple-system,"Segoe UI",sans-serif}#ssr-shell{font-family:var(--body);background:var(--bg);color:var(--ink);min-height:100vh}.ssr-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;max-width:1200px;margin:0 auto}.ssr-logo{font-weight:900;font-size:21px;letter-spacing:-.01em}.ssr-logo em{font-style:normal;color:var(--red)}.ssr-hero{text-align:center;padding:140px 24px 60px;max-width:800px;margin:0 auto}.ssr-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);margin:0 0 18px}.ssr-hero h1{font-size:clamp(32px,5vw,56px);font-weight:700;line-height:1.08;letter-spacing:-.02em;margin:0 0 20px}.ssr-hero h1 em{font-style:normal;color:var(--red)}.ssr-sub{font-size:18px;color:var(--muted);line-height:1.6;margin:0 auto 32px;max-width:600px}.ssr-sub strong{color:var(--ink)}.ssr-cta{display:inline-block;background:var(--red);color:#fff;font-weight:600;font-size:15px;padding:14px 28px;border-radius:11px;text-decoration:none}.ssr-stats{display:flex;justify-content:center;gap:clamp(28px,6vw,80px);flex-wrap:wrap;padding:32px 0 48px}.ssr-stat{display:flex;flex-direction:column;align-items:center;gap:4px}.ssr-stat strong{font-size:36px;font-weight:700;line-height:1}.ssr-stat span{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}@media(max-width:640px){.ssr-hero{padding:100px 16px 40px}.ssr-hero h1{font-size:clamp(24px,7vw,36px)}.ssr-sub{font-size:15px}.ssr-stat strong{font-size:26px}.ssr-nav{padding:10px 16px}}.ssr-faq-section{max-width:800px;margin:0 auto;padding:48px 24px 64px}.ssr-faq-section h2{font-size:clamp(24px,3.5vw,36px);font-weight:700;letter-spacing:-.02em;margin:0 0 32px;text-align:center}.ssr-faq{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 28px;margin-bottom:16px}.ssr-faq h3{font-size:17px;font-weight:700;margin:0 0 10px;color:var(--ink)}.ssr-faq p{font-size:15px;line-height:1.65;color:var(--muted);margin:0}</style>`;
+
+function ssrShell(kicker, h1, sub, ctaText, ctaHref, stats) {
+  const statsHtml = stats ? stats.map(s => `<div class="ssr-stat"><strong>${s[0]}</strong><span>${s[1]}</span></div>`).join('') : '';
+  return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
+}
+
+function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, ogImage }) {
+  const safeTitle = title.replace(/"/g, '&quot;');
+  const safeDesc = description.replace(/"/g, '&quot;');
+  const metaTags = `
+    ${shell ? SSR_STYLE : ''}
+    <meta name="description" content="${safeDesc}">
+    ${keywords ? `<meta name="keywords" content="${keywords}">` : ''}
+    ${robots ? `<meta name="robots" content="${robots}">` : ''}
+    <link rel="canonical" href="${url}">
+    <meta property="og:title" content="${safeTitle}">
+    <meta property="og:description" content="${safeDesc}">
+    <meta property="og:type" content="${ogType}">
+    <meta property="og:url" content="${url}">
+    <meta property="og:site_name" content="Hotline HQ">
+    <meta property="og:image" content="${ogImage || OG_IMAGE}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${safeTitle}">
+    <meta name="twitter:description" content="${safeDesc}">
+    <meta name="twitter:image" content="${ogImage || OG_IMAGE}">
+    ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}`;
+  let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
+  html = html.replace(/<meta name="description"[^>]*\/?>/, '');
+  html = html.replace('</head>', `${metaTags}\n</head>`);
+  if (shell) {
+    html = html.replace(/<div id="root">[\s\S]*?<\/div>\s*<script/, `<div id="root">${shell}</div>\n<script`);
+  }
+  return html;
+}
+
+// ── Load template and data ──────────────────────────────────────────
+
+if (!fs.existsSync(INDEX_PATH)) {
+  console.error('[prerender] dist-client/index.html not found — run client build first');
+  process.exit(1);
+}
+
+let templateHtml = fs.readFileSync(INDEX_PATH, 'utf8');
+
+// Inline CSS (same as Express does at runtime)
+const cssLinkMatch = templateHtml.match(/<link[^>]+href="(\/assets\/[^"]+\.css)"[^>]*>/);
+if (cssLinkMatch) {
+  const cssPath = path.join(DIST_CLIENT, cssLinkMatch[1].replace(/^\//, ''));
+  if (fs.existsSync(cssPath)) {
+    const css = fs.readFileSync(cssPath, 'utf8');
+    templateHtml = templateHtml.replace(cssLinkMatch[0], `<style>${css}</style>`);
+  }
+}
+
+function loadJson(filename) {
+  const p = path.join(ROOT, 'data', filename);
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+}
+
+const blogData = loadJson('blog-ssr-data.json') || { posts: [], categories: {} };
+const featuresData = loadJson('features-ssr-data.json')?.features || {};
+const regionsData = loadJson('regions-ssr-data.json') || {};
+
+// ── Collect all pages ───────────────────────────────────────────────
+
+const pages = [];
+
+function addPage(route, seo) {
+  pages.push({ route, seo });
+}
+
+const orgJsonLd = {
+  "@type": "Organization",
+  "@id": `${BASE_URL}/#org`,
+  name: "Hotline HQ",
+  url: BASE_URL,
+  logo: `${BASE_URL}/logo-512.png`,
+  email: "hotlinehq@redlineusedautoparts.com",
+  description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
+  foundingDate: "2011",
+  sameAs: ["https://www.linkedin.com/showcase/hotline-hq"]
+};
+
+// ── Homepage ────────────────────────────────────────────────────────
+
+const homeBlogCats = { guides: 'Industry Guides', news: 'Network Updates', market: 'Parts Market' };
+const homeBlogHtml = blogData.posts.slice(0, 3).map(p => {
+  const catLabel = homeBlogCats[p.category] || p.category;
+  return `<div class="ssr-faq"><h3><a href="${BASE_URL}/blog/${p.category}/${p.slug}">${p.title}</a></h3><p>${catLabel} · ${p.readTime} — ${p.description}</p></div>`;
+}).join('');
+
+addPage('/', {
+  title: 'Hotline HQ — Find Used Auto Parts from 500+ Salvage Yards in Seconds',
+  description: 'Broadcast what part you need to 500+ salvage yards at once. The first yard with your part answers in about 2 seconds. No fees, no commissions.',
+  url: `${BASE_URL}/`,
+  keywords: 'parts hotline, hotline hq, used auto parts network, salvage yard hotline, parts locating hotline',
+  shell: ssrShell(
+    'USED AUTO PARTS HOTLINE NETWORK',
+    'One broadcast.<br>Every yard hears it.',
+    'The live voice network that connects <strong>500+ auto dismantler yards</strong>. Ask for a part once — the nearest yard answers in about <strong>2 seconds</strong>.',
+    'Sign Up Free', `${BASE_URL}/client/signup`,
+    [['500+', 'Member yards'], ['12', 'Regional rooms'], ['2s', 'Typical answer'], ['24/7', 'Always on']]
+  ) + `<div class="ssr-faq-section"><h2>From the Blog</h2>${homeBlogHtml}<p style="text-align:center;margin-top:24px"><a href="${BASE_URL}/blog">All articles</a></p></div>`,
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      orgJsonLd,
+      { "@type": "WebSite", name: "Hotline HQ", url: `${BASE_URL}/`, publisher: { "@id": `${BASE_URL}/#org` } },
+      {
+        "@type": "Service",
+        name: "Hotline HQ voice hotline network",
+        serviceType: "Always-on business voice hotline network",
+        provider: { "@id": `${BASE_URL}/#org` },
+        areaServed: "US",
+        description: "An always-on voice hotline that connects member businesses by region. Members broadcast requests live and get answers in seconds.",
+        offers: { "@type": "Offer", priceCurrency: "USD", description: "Flat monthly membership per member business." }
+      }
+    ]
+  }
+});
+
+// ── /find-used-auto-parts ───────────────────────────────────────────
+
+const findFaqItems = [
+  { q: "What is an auto parts hotline?", a: "An auto parts hotline is a live voice network that connects salvage yards and auto dismantlers. Instead of calling yards one by one, you broadcast what you need to every yard in your region simultaneously and get answers in seconds. Hotline HQ operates the largest voice-based parts network in the US with 500+ member yards across 12 regional rooms." },
+  { q: "How do I find a used auto part on Hotline HQ?", a: "Sign up free and select your regional room (California, Texas, Florida, Arizona, or any of our 12 markets). Key up on your desk phone or web client and describe the part you need — year, make, model, and what you're looking for. Your request goes out live to every yard in the room. Yards that have your part respond immediately on the line." },
+  { q: "How fast do yards respond?", a: "The average response time on Hotline HQ is approximately 2 seconds. Because every yard in your regional room hears your request live, the first yard that has the part simply keys up and responds. There is no hold music, no voicemail, and no waiting for someone to check a database." },
+  { q: "Is Hotline HQ free to use?", a: "Joining the network is free. Hotline HQ charges a flat monthly membership fee with no per-call costs and no commissions on sales. A preconfigured desk phone is included with membership and shipped directly to your location." },
+  { q: "What parts can I find on Hotline HQ?", a: "Any used auto part that dismantler yards carry. The most-requested parts on the network are bumpers, transmissions, fenders, motors, doors, headlights, and AC compressors. The most-requested makes are Ford, Toyota, Honda, Chevrolet, and Nissan, spanning model years from the 1990s through 2025." },
+  { q: "How is this different from online parts databases?", a: "Online parts databases go stale — inventory changes daily. On Hotline HQ, you are asking real people who can walk the yard and check right now. One broadcast reaches 100+ yards simultaneously, replacing what used to take an hour of phone calls." },
+];
+addPage('/find-used-auto-parts', {
+  title: 'Find Used Auto Parts — Search 500+ Yards Instantly | Hotline HQ',
+  description: 'Find used auto parts from 500+ dismantler yards in seconds. Broadcast what you need on the Hotline HQ voice network and get live answers — no databases, no waiting.',
+  url: `${BASE_URL}/find-used-auto-parts`,
+  keywords: 'find used auto parts, used auto parts near me, used car parts, salvage auto parts, junkyard parts, auto parts search, auto parts hotline, how to find used car parts',
+  shell: ssrShell(
+    'FIND PARTS FASTER',
+    'Find used auto parts from <em>500+ yards</em> in seconds',
+    'Stop calling yard after yard. Broadcast what you need on Hotline HQ and every dismantler in your region hears it live. Average answer time: <strong>2 seconds</strong>.',
+    'Start Finding Parts — Free', `${BASE_URL}/client/signup`
+  ) + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${findFaqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`,
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service", name: "Hotline HQ — Find Used Auto Parts",
+        serviceType: "Used Auto Parts Search Network",
+        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+        areaServed: { "@type": "Country", name: "US" },
+        description: "Live voice network connecting auto dismantlers. Broadcast what part you need and get answers from 500+ yards in seconds.",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+      },
+      { "@type": "FAQPage", mainEntity: findFaqItems.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }
+    ]
+  }
+});
+
+// ── /sell-used-auto-parts ───────────────────────────────────────────
+
+const sellFaqItems = [
+  { q: "What is the best way to sell used auto parts online?", a: "It depends on volume. For salvage yards selling dozens of parts daily, voice hotline networks like Hotline HQ offer the fastest turnaround — one broadcast reaches 100+ yards and responses arrive in about 2 seconds. For individual sellers moving one or two parts, eBay Motors or Facebook Marketplace provide the widest buyer reach. Most profitable yards combine two to three channels rather than relying on just one." },
+  { q: "How much does it cost to sell auto parts on eBay?", a: "eBay Motors charges an insertion fee (often waived for the first 250 listings per month) plus a final value fee of approximately 13.25% of the sale price. For a $200 transmission, that's roughly $26.50 in fees. eBay also charges payment processing fees. Compare that to Hotline HQ, which charges a flat monthly membership with no per-sale fees or commissions." },
+  { q: "Can I sell used auto parts without listing inventory online?", a: "Yes. On voice hotline networks, you listen for live part requests and respond when you have what someone needs. There is no inventory database to maintain. This works especially well for yards with large, uncataloged inventory — the network surfaces demand you would never find through listings alone." },
+  { q: "How do I sell used auto parts on Facebook Marketplace?", a: "Create a listing with clear photos (multiple angles), accurate part details (year, make, model, OEM part number), condition description, and a competitive price. Use keywords buyers actually search — 'Ford F-150 headlight assembly' performs better than 'truck headlight.' Respond to messages quickly; buyers on Facebook expect answers within an hour. Ship via USPS, UPS, or FedEx, or offer local pickup." },
+  { q: "What used auto parts sell the fastest?", a: "On the Hotline HQ network, the most-requested parts are bumpers, transmissions, fenders, motors, doors, headlights, and AC compressors. The most-requested makes are Ford, Toyota, Honda, Chevrolet, and Nissan. Parts from common vehicles in the 5–15 year old range sell fastest because demand is highest and supply keeps pace." },
+  { q: "Is it legal to sell used auto parts?", a: "Yes. Selling used auto parts is legal in all 50 US states. Salvage yards need a state-issued dismantler or auto recycler license (requirements vary by state). Individual sellers can sell parts from their own vehicles without a license in most states. Certain regulated parts like catalytic converters and airbags have additional federal and state requirements — check your state's rules before listing those." },
+  { q: "How do I price used auto parts?", a: "Start with Car-Part.com to check what other yards charge for the same part. Price by condition: Grade A (low mileage, excellent) commands 60–70% of new OEM price, Grade B (average wear) 40–50%, and Grade C (functional but cosmetically imperfect) 25–35%. High-demand parts from common vehicles can be priced higher. Parts from rare or discontinued vehicles carry a premium when demand exists." },
+];
+
+const sellGuideHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 64px">
+<p>The used auto parts market in the US generates roughly $32 billion in annual revenue across more than 9,000 yards. If you run a salvage yard or have parts to move, your choice of sales channel determines whether a part sits on a shelf for months or sells within hours.</p>
+<p>This guide compares seven ways to sell used auto parts online — from high-volume platforms like eBay Motors to yard-to-yard voice networks. Each has different fees, speed, and reach. We cover all of them honestly, including the trade-offs of our own network.</p>
+<p><em>Disclosure: Hotline HQ publishes this guide and operates a voice hotline network (Method 5 below). We have ranked all seven methods by their actual strengths and weaknesses.</em></p>
+
+<blockquote><strong>Key Takeaways</strong><br>
+Voice hotline networks deliver the fastest yard-to-yard sales — about 2 seconds per broadcast. eBay Motors offers the widest national reach but takes 13% in fees. Facebook Marketplace is free but time-intensive. Most profitable yards stack two to three channels, not just one.</blockquote>
+
+<h2>Method 1: eBay Motors</h2>
+<p>eBay Motors is the largest online marketplace for used auto parts with over 80 million live part listings at any given time. Sellers range from individual car owners to large salvage operations running thousands of SKUs.</p>
+<p><strong>How it works:</strong> Create a listing with photos, part compatibility data (year, make, model, engine), condition description, and price. Buyers search, purchase, and you ship. eBay handles payment processing.</p>
+<p><strong>Fees:</strong> Final value fee of approximately 13.25% of the total sale price (including shipping), plus a $0.30 per-order fee. Insertion fees apply after your monthly free listing allotment (typically 250). For a $300 part, expect to pay roughly $40 in total fees.</p>
+<p><strong>Speed:</strong> Parts can take days to weeks to sell. High-demand items (common Honda, Toyota, Ford parts) move faster. Niche or rare parts may sit for months. Shipping adds 3–7 business days before the buyer receives the part.</p>
+<p><strong>Best for:</strong> Yards with cataloged inventory and the staff to photograph, list, pack, and ship individual parts. Good for reaching individual consumers and repair shops nationwide.</p>
+
+<h2>Method 2: Facebook Marketplace</h2>
+<p>Facebook Marketplace reaches 1.1 billion users worldwide. For auto parts, it is especially strong for local pickup sales where buyers can inspect parts before paying.</p>
+<p><strong>How it works:</strong> Create a listing in the auto parts category with photos, description, and price. Buyers message you through Facebook Messenger. Sales are typically cash at pickup or through Facebook's shipping option.</p>
+<p><strong>Fees:</strong> Free for local pickup listings. Shipped orders incur a 6% selling fee or $0.40 minimum. No listing fees, no monthly subscription.</p>
+<p><strong>Speed:</strong> Local sales can happen same day. Shipped parts take 2–5 days. You will spend significant time answering messages — many inquiries don't convert.</p>
+<p><strong>Best for:</strong> Individual sellers and small yards selling locally. Effective for large, heavy parts (engines, transmissions, body panels) where shipping cost is prohibitive.</p>
+
+<h2>Method 3: Car-Part.com</h2>
+<p>Car-Part.com is the industry's standard parts locating platform, connecting professional buyers with recycler inventory. Over 200 million parts are listed from thousands of yards.</p>
+<p><strong>How it works:</strong> Yards upload their inventory database (typically from yard management software like Checkmate, Pinnacle, or Hollander). Buyers search by part, and Car-Part.com shows matching inventory with pricing and yard contact info.</p>
+<p><strong>Fees:</strong> Monthly subscription fee (varies by yard size and features). No per-transaction fees. Requires compatible yard management software for inventory integration.</p>
+<p><strong>Speed:</strong> Depends on buyer activity. Your parts are passively listed — someone has to search for what you have. Response time depends on how quickly you answer calls and emails from buyers.</p>
+<p><strong>Best for:</strong> Established yards with inventory management systems already in place. Essential for yards wanting visibility among professional parts locators and body shops.</p>
+
+<h2>Method 4: Craigslist</h2>
+<p>Craigslist remains popular for local auto parts sales despite its age. The platform is free and attracts price-conscious buyers.</p>
+<p><strong>How it works:</strong> Post a listing in the auto parts section for your city or region. Include photos, part details, and price. Buyers contact you via email or phone. All sales are typically in-person, cash transactions.</p>
+<p><strong>Fees:</strong> Free in most categories and most cities.</p>
+<p><strong>Speed:</strong> Varies widely. Common parts in major metro areas can sell within a day. Rural areas or niche parts may get no responses. No built-in payment or shipping — strictly local.</p>
+<p><strong>Best for:</strong> Occasional sellers and yards clearing out low-value or bulk parts. Zero cost, zero commitment.</p>
+
+<h2>Method 5: Voice Hotline Networks (Hotline HQ)</h2>
+<p>Voice hotline networks connect yards in real-time through a shared audio channel. When one yard needs a part, they broadcast the request to every yard in the room. Any yard with that part responds instantly.</p>
+<p><strong>How it works:</strong> Join a regional room (California, Texas, Florida, Arizona, or any of 12 US markets). A preconfigured desk phone or web client connects you to the live channel. When you hear a request for a part you stock, press a button and respond. The buyer contacts you directly to finalize the sale. You keep 100% — no middleman, no commission.</p>
+<p><strong>Fees:</strong> Flat monthly membership fee. No per-call charges, no listing fees, no sales commissions. Desk phone included with membership.</p>
+<p><strong>Speed:</strong> The fastest method on this list. One broadcast reaches 100+ yards, and the average response time is approximately 2 seconds. Parts that would take hours to sell through listings can sell in seconds through a live broadcast.</p>
+<p><strong>Best for:</strong> Salvage yards selling to other yards and to repair shops. Especially effective for yards with large, uncataloged inventory — you don't need to list anything. Just listen and respond.</p>
+
+<h2>Method 6: PartCycle</h2>
+<p>PartCycle is a B2B marketplace focused on connecting recyclers with repair shops, insurance companies, and fleet operators. It positions itself as a premium alternative to consumer-facing platforms.</p>
+<p><strong>How it works:</strong> Yards list parts on the PartCycle platform. Verified buyers (shops, fleets, insurers) search and purchase with standardized grading and warranties. The platform handles some logistics coordination.</p>
+<p><strong>Fees:</strong> Subscription-based with transaction fees. Pricing varies by yard volume and features.</p>
+<p><strong>Speed:</strong> Similar to Car-Part.com — passive listing with buyer-initiated contact. The professional buyer base can mean faster decisions but lower volume than consumer platforms.</p>
+<p><strong>Best for:</strong> Yards focused on B2B sales to repair shops and insurance companies. Good for yards that want to sell graded, warrantied parts at professional pricing.</p>
+
+<h2>Method 7: Your Own Website</h2>
+<p>Some larger yards build their own e-commerce sites using platforms like Shopify, WooCommerce, or custom solutions. This gives you full control over branding, pricing, and customer relationships.</p>
+<p><strong>How it works:</strong> List parts on your own site with photos, compatibility data, and pricing. Handle your own SEO, advertising, payment processing, and shipping.</p>
+<p><strong>Fees:</strong> Platform subscription ($29–$299/month depending on features), payment processing (typically 2.9% + $0.30 per transaction), plus hosting, domain, and any advertising costs.</p>
+<p><strong>Speed:</strong> Entirely dependent on your traffic. New sites can take months to gain search visibility. Established yards with repeat customers see steady sales.</p>
+<p><strong>Best for:</strong> Larger operations with marketing resources and a brand to build. Works best as a complement to other channels, not as a sole sales method.</p>
+
+<h2>Which Method Should You Use?</h2>
+<p>The answer depends on what you sell, how fast you need to sell it, and how much time you can invest per sale.</p>
+<ul>
+<li><strong>High-volume yard-to-yard sales:</strong> Voice hotline network (fastest turnaround, no per-sale fees)</li>
+<li><strong>National reach to individual buyers:</strong> eBay Motors (widest audience, highest fees)</li>
+<li><strong>Local sales of large parts:</strong> Facebook Marketplace or Craigslist (free, buyer inspects before buying)</li>
+<li><strong>Professional B2B channel:</strong> Car-Part.com + PartCycle (industry standard for shops and insurers)</li>
+<li><strong>Building your own brand:</strong> Your own website (long-term investment)</li>
+</ul>
+<p>Most profitable yards run two to three channels simultaneously. A common stack: Car-Part.com for passive online visibility, a voice hotline for same-day yard-to-yard sales, and eBay Motors for individual consumer reach. <a href="${BASE_URL}/blog/guides/how-salvage-yards-sell-more-parts">Read our full guide on stacking sales channels</a>.</p>
+
+<h2>Tips for Selling More Parts, Faster</h2>
+<ol>
+<li><strong>Photograph every part from multiple angles.</strong> Clear photos reduce buyer questions and returns. Include close-ups of connectors, mounting points, and any damage.</li>
+<li><strong>Use OEM part numbers.</strong> Buyers search by part number more than description. Include the OEM number in your title and description.</li>
+<li><strong>Price competitively.</strong> Check <a href="${BASE_URL}/blog/market/used-auto-parts-pricing-guide">current market pricing</a> on Car-Part.com before listing. Grade A parts command 60–70% of new OEM. Grade B: 40–50%. Grade C: 25–35%.</li>
+<li><strong>Respond fast.</strong> On every platform, the first yard to respond gets the sale. Whether it is a Facebook message or a hotline broadcast, speed wins.</li>
+<li><strong>Stock what sells.</strong> Focus on pulling the <a href="${BASE_URL}/blog/market/most-requested-used-auto-parts">most-requested parts</a> first — bumpers, transmissions, headlights, and motors from Ford, Toyota, Honda, and Chevrolet.</li>
+</ol>
+</article>`;
+
+addPage('/sell-used-auto-parts', {
+  title: 'How to Sell Used Auto Parts Online — 7 Methods Compared (2026)',
+  description: 'Compare eBay, Facebook Marketplace, Car-Part.com, and 4 more ways to sell used auto parts online. See which channel sells fastest with real data.',
+  url: `${BASE_URL}/sell-used-auto-parts`,
+  keywords: 'sell used auto parts online, how to sell used auto parts, best place to sell used auto parts, sell auto parts, where to sell used auto parts',
+  shell: ssrShell(
+    'SELL PARTS FASTER',
+    'How to sell used auto parts online — <em>7 methods compared</em>',
+    "Compare eBay, Facebook Marketplace, Car-Part.com, voice hotlines, and more. See real fees, speed, and reach for each channel so you pick the right ones for your yard.",
+    'Join the Network — Free', `${BASE_URL}/client/signup`,
+    [['500+', 'Yards on network'], ['12', 'Regional rooms'], ['~115', 'Listeners per call'], ['24/7', 'Always on']]
+  ) + sellGuideHtml + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${sellFaqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`,
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: "How to Sell Used Auto Parts Online — 7 Methods Compared (2026)",
+        description: "Compare eBay, Facebook Marketplace, Car-Part.com, and 4 more ways to sell used auto parts online. See which channel sells fastest with real data.",
+        url: `${BASE_URL}/sell-used-auto-parts`,
+        publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+        datePublished: "2026-07-28",
+        dateModified: "2026-07-28",
+        mainEntityOfPage: `${BASE_URL}/sell-used-auto-parts`,
+      },
+      { "@type": "FAQPage", mainEntity: sellFaqItems.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }
+    ]
+  }
+});
+
+// ── /marketplace ────────────────────────────────────────────────────
+
+addPage('/marketplace', {
+  title: 'Used Auto Parts Marketplace — Live Inventory from 500+ Dismantler Yards',
+  description: 'Browse live used auto parts from 500+ dismantler yards. See real-time requests, available inventory, and connect with salvage yards in your region.',
+  url: `${BASE_URL}/marketplace`,
+  keywords: 'used auto parts marketplace, auto parts listings, buy used auto parts, salvage parts for sale, used car parts marketplace',
+  shell: ssrShell(
+    'MARKETPLACE',
+    'Used auto parts — live from the network',
+    'Browse real part requests and listings from 500+ dismantler yards across the Hotline HQ network.',
+    'Sign Up Free', `${BASE_URL}/client/signup`
+  )
+});
+
+// ── /own-a-hotline ──────────────────────────────────────────────────
+
+addPage('/own-a-hotline', {
+  title: 'Start an Auto Parts Hotline Business — Own a Regional Network | Hotline HQ',
+  description: 'Launch your own voice hotline network for auto dismantlers. Platform, phones, and support included — you collect the membership revenue.',
+  url: `${BASE_URL}/own-a-hotline`,
+  keywords: 'own a hotline, start a hotline business, start auto parts business, voice hotline franchise, hotline network owner',
+  shell: ssrShell(
+    'OWN THE HOTLINE',
+    'Launch a voice hotline network <em>in your industry</em>',
+    'Hotline HQ provides the platform, phones, and support. You own the membership revenue. Proven with <strong>500+ auto dismantler yards</strong> across 12 regional rooms.',
+    'Get Started', `mailto:hotlinehq@redlineusedautoparts.com`
+  ),
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service", name: "Own a Hotline — Hotline HQ Platform",
+        serviceType: "Voice Hotline Network Platform",
+        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/`, email: "hotlinehq@redlineusedautoparts.com" },
+        areaServed: "US",
+        description: "Launch and operate your own always-on voice hotline network. Platform, desk phones, and support included."
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          { "@type": "Question", name: "What does an owner actually do?", acceptedAnswer: { "@type": "Answer", text: "You sign up yards in your area, set the membership price, and collect monthly dues. Hotline HQ handles all the technology — phones, network, monitoring — so you focus on relationships and growth." } },
+          { "@type": "Question", name: "Do I need technical skills?", acceptedAnswer: { "@type": "Answer", text: "No. Hotline HQ provides all the infrastructure. Phones are preconfigured and ship directly to your members. You manage your network through a simple web dashboard." } },
+          { "@type": "Question", name: "What industries can use a hotline?", acceptedAnswer: { "@type": "Answer", text: "Any industry where businesses need to locate inventory across a network of peers — auto dismantlers, heavy truck parts, building materials, wholesale distribution, and more." } }
+        ]
+      }
+    ]
+  }
+});
+
+// ── /about ──────────────────────────────────────────────────────────
+
+addPage('/about', {
+  title: 'About Hotline HQ — Built by Dismantlers, for Dismantlers Since 2011',
+  description: 'Started as a single phone line between two California salvage yards in 2011. Today Hotline HQ connects 500+ yards across 12 rooms — the largest voice parts network in the US.',
+  url: `${BASE_URL}/about`,
+  shell: ssrShell(
+    'COMPANY',
+    'About Hotline HQ',
+    "Hotline HQ is an always-on voice network that connects salvage yards and auto recyclers so they can locate and sell used parts for each other's customers — in seconds, not hours.",
+    'Home', `${BASE_URL}/`
+  ),
+  jsonLd: { "@context": "https://schema.org", "@type": "AboutPage", name: "About Hotline HQ", url: `${BASE_URL}/about`, mainEntity: { "@id": `${BASE_URL}/#org` } }
+});
+
+// ── Legal pages ─────────────────────────────────────────────────────
+
+addPage('/privacy-policy', {
+  title: 'Privacy Policy | Hotline HQ',
+  description: 'How Hotline HQ collects, uses, and protects member information — including call recordings, account data, and your choices.',
+  url: `${BASE_URL}/privacy-policy`
+});
+
+addPage('/terms-and-conditions', {
+  title: 'Terms & Conditions | Hotline HQ',
+  description: 'Membership terms for the Hotline HQ voice network: billing, acceptable use, member-to-member deals, equipment, and recordings.',
+  url: `${BASE_URL}/terms-and-conditions`
+});
+
+addPage('/disclaimer', {
+  title: 'Disclaimer | Hotline HQ',
+  description: 'What the figures and demos on this site represent, and what Hotline HQ does and does not guarantee about member-to-member deals.',
+  url: `${BASE_URL}/disclaimer`
+});
+
+// ── Blog index ──────────────────────────────────────────────────────
+
+addPage('/blog', {
+  title: 'Blog — Auto Parts Industry Guides & Network Updates | Hotline HQ',
+  description: 'Industry guides, network updates, and parts market insights from Hotline HQ — the voice network connecting 500+ auto dismantler yards.',
+  url: `${BASE_URL}/blog`,
+  keywords: 'auto parts blog, dismantler industry, salvage yard tips, used auto parts guide, hotline hq blog',
+  shell: ssrShell(
+    'HOTLINE HQ',
+    'Blog',
+    'Industry guides, network updates, and parts market insights from the largest voice parts network in the US.',
+    'Browse Posts', `${BASE_URL}/blog`
+  ),
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@type": "Blog", name: "Hotline HQ Blog",
+    description: "Industry guides, network updates, and parts market insights from Hotline HQ.",
+    url: `${BASE_URL}/blog`,
+    publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` }
+  }
+});
+
+// ── Blog categories ─────────────────────────────────────────────────
+
+const BLOG_CATS = {
+  guides: { label: 'Industry Guides', desc: 'How-to guides and explainers for the auto dismantler industry' },
+  news: { label: 'Network Updates', desc: 'New rooms, milestones, and member stories from the Hotline HQ network' },
+  market: { label: 'Parts Market', desc: 'Popular parts, seasonal trends, and pricing insights from 500+ yards' },
+};
+
+for (const [catKey, cat] of Object.entries(BLOG_CATS)) {
+  addPage(`/blog/${catKey}`, {
+    title: `${cat.label} — Hotline HQ Blog`,
+    description: cat.desc,
+    url: `${BASE_URL}/blog/${catKey}`,
+    keywords: `${cat.label.toLowerCase()}, auto parts blog, hotline hq`,
+    shell: ssrShell('BLOG', cat.label, cat.desc, 'Browse Posts', `${BASE_URL}/blog`),
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: `${cat.label} — Hotline HQ Blog`,
+      description: cat.desc,
+      url: `${BASE_URL}/blog/${catKey}`,
+      isPartOf: { "@type": "Blog", name: "Hotline HQ Blog", url: `${BASE_URL}/blog` }
+    }
+  });
+}
+
+// ── Blog posts ──────────────────────────────────────────────────────
+
+for (const post of blogData.posts) {
+  const postUrl = `${BASE_URL}/blog/${post.category}/${post.slug}`;
+  const catLabel = BLOG_CATS[post.category]?.label || post.category;
+
+  const faqHtml = post.faq.length > 0
+    ? `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${post.faq.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`
+    : '';
+  const contentHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 64px">${post.bodyHtml}</article>`;
+
+  const shell = ssrShell(
+    catLabel.toUpperCase(),
+    post.title,
+    post.description,
+    'Join the Network — Free', `${BASE_URL}/client/signup`
+  ) + contentHtml + faqHtml;
+
+  const jsonLdGraph = [
+    {
+      "@type": "Article",
+      headline: post.title,
+      description: post.description,
+      url: postUrl,
+      publisher: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+      datePublished: post.date,
+      dateModified: post.lastUpdated || post.date,
+      mainEntityOfPage: postUrl,
+    },
+  ];
+  if (post.faq.length > 0) {
+    jsonLdGraph.push({
+      "@type": "FAQPage",
+      mainEntity: post.faq.map(f => ({
+        "@type": "Question", name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a }
+      }))
+    });
+  }
+
+  addPage(`/blog/${post.category}/${post.slug}`, {
+    title: `${post.title} — ${catLabel} | Hotline HQ`,
+    description: post.description,
+    url: postUrl,
+    keywords: post.keywords || '',
+    ogImage: post.ogImage ? `${BASE_URL}${post.ogImage}` : null,
+    shell,
+    jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
+  });
+}
+
+// ── Feature pages ───────────────────────────────────────────────────
+
+for (const [slug, f] of Object.entries(featuresData)) {
+  const seo = f.seo || {};
+  const faqJsonLd = f.faqs?.length ? [{ "@type": "FAQPage", mainEntity: f.faqs.map(item => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) }] : [];
+
+  const stepsHtml = f.steps?.length ? `<h2>How It Works</h2><ol>${f.steps.map(s => `<li><strong>${s.title}.</strong> ${s.desc}</li>`).join('')}</ol>` : '';
+  const benefitsHtml = f.benefits?.length ? `<h2>Key Benefits</h2><ul>${f.benefits.map(b => `<li><strong>${b.title}.</strong> ${b.desc}</li>`).join('')}</ul>` : '';
+  const problemHtml = f.problem?.text ? `<h2>${f.problem.heading || 'The Problem'}</h2><p>${f.problem.text}</p>` : '';
+  const scenarioHtml = f.scenario?.text ? `<h2>${f.scenario.heading || 'Real-World Scenario'}</h2><p>${f.scenario.text}</p>` : '';
+  const featFaqHtml = f.faqs?.length ? `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${f.faqs.map(item => `<div class="ssr-faq"><h3>${item.q}</h3><p>${item.a}</p></div>`).join('')}</div>` : '';
+  const featResourcesHtml = f.resources?.length ? `<h2>Keep Exploring</h2><ul>${f.resources.map(r => `<li><a href="${BASE_URL}${r.href}">${r.label}</a></li>`).join('')}</ul>` : '';
+  const featContentHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 40px">${problemHtml}${stepsHtml}${benefitsHtml}${scenarioHtml}${featResourcesHtml}</article>${featFaqHtml}`;
+
+  addPage(`/features/${slug}`, {
+    title: seo.title || `${f.title} | Hotline HQ`,
+    description: seo.description || '',
+    keywords: seo.keywords || '',
+    url: `${BASE_URL}/features/${slug}`,
+    shell: ssrShell(f.hero?.kicker || 'FEATURE', f.hero?.heading || f.title, f.hero?.lede || '', 'Sign Up Free', `${BASE_URL}/client/signup`) + featContentHtml,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@graph": [
+        { "@type": "BreadcrumbList", itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${BASE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Features", item: `${BASE_URL}/own-a-hotline` },
+          { "@type": "ListItem", position: 3, name: f.title, item: `${BASE_URL}/features/${slug}` },
+        ]},
+        { "@type": "Service", name: `${f.title} — Hotline HQ`, serviceType: "Voice Hotline Network Feature", provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` }, description: seo.description || '' },
+        ...faqJsonLd,
+      ]
+    }
+  });
+}
+
+// ── Regional pages ──────────────────────────────────────────────────
+
+const ACTIVE_REGIONS = new Set(['california', 'texas', 'florida', 'arizona']);
+const REGIONS = {
+  california: { name: 'California', abbr: 'CA' },
+  texas: { name: 'Texas', abbr: 'TX' },
+  florida: { name: 'Florida', abbr: 'FL' },
+  arizona: { name: 'Arizona', abbr: 'AZ' },
+  ohio: { name: 'Ohio', abbr: 'OH' },
+  'new-york': { name: 'New York', abbr: 'NY' },
+  georgia: { name: 'Georgia', abbr: 'GA' },
+  indiana: { name: 'Indiana', abbr: 'IN' },
+  michigan: { name: 'Michigan', abbr: 'MI' },
+  carolinas: { name: 'Carolinas', abbr: 'NC/SC' },
+  'new-jersey': { name: 'New Jersey', abbr: 'NJ' },
+  'san-diego': { name: 'San Diego', abbr: 'SD' },
+  iowa: { name: 'Iowa', abbr: 'IA' },
+  kentucky: { name: 'Kentucky', abbr: 'KY' },
+  alberta: { name: 'Alberta', abbr: 'AB' },
+  canada: { name: 'Canada', abbr: 'CA' },
+  mexico: { name: 'Mexico', abbr: 'MX' },
+  egypt: { name: 'Egypt', abbr: 'EG' },
+  spain: { name: 'Spain', abbr: 'ES' },
+  ghana: { name: 'Ghana', abbr: 'GH' },
+};
+
+for (const [stateKey, region] of Object.entries(REGIONS)) {
+  const yardText = 'dismantler yards';
+  const title = `Used Auto Parts in ${region.name} — ${region.abbr} Dismantler Network | Hotline HQ`;
+  const description = `Find and sell used auto parts in ${region.name}. ${yardText} on a live voice network. Broadcast what you need and get answers in seconds.`;
+
+  const rc = ACTIVE_REGIONS.has(stateKey) ? regionsData[stateKey] : null;
+  let contentHtml = '';
+  if (rc) {
+    const citiesHtml = (rc.cities || []).map(c => `<div class="ssr-faq"><h3>${c.name}</h3><p>${c.blurb}</p></div>`).join('');
+    const faqHtml = (rc.faqs || []).map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('');
+    const resourcesHtml = (rc.resources || []).map(r => `<li><a href="${BASE_URL}${r.href}">${r.label}</a></li>`).join('');
+    contentHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 40px">
+      <h2>Used Auto Parts in ${region.name} — How It Works</h2>
+      <p>${rc.intro}</p>
+      <h3>${region.name} Coverage Area</h3>
+      <p>${rc.geography}</p>
+      <h3>Most-Requested Parts in ${region.abbr}</h3>
+      <p>${rc.popular}</p>
+      ${rc.whyVoice ? `<h3>Why a Live Voice Network Beats a Parts Database</h3><p>${rc.whyVoice}</p>` : ''}
+    </article>
+    ${citiesHtml ? `<div class="ssr-faq-section"><h2>Used auto parts across ${region.name}</h2>${citiesHtml}</div>` : ''}
+    ${faqHtml ? `<div class="ssr-faq-section"><h2>${region.name} used auto parts — common questions</h2>${faqHtml}</div>` : ''}
+    ${resourcesHtml ? `<div class="ssr-faq-section"><h2>Guides and tools for ${region.name} buyers and yards</h2><ul>${resourcesHtml}</ul></div>` : ''}`;
+  }
+
+  const jsonLdGraph = [
+    {
+      "@type": "Service",
+      name: `Hotline HQ — Used Auto Parts in ${region.name}`,
+      serviceType: "Used Auto Parts Network",
+      provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+      areaServed: { "@type": "AdministrativeArea", name: region.name },
+      description
+    },
+    {
+      "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${BASE_URL}/` },
+        { "@type": "ListItem", position: 2, name: "Find Used Auto Parts", item: `${BASE_URL}/find-used-auto-parts` },
+        { "@type": "ListItem", position: 3, name: `Used Auto Parts in ${region.name}`, item: `${BASE_URL}/used-auto-parts/${stateKey}` },
+      ]
+    },
+  ];
+  if (rc?.faqs?.length) {
+    jsonLdGraph.push({
+      "@type": "FAQPage",
+      mainEntity: rc.faqs.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } }))
+    });
+  }
+
+  addPage(`/used-auto-parts/${stateKey}`, {
+    title,
+    description,
+    url: `${BASE_URL}/used-auto-parts/${stateKey}`,
+    keywords: `used auto parts ${region.name}, ${region.abbr} auto parts, ${region.name} dismantler, junkyard parts ${region.name}, salvage auto parts ${region.abbr}`,
+    robots: ACTIVE_REGIONS.has(stateKey) ? undefined : 'noindex, follow',
+    shell: ssrShell(
+      `${region.abbr} NETWORK`,
+      `Used auto parts in <em>${region.name}</em>`,
+      `Hotline HQ's ${region.name} room connects ${yardText} on a live voice hotline. Broadcast what you need — every yard in ${region.name} hears it instantly.`,
+      `Join ${region.name} Room — Free`, `${BASE_URL}/client/signup?room=${encodeURIComponent(region.name)}`
+    ) + contentHtml,
+    jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
+  });
+}
+
+// ── Generate all pages ──────────────────────────────────────────────
+
+if (fs.existsSync(PRERENDER_DIR)) {
+  fs.rmSync(PRERENDER_DIR, { recursive: true });
+}
+fs.mkdirSync(PRERENDER_DIR, { recursive: true });
+
+let count = 0;
+for (const { route, seo } of pages) {
+  const html = injectSeoMeta(templateHtml, seo);
+
+  // Convert route to file path: / → index.html, /blog → blog.html, /blog/guides/slug → blog/guides/slug.html
+  let filePath;
+  if (route === '/') {
+    filePath = path.join(PRERENDER_DIR, 'index.html');
+  } else {
+    filePath = path.join(PRERENDER_DIR, `${route.slice(1)}.html`);
+  }
+
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  fs.writeFileSync(filePath, html);
+
+  // Pre-compress gzip version for Express to serve directly
+  const gz = zlib.gzipSync(html);
+  fs.writeFileSync(`${filePath}.gz`, gz);
+
+  count++;
+}
+
+console.log(`[prerender] Generated ${count} static HTML pages in dist-client/prerender/`);
+console.log('[prerender] Done');

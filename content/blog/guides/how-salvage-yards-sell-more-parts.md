@@ -227,7 +227,7 @@ Add Facebook for specialty or enthusiast parts when you've got them. Use locatin
 
 The parts on your shelves aren't dead weight. They're unseen. Every one of them has a buyer somewhere. The only question is whether you're wired into enough channels to find that buyer before the part rusts out or the model ages off the road.
 
-Ready to add a voice channel to your yard? See how Hotline HQ connects dismantlers to live buyers at [the Hotline HQ marketplace](/marketplace).
+Ready to add a voice channel to your yard? See how Hotline HQ connects dismantlers to live buyers at [the Hotline HQ marketplace](/marketplace). For a step-by-step look at all the ways to [sell used auto parts online](/sell-used-auto-parts), start with our main selling guide.
 
 ## Get on the Line in Your State {#regional}
 
