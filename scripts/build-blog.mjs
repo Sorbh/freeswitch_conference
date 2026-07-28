@@ -125,9 +125,21 @@ function markdownToHtml(md) {
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-  // Blockquotes
-  html = html.replace(/^(?:> .+\n?)+/gm, (match) => {
-    const inner = match.replace(/^> ?/gm, '').trim();
+  // Blockquotes (allow empty > lines as continuation)
+  html = html.replace(/^(?:>.*\n?)+/gm, (match) => {
+    let inner = match.replace(/^> ?/gm, '').trim();
+    // Process unordered lists inside blockquote
+    inner = inner.replace(/^(- .+(?:\n(?!\n)(?:- .+| {2}.+))*)/gm, (m) => {
+      const items = m.split(/\n(?=- )/).map(li => `<li>${li.replace(/^- /, '').trim()}</li>`).join('');
+      return `<ul>${items}</ul>`;
+    });
+    // Wrap remaining bare text lines as paragraphs
+    inner = inner.split('\n\n').map(block => {
+      block = block.trim();
+      if (!block) return '';
+      if (block.startsWith('<')) return block;
+      return `<p>${block}</p>`;
+    }).join('\n');
     return `<blockquote>${inner}</blockquote>`;
   });
 
