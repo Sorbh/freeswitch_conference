@@ -2,7 +2,7 @@ import express from "express";
 import { logUser, logSystem } from "../../service/logger.js";
 import { changeUserRoom } from "../admin/users.js";
 import { declineByUserName } from "../../service/freeswitch/directCall.js";
-import { handleDirectCallHookEvent, isYealinkHookSuppressed } from "../../service/phoneEvents.js";
+import { handleHttpHookEvent, isSyslogActive, isYealinkHookSuppressed } from "../../service/phoneEvents.js";
 
 export const yealinkRouter = express.Router();
 
@@ -43,53 +43,33 @@ function _extractMac(req) {
     return mac;
 }
 
-// GET /onhook?mac=... — phone on-hook, mute user in conference
+// GET /onhook?mac=... — Action URL: phone on-hook (syslog fallback)
 yealinkRouter.get("/onhook", (req, res) => {
     try {
-        logSystem('YEALINK', `API /onhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
-        const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
-        if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
-        if (isYealinkHookSuppressed(userInfo)) {
-            logUser(userInfo.userName, 'YEALINK', 'ONHOOK ignored — web takeover active');
-            return res.json({ status: true, message: "ignored — web takeover active" });
-        }
-        const directCallHook = handleDirectCallHookEvent(userInfo.userName, 'on_hook', 'yealink');
-        if (directCallHook.handled) {
-            logUser(userInfo.userName, 'YEALINK', `ONHOOK (${directCallHook.message})`);
-            return res.status(directCallHook.ok ? 200 : 400).json({ status: directCallHook.ok, message: directCallHook.message });
-        }
-        global.freeswitch.muteUser(userInfo.mac.toLowerCase());
-        userInfo.mute = true;
-        global.db.setUserInfo(userInfo.userName, userInfo);
-        logSystem('PHONE', `ON HOOK ${userInfo.callerIdName || userInfo.userName} (yealink-api)`);
-        logUser(userInfo.userName, 'YEALINK', 'ONHOOK (mute)');
-        res.json({ status: true, message: "onHook api working fine" });
+        const mac = _extractMac(req);
+        const userInfo = _findUserByMac(mac, _getClientIp(req));
+        if (!userInfo) return res.json({ status: false, error: "User not found" });
+        if (userInfo.mac && isSyslogActive(userInfo.mac)) return res.json({ status: true, message: "syslog active" });
+        if (isYealinkHookSuppressed(userInfo)) return res.json({ status: true, message: "web takeover active" });
+        logSystem('YEALINK', `ACTION onhook (syslog fallback) ${userInfo.callerIdName || userInfo.userName}`);
+        handleHttpHookEvent(userInfo.userName, 'on_hook');
+        res.json({ status: true, message: "onhook" });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }
 });
 
-// GET /offhook?mac=... — phone off-hook, unmute user in conference
+// GET /offhook?mac=... — Action URL: phone off-hook (syslog fallback)
 yealinkRouter.get("/offhook", (req, res) => {
     try {
-        logSystem('YEALINK', `API /offhook mac=${_extractMac(req)} ip=${_getClientIp(req)}`);
-        const userInfo = _findUserByMac(_extractMac(req), _getClientIp(req));
-        if (!userInfo) return res.status(400).json({ status: false, error: "User not found" });
-        if (isYealinkHookSuppressed(userInfo)) {
-            logUser(userInfo.userName, 'YEALINK', 'OFFHOOK ignored — web takeover active');
-            return res.json({ status: true, message: "ignored — web takeover active" });
-        }
-        const directCallHook = handleDirectCallHookEvent(userInfo.userName, 'off_hook', 'yealink');
-        if (directCallHook.handled) {
-            logUser(userInfo.userName, 'YEALINK', `OFFHOOK (${directCallHook.message})`);
-            return res.status(directCallHook.ok ? 200 : 400).json({ status: directCallHook.ok, message: directCallHook.message });
-        }
-        global.freeswitch.unmuteUser(userInfo.mac.toLowerCase());
-        userInfo.mute = false;
-        global.db.setUserInfo(userInfo.userName, userInfo);
-        logSystem('PHONE', `OFF HOOK ${userInfo.callerIdName || userInfo.userName} (yealink-api)`);
-        logUser(userInfo.userName, 'YEALINK', 'OFFHOOK (unmute)');
-        res.json({ status: true, message: "offhook api working fine" });
+        const mac = _extractMac(req);
+        const userInfo = _findUserByMac(mac, _getClientIp(req));
+        if (!userInfo) return res.json({ status: false, error: "User not found" });
+        if (userInfo.mac && isSyslogActive(userInfo.mac)) return res.json({ status: true, message: "syslog active" });
+        if (isYealinkHookSuppressed(userInfo)) return res.json({ status: true, message: "web takeover active" });
+        logSystem('YEALINK', `ACTION offhook (syslog fallback) ${userInfo.callerIdName || userInfo.userName}`);
+        handleHttpHookEvent(userInfo.userName, 'off_hook');
+        res.json({ status: true, message: "offhook" });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
     }

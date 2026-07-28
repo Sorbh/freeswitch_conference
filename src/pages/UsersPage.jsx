@@ -1405,6 +1405,27 @@ export default function UsersPage() {
                         className="data-checked:bg-cyan-500"
                       />
                     </div>
+                    {acc.ymcs_device_id && (
+                      <div className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${selectedUser.webTakeover ? "bg-purple-500/5 border-purple-500/20" : "bg-muted/30 border-border/40"}`}>
+                        <div className="flex items-center gap-2">
+                          <GlobeIcon className={`size-4 ${selectedUser.webTakeover ? "text-purple-400" : "text-muted-foreground/50"}`} />
+                          <div>
+                            <p className="text-sm font-medium">Web Takeover</p>
+                            <p className="text-[11px] text-muted-foreground/60">Browser overrides Yealink phone</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          {selectedUser.webTakeover ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-purple-400 border-purple-400/20">Active</Badge>
+                          ) : null}
+                          <Switch
+                            checked={!!selectedUser.webTakeover}
+                            onCheckedChange={() => doAction(selectedUser.userName, "web_takeover")}
+                            className="data-checked:bg-purple-500"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-1">
                       {[

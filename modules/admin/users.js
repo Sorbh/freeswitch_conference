@@ -174,6 +174,26 @@ router.post("/users/:userName/kickout", async (req, res) => {
     }
 });
 
+// POST /users/:userName/web_takeover — toggle web takeover flag
+router.post("/users/:userName/web_takeover", (req, res) => {
+    try {
+        const userName = req.params.userName;
+        const userInfo = global.db.getUserInfo(userName);
+        if (!userInfo || Object.keys(userInfo).length === 0) {
+            return res.status(404).json({ status: false, error: "User not found" });
+        }
+        const newVal = !userInfo.webTakeover;
+        userInfo.webTakeover = newVal;
+        global.db.setUserInfo(userName, userInfo);
+        global.db.logEvent(newVal ? 'web_takeover_on' : 'web_takeover_off', userName, userInfo.currentRoom || userInfo.room, `Admin toggled web takeover ${newVal ? 'on' : 'off'}`);
+        global.db.eventEmitter.emit('STATE_EVENT', { type: 'state_event', scope: 'users', userName });
+        logUser(userName, 'API', `WEB_TAKEOVER ${newVal ? 'ON' : 'OFF'} (admin)`);
+        res.json({ status: true, web_takeover: newVal });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
 // POST /users/kickout-all — kickout all (or room-filtered) users and disconnect calls
 router.post("/users/kickout-all", async (req, res) => {
     try {
