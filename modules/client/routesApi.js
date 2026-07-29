@@ -8,7 +8,7 @@ import { JWT_SECRET } from "../../service/auth/middleware.js";
 import { acceptByUserName, declineByUserName, hangupDirectCallByUserName, initiateDirectCallByUserName } from "../../service/freeswitch/directCall.js";
 import { logSystem } from "../../service/logger.js";
 import { handleHttpHookEvent } from "../../service/phoneEvents.js";
-import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendNewSignupNotification, sendWelcomeEmail } from "../../service/emailSender.js";
+import { sendExtensionRequestEmail, sendRoomRequestEmail, sendVerificationEmail, sendPasswordResetEmail, sendMagicLinkEmail, sendNewSignupNotification, sendWelcomeEmail } from "../../service/emailSender.js";
 import { changeUserRoom } from "../admin/users.js";
 import { clientEventsRouter, buildOnlineCounts, kickClientSSE, sendClientEventToUser } from "./events.js";
 import { initiateCall, probeDeviceContact } from "../../service/freeswitch/callGate.js";
@@ -34,6 +34,7 @@ function enrichBroadcast(b) {
 const CLIENT_TOKEN_EXPIRY = '7d';
 const VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours
 const RESET_TOKEN_EXPIRY = 60 * 60; // 1 hour
+const MAGIC_LINK_EXPIRY = 15 * 60; // 15 minutes
 
 // ── Simple rate limiter ──
 const _rateBuckets = new Map();
@@ -163,7 +164,13 @@ clientRouter.post("/signup", async (req, res) => {
 
         const existing = global.db.getAccountByEmail(cleanEmail);
         if (existing) {
-            return res.status(409).json({ status: false, error: "An account with this email already exists" });
+            if (existing.kickout) {
+                return res.status(409).json({ status: false, reason: "disabled", error: "This account has been disabled. Contact support for help." });
+            }
+            if (!existing.email_verified) {
+                return res.status(409).json({ status: false, reason: "unverified", error: "This account hasn't been verified yet. Check your email for the verification link." });
+            }
+            return res.status(409).json({ status: false, reason: "exists", error: "You already have an account with this email." });
         }
 
         const passwordHash = await bcrypt.hash(password, 12);
@@ -409,6 +416,77 @@ clientRouter.post("/reset-password", async (req, res) => {
         res.json({ status: true, message: "Password has been reset. You can now log in." });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// POST /magic-link — send a one-time login link via email
+clientRouter.post("/magic-link", async (req, res) => {
+    try {
+        const ip = _getClientIp(req);
+        if (!_rateLimit(`magic:${ip}`, 3)) {
+            return res.status(429).json({ status: false, error: "Too many requests. Please try again later." });
+        }
+
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ status: false, error: "Email is required" });
+
+        const account = global.db.getAccountByEmail(email.toLowerCase().trim());
+        if (!account || account.kickout) {
+            return res.json({ status: true, message: "If an account exists with this email, a login link has been sent." });
+        }
+
+        const magicToken = crypto.randomBytes(32).toString('hex');
+        const magicExpires = Math.floor(Date.now() / 1000) + MAGIC_LINK_EXPIRY;
+        global.db.updateAccount(account.id, {
+            magic_link_token: magicToken,
+            magic_link_token_expires: magicExpires,
+        });
+
+        await sendMagicLinkEmail({ email: account.email, token: magicToken, displayName: account.display_name });
+        logSystem('CLIENT', `API /magic-link email=${email} ip=${ip}`);
+        res.json({ status: true, message: "If an account exists with this email, a login link has been sent." });
+    } catch (err) {
+        res.status(500).json({ status: false, error: err.message });
+    }
+});
+
+// GET /magic-login — consume magic link token, auto-login and redirect to dashboard
+clientRouter.get("/magic-login", (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) {
+            return res.redirect('/client/login?msg=Missing+login+link+token');
+        }
+
+        const account = global.db.getAccountByMagicLinkToken(token);
+        if (!account) {
+            return res.redirect('/client/login?msg=Invalid+or+expired+login+link');
+        }
+
+        const now = Math.floor(Date.now() / 1000);
+        if (account.magic_link_token_expires && account.magic_link_token_expires < now) {
+            return res.redirect('/client/login?msg=Login+link+has+expired');
+        }
+
+        const updates = {
+            magic_link_token: null,
+            magic_link_token_expires: null,
+        };
+        if (!account.email_verified) {
+            updates.email_verified = 1;
+            updates.active = 1;
+            updates.verification_token = null;
+            updates.verification_token_expires = null;
+        }
+        global.db.updateAccount(account.id, updates);
+
+        logSystem('CLIENT', `API /magic-login email=${account.email} auto-login=true verified=${!account.email_verified ? 'now' : 'already'}`);
+
+        const loginToken = _clientLoginToken(account);
+        res.redirect(`/client/dashboard#vt=${encodeURIComponent(loginToken)}`);
+    } catch (err) {
+        logSystem('CLIENT', `API /magic-login error=${err.message}`);
+        res.redirect('/client/login?msg=Login+failed');
     }
 });
 

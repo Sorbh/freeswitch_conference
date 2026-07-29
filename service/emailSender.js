@@ -203,6 +203,32 @@ export async function sendPasswordResetEmail({ email, token, displayName }) {
     });
 }
 
+export async function sendMagicLinkEmail({ email, token, displayName }) {
+    const config = global.config || {};
+    const baseUrl = config.CLIENT_APP_URL || 'https://hotlinehq.online';
+    const loginUrl = `${baseUrl}/api/v1/client/magic-login?token=${encodeURIComponent(token)}`;
+
+    const lines = [
+        `Hi ${displayName || 'there'},`,
+        '',
+        'Tap the link below to log in to Hotline HQ — no password needed:',
+        '',
+        loginUrl,
+        '',
+        'This link expires in 15 minutes.',
+        '',
+        'If you did not request this, you can safely ignore this email.',
+        '',
+        '— Hotline HQ',
+    ];
+
+    await sendMail({
+        to: email,
+        subject: 'Your Hotline HQ login link',
+        text: lines.join('\n'),
+    });
+}
+
 export async function sendNewSignupNotification({ email, companyName, displayName, room, roomName, zip }) {
     const config = global.config || {};
     const to = config.EXTENSION_REQUEST_TO_EMAIL;

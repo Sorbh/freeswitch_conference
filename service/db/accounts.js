@@ -31,7 +31,7 @@ function getAllAccounts() {
 }
 
 function updateAccount(id, fields) {
-    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension', 'password_hash', 'email_verified', 'verification_token', 'verification_token_expires', 'reset_token', 'reset_token_expires', 'signup_source', 'referral_code', 'referred_by'];
+    const allowed = ['email', 'password', 'display_name', 'company_name', 'company_address', 'city', 'state', 'zip', 'room', 'active', 'critical', 'user_name', 'kickout', 'company_phone', 'ymcs_account_id', 'ymcs_device_id', 'ymcs_config_id', 'sip_server_host', 'sip_server_port', 'debug', 'extension', 'password_hash', 'email_verified', 'verification_token', 'verification_token_expires', 'reset_token', 'reset_token_expires', 'signup_source', 'referral_code', 'referred_by', 'magic_link_token', 'magic_link_token_expires'];
     const sets = [];
     const values = [];
     for (const [key, val] of Object.entries(fields)) {
@@ -53,6 +53,10 @@ function getAccountByVerificationToken(token) {
 
 function getAccountByResetToken(token) {
     return sqlite.prepare('SELECT * FROM accounts WHERE reset_token = ?').get(token) || null;
+}
+
+function getAccountByMagicLinkToken(token) {
+    return sqlite.prepare('SELECT * FROM accounts WHERE magic_link_token = ?').get(token) || null;
 }
 
 function deleteAccount(id) {
@@ -99,7 +103,7 @@ function setAccountPushPrefs(id, prefs) {
 export {
     createAccount, getAccountByEmail, getAccountByUserName, getAccountById,
     getAccountByExtension, getAllAccounts, updateAccount,
-    getAccountByVerificationToken, getAccountByResetToken, deleteAccount,
+    getAccountByVerificationToken, getAccountByResetToken, getAccountByMagicLinkToken, deleteAccount,
     generateReferralCode, getAccountByReferralCode, getReferralCount, getReferrals,
     getActiveAccountsByRoom, setAccountPushPrefs,
 };

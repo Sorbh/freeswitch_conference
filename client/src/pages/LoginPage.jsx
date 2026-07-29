@@ -16,6 +16,8 @@ export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [unverified, setUnverified] = useState(false);
   const [resending, setResending] = useState(false);
+  const [magicSending, setMagicSending] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
 
   useEffect(() => {
     const verified = searchParams.get('verified');
@@ -30,6 +32,7 @@ export default function LoginPage() {
     else if (verified === 'error') setError(msg ? decodeURIComponent(msg.replace(/\+/g, ' ')) : t("login.verificationFailed"));
     else if (searchParams.get('session') === 'expired') setMessage(t("login.sessionExpired"));
     else if (searchParams.get('session') === 'replaced') setMessage(t("login.sessionReplaced"));
+    else if (!verified && msg) setError(decodeURIComponent(msg.replace(/\+/g, ' ')));
 
     if (queryEmail || queryPassword) {
       const nextParams = new URLSearchParams(searchParams);
@@ -80,6 +83,29 @@ export default function LoginPage() {
       setError(err.message);
     } finally {
       setResending(false);
+    }
+  }
+
+  async function handleMagicLink() {
+    const cleanEmail = email.trim();
+    if (!cleanEmail) { setError(t("login.email") + ' is required'); return; }
+    setMagicSending(true);
+    setError('');
+    setMessage('');
+    try {
+      const res = await fetch('/api/v1/client/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      setMagicSent(true);
+      setMessage(json.message || 'Check your email for a login link.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMagicSending(false);
     }
   }
 
@@ -182,6 +208,32 @@ export default function LoginPage() {
                   {t("login.forgotPassword")}
                 </Link>
               </div>
+
+              <div className="flex items-center gap-3 mt-5">
+                <div className="flex-1 h-px" style={{ background: 'var(--line)' }} />
+                <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>or</span>
+                <div className="flex-1 h-px" style={{ background: 'var(--line)' }} />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleMagicLink}
+                disabled={magicSending || magicSent}
+                className="w-full py-3 mt-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: magicSent ? 'var(--green)' : 'var(--ink)', cursor: magicSent ? 'default' : 'pointer' }}
+              >
+                {magicSent ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Check your email
+                  </>
+                ) : magicSending ? 'Sending...' : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    Email me a login link
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="mt-6 text-center">

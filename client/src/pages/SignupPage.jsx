@@ -29,6 +29,7 @@ export default function SignupPage() {
   const [requestArea, setRequestArea] = useState(false);
   const [requestedAreaLabel, setRequestedAreaLabel] = useState('');
   const [error, setError] = useState('');
+  const [errorReason, setErrorReason] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -140,6 +141,7 @@ export default function SignupPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    setErrorReason('');
     setSuccess('');
     setLoading(true);
     try {
@@ -165,7 +167,10 @@ export default function SignupPage() {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      if (!res.ok) {
+        setErrorReason(json.reason || '');
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
       if (wantsNewArea) setRequestedAreaLabel(areaText);
       setSuccess(json.message || t("signup.accountCreated"));
     } catch (err) {
@@ -279,7 +284,26 @@ export default function SignupPage() {
         </div>
 
         <div className={`hq-card p-6 ${shake ? 'animate-shake' : ''}`}>
-          {error && <div className="hq-alert-error">{error}</div>}
+          {error && (
+            <div className="hq-alert-error">
+              <div>{error}</div>
+              {errorReason === 'exists' && (
+                <a href={`/client/login?email=${encodeURIComponent(form.email.trim())}`} className="inline-block mt-2 text-sm font-semibold underline" style={{ color: 'var(--red)' }}>
+                  Log in instead &rarr;
+                </a>
+              )}
+              {errorReason === 'unverified' && (
+                <button type="button" onClick={handleResend} disabled={resending} className="inline-block mt-2 text-sm font-semibold underline" style={{ color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {resending ? t("signup.sending") : 'Resend verification email'}
+                </button>
+              )}
+              {errorReason === 'disabled' && (
+                <a href="https://wa.me/66917636278?text=Hi%2C%20my%20account%20has%20been%20disabled%20and%20I%20need%20help" target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-sm font-semibold underline" style={{ color: 'var(--red)' }}>
+                  Chat with us on WhatsApp &rarr;
+                </a>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {!hasUrlCompany && (

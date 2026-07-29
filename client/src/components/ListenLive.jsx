@@ -289,7 +289,6 @@ export default function ListenLive({ signupUrl, steps, footnote }) {
               </span>
             </button>
             <VuMeter stream={stream} active={liveHere} />
-            <p className="llv-note">{t("listenLive.micNote")}</p>
           </div>
 
           <div className="llv-panel-feed">
@@ -471,12 +470,12 @@ const CSS = `
 .llv-play {
   display: inline-flex; align-items: center; justify-content: center; gap: 12px;
   width: 100%; max-width: 380px;
-  padding: 18px 28px;
+  padding: 14px 24px;
   border-radius: 12px;
   background: var(--red); color: #fff;
   border: none; cursor: pointer;
   font-family: var(--body);
-  font-size: 19px; font-weight: 700;
+  font-size: 17px; font-weight: 700;
   box-shadow: 0 8px 22px -8px rgba(217,45,32,0.55);
   transition: transform .15s, box-shadow .2s, background .2s;
 }
@@ -563,6 +562,6 @@ const CSS = `
   .llv-live { order: -1; }
   .llv-panel-player { padding: 22px 20px 16px; }
   .llv-panel-feed { padding: 18px 20px 20px; }
-  .llv-play { max-width: none; font-size: 17px; padding: 16px 20px; }
+  .llv-play { max-width: none; font-size: 15px; padding: 12px 18px; }
 }
 `;

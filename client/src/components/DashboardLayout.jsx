@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import LanguageSwitcher from './LanguageSwitcher';
 import { LANGUAGES } from '../i18n';
 import { loadSupportgram } from '../lib/supportgram';
+import InstallPrompt from './InstallPrompt';
 
 const BroadcastPanel = lazy(() => import('./BroadcastPanel'));
 
@@ -627,6 +628,7 @@ export default function DashboardLayout() {
   return (
     <div ref={dashboardRef} className="flex h-screen" style={{ background: 'var(--bg)', overflow: 'hidden', position: 'fixed', inset: 0 }}>
       <Toaster position="top-center" richColors />
+      <InstallPrompt />
       {/* ── Desktop sidebar (hidden on mobile) ── */}
       <aside className="hidden md:flex md:flex-col md:w-64 md:flex-shrink-0" style={{ background: 'var(--ink)', color: '#fff' }}>
         <div className="flex items-center gap-3 px-5 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', height: 64 }}>

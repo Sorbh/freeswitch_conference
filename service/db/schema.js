@@ -222,6 +222,8 @@ export function init() {
         ['referred_by', "ALTER TABLE accounts ADD COLUMN referred_by INTEGER"],
         ['push_parts_requests', "ALTER TABLE accounts ADD COLUMN push_parts_requests INTEGER DEFAULT 1"],
         ['push_direct_calls', "ALTER TABLE accounts ADD COLUMN push_direct_calls INTEGER DEFAULT 1"],
+        ['magic_link_token', "ALTER TABLE accounts ADD COLUMN magic_link_token TEXT"],
+        ['magic_link_token_expires', "ALTER TABLE accounts ADD COLUMN magic_link_token_expires INTEGER"],
     ];
     for (const [col, sql] of accountMigrations) {
         if (!accountCols.includes(col)) sqlite.exec(sql);

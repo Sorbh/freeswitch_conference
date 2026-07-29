@@ -11,7 +11,7 @@ import {
 import {
     createAccount, getAccountByEmail, getAccountByUserName, getAccountById,
     getAccountByExtension, getAllAccounts, updateAccount,
-    getAccountByVerificationToken, getAccountByResetToken, deleteAccount,
+    getAccountByVerificationToken, getAccountByResetToken, getAccountByMagicLinkToken, deleteAccount,
     generateReferralCode, getAccountByReferralCode, getReferralCount, getReferrals,
     getActiveAccountsByRoom, setAccountPushPrefs,
 } from './db/accounts.js';
@@ -102,6 +102,7 @@ db.getReferralCount = getReferralCount;
 db.getReferrals = getReferrals;
 db.getAccountByVerificationToken = getAccountByVerificationToken;
 db.getAccountByResetToken = getAccountByResetToken;
+db.getAccountByMagicLinkToken = getAccountByMagicLinkToken;
 db.touchLastSeen = touchLastSeen;
 db.getTimelineBroadcasts = getTimelineBroadcasts;
 db.getHourlyBroadcasts = getHourlyBroadcasts;

@@ -282,7 +282,8 @@ export default function PublicBroadcastActivity() {
 
   const showNotice = useCallback((notice) => {
     const id = `${Date.now()}-${Math.random()}`;
-    setNotices((cur) => [...cur, { ...notice, id }].slice(-3));
+    const max = window.innerWidth <= 760 ? 1 : 3;
+    setNotices((cur) => [...cur, { ...notice, id }].slice(-max));
     playChime(audioContextRef.current);
     const timer = window.setTimeout(() => {
       noticeTimersRef.current.delete(timer);
