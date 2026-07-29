@@ -105,7 +105,7 @@ export function getAllStatuses() {
     return result;
 }
 
-export async function connectChannel(channelId) {
+export async function connectChannel(channelId, { resetRetries = false } = {}) {
     channelId = Number(channelId);
     const existing = sessions.get(channelId);
     if (existing?.sock) return;
@@ -116,7 +116,9 @@ export async function connectChannel(channelId) {
     const authFile = _authFile(channelId);
     const { state: authState, saveCreds } = await _useSingleFileAuthState(authFile);
 
-    const session = { state: 'connecting', sock: null, qr: null, phone: null, reconnectAttempted: false };
+    const prev = sessions.get(channelId);
+    const retryCount = resetRetries ? 0 : (prev?.retryCount || 0);
+    const session = { state: 'connecting', sock: null, qr: null, phone: null, retryCount };
     sessions.set(channelId, session);
 
     const sock = makeWASocket({
@@ -147,7 +149,7 @@ export async function connectChannel(channelId) {
         if (connection === 'open') {
             session.state = 'ready';
             session.qr = null;
-            session.reconnectAttempted = false;
+            session.retryCount = 0;
             session.phone = sock.user?.name || sock.user?.id?.split(':')[0] || null;
             logSystem('WHATSAPP', `[ch:${channelId}] Connected as ${session.phone || 'unknown'}`);
         }
@@ -157,21 +159,23 @@ export async function connectChannel(channelId) {
             session.sock = null;
             session.qr = null;
 
-            if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+            if (statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 405) {
                 session.state = 'disconnected';
                 session.phone = null;
+                session.retryCount = 0;
                 try { fs.unlinkSync(_authFile(channelId)); } catch {}
                 logSystem('WHATSAPP', `[ch:${channelId}] Logged out — session cleared, reconnect to scan QR`);
-            } else if (!session.reconnectAttempted) {
-                session.reconnectAttempted = true;
-                logSystem('WHATSAPP', `[ch:${channelId}] Disconnected (code ${statusCode}) — reconnecting`);
+            } else if (session.retryCount < 5) {
+                session.retryCount++;
+                const delay = Math.min(3000 * Math.pow(2, session.retryCount - 1), 300000);
+                logSystem('WHATSAPP', `[ch:${channelId}] Disconnected (code ${statusCode}) — retry ${session.retryCount}/5 in ${Math.round(delay / 1000)}s`);
                 setTimeout(() => connectChannel(channelId).catch(e => {
                     logSystem('WHATSAPP', `[ch:${channelId}] Reconnect failed: ${e.message}`);
                     session.state = 'disconnected';
-                }), 3000);
+                }), delay);
             } else {
                 session.state = 'disconnected';
-                logSystem('WHATSAPP', `[ch:${channelId}] Disconnected (code ${statusCode}) — not reconnecting`);
+                logSystem('WHATSAPP', `[ch:${channelId}] Disconnected (code ${statusCode}) — gave up after 5 retries`);
             }
         }
     });

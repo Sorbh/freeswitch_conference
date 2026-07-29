@@ -138,7 +138,7 @@ router.get("/whatsapp/status/:id", async (req, res) => {
 router.post("/whatsapp/connect/:id", async (req, res) => {
     try {
         const { connectChannel } = await import("../../service/whatsapp.js");
-        await connectChannel(req.params.id);
+        await connectChannel(req.params.id, { resetRetries: true });
         res.json({ status: true, message: "WhatsApp connecting..." });
     } catch (err) {
         res.status(500).json({ status: false, error: err.message });

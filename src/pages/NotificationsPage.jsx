@@ -155,11 +155,15 @@ export default function NotificationsPage() {
     setConnectingId(channelId);
     try {
       await apiFetch(`/api/v1/admin/whatsapp/connect/${channelId}`, { method: "POST" });
-      // Wait a moment for QR to generate, then fetch
-      await new Promise(r => setTimeout(r, 2000));
-      const res = await apiFetch(`/api/v1/admin/whatsapp/status/${channelId}`);
-      const json = await res.json();
-      if (json.status) setWaStatuses(prev => ({ ...prev, [channelId]: json.data }));
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const res = await apiFetch(`/api/v1/admin/whatsapp/status/${channelId}`);
+        const json = await res.json();
+        if (json.status) {
+          setWaStatuses(prev => ({ ...prev, [channelId]: json.data }));
+          if (json.data?.state === 'qr_pending' || json.data?.state === 'ready') break;
+        }
+      }
     } finally {
       setConnectingId(null);
     }
