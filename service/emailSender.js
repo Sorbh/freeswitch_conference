@@ -215,7 +215,7 @@ export async function sendMagicLinkEmail({ email, token, displayName }) {
         '',
         loginUrl,
         '',
-        'This link expires in 15 minutes.',
+        'This link expires in 1 hour.',
         '',
         'If you did not request this, you can safely ignore this email.',
         '',

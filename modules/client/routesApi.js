@@ -34,7 +34,7 @@ function enrichBroadcast(b) {
 const CLIENT_TOKEN_EXPIRY = '7d';
 const VERIFICATION_TOKEN_EXPIRY = 24 * 60 * 60; // 24 hours
 const RESET_TOKEN_EXPIRY = 60 * 60; // 1 hour
-const MAGIC_LINK_EXPIRY = 15 * 60; // 15 minutes
+const MAGIC_LINK_EXPIRY = 60 * 60; // 1 hour
 
 // ── Simple rate limiter ──
 const _rateBuckets = new Map();
@@ -164,9 +164,6 @@ clientRouter.post("/signup", async (req, res) => {
 
         const existing = global.db.getAccountByEmail(cleanEmail);
         if (existing) {
-            if (existing.kickout) {
-                return res.status(409).json({ status: false, reason: "disabled", error: "This account has been disabled. Contact support for help." });
-            }
             if (!existing.email_verified) {
                 return res.status(409).json({ status: false, reason: "unverified", error: "This account hasn't been verified yet. Check your email for the verification link." });
             }
@@ -431,7 +428,7 @@ clientRouter.post("/magic-link", async (req, res) => {
         if (!email) return res.status(400).json({ status: false, error: "Email is required" });
 
         const account = global.db.getAccountByEmail(email.toLowerCase().trim());
-        if (!account || account.kickout) {
+        if (!account) {
             return res.json({ status: true, message: "If an account exists with this email, a login link has been sent." });
         }
 
