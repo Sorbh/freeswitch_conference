@@ -374,7 +374,7 @@ export default function AccountSettingsPage() {
 
       <WebTakeoverCard />
 
-      <NotificationsCard />
+      {/* <NotificationsCard /> */}
 
       <GestureControlCard />
 

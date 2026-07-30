@@ -376,6 +376,8 @@ function scanFeatures() {
     features[slug] = {
       title: meta.title || slug,
       accent: meta.accent || '#d92d20',
+      image: meta.image || null,
+      imageAlt: meta.imageAlt || '',
       seo: meta.seo || {},
       hero: meta.hero || {},
       problem: meta.problem || {},

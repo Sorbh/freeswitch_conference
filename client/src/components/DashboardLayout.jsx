@@ -89,6 +89,7 @@ export default function DashboardLayout() {
   const [connError, setConnError] = useState('');
   const [muted, setMuted] = useState(true);
   const [isListenOnly, setIsListenOnly] = useState(false);
+  const [listenOnlyReason, setListenOnlyReason] = useState(null);
   const [isMonitorMode, setIsMonitorMode] = useState(false);
   const [rooms, setRooms] = useState([]);
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
@@ -366,8 +367,9 @@ export default function DashboardLayout() {
         if (!window.hotlineClient.isMuted()) window.hotlineClient.toggleMute();
       }
     }
-    function handleListenOnly(active) {
+    function handleListenOnly(active, reason) {
       setIsListenOnly(!!active);
+      if (active) setListenOnlyReason(reason || 'unknown');
     }
     function handleMonitorMode(active) {
       setIsMonitorMode(!!active);
@@ -424,6 +426,7 @@ export default function DashboardLayout() {
         }
         if (window.hotlineClient.isListenOnly && window.hotlineClient.isListenOnly()) {
           setIsListenOnly(true);
+          if (window.hotlineClient.getListenOnlyReason) setListenOnlyReason(window.hotlineClient.getListenOnlyReason() || 'unknown');
         }
         if (window.hotlineClient.isMonitorMode) {
           setIsMonitorMode(window.hotlineClient.isMonitorMode());
@@ -873,7 +876,7 @@ export default function DashboardLayout() {
 
         {/* Page content — extra bottom padding on mobile for bottom nav + FAB */}
         <main className="flex-1 overflow-auto p-4 md:p-6 pb-40 md:pb-6" style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' }}>
-          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly, isMonitorMode, setGestureActive }} />
+          <Outlet context={{ sipConnected: isConnected, sipMuted: muted, toggleMute, isListenOnly, listenOnlyReason, isMonitorMode, setGestureActive }} />
         </main>
       </div>
 

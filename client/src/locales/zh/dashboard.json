@@ -134,6 +134,27 @@
     "mute": "静音",
     "unmute": "开麦直播",
     "listenOnly": "仅收听",
+    "getDeskPhone": "获取桌面电话",
+    "listenOnlyReason": {
+      "denied": {
+        "title": "麦克风未授权",
+        "body": "您的浏览器阻止了麦克风访问。您可以收听热线但无法发言或回应零件请求。",
+        "fixTitle": "要参与广播：",
+        "fixStep1": "1. 点击浏览器地址栏中的锁图标",
+        "fixStep2": "2. 找到麦克风并更改为允许",
+        "fixStep3": "3. 刷新页面"
+      },
+      "noMic": {
+        "title": "未检测到麦克风",
+        "body": "此设备没有麦克风。您可以收听热线但无法发言。",
+        "fixTitle": "要参与广播：",
+        "fixStep": "将麦克风或耳机连接到此设备，然后刷新页面。"
+      },
+      "refresh": "刷新页面",
+      "whyLink": "为什么？",
+      "deskPhonePromo": "告别麦克风烦恼 — 获取始终连接的桌面电话。",
+      "deskPhoneCta": "了解桌面电话"
+    },
     "muteShortcutHint": "按 <kbd>空格</kbd> 通话 · 按住可持续通话",
     "thisRoom": "在 {{room}}",
     "thisRoomFallback": "本市场",

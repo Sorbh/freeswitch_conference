@@ -134,6 +134,27 @@
     "mute": "Couper le micro",
     "unmute": "En direct",
     "listenOnly": "Ecoute seule",
+    "getDeskPhone": "Obtenir un téléphone",
+    "listenOnlyReason": {
+      "denied": {
+        "title": "Microphone non autorisé",
+        "body": "Votre navigateur a bloqué l'accès au microphone. Vous pouvez écouter la ligne mais ne pouvez pas parler.",
+        "fixTitle": "Pour participer aux diffusions :",
+        "fixStep1": "1. Cliquez sur l'icône du cadenas dans la barre d'adresse",
+        "fixStep2": "2. Trouvez Microphone et changez-le en Autoriser",
+        "fixStep3": "3. Actualisez la page"
+      },
+      "noMic": {
+        "title": "Aucun microphone détecté",
+        "body": "Cet appareil n'a pas de microphone. Vous pouvez écouter la ligne mais ne pouvez pas parler.",
+        "fixTitle": "Pour participer aux diffusions :",
+        "fixStep": "Connectez un microphone ou un casque à cet appareil, puis actualisez la page."
+      },
+      "refresh": "Actualiser la page",
+      "whyLink": "Pourquoi ?",
+      "deskPhonePromo": "Fini les problèmes de micro — obtenez un téléphone de bureau toujours connecté.",
+      "deskPhoneCta": "Découvrir le téléphone de bureau"
+    },
     "muteShortcutHint": "Appuyez sur <kbd>Espace</kbd> pour parler · maintenez pour le push-to-talk",
     "thisRoom": "Dans {{room}}",
     "thisRoomFallback": "Ce marche",

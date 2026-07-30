@@ -158,6 +158,7 @@ import "./jssip.bundle.js";
         var currentSession = null;
         var isMuted = true;
         var listenOnly = !!config.listenOnly;
+        var listenOnlyReason = config.listenOnly ? 'config' : null; // 'user-chose' | 'no-mic' | 'denied' | 'config'
         var monitorMode = !!config.monitorMode;
         var listenOnlySilentStream = null;
         var accountData = null;
@@ -234,7 +235,7 @@ import "./jssip.bundle.js";
         }
 
         function notifyListenOnly() {
-            try { if (typeof window.onHotlineListenOnly === 'function') window.onHotlineListenOnly(true); } catch (e) { }
+            try { if (typeof window.onHotlineListenOnly === 'function') window.onHotlineListenOnly(true, listenOnlyReason); } catch (e) { }
         }
 
         function notifyMonitorMode() {
@@ -494,6 +495,7 @@ import "./jssip.bundle.js";
             document.getElementById('redline_mic_refresh').onclick = function () { window.location.reload(); };
             document.getElementById('redline_mic_listen_only').onclick = function () {
                 listenOnly = true;
+                listenOnlyReason = 'user-chose';
                 _activateListenOnly();
                 hideMicPermissionModal();
                 var email = accountData && accountData.email;
@@ -531,6 +533,7 @@ import "./jssip.bundle.js";
                 if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError' || err.name === 'NotReadableError') {
                     console.warn('[SIP] No microphone hardware — entering listen-only');
                     listenOnly = true;
+                    listenOnlyReason = 'no-mic';
                     _activateListenOnly();
                     return 'listen-only';
                 }
@@ -543,6 +546,7 @@ import "./jssip.bundle.js";
                     if (realMics.length === 0 || allPhantom) {
                         console.warn('[SIP] No real microphone found after secondary check — entering listen-only');
                         listenOnly = true;
+                        listenOnlyReason = 'no-mic';
                         _activateListenOnly();
                         return 'listen-only';
                     }
@@ -1233,6 +1237,7 @@ import "./jssip.bundle.js";
             isConnected: function () { return monitorMode || !!currentSession; },
             isMuted: function () { return isMuted; },
             isListenOnly: function () { return listenOnly; },
+            getListenOnlyReason: function () { return listenOnlyReason; },
             isMonitorMode: function () { return monitorMode; },
             takeOver: takeOver,                                           // enable web_takeover: browser gets device priority
             releaseTakeover: releaseTakeover,                             // disable: Yealink regains priority

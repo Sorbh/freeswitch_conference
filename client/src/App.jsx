@@ -56,6 +56,7 @@ const Landing2Page = lazy(() => import('./pages/Landing2Page'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const PublicBroadcastPage = lazy(() => import('./pages/PublicBroadcastPage'));
 const OwnHotlinePage = lazy(() => import('./pages/landing2/OwnHotlinePage').then(m => ({ default: m.OwnHotlinePage })));
+const DeskPhonePage = lazy(() => import('./pages/landing2/DeskPhonePage').then(m => ({ default: m.DeskPhonePage })));
 const MarketplacePage = lazy(() => import('./pages/MarketplacePage'));
 const PartsListingPage = lazy(() => import('./pages/PartsListingPage'));
 const FindPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.FindPartsPage })));
@@ -215,6 +216,7 @@ export default function App() {
         <Route path="/marketplace" element={<Lazy><MarketplacePage /></Lazy>} />
         <Route path="/parts/:slug" element={<Lazy><PartsListingPage /></Lazy>} />
         <Route path="/own-a-hotline" element={<Lazy><OwnHotlinePage /></Lazy>} />
+        <Route path="/features/desk-phone" element={<Lazy><DeskPhonePage /></Lazy>} />
         <Route path="/features/:slug" element={<Lazy><FeatureDetailPage /></Lazy>} />
         <Route path="/find-used-auto-parts" element={<Lazy><FindPartsPage /></Lazy>} />
         <Route path="/sell-used-auto-parts" element={<Lazy><SellPartsPage /></Lazy>} />

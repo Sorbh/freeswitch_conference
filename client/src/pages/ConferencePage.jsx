@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
@@ -7,7 +7,7 @@ import { useGestureControl, isGestureEnabled } from '../hooks/useGestureControl'
 export default function ConferencePage() {
   const { t } = useTranslation('dashboard');
   const { account, token } = useAuth();
-  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false, isMonitorMode = false, setGestureActive } = useOutletContext() || {};
+  const { sipConnected: connected = false, sipMuted: muted = true, toggleMute, isListenOnly = false, listenOnlyReason, isMonitorMode = false, setGestureActive } = useOutletContext() || {};
   const [callerIds, setCallerIds] = useState([]);
   const [userCount, setUserCount] = useState(0);
   const [unmutedCount, setUnmutedCount] = useState(0);
@@ -116,22 +116,33 @@ export default function ConferencePage() {
             {account?.company_name || ''} — {roomDisplayName}
           </p>
         </div>
-        {connected && !isListenOnly && !isMonitorMode && (
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          {connected && !isListenOnly && !isMonitorMode && (
             <button onClick={handleToggleMute} className="hq-btn flex items-center gap-2 px-4 py-2" style={{ background: muted ? 'var(--red)' : 'var(--green)', boxShadow: muted ? '0 8px 18px rgba(217,45,32,0.3)' : '0 8px 18px rgba(18,183,106,0.3)' }}>
               {muted ? <><MicOffIcon /> {t('conference.unmute')}</> : <><MicOnIcon /> {t('conference.mute', 'Mute')}</>}
             </button>
-          </div>
-        )}
-        {connected && isListenOnly && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(37,99,235,0.1)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.2)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-              <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-            </svg>
-            <span className="text-xs font-bold">{t('conference.listenOnly')}</span>
-          </div>
-        )}
+          )}
+          {!account?.has_yealink && (
+            <a
+              href="/features/desk-phone"
+              target="_blank"
+              rel="noopener"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={{
+                background: 'var(--red)', color: '#fff', textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(217,45,32,0.3)',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" />
+              </svg>
+              {t('conference.getDeskPhone')}
+            </a>
+          )}
+          {connected && isListenOnly && (
+            <ListenOnlyBadge reason={listenOnlyReason} />
+          )}
+        </div>
       </div>
 
       {/* Shortcut hint — uses grid-row collapse to prevent CLS on connection */}
@@ -376,5 +387,120 @@ function MicOffIcon() {
       <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.48-.35 2.15" />
       <line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" />
     </svg>
+  );
+}
+
+function ListenOnlyBadge({ reason }) {
+  const { t } = useTranslation('dashboard');
+  const [expanded, setExpanded] = useState(false);
+  const wrapperRef = useRef(null);
+
+  const reasonKey = reason === 'no-mic' ? 'noMic' : 'denied';
+
+  useEffect(() => {
+    if (!expanded) return;
+    function handleClick(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setExpanded(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [expanded]);
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <style>{`@keyframes listen-only-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); } 50% { box-shadow: 0 0 0 6px rgba(37,99,235,0); } }`}</style>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all"
+        style={{
+          background: 'rgba(37,99,235,0.1)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.2)', cursor: 'pointer',
+          animation: expanded ? 'none' : 'listen-only-pulse 2s ease-in-out infinite',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+        </svg>
+        <span className="text-xs font-bold">{t('conference.listenOnly')}</span>
+        <span className="text-[10px] font-medium" style={{ color: '#60a5fa', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+          {expanded ? '' : t('conference.listenOnlyReason.whyLink')}
+        </span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {expanded && (
+        <div className="absolute right-0 top-full mt-2 w-72 rounded-xl p-4 z-50" style={{ background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)' }}>
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(37,99,235,0.1)' }}>
+              {reason === 'no-mic' ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                  <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                  <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.13 1.48-.35 2.15" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>
+                {t(`conference.listenOnlyReason.${reasonKey}.title`)}
+              </div>
+              <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                {t(`conference.listenOnlyReason.${reasonKey}.body`)}
+              </div>
+            </div>
+          </div>
+          <div className="text-xs leading-relaxed p-3 rounded-lg" style={{ background: 'var(--band, #f7f6f3)', color: 'var(--muted)', border: '1px solid var(--line)' }}>
+            <div className="font-semibold mb-1.5" style={{ color: 'var(--ink)' }}>
+              {t(`conference.listenOnlyReason.${reasonKey}.fixTitle`)}
+            </div>
+            {reason === 'no-mic' ? (
+              <div>{t('conference.listenOnlyReason.noMic.fixStep')}</div>
+            ) : (
+              <div className="space-y-1">
+                <div>{t('conference.listenOnlyReason.denied.fixStep1')}</div>
+                <div>{t('conference.listenOnlyReason.denied.fixStep2')}</div>
+                <div>{t('conference.listenOnlyReason.denied.fixStep3')}</div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full mt-3 py-2 rounded-lg text-xs font-bold"
+            style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.25)' }}
+          >
+            {t('conference.listenOnlyReason.refresh')}
+          </button>
+
+          <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--line)' }}>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(8,145,178,0.1)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" />
+                </svg>
+              </div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>
+                {t('conference.listenOnlyReason.deskPhonePromo')}
+              </div>
+            </div>
+            <a
+              href="/features/desk-phone"
+              target="_blank"
+              rel="noopener"
+              className="w-full block text-center py-2 rounded-lg text-xs font-bold transition-all"
+              style={{ background: 'rgba(8,145,178,0.1)', color: '#0891b2', border: '1px solid rgba(8,145,178,0.2)', textDecoration: 'none' }}
+            >
+              {t('conference.listenOnlyReason.deskPhoneCta')}
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

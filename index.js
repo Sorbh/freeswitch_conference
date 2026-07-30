@@ -895,7 +895,8 @@ if (fs.existsSync(clientDistDir)) {
             description: seo.description,
             keywords: seo.keywords,
             url: `${BASE_URL}/features/${req.params.slug}`,
-            shell: ssrShell(f.hero.kicker, f.hero.heading, f.hero.lede, 'Sign Up Free', `${BASE_URL}/client/signup`) + featContentHtml,
+            ogImage: f.image ? `${BASE_URL}${f.image}` : null,
+            shell: ssrShell(f.hero.kicker, f.hero.heading, f.hero.lede, 'Sign Up Free', `${BASE_URL}/client/signup`) + (f.image ? `<div style="text-align:center;padding:24px"><img src="${f.image}" alt="${f.imageAlt || f.title}" style="max-width:380px;width:100%" loading="eager"></div>` : '') + featContentHtml,
             jsonLd: {
                 "@context": "https://schema.org",
                 "@graph": [

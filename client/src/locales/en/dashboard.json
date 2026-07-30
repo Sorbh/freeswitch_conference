@@ -135,6 +135,27 @@
     "mute": "Mute",
     "unmute": "Go Live",
     "listenOnly": "Listening Only",
+    "getDeskPhone": "Get a Desk Phone",
+    "listenOnlyReason": {
+      "denied": {
+        "title": "Microphone not allowed",
+        "body": "Your browser blocked mic access. You can hear the hotline but can't go live or respond to parts requests.",
+        "fixTitle": "To participate in broadcasts:",
+        "fixStep1": "1. Click the lock icon in your browser's address bar",
+        "fixStep2": "2. Find Microphone and change it to Allow",
+        "fixStep3": "3. Refresh the page"
+      },
+      "noMic": {
+        "title": "No microphone detected",
+        "body": "This device doesn't have a microphone. You can hear the hotline but can't go live.",
+        "fixTitle": "To participate in broadcasts:",
+        "fixStep": "Connect a microphone or headset to this device, then refresh the page."
+      },
+      "refresh": "Refresh Page",
+      "whyLink": "Why?",
+      "deskPhonePromo": "Skip the mic hassle — get a desk phone that's always connected.",
+      "deskPhoneCta": "Learn About the Desk Phone"
+    },
     "muteShortcutHint": "Tap <kbd>Space</kbd> to talk · hold it to push-to-talk",
     "thisRoom": "In {{room}}",
     "thisRoomFallback": "This Market",

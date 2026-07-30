@@ -134,6 +134,27 @@
     "mute": "Silenciar",
     "unmute": "Hablar",
     "listenOnly": "Solo escucha",
+    "getDeskPhone": "Obtener teléfono",
+    "listenOnlyReason": {
+      "denied": {
+        "title": "Micrófono no permitido",
+        "body": "Su navegador bloqueó el acceso al micrófono. Puede escuchar la línea pero no puede hablar ni responder solicitudes de partes.",
+        "fixTitle": "Para participar en las transmisiones:",
+        "fixStep1": "1. Haga clic en el icono del candado en la barra de direcciones",
+        "fixStep2": "2. Busque Micrófono y cámbielo a Permitir",
+        "fixStep3": "3. Actualice la página"
+      },
+      "noMic": {
+        "title": "No se detectó micrófono",
+        "body": "Este dispositivo no tiene micrófono. Puede escuchar la línea pero no puede hablar.",
+        "fixTitle": "Para participar en las transmisiones:",
+        "fixStep": "Conecte un micrófono o auriculares a este dispositivo y luego actualice la página."
+      },
+      "refresh": "Actualizar página",
+      "whyLink": "¿Por qué?",
+      "deskPhonePromo": "Olvídese del micrófono — obtenga un teléfono de escritorio siempre conectado.",
+      "deskPhoneCta": "Conocer el teléfono de escritorio"
+    },
     "muteShortcutHint": "Toque <kbd>Espacio</kbd> para hablar · manténgalo para pulsar-para-hablar",
     "thisRoom": "En {{room}}",
     "thisRoomFallback": "Este mercado",

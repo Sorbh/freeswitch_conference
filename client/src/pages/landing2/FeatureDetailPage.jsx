@@ -9,6 +9,7 @@ const ICON_MAP = {
   "always-on-voice-network": IconNetwork,
   "caller-id": IconCallerId,
   "any-device": IconDevice,
+  "desk-phone": IconDeskPhone,
   "direct-calls": IconDirect,
   "broadcast-recording": IconRecord,
   "notifications": IconNotify,
@@ -229,6 +230,15 @@ export function FeatureDetailPage() {
         </div>
       </header>
 
+      {/* Product image showcase */}
+      {f.image && (
+        <div className="fd-product-image">
+          <div className="fd-container">
+            <img src={f.image} alt={f.imageAlt || f.title} loading="eager" />
+          </div>
+        </div>
+      )}
+
       {/* Two-column body: article + sidebar */}
       <div className="fd-layout">
         <div className="fd-container">
@@ -418,6 +428,11 @@ const PAGE_CSS = `
 .fd-btn-hot:hover { background: #b42318; transform: translateY(-1px); }
 .fd-btn-ghost { font-weight: 600; font-size: 15px; padding: 13px 28px; border-radius: 11px; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8) !important; text-decoration: none; transition: border-color 0.2s; }
 .fd-btn-ghost:hover { border-color: rgba(255,255,255,0.5); color: #fff !important; }
+
+/* ═══ Product image showcase ═══ */
+.fd-product-image { background: linear-gradient(180deg, #0f1117 0%, #f8f8f6 40%); padding: 0 24px 48px; text-align: center; }
+.fd-product-image img { max-width: 380px; width: 100%; height: auto; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.15)); margin: -20px auto 0; }
+@media (max-width: 640px) { .fd-product-image img { max-width: 260px; } }
 
 /* ═══ Two-column layout ═══ */
 .fd-layout { padding: 48px 0 64px; }
@@ -694,6 +709,7 @@ const si = { fill: 'none', stroke: 'var(--accent)', strokeWidth: 2, strokeLineca
 function IconNetwork() { return <svg viewBox="0 0 24 24" {...si}><path d="M12 2v4m0 12v4M2 12h4m12 0h4" /><circle cx="12" cy="12" r="3" /><path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>; }
 function IconCallerId() { return <svg viewBox="0 0 24 24" {...si}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm6-1h4m-4 4h4m-4 4h4M7 17c0-1.1.9-2 2-2h0c1.1 0 2 .9 2 2" /></svg>; }
 function IconDevice() { return <svg viewBox="0 0 24 24" {...si}><rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01" /></svg>; }
+function IconDeskPhone() { return <svg viewBox="0 0 24 24" {...si}><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" /></svg>; }
 function IconDirect() { return <svg viewBox="0 0 24 24" {...si}><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" /><path d="M14.5 2c2.49.53 4.47 2.51 5 5m-5-1.5c1.24.33 2.17 1.26 2.5 2.5" /></svg>; }
 function IconRecord() { return <svg viewBox="0 0 24 24" {...si}><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" fill="var(--accent)" stroke="none" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2" /></svg>; }
 function IconNotify() { return <svg viewBox="0 0 24 24" {...si}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>; }
