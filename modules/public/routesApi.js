@@ -95,6 +95,22 @@ publicRouter.get("/listen/rooms", (req, res) => {
     res.json({ status: true, data: _liveRooms() });
 });
 
+publicRouter.get("/network-stats", (req, res) => {
+    const liveRooms = _liveRooms();
+    const listeningNow = liveRooms.reduce((sum, r) => sum + r.online, 0);
+    const activeRooms = liveRooms.length;
+    const dashboard = global.db.getDashboardStats();
+    res.json({
+        status: true,
+        data: {
+            listeningNow,
+            activeRooms,
+            totalMembers: global.db.getAllAccounts().filter(a => a.active).length,
+            todayBroadcasts: dashboard.todayBroadcasts,
+        },
+    });
+});
+
 publicRouter.post("/listen/session", express.json(), (req, res) => {
     const roomId = parseInt(req.body?.room);
     if (!roomId) return res.status(400).json({ status: false, error: 'Invalid room' });

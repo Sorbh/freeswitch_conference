@@ -37,11 +37,14 @@ function ssrShell(kicker, h1, sub, ctaText, ctaHref, stats) {
   return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
 }
 
-function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, ogImage }) {
+function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, ogImage, ssrData, preloadChunks }) {
   const safeTitle = title.replace(/"/g, '&quot;');
   const safeDesc = description.replace(/"/g, '&quot;');
+  const preloadHints = preloadChunks?.length
+    ? preloadChunks.filter(Boolean).map(c => `<link rel="modulepreload" href="${c}">`).join('\n    ') + '\n    '
+    : '';
   const metaTags = `
-    ${shell ? SSR_STYLE : ''}
+    ${preloadHints}${shell ? SSR_STYLE : ''}
     <meta name="description" content="${safeDesc}">
     ${keywords ? `<meta name="keywords" content="${keywords}">` : ''}
     ${robots ? `<meta name="robots" content="${robots}">` : ''}
@@ -58,7 +61,8 @@ function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType
     <meta name="twitter:title" content="${safeTitle}">
     <meta name="twitter:description" content="${safeDesc}">
     <meta name="twitter:image" content="${ogImage || OG_IMAGE}">
-    ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}`;
+    ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}
+    ${ssrData ? `<script id="__BLOG_DATA__" type="application/json">${JSON.stringify(ssrData).replace(/<\/(script)/gi, '<\\/$1')}</script>` : ''}`;
   let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
   html = html.replace(/<meta name="description"[^>]*\/?>/, '');
   html = html.replace('</head>', `${metaTags}\n</head>`);
@@ -96,6 +100,15 @@ const blogData = loadJson('blog-ssr-data.json') || { posts: [], categories: {} }
 const featuresData = loadJson('features-ssr-data.json')?.features || {};
 const regionsData = loadJson('regions-ssr-data.json') || {};
 
+const assetDir = path.join(DIST_CLIENT, 'assets');
+const prerenderChunkMap = {};
+if (fs.existsSync(assetDir)) {
+  for (const f of fs.readdirSync(assetDir).filter(f => f.endsWith('.js'))) {
+    prerenderChunkMap[f.replace(/-[A-Za-z0-9_-]+\.js$/, '')] = `/assets/${f}`;
+  }
+}
+const blogPostChunks = [prerenderChunkMap['BlogPostPage'], prerenderChunkMap['site']].filter(Boolean);
+
 // ── Collect all pages ───────────────────────────────────────────────
 
 const pages = [];
@@ -110,7 +123,7 @@ const orgJsonLd = {
   name: "Hotline HQ",
   url: BASE_URL,
   logo: `${BASE_URL}/logo-512.png`,
-  email: "hotlinehq@redlineusedautoparts.com",
+  email: "hello@hotlinehq.online",
   description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
   foundingDate: "2011",
   sameAs: ["https://www.linkedin.com/showcase/hotline-hq"]
@@ -337,7 +350,7 @@ addPage('/own-a-hotline', {
     'OWN THE HOTLINE',
     'Launch a voice hotline network <em>in your industry</em>',
     'Hotline HQ provides the platform, phones, and support. You own the membership revenue. Proven with <strong>500+ auto dismantler yards</strong> across 12 regional rooms.',
-    'Get Started', `mailto:hotlinehq@redlineusedautoparts.com`
+    'Get Started', `mailto:hello@hotlinehq.online`
   ),
   jsonLd: {
     "@context": "https://schema.org",
@@ -345,7 +358,7 @@ addPage('/own-a-hotline', {
       {
         "@type": "Service", name: "Own a Hotline — Hotline HQ Platform",
         serviceType: "Voice Hotline Network Platform",
-        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/`, email: "hotlinehq@redlineusedautoparts.com" },
+        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/`, email: "hello@hotlinehq.online" },
         areaServed: "US",
         description: "Launch and operate your own always-on voice hotline network. Platform, desk phones, and support included."
       },
@@ -491,6 +504,8 @@ for (const post of blogData.posts) {
     keywords: post.keywords || '',
     ogImage: post.ogImage ? `${BASE_URL}${post.ogImage}` : null,
     shell,
+    ssrData: post,
+    preloadChunks: blogPostChunks,
     jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
   });
 }
@@ -620,6 +635,115 @@ for (const [stateKey, region] of Object.entries(REGIONS)) {
     jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
   });
 }
+
+// ── Auto parts keyword pages ───────────────────────────────────────
+
+addPage('/used-auto-parts-hotline', {
+  title: 'Used Auto Parts Hotline — 500+ Yards, Live Voice Network | Hotline HQ',
+  description: 'The used auto parts hotline that reaches 97 yards at once. 15,000+ parts located. 2-second response. Call once, every salvage yard in your region hears it live.',
+  url: `${BASE_URL}/used-auto-parts-hotline`,
+  keywords: 'used auto parts hotline, auto parts hotline, parts hotline, call salvage yards for parts, auto parts phone hotline, junkyard hotline, salvage yard hotline, parts locator hotline',
+  shell: ssrShell('PARTS HOTLINE', 'The used auto parts <em>hotline</em>', 'One call. 97 yards. 2-second answers. The live voice network that replaced calling yard after yard.', 'Join Free', `${BASE_URL}/client/signup`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Used Auto Parts Hotline — Hotline HQ", serviceType: "Voice Parts Hotline Network", provider: orgJsonLd, areaServed: "US", description: "Live voice hotline connecting 500+ salvage yards across 15 regional rooms." }
+});
+
+addPage('/car-part-alternative', {
+  title: 'Car-Part.com Alternative — Live Voice Parts Network | Hotline HQ',
+  description: 'Looking for a Car-Part.com alternative? Hotline HQ is a live voice network — broadcast once, 97 yards hear you, get answers in 2 seconds. No listings to manage.',
+  url: `${BASE_URL}/car-part-alternative`,
+  keywords: 'car-part.com alternative, car-part alternative, alternative to car-part, better than car-part.com, car-part.com vs hotline, used auto parts alternative, parts locator alternative',
+  shell: ssrShell('COMPARE', 'Car-Part.com alternative — <em>live voice</em>', 'Car-Part.com searches listings. Hotline HQ broadcasts to 97 yards live. Different tools, different strengths — see when each one wins.', 'Try Hotline HQ Free', `${BASE_URL}/client/signup`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Hotline HQ — Car-Part.com Alternative", serviceType: "Voice Parts Locating Network", provider: orgJsonLd, areaServed: "US", description: "Live voice alternative to Car-Part.com for finding and selling used auto parts." }
+});
+
+addPage('/hard-to-find-auto-parts', {
+  title: 'Hard to Find Auto Parts — Search 500+ Salvage Yards by Voice | Hotline HQ',
+  description: 'Find hard-to-find auto parts by broadcasting to 97 yards at once. Discontinued, rare, and unlisted parts — if a yard has it, they\'ll tell you in 2 seconds.',
+  url: `${BASE_URL}/hard-to-find-auto-parts`,
+  keywords: 'hard to find auto parts, rare auto parts, hard to find car parts, obsolete auto parts, discontinued car parts, rare car parts near me, hard to find used auto parts, where to find rare car parts',
+  shell: ssrShell('RARE PARTS', 'Hard to find auto parts? <em>Ask 97 yards at once.</em>', 'Discontinued, rare, and unlisted parts live in yards that never catalog them. Broadcast what you need — the yard that has it speaks up in 2 seconds.', 'Start Searching', `${BASE_URL}/client/signup`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Hard to Find Auto Parts — Hotline HQ", serviceType: "Rare Parts Locating Network", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding rare, discontinued, and hard-to-find auto parts from 500+ salvage yards." }
+});
+
+addPage('/salvage-yard-marketing', {
+  title: 'Salvage Yard Marketing — Get Live Leads Without Ads | Hotline HQ',
+  description: 'Salvage yard marketing that works: hear live part requests from buyers in your region. No ads, no SEO, no waiting. 97 yards hear each request — first to answer wins.',
+  url: `${BASE_URL}/salvage-yard-marketing`,
+  keywords: 'salvage yard marketing, junkyard marketing, how to get customers for salvage yard, auto recycler marketing, salvage yard advertising, junkyard advertising, how to sell more auto parts, salvage yard leads',
+  shell: ssrShell('MARKETING', 'Salvage yard marketing that <em>actually works</em>', 'Forget Google Ads, SEO, and content marketing. The hotline delivers live buyer requests to your desk phone. First yard to answer wins the sale.', 'Join Free', `${BASE_URL}/client/signup`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Salvage Yard Marketing — Hotline HQ", serviceType: "Salvage Yard Lead Generation", provider: orgJsonLd, areaServed: "US", description: "Live voice network that delivers real-time part requests to salvage yards. No ads, no SEO, no waiting." }
+});
+
+addPage('/ev-hybrid-auto-parts', {
+  title: 'Used EV & Hybrid Auto Parts — Find Tesla, Prius, Leaf Parts | Hotline HQ',
+  description: 'Find used EV and hybrid parts from salvage yards. Tesla, Prius, Leaf, Bolt batteries, drive units, and body panels. Broadcast to 97 yards — get answers in 2 seconds.',
+  url: `${BASE_URL}/ev-hybrid-auto-parts`,
+  keywords: 'ev auto parts, used ev parts, hybrid car parts used, electric car parts salvage, Tesla parts salvage, Prius battery used, used hybrid battery, EV salvage parts, electric vehicle parts',
+  shell: ssrShell('EV & HYBRID', 'Used EV & hybrid parts from <em>salvage yards</em>', 'Tesla, Prius, Leaf, Bolt — batteries, drive units, inverters. EV parts aren\'t in interchange databases yet. Voice networks find what search can\'t.', 'Find EV Parts', `${BASE_URL}/client/signup`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Used EV & Hybrid Parts — Hotline HQ", serviceType: "EV Parts Locating Network", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding used EV and hybrid parts from 500+ salvage yards." }
+});
+
+// ── Industry pages ─────────────────────────────────────────────────
+
+addPage('/heavy-equipment-parts-hotline', {
+  title: 'Heavy Equipment Parts Hotline — Find CAT, Deere, Komatsu Parts Fast',
+  description: 'Find used heavy equipment parts in seconds. Broadcast to every dealer at once — CAT, Deere, Komatsu, Volvo. Cut downtime from days to minutes. No listing fees.',
+  url: `${BASE_URL}/heavy-equipment-parts-hotline`,
+  keywords: 'heavy equipment parts, used heavy equipment parts, CAT parts used, heavy equipment parts locator, construction equipment parts, excavator parts used, heavy equipment salvage, Caterpillar parts, Komatsu parts, heavy equipment parts near me',
+  ogImage: `${BASE_URL}/images/industries/heavy-equipment.webp`,
+  shell: ssrShell('HEAVY EQUIPMENT', 'Heavy equipment parts — <em>found in seconds</em>', 'CAT, Deere, Komatsu, Volvo. One broadcast reaches every dealer at once. Cut sourcing from days to seconds.', 'Join the Waitlist', `mailto:hello@hotlinehq.online`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Heavy Equipment Parts Hotline — Hotline HQ", serviceType: "Heavy Equipment Parts Locating", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding used heavy equipment parts." }
+});
+
+addPage('/farm-equipment-parts-hotline', {
+  title: 'Farm Equipment Parts Hotline — Find Tractor & Combine Parts Fast',
+  description: 'Find used farm equipment parts in seconds. Broadcast to every dealer at once — John Deere, Case IH, New Holland. Don\'t lose harvest time waiting for parts.',
+  url: `${BASE_URL}/farm-equipment-parts-hotline`,
+  keywords: 'farm equipment parts, used farm equipment parts, tractor parts, combine parts, John Deere parts used, Case IH parts, farm equipment parts locator, agricultural equipment parts, used tractor parts, farm equipment salvage',
+  ogImage: `${BASE_URL}/images/industries/farm-equipment.webp`,
+  shell: ssrShell('FARM EQUIPMENT', 'Farm equipment parts — <em>don\'t lose harvest time</em>', 'John Deere, Case IH, New Holland. One broadcast reaches every dealer. Find tractor and combine parts in seconds, not weeks.', 'Join the Waitlist', `mailto:hello@hotlinehq.online`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Farm Equipment Parts Hotline — Hotline HQ", serviceType: "Farm Equipment Parts Locating", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding used farm equipment parts." }
+});
+
+addPage('/aviation-parts-hotline', {
+  title: 'Aviation Parts Hotline — AOG Parts Sourcing in Seconds, Not Hours',
+  description: 'AOG parts hotline for aircraft maintenance. Broadcast to every vendor at once — find rotables, avionics, LRUs in seconds. Cut AOG downtime. FAA-compliant sourcing.',
+  url: `${BASE_URL}/aviation-parts-hotline`,
+  keywords: 'aviation parts hotline, AOG parts, aircraft parts locator, used aircraft parts, AOG desk, aviation parts supplier, airplane parts, aircraft parts broker, AOG sourcing, aircraft parts search',
+  ogImage: `${BASE_URL}/images/industries/aviation.webp`,
+  shell: ssrShell('AVIATION', 'AOG parts sourcing — <em>seconds, not hours</em>', 'Aircraft grounded? Broadcast to every vendor at once. Rotables, avionics, LRUs — find the part before the AOG desk finishes their first phone call.', 'Join the Waitlist', `mailto:hello@hotlinehq.online`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Aviation Parts Hotline — Hotline HQ", serviceType: "AOG Parts Sourcing", provider: orgJsonLd, areaServed: "US", description: "Live voice network for urgent aircraft parts sourcing." }
+});
+
+addPage('/mining-equipment-parts', {
+  title: 'Mining Equipment Parts — Find Haul Truck, Crusher & Drill Parts Fast',
+  description: 'Find used mining equipment parts in seconds. CAT, Komatsu, Hitachi — haul trucks, crushers, drills. Broadcast to every dealer at once. Downtime costs $10K-$50K/hr — don\'t wait.',
+  url: `${BASE_URL}/mining-equipment-parts`,
+  keywords: 'mining equipment parts, used mining equipment parts, haul truck parts, crusher parts, mining parts supplier, Caterpillar mining parts, Komatsu mining parts, drill rig parts, conveyor parts mining, mining equipment salvage, used mining parts near me',
+  ogImage: `${BASE_URL}/images/industries/mining.webp`,
+  shell: ssrShell('MINING', 'Mining equipment parts — <em>downtime costs $10K-$50K/hr</em>', 'CAT, Komatsu, Hitachi. Haul trucks, crushers, drills. One broadcast reaches every dealer. Find the part before the shift ends.', 'Join the Waitlist', `mailto:hello@hotlinehq.online`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Mining Equipment Parts — Hotline HQ", serviceType: "Mining Equipment Parts Locating", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding used mining equipment parts." }
+});
+
+addPage('/marine-boat-parts', {
+  title: 'Used Boat Parts & Marine Salvage — Find Engine, Outdrive & Hull Parts Fast',
+  description: 'Find used boat parts and marine salvage parts in seconds. Mercury, Yamaha, Volvo Penta, MerCruiser. No listing platform exists for marine — broadcast to every salvage yard at once.',
+  url: `${BASE_URL}/marine-boat-parts`,
+  keywords: 'used boat parts, marine parts salvage, boat parts near me, used marine engine parts, marine salvage parts, boat parts locator, used outboard motor parts, marine parts online, boat engine parts used, used boat parts near me, Mercruiser sterndrive parts',
+  ogImage: `${BASE_URL}/images/industries/marine.webp`,
+  shell: ssrShell('MARINE', 'Used boat parts — <em>no search platform exists. Until now.</em>', 'Mercury, Yamaha, Volvo Penta, MerCruiser. Marine salvage has no Car-Part.com equivalent. This voice network fills the gap.', 'Join the Waitlist', `mailto:hello@hotlinehq.online`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Used Boat Parts & Marine Salvage — Hotline HQ", serviceType: "Marine Parts Locating", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding used boat parts and marine salvage parts." }
+});
+
+addPage('/railroad-parts-hotline', {
+  title: 'Railroad & Locomotive Parts Hotline — Find EMD, GE, Alco Parts Fast',
+  description: 'Find used railroad and locomotive parts in seconds. Traction motors, diesel engines, dynamic brakes, air compressors. Broadcast to every rail parts supplier at once. EMD, GE/Wabtec, Alco.',
+  url: `${BASE_URL}/railroad-parts-hotline`,
+  keywords: 'railroad parts, locomotive parts, used railroad equipment parts, rail parts supplier, traction motor parts, railroad parts locator, train parts used, locomotive engine parts, railroad brake parts, used locomotive parts for sale, railroad equipment supplier',
+  ogImage: `${BASE_URL}/images/industries/railroad.webp`,
+  shell: ssrShell('RAILROAD', 'Railroad & locomotive parts — <em>found in seconds</em>', 'EMD, GE/Wabtec, Alco. Traction motors, diesel engines, dynamic brakes. One broadcast reaches every rail parts supplier at once.', 'Join the Waitlist', `mailto:hello@hotlinehq.online`),
+  jsonLd: { "@context": "https://schema.org", "@type": "Service", name: "Railroad & Locomotive Parts — Hotline HQ", serviceType: "Railroad Parts Locating", provider: orgJsonLd, areaServed: "US", description: "Live voice network for finding used railroad and locomotive parts." }
+});
 
 // ── Generate all pages ──────────────────────────────────────────────
 

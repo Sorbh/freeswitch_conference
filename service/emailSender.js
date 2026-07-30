@@ -53,7 +53,7 @@ export async function sendMail({ to, subject, text, html }) {
     const apiKey = config.SENDGRID_API_KEY;
     if (!apiKey) throw new Error('SENDGRID_API_KEY is not configured');
 
-    const from = config.SENDGRID_FROM_EMAIL || 'hotlinehq@redlineusedautoparts.com';
+    const from = config.SENDGRID_FROM_EMAIL || 'hello@hotlinehq.online';
     const fromName = config.SENDGRID_FROM_NAME || 'Hotline HQ';
     const recipient = String(to || '').trim();
     if (!recipient) throw new Error('Email recipient is required');

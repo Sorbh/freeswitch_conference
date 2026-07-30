@@ -33,7 +33,7 @@ export function HQLogo({ light = false, size = 32 }) {
   );
 }
 
-export const CONTACT_EMAIL = "hotlinehq@redlineusedautoparts.com";
+export const CONTACT_EMAIL = "hello@hotlinehq.online";
 const SITE_BASE_PATH = "/hotlinehq";
 
 function getSiteBasePath() {

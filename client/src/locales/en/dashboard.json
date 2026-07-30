@@ -128,7 +128,8 @@
   },
   "conference": {
     "referralTitle": "More yards = more parts sold",
-    "referralBody": "Invite a yard and save 10% — share your link in <settingsLink>Settings</settingsLink>",
+    "referralBody": "Invite a yard and you both save 10% on your next bill",
+    "shareLink": "Share Link",
     "dismiss": "Dismiss",
     "title": "Hotline",
     "mute": "Mute",

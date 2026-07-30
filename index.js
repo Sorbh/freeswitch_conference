@@ -199,6 +199,7 @@ if (fs.existsSync(clientDistDir)) {
             '/client/login': [chunkMap['LoginPage']],
             '/b/': [chunkMap['PublicBroadcastPage'], chunkMap['site']],
             '/': [chunkMap['Landing2Page'], chunkMap['site']],
+            '/blog/post': [chunkMap['BlogPostPage'], chunkMap['site']],
         };
         preloadCache = {};
         console.log('Client index reloaded — asset hashes refreshed');
@@ -444,7 +445,7 @@ if (fs.existsSync(clientDistDir)) {
         return `<div id="ssr-shell"><nav class="ssr-nav"><span class="ssr-logo">Hotline <em>HQ</em></span></nav><div class="ssr-hero"><p class="ssr-kicker">${kicker}</p><h1>${h1}</h1><p class="ssr-sub">${sub}</p><a class="ssr-cta" href="${ctaHref}">${ctaText}</a></div>${statsHtml ? `<div class="ssr-stats">${statsHtml}</div>` : ''}</div>`;
     }
 
-    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, preloadChunks, ogImage }) {
+    function injectSeoMeta(base, { title, description, url, keywords, jsonLd, ogType = 'website', shell = '', robots, preloadChunks, ogImage, ssrData }) {
         const safeTitle = title.replace(/"/g, '&quot;');
         const safeDesc = description.replace(/"/g, '&quot;');
         const preloadHints = preloadChunks?.length
@@ -468,7 +469,8 @@ if (fs.existsSync(clientDistDir)) {
     <meta name="twitter:title" content="${safeTitle}">
     <meta name="twitter:description" content="${safeDesc}">
     <meta name="twitter:image" content="${ogImage || OG_IMAGE}">
-    ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}`;
+    ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>` : ''}
+    ${ssrData ? `<script id="__BLOG_DATA__" type="application/json">${JSON.stringify(ssrData).replace(/<\/(script)/gi, '<\\/$1')}</script>` : ''}`;
         let html = base.replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`);
         html = html.replace(/<meta name="description"[^>]*\/?>/, '');
         html = html.replace('</head>', `${metaTags}\n</head>`);
@@ -504,7 +506,7 @@ if (fs.existsSync(clientDistDir)) {
         name: "Hotline HQ",
         url: BASE_URL,
         logo: `${BASE_URL}/logo-512.png`,
-        email: "hotlinehq@redlineusedautoparts.com",
+        email: "hello@hotlinehq.online",
         description: "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
         foundingDate: "2011",
         sameAs: [
@@ -811,8 +813,9 @@ if (fs.existsSync(clientDistDir)) {
             keywords: post.keywords || '',
             ogImage: post.ogImage ? `${BASE_URL}${post.ogImage}` : null,
             shell,
+            ssrData: post,
             jsonLd: { "@context": "https://schema.org", "@graph": jsonLdGraph }
-        });
+        }, '/blog/post');
     });
 
     // SEO: /own-a-hotline
@@ -826,7 +829,7 @@ if (fs.existsSync(clientDistDir)) {
                 'OWN THE HOTLINE',
                 'Launch a voice hotline network <em>in your industry</em>',
                 'Hotline HQ provides the platform, phones, and support. You own the membership revenue. Proven with <strong>500+ auto dismantler yards</strong> across 12 regional rooms.',
-                'Get Started', `mailto:hotlinehq@redlineusedautoparts.com`
+                'Get Started', `mailto:hello@hotlinehq.online`
             ),
             jsonLd: {
                 "@context": "https://schema.org",
@@ -835,7 +838,7 @@ if (fs.existsSync(clientDistDir)) {
                         "@type": "Service",
                         name: "Own a Hotline — Hotline HQ Platform",
                         serviceType: "Voice Hotline Network Platform",
-                        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/`, email: "hotlinehq@redlineusedautoparts.com" },
+                        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/`, email: "hello@hotlinehq.online" },
                         areaServed: "US",
                         description: "Launch and operate your own always-on voice hotline network. Platform, desk phones, and support included."
                     },

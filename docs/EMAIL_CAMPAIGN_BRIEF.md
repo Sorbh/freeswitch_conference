@@ -1,6 +1,6 @@
 # Hotline HQ — Email Campaign Brief
 
-_Last updated: 2026-07-03 (evening IST). Daily quota: ~300 marketing emails/day on Brevo — use it every day, it does not roll over._
+_Last updated: 2026-07-29 (evening IST). Daily quota: ~300 marketing emails/day on Brevo — use it every day, it does not roll over._
 
 ## What works (data through 2026-07-03)
 
@@ -18,6 +18,10 @@ _Last updated: 2026-07-03 (evening IST). Daily quota: ~300 marketing emails/day 
 | Jul 1 | OH Batch 2 - Big Number (id 16) | list 7 (382) | 312 | 23.7% |
 | **Jul 3** | **CA Dealers - Big Number (id 18)** | **list 30 (265 sendable)** | dispatching | — |
 | **Jul 3** | **Hot Leads - Follow Up (id 19)** | **list 31 (35 engaged leads)** | dispatching | — |
+| Jul 4–28 | 40+ campaigns (tiered: Fresh E1, B/C-Tier E2-E3, Hot Leads FU1-5) | lists 32–73 | ~5,000+ total | varies |
+| **Jul 29** | **Hot Leads FU6 (id 58)** | **list 71 (140 hot leads)** | **140 sent** | **26.17%** |
+| **Jul 29** | **B-Tier Active E4 (id 56)** | **list 72 (100 B-tier)** | **100 sent** | **early** |
+| **Jul 29** | **Active Room Fill E2 (id 57)** | **list 74 (57 CA/TX fill)** | **57 queued** | **—** |
 
 Campaign 18 notes: sent ~11:07 AM PT on the July-4th-observed Friday (owner call: quota is use-it-or-lose-it). Network volume that day was 121 broadcasts vs normal 280–350 — **compare its opens vs the ~26% OH baseline to quantify the holiday/send-day penalty.**
 
@@ -29,7 +33,23 @@ Campaign 18 notes: sent ~11:07 AM PT on the July-4th-observed Friday (owner call
 3. Brevo API: updating campaign recipients requires non-empty `exclusionListIds` — pass `[2]` ("Your first list", 1 contact, harmless).
 4. Check `broadcast_log` daily counts as a "are yards working today" signal; aim for ~9:15 AM recipient-local, but never hold a send for a better day (quota rule).
 
-## Tomorrow (Jul 4, Sat) and next sends — in order
+## Sent Jul 29
+
+| Campaign | ID | List | Sent | Subject | Template | Early stats |
+|---|---|---|---|---|---|---|
+| Hot Leads FU6 | 58 | 71 (Hot Leads FU5, 140) | 140 | Quick question for {{ COMPANY }} | Quick Question | 26.17% opens, 1 click (within minutes) |
+| B-Tier Active E4 | 56 | 72 (B-Tier Geo-Active, 100) | 100 | 2,847 parts located... | Big Number (updated recordings) | 4.23% opens (early) |
+| Active Room Fill E2 | 57 | 74 (CA/TX fill, 57) | 57 | 2,847 parts located... | Big Number (updated recordings) | queued |
+
+**Total: 297 sent.** Network had 337 broadcasts in prior 24h.
+
+Notes:
+- Hot leads (list 71) were never sent Jul 28 (campaign 53 suspended). Retried with "Quick Question" subject — hit 26% opens immediately, matching Big Number baseline.
+- Big Number template updated with fresh recordings: Genesis auto transmission (4f3da49b), 2019 Dodge pickup fender (21f00f24), 2024 Rivian taillight (b10e40e9). Listener counts: 130-132.
+- Fill list (74) built from CA+TX dealer contacts not in any campaign list since Jul 17+. Mix: 9 B-tier, 22 C-tier, 26 U-tier.
+- Fixed htmlUrl gotcha: Brevo share links resolve template variables to fallback values. Must pass raw htmlContent with {{ contact.* }} variables, not htmlUrl pointing to prior campaign share links.
+
+## Tomorrow (Jul 30) and next sends — in order
 
 1. **Dealers - Florida** (Brevo list 24, 186 contacts; active room) — needs enrichment step first (FL has 176 dealers with emails in `dealers_enriched.json`). ~186 sends, exclude FADRA lists 11 & 12 to dedupe.
 2. **Recreate TX + AZ** ("Big Number" to lists 23 + 26, exclude 5/9/10 = 266 net) — this draft was campaign 18 before it was retargeted to CA. Needs enrichment first.

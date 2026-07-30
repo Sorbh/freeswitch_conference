@@ -8,16 +8,33 @@ function formatDate(iso) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function readEmbeddedBlogData(category, slug) {
+  try {
+    const el = document.getElementById('__BLOG_DATA__');
+    if (!el) return null;
+    const data = JSON.parse(el.textContent);
+    if (data.category === category && data.slug === slug) {
+      el.remove();
+      return data;
+    }
+  } catch {}
+  return null;
+}
+
 export function BlogPostPage() {
   const { category, slug } = useParams();
-  const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [post, setPost] = useState(() => readEmbeddedBlogData(category, slug));
+  const [loading, setLoading] = useState(() => !post);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => { window.__removeSSROverlay?.(); }, []);
+
   useEffect(() => {
+    if (post?.category === category && post?.slug === slug) return;
     setLoading(true);
     setError(null);
+    setPost(null);
     fetch(`/api/v1/blog/${category}/${slug}`)
       .then(r => r.json())
       .then(json => { if (json.status) setPost(json.data); else setError("Post not found"); })

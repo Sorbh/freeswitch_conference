@@ -41,7 +41,23 @@ window.addEventListener('vite:preloadError', (event) => {
   });
 })();
 
-createRoot(document.getElementById('root')).render(
+const _ssrRoot = document.getElementById('root');
+if (_ssrRoot.querySelector('#ssr-shell') && document.getElementById('__BLOG_DATA__')) {
+  const _overlay = _ssrRoot.cloneNode(true);
+  _overlay.id = 'ssr-overlay';
+  _ssrRoot.parentNode.insertBefore(_overlay, _ssrRoot);
+  _ssrRoot.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;';
+  window.__removeSSROverlay = () => {
+    const o = document.getElementById('ssr-overlay');
+    if (!o) return;
+    o.remove();
+    _ssrRoot.style.cssText = '';
+    delete window.__removeSSROverlay;
+  };
+  setTimeout(() => window.__removeSSROverlay?.(), 8000);
+}
+
+createRoot(_ssrRoot).render(
   <BrowserRouter>
     <App />
   </BrowserRouter>

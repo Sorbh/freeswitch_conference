@@ -63,10 +63,27 @@ export default function ConferencePage() {
   const roomShortCode = currentRoomData?.short_code || roomDisplayName;
 
   const [showBanner, setShowBanner] = useState(() => localStorage.getItem('hideReferralBanner') !== 'true');
+  const [referralCopied, setReferralCopied] = useState(false);
+  const { apiFetch } = useAuth();
 
   function dismissBanner() {
     setShowBanner(false);
     localStorage.setItem('hideReferralBanner', 'true');
+  }
+
+  async function shareReferral() {
+    try {
+      const json = await apiFetch('/referral');
+      const link = json.data?.referral_link;
+      if (!link) return;
+      if (navigator.share) {
+        navigator.share({ title: 'Hotline HQ', text: t('conference.nudgeShareText', 'Join me on Hotline HQ — we both save 10%!'), url: link }).catch(() => {});
+      } else {
+        await navigator.clipboard.writeText(link);
+        setReferralCopied(true);
+        setTimeout(() => setReferralCopied(false), 2000);
+      }
+    } catch {}
   }
 
   return (
@@ -77,12 +94,17 @@ export default function ConferencePage() {
             <span className="referral-emoji text-xl flex-shrink-0">🎉</span>
             <div className="min-w-0">
               <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{t('conference.referralTitle')}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}><Trans t={t} i18nKey="conference.referralBody" components={{ settingsLink: <a href="/client/dashboard/settings" className="font-semibold" style={{ color: 'var(--red)' }} /> }} /></p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{t('conference.referralBody')}</p>
             </div>
           </div>
-          <button onClick={dismissBanner} className="flex-shrink-0 p-1.5 rounded-lg" style={{ color: 'var(--muted)' }} aria-label={t('conference.dismiss')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={shareReferral} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--red)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              {referralCopied ? t('settings.copied', 'Copied!') : <><ShareIcon /> {t('conference.shareLink', 'Share Link')}</>}
+            </button>
+            <button onClick={dismissBanner} className="p-1.5 rounded-lg" style={{ color: 'var(--muted)' }} aria-label={t('conference.dismiss')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -112,39 +134,58 @@ export default function ConferencePage() {
         )}
       </div>
 
-      {connected && !isListenOnly && !isMonitorMode && (
-        <div className="hidden md:block mb-4 px-4 py-2.5 rounded-xl text-xs" style={{ background: 'var(--band)', color: 'var(--muted)', border: '1px solid var(--line)' }}>
-          <Trans t={t} i18nKey="conference.muteShortcutHint" components={{ kbd: <span className="font-semibold font-mono" /> }} />
-        </div>
-      )}
-
-      {showGesturePrompt && (
-        <button
-          onClick={gesture.start}
-          className="w-full mb-4 px-4 py-3 rounded-xl flex items-center gap-3 text-left"
-          style={{ background: 'rgba(217,45,32,0.06)', border: '1px solid rgba(217,45,32,0.15)', cursor: 'pointer' }}
-        >
-          <span style={{ fontSize: 22 }}>✋</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Hands-free Mute</div>
-            <div className="text-xs" style={{ color: 'var(--muted)' }}>
-              {gesture.status === 'error' ? (gesture.errorMsg || 'Failed — tap to retry') : 'Tap to start camera for hands-free mute'}
-            </div>
+      {/* Shortcut hint — uses grid-row collapse to prevent CLS on connection */}
+      <div
+        className="hidden md:grid"
+        style={{
+          gridTemplateRows: connected && !isListenOnly && !isMonitorMode ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.3s ease',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <div className="mb-4 px-4 py-2.5 rounded-xl text-xs" style={{ background: 'var(--band)', color: 'var(--muted)', border: '1px solid var(--line)' }}>
+            <Trans t={t} i18nKey="conference.muteShortcutHint" components={{ kbd: <span className="font-semibold font-mono" /> }} />
           </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: 'var(--red)', color: '#fff' }}>
-            {gesture.status === 'error' ? 'Retry' : 'Start'}
-          </span>
-        </button>
-      )}
-
-      {/* Online stats bar — visible as soon as SSE data flows */}
-      {(connected || totalOnline > 0) && (
-        <div className="flex items-center gap-3 mb-4">
-          <StatPill label={t('conference.thisRoom', { room: roomShortCode, defaultValue: roomShortCode })} value={roomOnline} color="var(--green)" unit={roomOnline === 1 ? 'yard' : 'yards'} />
-          <StatPill label={t('conference.network')} value={totalOnline} color="var(--red)" unit={totalOnline === 1 ? 'yard' : 'yards'} />
-          <StatPill label={t('conference.speaking')} value={unmutedCount} color="#f59e0b" />
         </div>
-      )}
+      </div>
+
+      {/* Gesture prompt — uses grid-row collapse to prevent CLS */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: showGesturePrompt ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.3s ease',
+        }}
+      >
+        <div style={{ overflow: 'hidden' }}>
+          <button
+            onClick={gesture.start}
+            className="w-full mb-4 px-4 py-3 rounded-xl flex items-center gap-3 text-left"
+            style={{ background: 'rgba(217,45,32,0.06)', border: '1px solid rgba(217,45,32,0.15)', cursor: 'pointer' }}
+            tabIndex={showGesturePrompt ? 0 : -1}
+            aria-hidden={!showGesturePrompt}
+          >
+            <span style={{ fontSize: 22 }}>✋</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>Hands-free Mute</div>
+              <div className="text-xs" style={{ color: 'var(--muted)' }}>
+                {gesture.status === 'error' ? (gesture.errorMsg || 'Failed — tap to retry') : 'Tap to start camera for hands-free mute'}
+              </div>
+            </div>
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: 'var(--red)', color: '#fff' }}>
+              {gesture.status === 'error' ? 'Retry' : 'Start'}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Online stats bar — always rendered to reserve layout space and prevent
+           CLS when SSE data arrives. Shows zeros until data flows. */}
+      <div className="flex items-center gap-3 mb-4">
+        <StatPill label={t('conference.thisRoom', { room: roomShortCode, defaultValue: roomShortCode })} value={roomOnline} color="var(--green)" unit={roomOnline === 1 ? 'yard' : 'yards'} />
+        <StatPill label={t('conference.network')} value={totalOnline} color="var(--red)" unit={totalOnline === 1 ? 'yard' : 'yards'} />
+        <StatPill label={t('conference.speaking')} value={unmutedCount} color="#f59e0b" />
+      </div>
 
       {/* Contextual nudge */}
       <NudgeBanner connected={connected} roomOnline={roomOnline} totalOnline={totalOnline} roomName={roomShortCode} account={account} t={t} />
@@ -297,8 +338,8 @@ function CallerCard({ name }) {
   const person = parts[1] || '';
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'var(--red-soft)', border: '1px solid rgba(217,45,32,0.1)' }}>
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red)', color: '#fff' }}>
+    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ background: 'var(--red-soft)', border: '1px solid rgba(217,45,32,0.1)', cursor: 'default', userSelect: 'text' }}>
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--red)', color: '#fff', pointerEvents: 'none' }}>
         <SpeakerIcon />
       </div>
       <div className="min-w-0">

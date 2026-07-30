@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { HQLogo, NavMenu, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import PublicBroadcastActivity from "../components/PublicBroadcastActivity";
@@ -148,6 +148,47 @@ const HERO_CLIPS = [
     ],
   },
 ];
+
+function NetworkPulse() {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    let stale = false;
+    fetch('/api/v1/public/network-stats')
+      .then(r => r.json())
+      .then(json => { if (!stale && json.data) setStats(json.data); })
+      .catch(() => {});
+    const iv = setInterval(() => {
+      fetch('/api/v1/public/network-stats')
+        .then(r => r.json())
+        .then(json => { if (!stale && json.data) setStats(json.data); })
+        .catch(() => {});
+    }, 30000);
+    return () => { stale = true; clearInterval(iv); };
+  }, []);
+  if (!stats) return null;
+  const { listeningNow, activeRooms, todayBroadcasts } = stats;
+  if (!listeningNow && !todayBroadcasts) return null;
+  return (
+    <div className="l2-network-pulse">
+      {listeningNow > 0 && (
+        <span className="l2-pulse-item">
+          <span className="l2-live-dot" />
+          <strong>{listeningNow}</strong> yards listening now
+        </span>
+      )}
+      {activeRooms > 0 && (
+        <span className="l2-pulse-item">
+          {activeRooms} room{activeRooms !== 1 ? 's' : ''} live
+        </span>
+      )}
+      {todayBroadcasts > 0 && (
+        <span className="l2-pulse-item">
+          {todayBroadcasts} broadcasts today
+        </span>
+      )}
+    </div>
+  );
+}
 
 function isRealValue(v) {
   return v && v !== 'null' && v !== 'undefined' && String(v).trim() !== '';
@@ -451,11 +492,11 @@ export default function Landing2Page() {
           <HQLogo />
         </a>
         <nav className="l2-nav-links">
-          <a href="./find-used-auto-parts">Find Parts</a>
-          <a href="./sell-used-auto-parts">Sell Parts</a>
-          <a href="./own-a-hotline">{t("common:nav.ownHotline")}</a>
-          <a href="./marketplace">Marketplace</a>
-          <a href="./blog">Blog</a>
+          <NavLink to="/find-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Find Parts</NavLink>
+          <NavLink to="/sell-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Sell Parts</NavLink>
+          <NavLink to="/own-a-hotline" className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("common:nav.ownHotline")}</NavLink>
+          <NavLink to="/marketplace" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Marketplace</NavLink>
+          <NavLink to="/blog" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Blog</NavLink>
           <a href={loginUrl} className="l2-nav-login">{t("common:nav.login")}</a>
           <a href={signupUrl} className="l2-nav-cta">
             {t("common:nav.signUpFree")}
@@ -494,6 +535,8 @@ export default function Landing2Page() {
               {t("common:nav.login")}
             </a>
           </div>
+
+          <NetworkPulse />
 
           <audio ref={heroAudioRef} preload="none" />
           <button
@@ -675,6 +718,33 @@ export default function Landing2Page() {
         </div>
         <div className="l2-reveal" style={{ textAlign: 'center', marginTop: '40px' }}>
           <Link to="/blog" className="l2-btn l2-btn-ghost">All articles</Link>
+        </div>
+      </section>
+
+      {/* ───────────────── industries ───────────────── */}
+      <section className="l2-section">
+        <div className="l2-section-head l2-reveal">
+          <p className="l2-kicker">BEYOND AUTO PARTS</p>
+          <h2>The hotline model works<br />in more than one industry</h2>
+          <p className="l2-lede">
+            500+ yards and 15,000+ broadcasts have proven that a live voice network beats databases and phone trees.
+            We're expanding to industries where the same pain exists: fragmented supply, urgent demand, and too many phone calls.
+          </p>
+        </div>
+        <div className="l2-industries-grid l2-reveal">
+          {[
+            { to: "/heavy-equipment-parts-hotline", label: "Heavy Equipment", sub: "CAT, Deere, Komatsu" },
+            { to: "/farm-equipment-parts-hotline", label: "Farm Equipment", sub: "Tractors, Combines" },
+            { to: "/aviation-parts-hotline", label: "Aviation / AOG", sub: "Aircraft Parts" },
+            { to: "/mining-equipment-parts", label: "Mining", sub: "Haul Trucks, Crushers" },
+            { to: "/marine-boat-parts", label: "Marine & Boat", sub: "Engines, Outdrives" },
+            { to: "/railroad-parts-hotline", label: "Railroad", sub: "Locomotives, Rolling Stock" },
+          ].map((ind, i) => (
+            <Link to={ind.to} className="l2-industry-card" key={i}>
+              <strong>{ind.label}</strong>
+              <span>{ind.sub}</span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -886,6 +956,28 @@ const CSS = `
   animation: l2pulse 1.6s infinite;
 }
 @keyframes l2pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* network pulse — live stats below hero CTAs */
+.l2-network-pulse {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; flex-wrap: wrap;
+  margin-top: 22px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.55);
+}
+.l2-pulse-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.l2-pulse-item + .l2-pulse-item::before {
+  content: "·"; margin-right: 2px; opacity: 0.4;
+}
+.l2-pulse-item strong {
+  color: #fff; font-weight: 700;
+}
+.l2-pulse-item .l2-live-dot {
+  width: 6px; height: 6px;
+}
 
 /* hero listen button */
 .l2-listen-btn {
@@ -1277,6 +1369,32 @@ const CSS = `
 .l2-own-list li::before { content: "▸"; position: absolute; left: 0; color: var(--red); }
 
 /* join */
+/* industries grid — matches .l2-features pattern */
+.l2-industries-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+@media (max-width: 1080px) { .l2-industries-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .l2-industries-grid { grid-template-columns: 1fr; } }
+.l2-industry-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 28px 26px 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.l2-industry-card:hover {
+  border-color: rgba(217,45,32,0.25);
+  box-shadow: 0 6px 24px rgba(217,45,32,0.08);
+  transform: translateY(-3px);
+}
+.l2-industry-card strong { font-size: 18px; font-weight: 700; color: var(--ink); }
+.l2-industry-card span { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
 .l2-join {
   background:
     radial-gradient(ellipse 70% 90% at 80% 0%, rgba(217,45,32,0.12), transparent 60%),

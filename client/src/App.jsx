@@ -39,8 +39,16 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
-const DashboardLayout = lazy(() => import('./components/DashboardLayout'));
-const ConferencePage = lazy(() => import('./pages/ConferencePage'));
+// Prefetch ConferencePage in parallel with DashboardLayout to eliminate the
+// lazy-load waterfall (DashboardLayout must render before Outlet triggers
+// ConferencePage's lazy import — without this, the two chunks download
+// sequentially, adding ~2-4s to initial dashboard LCP).
+const conferenceImport = () => import('./pages/ConferencePage');
+const DashboardLayout = lazy(() => {
+  conferenceImport(); // kick off in parallel
+  return import('./components/DashboardLayout');
+});
+const ConferencePage = lazy(conferenceImport);
 const MembersPage = lazy(() => import('./pages/MembersPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
 const RequestRoomPage = lazy(() => import('./pages/RequestRoomPage'));
@@ -53,6 +61,17 @@ const PartsListingPage = lazy(() => import('./pages/PartsListingPage'));
 const FindPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.FindPartsPage })));
 const SellPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.SellPartsPage })));
 const HowItWorksPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.HowItWorksPage })));
+const AutoPartsHotlinePage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.AutoPartsHotlinePage })));
+const CarPartAlternativePage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.CarPartAlternativePage })));
+const HardToFindPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.HardToFindPartsPage })));
+const SalvageYardMarketingPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.SalvageYardMarketingPage })));
+const EvHybridPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.EvHybridPartsPage })));
+const HeavyEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.HeavyEquipmentPage })));
+const FarmEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.FarmEquipmentPage })));
+const AviationPartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.AviationPartsPage })));
+const MiningEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.MiningEquipmentPage })));
+const MarinePartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.MarinePartsPage })));
+const RailroadPartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.RailroadPartsPage })));
 const BlogIndexPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogIndexPage })));
 const BlogCategoryPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogCategoryPage })));
 const BlogPostPage = lazy(() => import('./pages/landing2/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
@@ -101,11 +120,74 @@ function LoadingSpinner() {
   );
 }
 
-function Lazy({ children }) {
+function Lazy({ children, fallback }) {
   return (
     <ChunkErrorBoundary>
-      <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+      <Suspense fallback={fallback || <LoadingSpinner />}>{children}</Suspense>
     </ChunkErrorBoundary>
+  );
+}
+
+/**
+ * Skeleton that mirrors the DashboardLayout structure so the first paint
+ * contains meaningful layout rectangles (sidebar, header, stat pills, card)
+ * instead of a centered spinner. Reduces perceived LCP by showing the page
+ * shell before the JS chunks finish downloading.
+ */
+function DashboardSkeleton() {
+  const shimmer = `
+    @keyframes hq-shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+  `;
+  const bar = {
+    borderRadius: 8,
+    background: 'linear-gradient(90deg, var(--line, #e5e7eb) 25%, var(--band, #f3f4f6) 50%, var(--line, #e5e7eb) 75%)',
+    backgroundSize: '800px 100%',
+    animation: 'hq-shimmer 1.6s infinite linear',
+  };
+  return (
+    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg, #fbfaf8)', overflow: 'hidden', position: 'fixed', inset: 0 }}>
+      <style>{shimmer}</style>
+      {/* Sidebar placeholder (desktop only) */}
+      <div style={{ width: 256, flexShrink: 0, background: 'var(--ink, #16181d)', display: 'none' }} className="md-skel-sidebar" />
+      <style>{`@media(min-width:768px){.md-skel-sidebar{display:block!important}}`}</style>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Header placeholder */}
+        <div style={{ height: 62, background: 'var(--surface, #fff)', borderBottom: '2px solid var(--line, #e5e7eb)', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 12 }}>
+          <div style={{ ...bar, width: 36, height: 36, borderRadius: 12 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ ...bar, width: 160, height: 14, marginBottom: 6 }} />
+            <div style={{ ...bar, width: 80, height: 10 }} />
+          </div>
+        </div>
+        {/* Content area */}
+        <div style={{ flex: 1, padding: '24px', overflow: 'hidden' }}>
+          {/* Stats bar skeleton */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+            {[1,2,3].map(i => (
+              <div key={i} style={{ flex: 1, height: 52, borderRadius: 12, border: '1px solid var(--line, #e5e7eb)', background: 'var(--surface, #fff)', display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8 }}>
+                <div style={{ ...bar, width: 8, height: 8, borderRadius: 999 }} />
+                <div>
+                  <div style={{ ...bar, width: 32, height: 16, marginBottom: 4 }} />
+                  <div style={{ ...bar, width: 48, height: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Caller card skeleton */}
+          <div style={{ borderRadius: 16, border: '1px solid var(--line, #e5e7eb)', background: 'var(--surface, #fff)', padding: 20, minHeight: 200 }}>
+            <div style={{ ...bar, width: 120, height: 10, marginBottom: 20 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 24, paddingBottom: 24, gap: 8 }}>
+              <div style={{ ...bar, width: 40, height: 40, borderRadius: 12 }} />
+              <div style={{ ...bar, width: 180, height: 12 }} />
+              <div style={{ ...bar, width: 140, height: 10 }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -137,6 +219,17 @@ export default function App() {
         <Route path="/find-used-auto-parts" element={<Lazy><FindPartsPage /></Lazy>} />
         <Route path="/sell-used-auto-parts" element={<Lazy><SellPartsPage /></Lazy>} />
         <Route path="/how-auto-parts-hotlines-work" element={<Lazy><HowItWorksPage /></Lazy>} />
+        <Route path="/used-auto-parts-hotline" element={<Lazy><AutoPartsHotlinePage /></Lazy>} />
+        <Route path="/car-part-alternative" element={<Lazy><CarPartAlternativePage /></Lazy>} />
+        <Route path="/hard-to-find-auto-parts" element={<Lazy><HardToFindPartsPage /></Lazy>} />
+        <Route path="/salvage-yard-marketing" element={<Lazy><SalvageYardMarketingPage /></Lazy>} />
+        <Route path="/ev-hybrid-auto-parts" element={<Lazy><EvHybridPartsPage /></Lazy>} />
+        <Route path="/heavy-equipment-parts-hotline" element={<Lazy><HeavyEquipmentPage /></Lazy>} />
+        <Route path="/farm-equipment-parts-hotline" element={<Lazy><FarmEquipmentPage /></Lazy>} />
+        <Route path="/aviation-parts-hotline" element={<Lazy><AviationPartsPage /></Lazy>} />
+        <Route path="/mining-equipment-parts" element={<Lazy><MiningEquipmentPage /></Lazy>} />
+        <Route path="/marine-boat-parts" element={<Lazy><MarinePartsPage /></Lazy>} />
+        <Route path="/railroad-parts-hotline" element={<Lazy><RailroadPartsPage /></Lazy>} />
         <Route path="/blog" element={<Lazy><BlogIndexPage /></Lazy>} />
         <Route path="/blog/guides" element={<Lazy><BlogCategoryPage category="guides" /></Lazy>} />
         <Route path="/blog/news" element={<Lazy><BlogCategoryPage category="news" /></Lazy>} />
@@ -175,8 +268,8 @@ export default function App() {
         <Route path="/client/reset-password" element={<PublicRoute><Lazy><ResetPasswordPage /></Lazy></PublicRoute>} />
 
         {/* Client dashboard (authenticated) */}
-        <Route path="/client/dashboard" element={<ProtectedRoute><Lazy><DashboardLayout /></Lazy></ProtectedRoute>}>
-          <Route index element={<Lazy><ConferencePage /></Lazy>} />
+        <Route path="/client/dashboard" element={<ProtectedRoute><Lazy fallback={<DashboardSkeleton />}><DashboardLayout /></Lazy></ProtectedRoute>}>
+          <Route index element={<Lazy fallback={null}><ConferencePage /></Lazy>} />
           <Route path="members" element={<Lazy><MembersPage /></Lazy>} />
           <Route path="extensions" element={<Navigate to="/client/dashboard/members" replace />} />
           <Route path="settings" element={<Lazy><AccountSettingsPage /></Lazy>} />

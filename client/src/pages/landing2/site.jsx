@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import { BLOG_POSTS, getPostUrl } from "./blogRegistry";
@@ -36,7 +36,7 @@ export function HQLogo({ light = false, size = 32 }) {
   );
 }
 
-export const CONTACT_EMAIL = "hotlinehq@redlineusedautoparts.com";
+export const CONTACT_EMAIL = "hello@hotlinehq.online";
 const HOTLINE_LOGIN_URL = "https://hotlinehq.online/client/login";
 const HOTLINE_SIGNUP_URL = "https://hotlinehq.online/client/signup";
 const HOTLINE_ADMIN_URL = "https://hotlinehq.online/admin/login";
@@ -179,6 +179,7 @@ export function landingJsonLd() {
 export function NavMenu({ links }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
@@ -190,6 +191,16 @@ export function NavMenu({ links }) {
       document.removeEventListener("mousedown", onClick);
     };
   }, []);
+
+  /* Check if a menu link matches the current path */
+  function isLinkActive(href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      const linkPath = url.pathname.replace(/\/+$/, "") || "/";
+      const currentPath = pathname.replace(/\/+$/, "") || "/";
+      return linkPath === currentPath;
+    } catch { return false; }
+  }
 
   return (
     <div className="l2-nav-menu-wrap" ref={ref}>
@@ -216,7 +227,7 @@ export function NavMenu({ links }) {
             <a
               key={l.href}
               href={l.href}
-              className={l.sep ? "l2-nav-menu-sep" : undefined}
+              className={[l.sep ? "l2-nav-menu-sep" : "", isLinkActive(l.href) ? "l2-nav-menu-active" : ""].filter(Boolean).join(" ") || undefined}
               onClick={() => setOpen(false)}
             >
               {l.label}
@@ -237,11 +248,11 @@ export function SiteNav() {
         <HQLogo />
       </Link>
       <nav className="l2-nav-links">
-        <Link to="/">{t("nav.home")}</Link>
-        <Link to="/find-used-auto-parts">Find Parts</Link>
-        <Link to="/sell-used-auto-parts">Sell Parts</Link>
-        <Link to="/marketplace">Marketplace</Link>
-        <Link to="/blog">Blog</Link>
+        <NavLink to="/" end className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("nav.home")}</NavLink>
+        <NavLink to="/find-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Find Parts</NavLink>
+        <NavLink to="/sell-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Sell Parts</NavLink>
+        <NavLink to="/marketplace" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Marketplace</NavLink>
+        <NavLink to="/blog" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Blog</NavLink>
         <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">{t("nav.login")}</a>
         <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
           {t("nav.signUpFree")}
@@ -460,6 +471,11 @@ export const SITE_CSS = `
 .l2-nav-links { display: flex; gap: 26px; align-items: center; font-size: 14.5px; font-weight: 500; }
 .l2-nav-links a { color: var(--muted); transition: color .2s; }
 .l2-nav-links a:hover { color: var(--ink); }
+.l2-nav-links a.l2-nav-active { color: var(--red); position: relative; }
+.l2-nav-links a.l2-nav-active::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -4px;
+  height: 2px; background: var(--red); border-radius: 1px;
+}
 .l2-nav-login {
   color: var(--ink) !important; font-weight: 600; white-space: nowrap; flex-shrink: 0;
   padding: 9px 16px; border-radius: 9px; transition: background .2s;
@@ -495,6 +511,7 @@ export const SITE_CSS = `
   white-space: nowrap;
 }
 .l2-nav-menu a:hover { background: var(--band, #f4f2ee); }
+.l2-nav-menu a.l2-nav-menu-active { color: var(--red) !important; font-weight: 600; background: rgba(217,45,32,0.06); }
 .l2-nav-menu a.l2-nav-menu-sep { margin-top: 6px; border-top: 1px solid var(--line); border-radius: 0 0 9px 9px; padding-top: 13px; font-weight: 600; }
 
 @media (max-width: 1080px) {
