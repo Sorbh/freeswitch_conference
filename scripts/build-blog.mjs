@@ -21,6 +21,8 @@ const FEATURES_DIR = path.join(ROOT, 'content', 'features');
 const REGISTRY_OUT = path.join(ROOT, 'client', 'src', 'pages', 'landing2', 'blogRegistry.js');
 const SSR_OUT = path.join(ROOT, 'data', 'blog-ssr-data.json');
 const FEATURES_OUT = path.join(ROOT, 'data', 'features-ssr-data.json');
+const PAGES_DIR = path.join(ROOT, 'content', 'pages');
+const PAGES_OUT = path.join(ROOT, 'data', 'pages-ssr-data.json');
 
 const CATEGORIES = {
   guides: { label: 'Industry Guides', description: 'How-to guides and explainers for the auto dismantler industry' },
@@ -400,6 +402,43 @@ console.log(`[features] Found ${featureCount} feature(s)`);
 if (featureCount > 0) {
   fs.writeFileSync(FEATURES_OUT, generateFeaturesData(features));
   console.log(`[features] Generated ${path.relative(ROOT, FEATURES_OUT)}`);
+}
+
+// ── SEO Pages (keyword + industry) ─────────────────────────────────
+
+function scanPages() {
+  if (!fs.existsSync(PAGES_DIR)) return {};
+  const pages = {};
+  const files = fs.readdirSync(PAGES_DIR).filter(f => f.endsWith('.md'));
+
+  for (const file of files) {
+    const slug = file.replace(/\.md$/, '');
+    const content = fs.readFileSync(path.join(PAGES_DIR, file), 'utf8');
+    const meta = parseFeatureFrontmatter(content);
+
+    pages[slug] = {
+      title: meta.title || slug,
+      type: meta.type || 'keyword',
+      seo: meta.seo || {},
+      hero: meta.hero || {},
+      sections: meta.sections || [],
+      parts: meta.parts || [],
+      steps: meta.steps || [],
+      faqs: meta.faqs || [],
+      resources: meta.resources || [],
+    };
+  }
+
+  return pages;
+}
+
+const seoPages = scanPages();
+const pageCount = Object.keys(seoPages).length;
+console.log(`[pages] Found ${pageCount} SEO page(s)`);
+
+if (pageCount > 0) {
+  fs.writeFileSync(PAGES_OUT, JSON.stringify({ pages: seoPages }, null, 2));
+  console.log(`[pages] Generated ${path.relative(ROOT, PAGES_OUT)}`);
 }
 
 console.log('[content] All done');

@@ -1,0 +1,1021 @@
+{
+  "pages": {
+    "aviation-parts-hotline": {
+      "title": "Aviation Parts Hotline",
+      "type": "industry",
+      "seo": {
+        "title": "Aviation Parts Hotline — AOG Parts Sourcing in Seconds, Not Hours",
+        "description": "AOG parts hotline for aircraft maintenance. Broadcast to every vendor at once — find rotables, avionics, LRUs in seconds. Cut AOG downtime. FAA-compliant sourcing.",
+        "keywords": "aviation parts hotline, AOG parts, aircraft parts locator, used aircraft parts, AOG desk, aviation parts supplier, airplane parts, aircraft parts broker, AOG sourcing, aircraft parts search"
+      },
+      "hero": {
+        "kicker": "AVIATION / AOG",
+        "heading": "AOG parts sourcing in <em>seconds, not hours</em>",
+        "lede": "Aircraft on ground costs $10K-$150K per hour. AOG desks call vendors one by one. A parts hotline broadcasts to every vendor simultaneously — first with the part wins.",
+        "image": "/images/industries/aviation.webp"
+      },
+      "sections": [
+        {
+          "kicker": "THE AOG PROBLEM",
+          "heading": "Why AOG sourcing is still sequential in 2026"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "Broadcast once. Every vendor hears it. Live verification.",
+          "lede": "The technology behind 15,000+ auto parts requests — applied to aviation's highest-urgency problem. Replace the AOG phone tree with a single broadcast to every vendor on the network."
+        },
+        {
+          "kicker": "THE ECONOMICS",
+          "heading": "AOG math: why seconds matter at $50,000/hour"
+        },
+        {
+          "kicker": "WHY VOICE",
+          "heading": "Why AOG desks need voice networks, not databases"
+        }
+      ],
+      "parts": [],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "What is an AOG parts hotline?",
+          "a": "AOG stands for Aircraft On Ground — an aircraft that can't fly until a part is sourced and installed. An AOG parts hotline is a live voice network where maintenance teams broadcast urgent parts needs to every supplier simultaneously. Instead of calling vendors one by one (the current AOG desk model), you broadcast once and get answers in seconds."
+        },
+        {
+          "q": "How much does AOG downtime cost?",
+          "a": "Depending on the aircraft and operator, AOG downtime costs $10,000 to $150,000 per hour in lost revenue, crew costs, passenger compensation, and scheduling disruption. Even a $5,000 part that takes 48 hours to locate can cost an airline $500,000+ in downstream impact. Faster sourcing directly reduces AOG duration."
+        },
+        {
+          "q": "How is this different from ILS or PartsBase?",
+          "a": "ILS (Inventory Locator Service) and PartsBase are database searches — you look up a part number and see who has it listed. The listing might be outdated. An AOG hotline is live voice: you describe what you need and every vendor on the line confirms availability in real time. For AOG situations, live verification beats database search every time."
+        },
+        {
+          "q": "What about FAA traceability requirements?",
+          "a": "All aviation parts require proper documentation — 8130-3 Authorized Release Certificates, trace-to-birth records, and conformity statements. The hotline helps you find the part faster; the paperwork and compliance process remains the same. You deal directly with the vendor, who provides all required FAA documentation as part of the sale."
+        },
+        {
+          "q": "What types of aircraft parts are in scope?",
+          "a": "Rotable components, avionics, landing gear assemblies, engine LRUs (Line Replaceable Units), APU components, flight control actuators, and structural parts. Both commercial (Boeing, Airbus) and general aviation (Cessna, Beechcraft, Piper). The network is most valuable for less-common parts where standard supply chains are slow."
+        },
+        {
+          "q": "Is the aviation parts network live now?",
+          "a": "We're building it. The core technology is proven — 500+ participants, 15,000+ broadcast requests, 2-second response time in our auto parts network. Aviation requires additional compliance structure (8130-3 verification, FAA PMA/DER classification), which we're building into the platform. Join the waitlist for early access."
+        },
+        {
+          "q": "Who would be on the network?",
+          "a": "MROs (Maintenance, Repair, Overhaul shops), parts distributors, airline surplus departments, rotable pool operators, teardown specialists, and independent parts brokers. Anyone who sells used, overhauled, or serviceable aircraft components."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/#top",
+          "label": "Listen to a live auto parts call"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/heavy-equipment-parts-hotline",
+          "label": "Heavy Equipment"
+        },
+        {
+          "href": "/farm-equipment-parts-hotline",
+          "label": "Farm Equipment"
+        },
+        {
+          "href": "/mining-equipment-parts",
+          "label": "Mining Equipment"
+        },
+        {
+          "href": "/marine-boat-parts",
+          "label": "Marine / Boat"
+        },
+        {
+          "href": "/railroad-parts-hotline",
+          "label": "Railroad"
+        }
+      ]
+    },
+    "car-part-alternative": {
+      "title": "Car-Part.com Alternative",
+      "type": "keyword",
+      "seo": {
+        "title": "Car-Part.com Alternative — Live Voice Parts Network | Hotline HQ",
+        "description": "Looking for a Car-Part.com alternative? Hotline HQ is a live voice network — broadcast once, 97 yards hear you, get answers in 2 seconds. No listings to manage.",
+        "keywords": "car-part.com alternative, car-part alternative, alternative to car-part, better than car-part.com, car-part.com vs hotline, used auto parts alternative, parts locator alternative"
+      },
+      "hero": {
+        "kicker": "COMPARE",
+        "heading": "Car-Part.com alternative: <em>a live voice network</em>",
+        "lede": "Car-Part.com searches listed inventory. Hotline HQ broadcasts your request to 97 yards at once — live, by voice. Different approach. Different speed. Many yards use both."
+      },
+      "sections": [
+        {
+          "kicker": "SIDE BY SIDE",
+          "heading": "Car-Part.com vs. Hotline HQ",
+          "lede": "One is a parts database. The other is a live voice network. Here's how they differ across 8 dimensions."
+        },
+        {
+          "kicker": "WHEN TO USE EACH",
+          "heading": "Database vs. hotline — which is right for you?"
+        }
+      ],
+      "parts": [],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "Is Hotline HQ a replacement for Car-Part.com?",
+          "a": "Not exactly — they solve different problems. Car-Part.com is an inventory database where yards list parts and buyers search listings. Hotline HQ is a live voice network where you broadcast requests and get real-time answers. Many yards use both: Car-Part.com for searchable inventory and Hotline HQ for live demand and parts that aren't cataloged yet."
+        },
+        {
+          "q": "Why would I use a voice network instead of a parts database?",
+          "a": "Three reasons: speed (2-second response vs. search-then-call), accuracy (live verification vs. stale listings), and reach (97 yards hear you at once, including parts they haven't listed). A database only shows you what's been cataloged. A voice network shows you what's actually available right now — including parts nobody thought to list."
+        },
+        {
+          "q": "Can I use both Car-Part.com and Hotline HQ?",
+          "a": "Yes, and many yards do. Use Car-Part.com when you know the exact part number and want to search listed inventory. Use Hotline HQ when you need a fast answer, when the part is hard to describe in a search box, or when you want to reach yards that don't maintain detailed online inventory. The two services complement each other."
+        },
+        {
+          "q": "Do I need to list my inventory on Hotline HQ?",
+          "a": "No. That's the fundamental difference. On Car-Part.com, you need every part cataloged before a buyer can find it. On Hotline HQ, buyers broadcast what they need and you simply respond when you have it. No photos, no data entry, no catalog management. This makes Hotline HQ especially valuable for smaller yards that can't maintain a full parts database."
+        },
+        {
+          "q": "Which is better for hard-to-find parts?",
+          "a": "Hotline HQ. A wreck opinion, a specific assembly, or a part described in plain language ('I need the whole front clip off an 06 Silverado') doesn't translate well to a database search. On a voice network, you describe exactly what you need and the yards who can help understand the context. For standard year/make/model/part searches, Car-Part.com's database is hard to beat."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/find-used-auto-parts",
+          "label": "Find parts"
+        },
+        {
+          "href": "/sell-used-auto-parts",
+          "label": "Sell parts"
+        },
+        {
+          "href": "/hard-to-find-auto-parts",
+          "label": "Hard-to-find parts"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        }
+      ]
+    },
+    "ev-hybrid-auto-parts": {
+      "title": "EV & Hybrid Auto Parts",
+      "type": "keyword",
+      "seo": {
+        "title": "Used EV & Hybrid Auto Parts — Find Tesla, Prius, Leaf Parts | Hotline HQ",
+        "description": "Find used EV and hybrid parts from salvage yards. Tesla, Prius, Leaf, Bolt batteries, drive units, and body panels. Broadcast to 97 yards — get answers in 2 seconds.",
+        "keywords": "ev auto parts, used ev parts, hybrid car parts used, electric car parts salvage, Tesla parts salvage, Prius battery used, used hybrid battery, EV salvage parts, electric vehicle parts"
+      },
+      "hero": {
+        "kicker": "EV & HYBRID PARTS",
+        "heading": "Used EV and hybrid parts — <em>before they're listed</em>",
+        "lede": "Most salvage yards haven't cataloged their EV inventory yet. On Hotline HQ, that doesn't matter — broadcast what you need and 97 yards check their stock in real time. Tesla, Prius, Leaf, Bolt, Mach-E and more."
+      },
+      "sections": [
+        {
+          "kicker": "THE EV PARTS CHALLENGE",
+          "heading": "Why finding used EV parts is harder than conventional ones"
+        },
+        {
+          "kicker": "MOST REQUESTED",
+          "heading": "EV and hybrid parts people are looking for"
+        }
+      ],
+      "parts": [],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "Can I find used EV and hybrid parts on Hotline HQ?",
+          "a": "Yes. As more electric and hybrid vehicles enter salvage yards, part requests for these vehicles are growing on the network. Common requests include battery packs, drive units, inverters, onboard chargers, and body panels for Tesla, Prius, Chevy Bolt, Nissan Leaf, and Ford Mach-E. Broadcast what you need and yards with EV inventory respond live."
+        },
+        {
+          "q": "Are salvage EV parts safe to buy?",
+          "a": "EV components require proper handling — especially high-voltage battery packs. Yards that dismantle EVs follow OSHA and manufacturer guidelines for high-voltage disconnect. When you buy through the network, you're dealing directly with the dismantler who can tell you the part's condition, mileage, and whether it's been properly decommissioned."
+        },
+        {
+          "q": "What EV parts are most requested?",
+          "a": "Based on network trends: hybrid battery packs (Prius, Camry Hybrid, Accord Hybrid), Tesla body panels and doors (Model 3 and Model Y are the most common in salvage), EV drive units, DC-DC converters, and onboard chargers. As more EVs age out of warranty, demand for used components is accelerating."
+        },
+        {
+          "q": "Which EV brands show up in salvage yards?",
+          "a": "Tesla (Model 3 and Model Y are the most common), Toyota hybrids (Prius all generations, Camry Hybrid, RAV4 Hybrid), Honda hybrids, Nissan Leaf, Chevrolet Bolt and Volt, Ford Escape Hybrid and Mach-E. Availability is regional — California yards have the highest EV density."
+        },
+        {
+          "q": "Why use a hotline instead of searching online for EV parts?",
+          "a": "EV parts are new to the salvage industry. Most yards haven't built out EV categories in their inventory databases. A voice network bypasses the database problem — you describe what you need and any yard with that vehicle can check. This is especially valuable for newer EVs where the parts aren't yet standardized in interchange databases like Hollander."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/find-used-auto-parts",
+          "label": "Find all parts"
+        },
+        {
+          "href": "/hard-to-find-auto-parts",
+          "label": "Hard-to-find parts"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/sell-used-auto-parts",
+          "label": "Sell parts"
+        }
+      ]
+    },
+    "farm-equipment-parts-hotline": {
+      "title": "Farm Equipment Parts Hotline",
+      "type": "industry",
+      "seo": {
+        "title": "Farm Equipment Parts Hotline — Find Tractor & Combine Parts Fast",
+        "description": "Find used farm equipment parts in seconds. Broadcast to every dealer at once — John Deere, Case IH, New Holland. Don't lose harvest time waiting for parts.",
+        "keywords": "farm equipment parts, used farm equipment parts, tractor parts, combine parts, John Deere parts used, Case IH parts, farm equipment parts locator, agricultural equipment parts, used tractor parts, farm equipment salvage"
+      },
+      "hero": {
+        "kicker": "FARM EQUIPMENT",
+        "heading": "Find farm equipment parts <em>before harvest waits for no one</em>",
+        "lede": "A broken combine during harvest costs thousands per day. Calling dealers one by one takes hours. A parts hotline broadcasts your request to every dealer at once and gets answers in seconds.",
+        "image": "/images/industries/farm-equipment.webp"
+      },
+      "sections": [
+        {
+          "kicker": "THE PROBLEM",
+          "heading": "Finding farm equipment parts shouldn't take days"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "One broadcast. Every dealer hears it. Real-time answers.",
+          "lede": "Proven in auto parts with 15,000+ requests and 500+ member yards. The same live voice technology — now for tractors, combines, planters, and headers."
+        },
+        {
+          "kicker": "THE ECONOMICS",
+          "heading": "Harvest season math: what a broken combine really costs"
+        },
+        {
+          "kicker": "WHY VOICE",
+          "heading": "Why voice finds farm parts that databases miss"
+        }
+      ],
+      "parts": [
+        "Combine headers & feeder houses",
+        "Tractor transmissions",
+        "Hydraulic pumps & motors",
+        "PTO shafts & clutches",
+        "Planter units & row units",
+        "Cab glass & panels",
+        "Engine cores & short blocks",
+        "Electrical harnesses",
+        "Grain drills & air seeder parts",
+        "Loader buckets & grapples"
+      ],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "How does a farm equipment parts hotline work?",
+          "a": "You join a live voice conference with equipment dealers and salvage operations across the country. When you need a part — a hydraulic motor for a John Deere 9770, a PTO shaft for a Case IH Magnum — you key up and describe it. Every dealer on the line hears your request at once. The first dealer with the part responds. Average response time on our proven auto parts network: 2 seconds."
+        },
+        {
+          "q": "Why is this better than calling the dealer or searching online?",
+          "a": "Three reasons: speed, reach, and accuracy. Speed — one broadcast vs. 20 individual calls. Reach — every dealer on the line hears you, not just the ones you thought to call. Accuracy — when a dealer responds, they're verifying the part in real time, not reading a listing that might be outdated."
+        },
+        {
+          "q": "What farm equipment makes are covered?",
+          "a": "John Deere, Case IH, New Holland, AGCO (Massey Ferguson, Fendt, Gleaner), Kubota, Claas, Kinze, and more. The network handles everything from compact utility tractors to Class 9 combines. Both OEM replacement and used/salvage components."
+        },
+        {
+          "q": "Is this available during harvest season?",
+          "a": "The line runs 24/7, year-round. During harvest season (Sep-Oct for grain, varies by crop), a broken combine or header can cost thousands per day in delayed harvest and crop loss. That's when the network is most valuable — finding a combine part in 2 seconds vs. 2 days can save a season."
+        },
+        {
+          "q": "Do I need to list my inventory?",
+          "a": "No. There's no database, no catalog, no parts to photograph. You listen for requests and respond when you have what someone needs. This is especially valuable for farm equipment salvage yards that may have hundreds of machines but limited online inventory."
+        },
+        {
+          "q": "Is the farm equipment network live now?",
+          "a": "We're building it now. The technology is proven in auto parts — 500+ yards, 15,000+ requests, 2-second response time. We're actively onboarding farm equipment dealers, salvage yards, and independent repair shops. Join the waitlist for early access."
+        },
+        {
+          "q": "What does membership cost?",
+          "a": "Flat monthly fee. No commissions, no per-search fees, no listing fees. A preconfigured desk phone is included. At farm equipment part values — combine headers, tractor transmissions, hydraulic systems — one sale covers months of membership."
+        },
+        {
+          "q": "How does this compare to Allied Information Networks (AIN)?",
+          "a": "AIN has operated parts locating hotlines for decades — they proved the model works. Their system uses a callback approach: you call in, leave a request, and wait for dealers to call you back. Hotline HQ is real-time: you broadcast live on a conference line and get answers in seconds, not hours. Same concept, next-generation technology."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/#top",
+          "label": "Listen to a live auto parts call"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/heavy-equipment-parts-hotline",
+          "label": "Heavy Equipment"
+        },
+        {
+          "href": "/aviation-parts-hotline",
+          "label": "Aviation / AOG"
+        },
+        {
+          "href": "/mining-equipment-parts",
+          "label": "Mining Equipment"
+        },
+        {
+          "href": "/marine-boat-parts",
+          "label": "Marine / Boat"
+        },
+        {
+          "href": "/railroad-parts-hotline",
+          "label": "Railroad"
+        }
+      ]
+    },
+    "hard-to-find-auto-parts": {
+      "title": "Hard to Find Auto Parts",
+      "type": "keyword",
+      "seo": {
+        "title": "Hard to Find Auto Parts — Search 500+ Salvage Yards by Voice | Hotline HQ",
+        "description": "Find hard-to-find auto parts by broadcasting to 97 yards at once. Discontinued, rare, and unlisted parts — if a yard has it, they'll tell you in 2 seconds.",
+        "keywords": "hard to find auto parts, rare auto parts, hard to find car parts, obsolete auto parts, discontinued car parts, rare car parts near me, hard to find used auto parts, where to find rare car parts"
+      },
+      "hero": {
+        "kicker": "RARE & HARD TO FIND",
+        "heading": "Hard-to-find auto parts? <em>Ask 97 yards at once</em>",
+        "lede": "Databases only show what's been listed. Hotline HQ asks real people — 97 salvage yards hear your request live and check their stock while you wait. If the part exists, someone will tell you in 2 seconds."
+      },
+      "sections": [
+        {
+          "kicker": "WHY VOICE FINDS WHAT SEARCH CAN'T",
+          "heading": "The problem with searching for rare parts online"
+        },
+        {
+          "kicker": "HARD TO FIND EXAMPLES",
+          "heading": "Parts people have found on the hotline",
+          "lede": "Real requests from the Hotline HQ network — the kind of parts that don't show up on a database search."
+        }
+      ],
+      "parts": [],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "What counts as a hard-to-find auto part?",
+          "a": "Any part that doesn't show up in a standard database search — discontinued parts for older vehicles, rare trim-specific components, complete assemblies that aren't sold individually, and parts for low-production vehicles. On Hotline HQ, 'hard to find' also includes wreck opinions, oddball year-make-model combos, and parts described in plain language that don't fit a search box."
+        },
+        {
+          "q": "Why are some auto parts so hard to find?",
+          "a": "Three reasons: the vehicle was low-production (fewer ended up in salvage yards), the part is model-year-specific (a 2007 and 2008 might look identical but have different brackets), or the part simply hasn't been cataloged in any database. Roughly 30% of salvage yard inventory is never listed online because the data entry cost doesn't justify it for lower-value parts."
+        },
+        {
+          "q": "How does a voice network find parts that databases can't?",
+          "a": "Databases only show parts someone took the time to list. A voice network asks real people — 97 yards simultaneously — whether they have the part right now. Many yards carry thousands of unlisted parts sitting on vehicles that haven't been fully inventoried. When you broadcast 'I need a passenger mirror for an 03 Saab 9-3 Viggen,' the yard with that Saab in the back row can walk over and check."
+        },
+        {
+          "q": "What if nobody on the network has my part?",
+          "a": "If the request goes unanswered live, it posts to the Hotline HQ Marketplace where any yard can respond later. You can also broadcast to different regional rooms — a part that's rare in Texas might be common in California. The network covers 15 rooms across the US."
+        },
+        {
+          "q": "What are the hardest parts to find?",
+          "a": "Based on network data: European vehicle interior trim, early-2000s SUV-specific assemblies, Japanese domestic market (JDM) components, diesel-specific parts for light trucks, and anything for vehicles produced in small numbers. The most successful approach is broadcasting to multiple rooms — what's rare in one region may be sitting in a yard 1,000 miles away."
+        },
+        {
+          "q": "Is this better than searching Car-Part.com for rare parts?",
+          "a": "Use both. Search Car-Part.com first — if the part is listed, great. When it's not listed, broadcast on Hotline HQ. The voice network reaches inventory that was never cataloged, and 97 yards can physically check their stock while you wait. For hard-to-find parts specifically, voice beats search because the part you need often exists but was never entered into a database."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/find-used-auto-parts",
+          "label": "Find parts"
+        },
+        {
+          "href": "/ev-hybrid-auto-parts",
+          "label": "EV & hybrid parts"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/car-part-alternative",
+          "label": "Car-Part.com comparison"
+        }
+      ]
+    },
+    "heavy-equipment-parts-hotline": {
+      "title": "Heavy Equipment Parts Hotline",
+      "type": "industry",
+      "seo": {
+        "title": "Heavy Equipment Parts Hotline — Find CAT, Deere, Komatsu Parts Fast",
+        "description": "Find used heavy equipment parts in seconds. Broadcast to every dealer at once — CAT, Deere, Komatsu, Volvo. Cut downtime from days to minutes. No listing fees.",
+        "keywords": "heavy equipment parts, used heavy equipment parts, CAT parts used, heavy equipment parts locator, construction equipment parts, excavator parts used, heavy equipment salvage, Caterpillar parts, Komatsu parts, heavy equipment parts near me"
+      },
+      "hero": {
+        "kicker": "HEAVY EQUIPMENT",
+        "heading": "Find heavy equipment parts <em>before downtime costs you thousands</em>",
+        "lede": "Equipment downtime costs $1,000-$5,000/hour. Calling dealers one by one takes days. A parts hotline broadcasts your request to every dealer at once — CAT, Deere, Komatsu, Volvo — and gets answers in seconds.",
+        "image": "/images/industries/heavy-equipment.webp"
+      },
+      "sections": [
+        {
+          "kicker": "THE PROBLEM",
+          "heading": "How do you find heavy equipment parts today?"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "One broadcast. Every dealer hears it. 2-second response.",
+          "lede": "The same voice network that's located 15,000+ auto parts — now for heavy equipment. Join the conference line, describe what you need, and every dealer on the line responds live."
+        },
+        {
+          "kicker": "THE ECONOMICS",
+          "heading": "Why a hotline pays for itself on the first call"
+        },
+        {
+          "kicker": "WHY VOICE",
+          "heading": "Why construction needs voice, not search"
+        }
+      ],
+      "parts": [
+        "Hydraulic pumps & cylinders",
+        "Final drives",
+        "Engines & engine cores",
+        "Transmissions",
+        "Undercarriage (tracks, rollers, sprockets)",
+        "Cab components",
+        "Electrical harnesses",
+        "Bucket teeth & cutting edges",
+        "Turbochargers",
+        "Control valves"
+      ],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "How does a heavy equipment parts hotline work?",
+          "a": "You join a shared voice conference line with other equipment dealers and salvage operations. When you need a part — a hydraulic cylinder for a CAT 320, a transmission for a Deere 650K — you key up and describe it. Every dealer on the line hears your request simultaneously and responds live if they have it. Average response time on our auto parts network: 2 seconds."
+        },
+        {
+          "q": "What types of heavy equipment parts can I find?",
+          "a": "Engines, transmissions, hydraulic pumps and cylinders, final drives, undercarriage components, cab parts, electrical systems, and more. Common makes: Caterpillar, John Deere, Komatsu, Volvo, Case, Hitachi, Liebherr, and Bobcat. The network handles everything from a $200 solenoid to a $50,000 engine core."
+        },
+        {
+          "q": "How is this different from searching MachineryTrader or IronPlanet?",
+          "a": "Online listings show what was available when someone posted them — inventory changes daily. A live voice network asks real dealers who can verify the part right now. One broadcast reaches every dealer on the line simultaneously, replacing hours of phone calls. And you can describe what you need in plain language, not search filters."
+        },
+        {
+          "q": "How much does equipment downtime really cost?",
+          "a": "Industry estimates put heavy equipment downtime at $1,000 to $5,000 per hour depending on the machine and project. A crawler excavator sitting idle on a highway project can cost the contractor $2,000-$3,000/hour in lost productivity and potential liquidated damages. Finding the part in 2 seconds vs. 2 days changes the math entirely."
+        },
+        {
+          "q": "Is this available for heavy equipment now?",
+          "a": "We're building the heavy equipment network now. The technology is proven — 500+ salvage yards and 15,000+ part requests in our auto parts network. We're actively onboarding heavy equipment dealers, salvage yards, and rebuilders. Join the waitlist to get early access and help shape the network for your region."
+        },
+        {
+          "q": "What does it cost?",
+          "a": "Flat monthly membership, same model as our auto parts network. No per-search fees, no commissions on sales, no listing fees. A preconfigured desk phone is included with membership. Find one part faster and the membership pays for itself — at heavy equipment part values, that happens on day one."
+        },
+        {
+          "q": "Can I sell parts on the hotline too?",
+          "a": "Yes. You hear every request on the line. When someone asks for a part you have — a final drive for a D6, a bucket for a 330 — you key up and respond. The buyer contacts you directly. No middleman, no commission. You sell parts you haven't listed and catch demand you'd never find through traditional channels."
+        },
+        {
+          "q": "Who else is on the network?",
+          "a": "Equipment dealers, salvage and dismantling operations, rebuild shops, rental companies with aging fleets, and independent mechanics who source parts for customers. Anyone who buys or sells used heavy equipment components. The network gets more valuable as more participants join — more ears means faster answers."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/#top",
+          "label": "Listen to a live auto parts call"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/farm-equipment-parts-hotline",
+          "label": "Farm Equipment"
+        },
+        {
+          "href": "/aviation-parts-hotline",
+          "label": "Aviation / AOG"
+        },
+        {
+          "href": "/mining-equipment-parts",
+          "label": "Mining Equipment"
+        },
+        {
+          "href": "/marine-boat-parts",
+          "label": "Marine / Boat"
+        },
+        {
+          "href": "/railroad-parts-hotline",
+          "label": "Railroad"
+        }
+      ]
+    },
+    "marine-boat-parts": {
+      "title": "Marine & Boat Parts",
+      "type": "industry",
+      "seo": {
+        "title": "Used Boat Parts & Marine Salvage — Find Engine, Outdrive & Hull Parts Fast",
+        "description": "Find used boat parts and marine salvage parts in seconds. Mercury, Yamaha, Volvo Penta, MerCruiser. No listing platform exists for marine — broadcast to every salvage yard at once.",
+        "keywords": "used boat parts, marine parts salvage, boat parts near me, used marine engine parts, marine salvage parts, boat parts locator, used outboard motor parts, marine parts online, boat engine parts used, used boat parts near me, Mercruiser sterndrive parts"
+      },
+      "hero": {
+        "kicker": "MARINE & BOAT",
+        "heading": "Used boat parts — <em>the market nobody digitized</em>",
+        "lede": "There is no Car-Part.com for boats. No MachineryTrader. No central database for marine salvage parts. Finding a used outboard motor or Mercruiser sterndrive still means calling salvage yards one by one. A boat parts hotline changes that — broadcast once, every marine salvage yard hears you at once.",
+        "image": "/images/industries/marine.webp"
+      },
+      "sections": [
+        {
+          "kicker": "THE PROBLEM",
+          "heading": "Finding used boat parts shouldn't take all summer"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "One broadcast. Every marine salvage yard hears it. Answers in seconds.",
+          "lede": "The same voice network that's located 15,000+ auto parts — now for boats. Join the conference line, describe your marine part in plain language, and every salvage yard on the line responds live."
+        },
+        {
+          "kicker": "THE ECONOMICS",
+          "heading": "Why marine salvage needs a network — not another listing site"
+        },
+        {
+          "kicker": "WHY VOICE",
+          "heading": "Why marine parts can't be searched — only asked"
+        }
+      ],
+      "parts": [
+        "Outboard motors & powerheads",
+        "Sterndrives & outdrives",
+        "Inboard marine engines",
+        "Lower units & gearcases",
+        "Trim & tilt assemblies",
+        "Marine electronics & GPS",
+        "Propellers & prop shafts",
+        "Fuel systems & fuel tanks",
+        "Gauges & instrument clusters",
+        "Hull hardware & deck fittings"
+      ],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "What used boat parts can I find on the marine parts hotline?",
+          "a": "Outboard motors and powerheads, sterndrive and outdrive assemblies, inboard marine engines, lower units, trim and tilt systems, marine electronics (fishfinders, GPS, radar), gauges and instrument clusters, propellers, fuel systems, hull hardware, and deck fittings. Common makes include Mercury, Yamaha, Volvo Penta, Evinrude, Johnson, MerCruiser, OMC, Crusader, Honda Marine, and Suzuki Marine. The network handles everything from a $150 water pump impeller to a $15,000 used outboard motor."
+        },
+        {
+          "q": "How does a marine parts hotline work?",
+          "a": "You join a shared voice conference line with marine salvage yards, boat dismantlers, and marine parts dealers. When you need a part — a lower unit for a Mercury 150, a Mercruiser sterndrive Alpha One Gen II — you key up and describe it in plain language. Every dealer on the line hears your request at the same time. The first salvage yard with the part responds live. Average response time on our proven auto parts network: 2 seconds."
+        },
+        {
+          "q": "How much does the marine parts hotline cost?",
+          "a": "Flat monthly membership. No per-search fees, no commissions on sales, no listing fees. A preconfigured desk phone is included with membership. At used marine engine parts prices — outboard motors, sterndrives, inboard powerplants — a single part sale covers months of membership. The network pays for itself the first time you find a boat engine part in 2 seconds instead of 2 days."
+        },
+        {
+          "q": "How quickly can I find used boat parts near me?",
+          "a": "On the hotline, geographic distance matters less than you think. You broadcast once and every marine salvage operation on the network hears you — whether they're at a coastal yard in Florida, a lake marina in Minnesota, or a boat dismantler in Texas. Parts ship nationwide. But for buyers who need local pickup, the network includes salvage yards in every major boating region: Gulf Coast, Atlantic seaboard, Great Lakes, and Pacific Coast."
+        },
+        {
+          "q": "Are used marine parts safe and reliable?",
+          "a": "Used marine salvage parts are widely used across the boating industry. Outboard motors, sterndrives, and inboard engines are built to withstand harsh saltwater and freshwater environments, so quality used components have significant life remaining. On the hotline, you talk directly to the salvage yard — ask about hours on the motor, freshwater vs. saltwater use, compression numbers, and condition. That live conversation gives you more information than any online listing ever could."
+        },
+        {
+          "q": "How is this different from buying used boat parts on eBay or Craigslist?",
+          "a": "Three differences. First, reach: one broadcast hits every marine salvage yard on the network simultaneously, not just whoever happened to list something. Second, verification: when a dealer responds, they're looking at the part and can answer your questions in real time — hours on the motor, saltwater exposure, whether the lower unit has been submerged. Third, expertise: you're talking to marine salvage professionals who know interchange and compatibility, not random sellers. They'll tell you if a Mercury 200 EFI powerhead fits your 175 block."
+        },
+        {
+          "q": "What boat and marine engine makes are most common on the network?",
+          "a": "The most frequently sourced makes are Mercury (including Mercruiser sterndrive), Yamaha, Volvo Penta, Evinrude, and Johnson (OMC). Also well-represented: Crusader, Honda Marine, Suzuki Marine, and Mercruiser inboard/outboard systems. These cover the vast majority of powerboats on US waterways. Whether you need used outboard motor parts for a 1990s Johnson or a late-model Yamaha four-stroke, the network has salvage yards that specialize in each brand."
+        },
+        {
+          "q": "Is the marine parts network live now?",
+          "a": "We're building the marine and boat parts network now. The core technology is proven — 500+ salvage yards, 15,000+ part requests, and 2-second response time in our auto parts network. There are roughly 200-500 marine salvage operations across the US, a smaller but severely underserved market with no dominant parts locator platform. Join the waitlist to get early access and help shape the network for your region."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/#top",
+          "label": "Listen to a live auto parts call"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/heavy-equipment-parts-hotline",
+          "label": "Heavy Equipment"
+        },
+        {
+          "href": "/farm-equipment-parts-hotline",
+          "label": "Farm Equipment"
+        },
+        {
+          "href": "/aviation-parts-hotline",
+          "label": "Aviation / AOG"
+        },
+        {
+          "href": "/mining-equipment-parts",
+          "label": "Mining Equipment"
+        },
+        {
+          "href": "/railroad-parts-hotline",
+          "label": "Railroad"
+        }
+      ]
+    },
+    "mining-equipment-parts": {
+      "title": "Mining Equipment Parts",
+      "type": "industry",
+      "seo": {
+        "title": "Mining Equipment Parts — Find Haul Truck, Crusher & Drill Parts Fast",
+        "description": "Find used mining equipment parts in seconds. CAT, Komatsu, Hitachi — haul trucks, crushers, drills. Broadcast to every dealer at once. Downtime costs $10K-$50K/hr — don't wait.",
+        "keywords": "mining equipment parts, used mining equipment parts, haul truck parts, crusher parts, mining parts supplier, Caterpillar mining parts, Komatsu mining parts, drill rig parts, conveyor parts mining, mining equipment salvage, used mining parts near me"
+      },
+      "hero": {
+        "kicker": "MINING EQUIPMENT",
+        "heading": "Mining equipment parts — <em>cut downtime from days to hours</em>",
+        "lede": "Haul truck downtime costs $10,000-$50,000 per hour. OEM lead times stretch to weeks. A parts hotline broadcasts your request to every dealer, rebuilder, and surplus operation at once — first with the part wins.",
+        "image": "/images/industries/mining.webp"
+      },
+      "sections": [
+        {
+          "kicker": "THE PROBLEM",
+          "heading": "Why sourcing mining parts takes too long"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "One broadcast replaces 20 phone calls",
+          "lede": "The same voice network that's located 15,000+ auto parts — applied to mining's highest-value components. Every dealer on the line hears your request simultaneously."
+        },
+        {
+          "kicker": "THE ECONOMICS",
+          "heading": "Mine-site math: what idle equipment costs per shift"
+        },
+        {
+          "kicker": "WHY VOICE",
+          "heading": "Why mining can't wait for databases"
+        }
+      ],
+      "parts": [
+        "Haul truck engines",
+        "Final drives",
+        "Hydraulic pumps & cylinders",
+        "Crusher jaw plates & mantles",
+        "Traction motors",
+        "Drill rig components",
+        "Conveyor idlers & pulleys",
+        "Transmission assemblies",
+        "Suspension cylinders",
+        "Electrical control modules"
+      ],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "What mining equipment parts can I find?",
+          "a": "Engines, transmissions, hydraulic pumps and cylinders, haul truck components (bed liners, suspension, tires), drill rig parts, crusher wear parts (jaw plates, mantles, concaves), conveyor components (idlers, pulleys, belting), and electrical systems. Common makes: Caterpillar, Komatsu, Hitachi, Liebherr, Sandvik, Epiroc, Volvo, and Metso."
+        },
+        {
+          "q": "How much does mining equipment downtime cost?",
+          "a": "A haul truck sitting idle costs $10,000-$50,000 per hour depending on the operation and commodity price. Crusher or mill downtime can halt an entire processing plant, cascading losses across the operation. At these rates, even a premium-priced part is economical if it arrives days sooner than the OEM supply chain. Speed of sourcing directly impacts production output."
+        },
+        {
+          "q": "How is this different from contacting OEM dealers?",
+          "a": "OEM channels are reliable but slow — lead times of 4-12 weeks aren't unusual for less common components. A voice hotline reaches independent dealers, rebuilders, and surplus operations simultaneously. Many carry rebuilt or surplus OEM parts that ship in days, not months. The hotline doesn't replace OEM relationships — it adds a parallel channel for urgency."
+        },
+        {
+          "q": "What about rebuilt and remanufactured parts?",
+          "a": "The network includes rebuild shops and remanufacturers alongside salvage and surplus dealers. When you broadcast a request, you might hear from a dealer with a surplus OEM part, a rebuilder with a remanufactured unit, and a mine site decommissioning equipment — all in the same broadcast. You choose the best option for your timeline and budget."
+        },
+        {
+          "q": "Can I sell surplus mining equipment parts?",
+          "a": "Yes. Mines decommission equipment, close sites, and swap out components constantly. Instead of listing surplus inventory on multiple platforms, you listen for requests on the hotline and respond when someone needs what you have. No listing fees, no photos, no catalog management. The network surfaces demand for your surplus automatically."
+        },
+        {
+          "q": "Is the mining equipment network available now?",
+          "a": "We're building it. The voice hotline technology is proven — 500+ members, 15,000+ requests, 2-second average response time in auto parts. Mining equipment is a natural extension: same urgency, same fragmented dealer network, higher part values. Join the waitlist to get early access and help shape the network."
+        },
+        {
+          "q": "What regions would the mining network cover?",
+          "a": "Initially focused on major US mining states: Nevada, Arizona, Utah, Wyoming, Montana, West Virginia, Kentucky, and Minnesota (iron range). The network can expand to any region where mining operations and parts dealers exist. The voice conference model works regardless of geography — dealers 2,000 miles away can respond just as fast."
+        },
+        {
+          "q": "How does the hotline handle specs and part numbers?",
+          "a": "By voice. 'I need a final drive for a CAT 793F, left side, serial number prefix MEX, need it serviceable with warranty.' That level of detail — serial prefix, condition requirements, warranty expectations — translates perfectly to voice. A database search can't capture context like 'I'll take a rebuild if someone can turn it in 72 hours.'"
+        }
+      ],
+      "resources": [
+        {
+          "href": "/#top",
+          "label": "Listen to a live call"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/heavy-equipment-parts-hotline",
+          "label": "Heavy equipment hotline"
+        },
+        {
+          "href": "/farm-equipment-parts-hotline",
+          "label": "Farm Equipment"
+        },
+        {
+          "href": "/aviation-parts-hotline",
+          "label": "Aviation / AOG"
+        },
+        {
+          "href": "/marine-boat-parts",
+          "label": "Marine / Boat"
+        },
+        {
+          "href": "/railroad-parts-hotline",
+          "label": "Railroad"
+        }
+      ]
+    },
+    "railroad-parts-hotline": {
+      "title": "Railroad & Locomotive Parts Hotline",
+      "type": "industry",
+      "seo": {
+        "title": "Railroad & Locomotive Parts Hotline — Find EMD, GE, Alco Parts Fast",
+        "description": "Find used railroad and locomotive parts in seconds. Traction motors, diesel engines, dynamic brakes, air compressors. Broadcast to every rail parts supplier at once. EMD, GE/Wabtec, Alco.",
+        "keywords": "railroad parts, locomotive parts, used railroad equipment parts, rail parts supplier, traction motor parts, railroad parts locator, train parts used, locomotive engine parts, railroad brake parts, used locomotive parts for sale, railroad equipment supplier"
+      },
+      "hero": {
+        "kicker": "RAILROAD",
+        "heading": "Find railroad parts <em>before downtime derails your operation</em>",
+        "lede": "A sidelined locomotive costs thousands per day. OEM lead times stretch to months. A railroad parts hotline broadcasts your request to every dealer at once — EMD, GE, Alco — surplus, rebuilt, and serviceable locomotive parts found in seconds.",
+        "image": "/images/industries/railroad.webp"
+      },
+      "sections": [
+        {
+          "kicker": "THE PROBLEM",
+          "heading": "How do you find used railroad equipment parts today?"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "One broadcast. Every rail parts supplier hears it. Seconds, not weeks.",
+          "lede": "The same live voice network that's located 15,000+ auto parts — now for railroad and locomotive parts. Join the conference line, describe what you need, and every dealer responds in real time."
+        },
+        {
+          "kicker": "THE ECONOMICS",
+          "heading": "Short line economics: why used locomotive parts make sense"
+        },
+        {
+          "kicker": "WHY VOICE",
+          "heading": "Why railroad parts need voice, not search"
+        }
+      ],
+      "parts": [
+        "Traction motors (EMD D77/D78, GE GEB/GTA)",
+        "Diesel engines (EMD 645/710, GE FDL/GEVO)",
+        "Dynamic brake grids & blowers",
+        "Air compressors (Gardner Denver, WABCO)",
+        "HEP generators & alternators",
+        "Turbochargers",
+        "Truck assemblies & equalizers",
+        "Railroad brake valves & cylinders",
+        "Electronic control modules",
+        "Radiator cores & cooling fans"
+      ],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "What railroad parts can I find on the hotline?",
+          "a": "Locomotive engine parts (EMD 645/710 series, GE FDL/GEVO power assemblies, turbochargers, fuel injectors), traction motors and generators, dynamic brake grids and blowers, air compressors (Gardner Denver, Westinghouse WABCO), HEP generators, truck assemblies, traction motor wheelsets, couplers, air brake valves, electronic control modules, and cab components. The network handles used locomotive parts for sale from decommissioned Class I power as well as rebuilt and remanufactured railroad equipment parts."
+        },
+        {
+          "q": "How does a railroad parts hotline work?",
+          "a": "You join a live voice conference with locomotive parts dealers, railroad surplus operations, and rebuilders. When you need a part — a traction motor for an EMD SD70, a turbocharger for a GE Dash 9 — you key up and describe it. Every rail parts supplier on the line hears your request simultaneously. The dealer with the part responds live. Average response time on our proven auto parts network: 2 seconds. No callbacks, no waiting for emails."
+        },
+        {
+          "q": "What does it cost to join the railroad parts network?",
+          "a": "Flat monthly membership. No per-search fees, no commissions on sales, no listing fees. A preconfigured desk phone is included with membership. At locomotive parts values — a single traction motor can run $8,000-$25,000, a prime mover $50,000+ — one successful part locate covers months of membership."
+        },
+        {
+          "q": "How does this serve Class I railroads vs. short line operators?",
+          "a": "Class I railroads (BNSF, Union Pacific, CSX, Norfolk Southern, CN, CP) constantly decommission locomotives and equipment. That surplus enters a fragmented dealer network. Short line railroads and industrial rail operators need those exact parts but can't afford OEM prices or wait months for factory lead times. The hotline connects both sides — Class I surplus sellers hear every request from short line and industrial buyers in real time."
+        },
+        {
+          "q": "Can I find rebuilt or remanufactured locomotive parts?",
+          "a": "Yes. Many dealers on the network specialize in rebuilt traction motors, remanufactured air compressors, overhauled turbochargers, and reconditioned locomotive engine parts. When you broadcast a request, you'll hear from dealers offering serviceable, rebuilt, and remanufactured options — so you can compare condition and price before buying. Rebuilt locomotive parts are a core segment of the used railroad equipment parts market."
+        },
+        {
+          "q": "How does this address FRA compliance and safety requirements?",
+          "a": "The hotline connects you with established railroad parts dealers who understand FRA regulatory requirements. Parts sourced through the network still go through your standard inspection and qualification process. The hotline solves the sourcing problem — finding who has the part — not the compliance workflow. Dealers can confirm whether parts come with service history, test reports, or rebuild documentation during the live conversation."
+        },
+        {
+          "q": "What geographic areas does the railroad parts network cover?",
+          "a": "The network is nationwide. Railroad parts dealers and surplus operations are concentrated in rail hubs — Chicago, Omaha, Kansas City, Atlanta, Jacksonville, Houston, and the Pacific Northwest — but the voice network reaches everywhere. A short line operator in Vermont can find a traction motor from a surplus dealer in Texas in seconds. One broadcast, coast to coast."
+        },
+        {
+          "q": "Do you serve heritage railroads and railroad museum operations?",
+          "a": "Absolutely. Heritage railroads and museum operators face some of the hardest sourcing challenges — they need parts for EMD F-units, Alco RS-series, GE U-boats, and other vintage locomotive engine parts that haven't been manufactured in decades. The hotline reaches dealers who specialize in legacy railroad equipment. When you broadcast 'need a prime mover for an Alco RS-3,' the network finds the one dealer who has it sitting in a shop."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/#top",
+          "label": "Listen to a live auto parts call"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/heavy-equipment-parts-hotline",
+          "label": "Heavy Equipment"
+        },
+        {
+          "href": "/farm-equipment-parts-hotline",
+          "label": "Farm Equipment"
+        },
+        {
+          "href": "/aviation-parts-hotline",
+          "label": "Aviation / AOG"
+        },
+        {
+          "href": "/mining-equipment-parts",
+          "label": "Mining Equipment"
+        },
+        {
+          "href": "/marine-boat-parts",
+          "label": "Marine / Boat"
+        }
+      ]
+    },
+    "salvage-yard-marketing": {
+      "title": "Salvage Yard Marketing",
+      "type": "keyword",
+      "seo": {
+        "title": "Salvage Yard Marketing — Get Live Leads Without Ads | Hotline HQ",
+        "description": "Salvage yard marketing that works: hear live part requests from buyers in your region. No ads, no SEO, no waiting. 97 yards hear each request — first to answer wins.",
+        "keywords": "salvage yard marketing, junkyard marketing, how to get customers for salvage yard, auto recycler marketing, salvage yard advertising, junkyard advertising, how to sell more auto parts, salvage yard leads"
+      },
+      "hero": {
+        "kicker": "SALVAGE YARD MARKETING",
+        "heading": "Stop marketing your yard. <em>Start hearing demand.</em>",
+        "lede": "Traditional marketing attracts customers. Hotline HQ lets you hear them. Every part request in your region broadcasts live to ~97 yards. First to answer wins the sale. Over 15,000 requests and counting."
+      },
+      "sections": [
+        {
+          "kicker": "THE PROBLEM WITH YARD MARKETING",
+          "heading": "Why traditional marketing doesn't work for salvage yards"
+        },
+        {
+          "kicker": "THE HOTLINE APPROACH",
+          "heading": "What if leads came to you — live, by voice?"
+        }
+      ],
+      "parts": [],
+      "steps": [],
+      "faqs": [
+        {
+          "q": "How do salvage yards get new customers?",
+          "a": "Traditionally: word of mouth, Yellow Pages, Google My Business, and waiting for phone calls. The problem is passive — you wait for customers to find you. On Hotline HQ, you hear every part request in your region the moment it's broadcast. Instead of marketing to attract customers, you listen for demand that already exists and respond to it directly."
+        },
+        {
+          "q": "Does Hotline HQ replace my website or Google listing?",
+          "a": "No — it adds a new channel. Keep your website, your Google Business Profile, and your Car-Part.com listings. Hotline HQ gives you something those channels can't: real-time demand. You hear what people need right now, not what they searched for yesterday. Think of it as a live lead source that runs alongside your existing marketing."
+        },
+        {
+          "q": "How many leads can I expect per day?",
+          "a": "Active rooms like California average 40+ broadcasts per day — each one a potential sale. You hear every request in your room. How many you close depends on your inventory and response speed. The average response time is 2 seconds — first to answer typically wins the deal. Even 1-2 sales per day can transform a yard's revenue."
+        },
+        {
+          "q": "What's the ROI on joining the network?",
+          "a": "The membership is a flat monthly fee with no commissions. One transmission sale, one motor sale, or a few smaller parts covers months of membership. The network surfaces demand you'd never find through traditional marketing — parts requests from buyers who would've called your competitor instead of you."
+        },
+        {
+          "q": "Is this worth it for a small yard?",
+          "a": "Especially for small yards. You don't need a big inventory database, a marketing team, or a web presence. Plug in the desk phone, listen for requests, and respond when you have the part. Small yards with 200-500 vehicles can compete head-to-head with 40-acre operations because on the hotline, what matters is speed and inventory — not marketing budget."
+        },
+        {
+          "q": "How is this different from paying for ads?",
+          "a": "Google Ads and Facebook Ads drive traffic to your website and hope visitors convert. Hotline HQ gives you buyers who've already described exactly what they need. There's no funnel, no landing page, no conversion rate to optimize. You hear 'I need a 2018 Civic bumper' — if you have it, you respond. The 'lead' is already qualified."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/sell-used-auto-parts",
+          "label": "How selling works"
+        },
+        {
+          "href": "/used-auto-parts-hotline",
+          "label": "How the hotline works"
+        },
+        {
+          "href": "/find-used-auto-parts",
+          "label": "Find parts"
+        },
+        {
+          "href": "/car-part-alternative",
+          "label": "Car-Part.com comparison"
+        }
+      ]
+    },
+    "used-auto-parts-hotline": {
+      "title": "Used Auto Parts Hotline",
+      "type": "keyword",
+      "seo": {
+        "title": "Used Auto Parts Hotline — 500+ Yards, Live Voice Network | Hotline HQ",
+        "description": "The used auto parts hotline that reaches 97 yards at once. 15,000+ parts located. 2-second response. Call once, every salvage yard in your region hears it live.",
+        "keywords": "used auto parts hotline, auto parts hotline, parts hotline, call salvage yards for parts, auto parts phone hotline, junkyard hotline, salvage yard hotline, parts locator hotline"
+      },
+      "hero": {
+        "kicker": "THE PARTS HOTLINE",
+        "heading": "The used auto parts hotline that <em>every yard hears</em>",
+        "lede": "One call. 97 yards. 2 seconds. Hotline HQ is a live voice conference network where salvage yards and dismantlers hear part requests the instant they're broadcast. Over 15,000 parts located and counting."
+      },
+      "sections": [
+        {
+          "kicker": "WHAT IS A PARTS HOTLINE?",
+          "heading": "How does a used auto parts hotline work?"
+        },
+        {
+          "kicker": "COVERAGE",
+          "heading": "15 regional hotline rooms across the US",
+          "lede": "Each room connects the yards in that region. California is the largest with 200+ active yards and 8,600+ broadcasts processed. Texas, Florida, and Arizona are the next most active. You can switch rooms anytime to reach yards in neighboring states."
+        }
+      ],
+      "parts": [],
+      "steps": [
+        {
+          "title": "Sign up free",
+          "desc": "Create your account and choose your regional room. No credit card required. The sign-up takes under a minute."
+        },
+        {
+          "title": "Connect your phone or computer",
+          "desc": "A preconfigured Yealink desk phone ships to your yard — plug in the ethernet cable and you're on the line. Or connect instantly through the web client on any computer."
+        },
+        {
+          "title": "Start listening and talking",
+          "desc": "You're on the conference line. Hear every part request in your region. Key up to broadcast your own requests or respond to others. First to answer wins the deal."
+        }
+      ],
+      "faqs": [
+        {
+          "q": "What is a used auto parts hotline?",
+          "a": "A used auto parts hotline is a live voice conference network that connects salvage yards, dismantlers, and parts buyers. Instead of calling yards one by one, you join a shared line and broadcast what you need. Every yard on the line hears your request simultaneously and responds by voice in real time. Hotline HQ operates the largest network in the US with 500+ member yards."
+        },
+        {
+          "q": "How does an auto parts hotline work?",
+          "a": "You join a regional conference room — California, Texas, Florida, Arizona, or any of 15 markets. When you need a part, you key up on your desk phone or web client and describe it: year, make, model, and what you're looking for. Roughly 97 yards hear your request at the same time. The first yard with the part responds — average time is 2 seconds."
+        },
+        {
+          "q": "Is a parts hotline better than calling yards individually?",
+          "a": "Dramatically. Calling yards one by one, you might reach 5 in an hour — most go to voicemail. On a parts hotline, one broadcast reaches 97 yards simultaneously. The network has processed 15,000+ requests with a 60% live answer rate and a 2-second average response time. What used to take an hour takes 10 seconds."
+        },
+        {
+          "q": "How much does it cost to use a parts hotline?",
+          "a": "Hotline HQ charges a flat monthly membership fee — no per-call charges, no commissions on sales, no listing fees. A preconfigured Yealink desk phone is included with membership and shipped to your location. You can also connect through the web client at no extra cost."
+        },
+        {
+          "q": "Can I sell parts on the hotline too?",
+          "a": "Yes. The hotline works both ways. When someone broadcasts a part request, every yard on the line hears it. If you have the part, you key up and respond. The buyer contacts you directly to close the deal. Most members both buy and sell — hearing every request in your region means you catch demand you'd never find on your own."
+        },
+        {
+          "q": "What parts are most requested on the hotline?",
+          "a": "The top requests across 15,000+ broadcasts: bumpers (398), transmissions (282), motors and engines (273), fenders (204), doors (147), headlights (131), and taillights (110). Top makes: Ford (900+), Toyota (830+), Honda (635+), Chevrolet (525+). Model years span the 1990s through 2025."
+        },
+        {
+          "q": "Is the hotline available 24/7?",
+          "a": "The conference line is always on. Most activity happens during business hours — roughly 7 AM to 6 PM in each regional time zone — but the line never closes. Some yards leave their phone on overnight and catch early-morning requests from shops that start at 6 AM."
+        },
+        {
+          "q": "How is this different from Car-Part.com?",
+          "a": "Car-Part.com is an inventory database — yards list parts, buyers search listings. Listings go stale when parts sell or vehicles get crushed. Hotline HQ is a live voice network — there's nothing to list, nothing to search. You ask for what you need out loud and get a live answer from someone who can verify the part right now. The two services are complementary, not competing."
+        }
+      ],
+      "resources": [
+        {
+          "href": "/find-used-auto-parts",
+          "label": "Find parts"
+        },
+        {
+          "href": "/sell-used-auto-parts",
+          "label": "Sell parts"
+        },
+        {
+          "href": "/hard-to-find-auto-parts",
+          "label": "Hard-to-find parts"
+        },
+        {
+          "href": "/car-part-alternative",
+          "label": "Car-Part.com comparison"
+        }
+      ]
+    }
+  }
+}
