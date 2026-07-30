@@ -1210,8 +1210,8 @@ const IND_CSS = `
 .ind-btn:active { transform: translateY(1px); }
 .ind-btn-hot { background: var(--red, #d92d20); color: #fff; box-shadow: 0 8px 24px -6px rgba(217,45,32,0.5); }
 .ind-btn-hot:hover { background: #b52a23; box-shadow: 0 10px 30px -8px rgba(217,45,32,0.6); }
-.ind-btn-ghost { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.2); }
-.ind-btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
+.ind-btn-ghost { background: rgba(255,255,255,0.12); color: #fff !important; border: 2px solid rgba(255,255,255,0.5); backdrop-filter: blur(4px); }
+.ind-btn-ghost:hover { background: rgba(255,255,255,0.22); border-color: #fff; }
 
 /* proof bar */
 .fp-proof-bar, .ind-proof-bar { display: flex; justify-content: center; gap: 0; background: #16181d; border-top: 1px solid rgba(255,255,255,0.06); }
