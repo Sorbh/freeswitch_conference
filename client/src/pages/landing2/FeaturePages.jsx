@@ -697,7 +697,7 @@ export function SellPartsPage() {
             motors</Link> — are exactly the parts that move fast enough that listings go stale before
             they sell. By the time you photograph a bumper and post it to eBay, it might already be sold
             through the hotline. The voice channel captures demand in real time; the listing channel catches
-            buyers who search on their own schedule.
+            buyers who search on their own schedule. Interested in running a hotline for your region? Learn how to <Link to="/own-a-hotline" style={{color:'var(--red)'}}>own a hotline</Link>.
           </p>
         </div>
       </section>
@@ -767,6 +767,10 @@ export function SellPartsPage() {
           </p>
           <p className="fp-cta-alt">
             Also: <Link to="/find-used-auto-parts">Find parts on the network</Link> · <Link to="/salvage-yard-marketing">Marketing for yards</Link> · <Link to="/car-part-alternative">Car-Part.com vs Hotline HQ</Link>
+          </p>
+          <p className="fp-cta-alt">
+            <Link to="/own-a-hotline">Want to run your own hotline?</Link>
+            {' · '}<Link to="/use-case/replace-copper-hotline">Switching from a copper line?</Link>
           </p>
         </div>
       </section>

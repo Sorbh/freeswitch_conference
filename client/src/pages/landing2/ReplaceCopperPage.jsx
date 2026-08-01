@@ -382,7 +382,12 @@ export function ReplaceCopperPage() {
             {" "}or <a href={`mailto:${CONTACT_EMAIL}`}>email us your questions</a>.
           </p>
           <p className="fp-cta-alt">
-            Also: <Link to="/features/desk-phone">The desk phone</Link> · <Link to="/find-used-auto-parts">Find parts</Link> · <Link to="/sell-used-auto-parts">Sell parts</Link>
+            Also: <Link to="/features/desk-phone">The desk phone</Link> · <Link to="/find-used-auto-parts">Find parts</Link> · <Link to="/sell-used-auto-parts">Sell parts</Link> · <Link to="/own-a-hotline">Own a hotline</Link>
+          </p>
+          <p className="fp-cta-alt">
+            The hotline model works beyond auto parts: <Link to="/use-case/heavy-equipment-parts-hotline">Heavy equipment</Link>
+            {' · '}<Link to="/use-case/farm-equipment-parts-hotline">Farm equipment</Link>
+            {' · '}<Link to="/use-case/aviation-parts-hotline">Aviation / AOG</Link>
           </p>
         </div>
       </section>

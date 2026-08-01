@@ -95,7 +95,7 @@ export function OwnHotlinePage() {
         <section className="l2-own-hero">
           <p className="l2-doc-kicker">{t("hero.kicker")}</p>
           <h1 dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
-          <p className="l2-own-lede">{t("hero.lede")}</p>
+          <p className="l2-own-lede">{t("hero.lede")} Already running a copper wire hotline? <Link to="/use-case/replace-copper-hotline" style={{color:'var(--red)'}}>Bring your group to HQ</Link> — same desk phone experience, better technology.</p>
           <div className="l2-own-ctas">
             <Link className="l2-btn l2-btn-hot" to="/">
               {t("hero.seeNetwork")}
@@ -220,6 +220,11 @@ export function OwnHotlinePage() {
               Sign Up Free
             </a>
           </div>
+          <p style={{color:'rgba(255,255,255,0.4)',fontSize:'14px',marginTop:'20px'}}>
+            Expanding beyond auto parts? <Link to="/use-case/heavy-equipment-parts-hotline" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Heavy equipment</Link>
+            {' · '}<Link to="/use-case/farm-equipment-parts-hotline" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Farm equipment</Link>
+            {' · '}<Link to="/use-case/aviation-parts-hotline" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Aviation / AOG</Link>
+          </p>
         </section>
       </main>
 

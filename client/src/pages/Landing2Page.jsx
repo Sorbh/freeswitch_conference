@@ -729,6 +729,8 @@ export default function Landing2Page() {
           <p className="l2-lede">
             500+ yards and 15,000+ broadcasts have proven that a live voice network beats databases and phone trees.
             We're expanding to industries where the same pain exists: fragmented supply, urgent demand, and too many phone calls.
+            See how it works for auto parts: <Link to="/sell-used-auto-parts" style={{color:'var(--red)'}}>sell parts on the network</Link> or
+            learn <Link to="/how-auto-parts-hotlines-work" style={{color:'var(--red)'}}>how auto parts hotlines work</Link>.
           </p>
         </div>
         <div className="l2-industries-grid l2-reveal">

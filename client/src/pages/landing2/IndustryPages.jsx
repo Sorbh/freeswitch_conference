@@ -230,6 +230,11 @@ export function HeavyEquipmentPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
+          <p className="ind-cta-alt">
+            <Link to="/features/desk-phone">The desk phone</Link>
+            {' · '}<Link to="/own-a-hotline">Own a hotline</Link>
+            {' · '}<Link to="/sell-used-auto-parts">Sell parts on the network</Link>
+          </p>
           <IndustryLinks current="/use-case/heavy-equipment-parts-hotline" />
         </div>
       </section>
@@ -434,6 +439,11 @@ export function FarmEquipmentPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
+          <p className="ind-cta-alt">
+            <Link to="/features/desk-phone">The desk phone</Link>
+            {' · '}<Link to="/own-a-hotline">Own a hotline</Link>
+            {' · '}<Link to="/sell-used-auto-parts">Sell parts on the network</Link>
+          </p>
           <IndustryLinks current="/use-case/farm-equipment-parts-hotline" />
         </div>
       </section>
@@ -619,6 +629,11 @@ export function AviationPartsPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
+          <p className="ind-cta-alt">
+            <Link to="/features/desk-phone">The desk phone</Link>
+            {' · '}<Link to="/own-a-hotline">Own a hotline</Link>
+            {' · '}<Link to="/sell-used-auto-parts">Sell parts on the network</Link>
+          </p>
           <IndustryLinks current="/use-case/aviation-parts-hotline" />
         </div>
       </section>
@@ -784,6 +799,11 @@ export function MiningEquipmentPage() {
         <p>Proven in auto parts with 500+ members. Mining is next — same urgency, higher stakes. Join the waitlist for early access.</p>
         <a href={CONTACT_URL} className="ind-btn ind-btn-hot">Join the Waitlist</a>
         <p className="ind-cta-alt">See it working: <Link to="/#top">listen to a live call</Link> · <Link to="/used-auto-parts-hotline">how the hotline works</Link> · <Link to="/use-case/heavy-equipment-parts-hotline">heavy equipment hotline</Link></p>
+        <p className="ind-cta-alt">
+          <Link to="/features/desk-phone">The desk phone</Link>
+          {' · '}<Link to="/own-a-hotline">Own a hotline</Link>
+          {' · '}<Link to="/sell-used-auto-parts">Sell parts on the network</Link>
+        </p>
         <IndustryLinks current="/use-case/mining-equipment-parts" />
       </div></section>
       <SiteFooter />
@@ -989,6 +1009,11 @@ export function MarinePartsPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
+          <p className="ind-cta-alt">
+            <Link to="/features/desk-phone">The desk phone</Link>
+            {' · '}<Link to="/own-a-hotline">Own a hotline</Link>
+            {' · '}<Link to="/sell-used-auto-parts">Sell parts on the network</Link>
+          </p>
           <IndustryLinks current="/use-case/marine-boat-parts" />
         </div>
       </section>
@@ -1193,6 +1218,11 @@ export function RailroadPartsPage() {
           <p className="ind-cta-alt">
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
+          </p>
+          <p className="ind-cta-alt">
+            <Link to="/features/desk-phone">The desk phone</Link>
+            {' · '}<Link to="/own-a-hotline">Own a hotline</Link>
+            {' · '}<Link to="/sell-used-auto-parts">Sell parts on the network</Link>
           </p>
           <IndustryLinks current="/use-case/railroad-parts-hotline" />
         </div>

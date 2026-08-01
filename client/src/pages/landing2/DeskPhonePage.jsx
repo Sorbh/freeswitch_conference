@@ -174,7 +174,7 @@ export function DeskPhonePage() {
               <h2 className="dp-h2">Why yards are leaving copper hotlines behind</h2>
               <p className="dp-body">Telcos are sunsetting POTS (Plain Old Telephone Service) lines across the country. Maintenance crews are shrinking, prices are climbing every year, and some areas can't get copper service at all anymore. The infrastructure your hotline runs on is being retired.</p>
               <p className="dp-body">The HQ desk phone delivers the exact same experience — a dedicated phone on the counter, always on, pick up and your room hears you. But now with HD digital audio, caller ID showing who's talking, every call recorded and transcribed, and the ability to switch between any region instead of being stuck in one local area.</p>
-              <p className="dp-body">Your group doesn't lose anything in the switch. Same workflow, same muscle memory. Just better tools underneath.</p>
+              <p className="dp-body">Your group doesn't lose anything in the switch. Same workflow, same muscle memory. Just better tools underneath. See the full <Link to="/use-case/replace-copper-hotline" style={{color:'var(--red)'}}>copper-to-HQ comparison</Link> for everything your old line is missing.</p>
             </div>
             <div className="dp-content-aside">
               <div className="dp-aside-card">
@@ -412,6 +412,11 @@ export function DeskPhonePage() {
           <h2>Ready to skip the browser hassle?</h2>
           <p className="dp-cta-sub">Every Hotline HQ membership includes a preconfigured desk phone. Or order your own from Amazon — we'll handle the setup.</p>
           <a href={SIGNUP_URL} className="dp-btn dp-btn-hot">Sign Up Free</a>
+          <p style={{color:'rgba(255,255,255,0.4)',fontSize:'14px',marginTop:'20px'}}>
+            Also: <Link to="/sell-used-auto-parts" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Sell parts on the network</Link>
+            {' · '}<Link to="/own-a-hotline" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Own a hotline</Link>
+            {' · '}<Link to="/use-case/replace-copper-hotline" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Replace your copper line</Link>
+          </p>
         </div>
       </section>
 
