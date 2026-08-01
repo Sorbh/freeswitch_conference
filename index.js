@@ -91,6 +91,7 @@ app.use((req, res, next) => {
     res.set('X-Frame-Options', 'SAMEORIGIN');
     res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+    res.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' wss: https:; media-src 'self' blob:; frame-src 'none'");
     next();
 });
 // Strip trailing slashes (except root)
@@ -123,6 +124,11 @@ app.use("/admin/assets", adminAssets);
 app.get("/admin/assets/*", (req, res) => sendAssetNotFound(res));
 app.use("/admin", express.static(adminDistDir, { index: false }));
 
+app.get("/sitemap.xml", (req, res) => {
+    res.set('Content-Type', 'application/xml');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.sendFile(path.join(__dirname, "public", "sitemap.xml"));
+});
 app.use(express.static(path.join(__dirname, "public"), { maxAge: '7d' }));
 import { requireAuth as _recAuth } from './service/auth/middleware.js';
 app.use("/recordings", _recAuth, express.static(path.join(__dirname, "recordings")));
@@ -314,6 +320,9 @@ if (fs.existsSync(clientDistDir)) {
                     if (!isReal(pd.make) || !isReal(pd.model)) return false;
                     const placeholders = ['make', 'model', 'part-name', 'test', 'example', 'sample'];
                     if (placeholders.includes(String(pd.make).toLowerCase().trim())) return false;
+                    const junkParts = ['kitty-cat', 'brain-box', 'kitty cat', 'brain box', 'test-part', 'asdf', 'xxx'];
+                    const partLower = String(pd.part || '').toLowerCase().trim();
+                    if (junkParts.some(j => partLower.includes(j))) return false;
                     return true;
                 })
                 .map(row => {

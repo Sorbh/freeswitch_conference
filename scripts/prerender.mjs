@@ -490,6 +490,68 @@ addPage('/own-a-hotline', {
   }
 });
 
+// ── /use-case/replace-copper-hotline ───────────────────────────────
+
+const copperComparisonHtml = `<article style="max-width:800px;margin:0 auto;padding:0 24px 64px">
+<h2>Copper Hotline vs Hotline HQ</h2>
+<table><thead><tr><th>Feature</th><th>Copper</th><th>Hotline HQ</th></tr></thead><tbody>
+<tr><td>Reach</td><td>Local only</td><td>Switch between any region</td></tr>
+<tr><td>Voice quality</td><td>Analog</td><td>HD digital</td></tr>
+<tr><td>Recordings</td><td>None</td><td>Recordings available to settle disputes</td></tr>
+<tr><td>Caller ID</td><td>No display</td><td>Name, location, and phone number on screen</td></tr>
+<tr><td>Private calls</td><td>Not possible</td><td>One-to-one yard-to-yard calling off the room</td></tr>
+<tr><td>Portability</td><td>Stuck at the wall</td><td>Desk, wall, home — web and mobile access</td></tr>
+<tr><td>Cost per yard</td><td>Rising (telco sunset)</td><td>Flat monthly</td></tr>
+<tr><td>Reliability</td><td>Declining infrastructure</td><td>99.9% uptime</td></tr>
+<tr><td>Scalability</td><td>Fixed capacity</td><td>Add yards anytime</td></tr>
+<tr><td>Cross-room</td><td>Not possible</td><td>Yes</td></tr>
+<tr><td>Support</td><td>3–6 months to resolve</td><td>Less than 24 hours</td></tr>
+</tbody></table>
+
+<h2>Why switch now?</h2>
+<h3>Copper lines are dying</h3>
+<p>Telcos across the country are sunsetting POTS (Plain Old Telephone Service). Maintenance crews are shrinking, prices are rising, and some areas can't get copper service at all anymore. The infrastructure your hotline depends on is being retired — not next decade, now.</p>
+<h3>One region isn't enough</h3>
+<p>A copper hotline covers one local area — the yards within your telco's reach. HQ connects 12 regional rooms across the US. A yard in Texas can broadcast to California, Florida, or Arizona with a single button press.</p>
+<h3>No recordings, no accountability</h3>
+<p>Copper is a black box. You don't know who called, what was said, or whether anyone answered. HQ records every broadcast, shows who's connected, tracks response times, and logs broadcast history.</p>
+</article>`;
+
+const copperFaqItems = [
+  { q: "Is this a phone or a computer thing?", a: "It's a phone. A Yealink T31P desk phone ships to each yard. Plug in one ethernet cable and you're live. There's also a browser option for when you're on the road, but the desk phone is what sits on your counter." },
+  { q: "Do all yards need to switch at once?", a: "We'll work with you on the best approach for your group. The important thing is that your group stays together." },
+  { q: "What does each yard get?", a: "A preconfigured Yealink T31P desk phone, ready to go. Plug it in, and you're connected to your room. No setup, no IT department needed." },
+  { q: "What happens to our copper line?", a: "That's between you and your telco. Many groups keep the copper line running briefly during transition, then cancel it once everyone's on HQ." },
+  { q: "Can one yard try it first?", a: "Yes. Any yard can sign up and try the web client immediately, or request a phone. But the real value is when your whole group is on the line together." },
+];
+
+addPage('/use-case/replace-copper-hotline', {
+  title: 'Replace Your Copper Hotline | Hotline HQ',
+  description: 'Upgrade your copper wire hotline to Hotline HQ. Same dedicated desk phone on the counter, same always-on connection. Now with HD digital audio, 12 regional rooms, and every call recorded.',
+  url: `${BASE_URL}/use-case/replace-copper-hotline`,
+  keywords: 'replace copper hotline, copper hotline upgrade, POTS replacement, salvage yard hotline, auto parts hotline, copper wire hotline alternative, digital hotline',
+  shell: ssrShell(
+    'COPPER HOTLINE UPGRADE',
+    'Your hotline group deserves <em>a better line.</em>',
+    'Same dedicated phone on the counter. Same always-on connection. Now with HD digital audio, every call recorded, private calling, and full transcription so you can review everything later.',
+    'Bring Your Group to HQ', `${BASE_URL}/client/signup`
+  ) + copperComparisonHtml + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${copperFaqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`,
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        name: "Hotline HQ — Replace Your Copper Hotline",
+        serviceType: "Copper Hotline Replacement",
+        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+        areaServed: { "@type": "Country", name: "US" },
+        description: "Replace your copper wire hotline with Hotline HQ. Same dedicated desk phone, same always-on connection. HD digital audio, 12 regional rooms, every call recorded.",
+      },
+      { "@type": "FAQPage", mainEntity: copperFaqItems.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }
+    ]
+  }
+});
+
 // ── /about ──────────────────────────────────────────────────────────
 
 addPage('/about', {
@@ -835,10 +897,11 @@ for (const [slug, p] of Object.entries(pagesData)) {
     });
   }
 
-  addPage(`/${slug}`, {
+  const routePrefix = isIndustry ? '/use-case' : '';
+  addPage(`${routePrefix}/${slug}`, {
     title: seo.title || `${p.title} | Hotline HQ`,
     description: seo.description || '',
-    url: `${BASE_URL}/${slug}`,
+    url: `${BASE_URL}${routePrefix}/${slug}`,
     keywords: seo.keywords || '',
     ogImage: hero.image ? `${BASE_URL}${hero.image}` : undefined,
     shell,
@@ -882,4 +945,23 @@ for (const { route, seo } of pages) {
 }
 
 console.log(`[prerender] Generated ${count} static HTML pages in dist-client/prerender/`);
+
+// ── Generate sitemap.xml from prerendered routes ──────────────────
+
+const today = new Date().toISOString().split('T')[0];
+const sitemapEntries = pages
+  .filter(p => !p.seo.robots?.includes('noindex'))
+  .map(p => {
+    const url = p.seo.url || `${BASE_URL}${p.route}`;
+    return `  <url>\n    <loc>${url}</loc>\n    <lastmod>${today}</lastmod>\n  </url>`;
+  });
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapEntries.join('\n')}
+</urlset>`;
+
+const sitemapPath = path.join(ROOT, 'public', 'sitemap.xml');
+fs.writeFileSync(sitemapPath, sitemapXml);
+console.log(`[prerender] Generated sitemap.xml with ${sitemapEntries.length} URLs (${today})`);
 console.log('[prerender] Done');
