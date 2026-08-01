@@ -7,8 +7,9 @@
   "hero": {
     "chip": "Live network · 12 regional rooms",
     "eyebrow": "The parts-locating voice network for auto recyclers",
-    "heading": "Every “we don’t have it” is a customer walking out. <em>It doesn’t have to be.</em>",
-    "subheading": "The part you don’t have is sitting in somebody’s yard. Hotline HQ is the always-on voice network connecting 500+ salvage yards — broadcast once, get an answer in seconds, and keep the sale.",
+    "heading": "Every “we don't have it” is a customer walking out. <em>It doesn't have to be.</em>",
+    "subheading": "The part you don't have is sitting in somebody's yard. Hotline HQ is the always-on voice network connecting 500+ salvage yards — broadcast once, get an answer in seconds, and keep the sale.",
+    "phoneSubtitle": "This isn't an app. It's a phone on your counter.",
     "listenNowPlaying": "Now playing",
     "listenCta": "Listen to a real sell call",
     "listenSub": "Hear a live broadcast from the network"
@@ -22,7 +23,7 @@
   "listenLive": {
     "kicker": "Live right now",
     "heading": "This is what a saved sale sounds like.",
-    "lede": "One sentence into a handset, a two-second answer, and a customer who didn’t walk. Press play — the {{room}} room is on the air right now.",
+    "lede": "One sentence into a handset, a two-second answer, and a customer who didn't walk. Press play — the {{room}} room is on the air right now.",
     "roomTag": "{{room}} room",
     "yardsOnLine": "{{count}} yard on the line",
     "yardsOnLine_other": "{{count}} yards on the line",
@@ -44,11 +45,11 @@
     "stepsStat": "avg answer · 2s",
     "footnoteLabel": "If no one answers",
     "ctaText": "Like what you hear? Your yard can be on this line too.",
-    "ctaButton": "Click Here to Sign Up — It’s Free"
+    "ctaButton": "Click Here to Sign Up — It's Free"
   },
   "publicBroadcast": {
     "sharedBroadcast": "Shared Broadcast",
-    "heroSub": "The part you don’t have is sitting in somebody’s yard. Hotline HQ connects 500+ salvage yards — broadcast once, get an answer in seconds, and keep the sale.",
+    "heroSub": "The part you don't have is sitting in somebody's yard. Hotline HQ connects 500+ salvage yards — broadcast once, get an answer in seconds, and keep the sale.",
     "kicker": "Live broadcast",
     "unknownSpeaker": "Unknown Speaker",
     "unknown": "Unknown",
@@ -126,7 +127,7 @@
   "how": {
     "kicker": "How it works",
     "heading": "One broadcast. One answer. One sale saved.",
-    "footnote": "Unanswered? The request is logged, escalated to neighboring rooms, and sent to the entire network as a message — a miss in your region isn’t a miss on the network."
+    "footnote": "Unanswered? The request is logged, escalated to neighboring rooms, and sent to the entire network as a message — a miss in your region isn't a miss on the network."
   },
   "steps": {
     "step1": {
@@ -168,8 +169,8 @@
   },
   "system": {
     "kicker": "The system",
-    "heading": "Built like shop equipment, not software.",
-    "subheading": "No apps to update, no passwords on sticky notes. It's a piece of counter equipment that pays its membership back on one saved sale."
+    "heading": "A phone that pays for itself on the first sale.",
+    "subheading": "We ship you a preconfigured desk phone. Plug it in, and your yard is live on the network — no setup, no IT, no screens to babysit."
   },
   "features": {
     "f1": {
@@ -181,8 +182,8 @@
       "copy": "The room plays quietly at your counter. Pick up the handset to talk, put it down to go quiet. No apps, no logins, no screens."
     },
     "f3": {
-      "title": "Phone or computer",
-      "copy": "We ship you a desk phone that's ready to go — plug it in and you're on the air. Prefer the computer? It works in your browser too."
+      "title": "Desk phone first",
+      "copy": "We ship you a desk phone that's ready to go — plug it in and you're on the air. Need to listen on the road? It works in your browser too."
     },
     "f4": {
       "title": "Every call on record",

@@ -248,10 +248,10 @@ export function SiteNav() {
         <HQLogo />
       </Link>
       <nav className="l2-nav-links">
-        <NavLink to="/" end className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("nav.home")}</NavLink>
         <NavLink to="/find-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Find Parts</NavLink>
         <NavLink to="/sell-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Sell Parts</NavLink>
-        <NavLink to="/marketplace" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Marketplace</NavLink>
+        <NavLink to="/features/desk-phone" className={({isActive}) => isActive ? "l2-nav-active" : ""}>The Phone</NavLink>
+        <NavLink to="/own-a-hotline" className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("nav.ownHotline")}</NavLink>
         <NavLink to="/blog" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Blog</NavLink>
         <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">{t("nav.login")}</a>
         <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
@@ -263,8 +263,8 @@ export function SiteNav() {
             { label: t("nav.home"), href: buildSiteUrl("/") },
             { label: "Find Parts", href: buildSiteUrl("/find-used-auto-parts") },
             { label: "Sell Parts", href: buildSiteUrl("/sell-used-auto-parts") },
+            { label: "The Phone", href: buildSiteUrl("/features/desk-phone") },
             { label: t("nav.ownHotline"), href: buildSiteUrl("/own-a-hotline") },
-            { label: "Marketplace", href: buildSiteUrl("/marketplace") },
             { label: "Blog", href: buildSiteUrl("/blog") },
             { label: t("nav.login"), href: HOTLINE_LOGIN_URL, sep: true },
           ]}
@@ -283,6 +283,7 @@ const PRODUCT_LINK_KEYS = [
   ["footer.marketplace", "/marketplace"],
   ["footer.findParts", "/find-used-auto-parts"],
   ["footer.sellParts", "/sell-used-auto-parts"],
+  ["footer.replaceCopperHotline", "/replace-copper-hotline"],
 ];
 
 const ROOM_LINKS = [

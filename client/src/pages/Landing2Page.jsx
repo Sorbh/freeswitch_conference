@@ -494,8 +494,8 @@ export default function Landing2Page() {
         <nav className="l2-nav-links">
           <NavLink to="/find-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Find Parts</NavLink>
           <NavLink to="/sell-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Sell Parts</NavLink>
+          <NavLink to="/features/desk-phone" className={({isActive}) => isActive ? "l2-nav-active" : ""}>The Phone</NavLink>
           <NavLink to="/own-a-hotline" className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("common:nav.ownHotline")}</NavLink>
-          <NavLink to="/marketplace" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Marketplace</NavLink>
           <NavLink to="/blog" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Blog</NavLink>
           <a href={loginUrl} className="l2-nav-login">{t("common:nav.login")}</a>
           <a href={signupUrl} className="l2-nav-cta">
@@ -506,8 +506,8 @@ export default function Landing2Page() {
             links={[
               { label: "Find Parts", href: "./find-used-auto-parts" },
               { label: "Sell Parts", href: "./sell-used-auto-parts" },
+              { label: "The Phone", href: "./features/desk-phone" },
               { label: t("common:nav.ownHotline"), href: "./own-a-hotline" },
-              { label: "Marketplace", href: "./marketplace" },
               { label: "Blog", href: "./blog" },
               { label: t("common:nav.login"), href: loginUrl, sep: true },
             ]}
@@ -527,6 +527,7 @@ export default function Landing2Page() {
           <p className="l2-eyebrow">{t("hero.eyebrow")}</p>
           <h1 dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
           <p className="l2-sub">{t("hero.subheading")}</p>
+          <Link to="/replace-copper-hotline" className="l2-phone-subtitle">{t("hero.phoneSubtitle")}</Link>
           <div className="l2-hero-ctas">
             <a className="l2-btn l2-btn-hot" href={signupUrl}>
               {t("common:nav.signUpFree")}
@@ -580,7 +581,6 @@ export default function Landing2Page() {
             </div>
           )}
         </div>
-
         <div className="l2-stats">
           <Stat to={500} suffix="+" label={t("stats.memberYards")} />
           <Stat to={12} label={t("stats.regionalRooms")} />
@@ -745,6 +745,36 @@ export default function Landing2Page() {
               <span>{ind.sub}</span>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* ───────────────── copper upgrader ───────────────── */}
+      <section className="l2-section l2-copper" id="copper">
+        <div className="l2-copper-inner l2-reveal">
+          <p className="l2-kicker">SWITCHING FROM COPPER?</p>
+          <h2>Already on a hotline?</h2>
+          <img className="l2-copper-img" src="/images/t31p-copper.webp" alt="Hotline HQ desk phone on a shop counter" width="400" height="300" loading="lazy" />
+          <p className="l2-copper-body">
+            If your group is on a copper line, a radio network, or any legacy hotline
+            — bring them to HQ. Same group. Better line.
+          </p>
+          <div className="l2-copper-features">
+            <div className="l2-copper-feat">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 8h20" /><path d="M9 12h6" /><path d="M9 16h4" /></svg>
+              <div><strong>Same desk phone</strong><span>A dedicated Yealink on your counter, just like the copper phone on your wall</span></div>
+            </div>
+            <div className="l2-copper-feat">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 2v10l7-7" /></svg>
+              <div><strong>HD digital audio</strong><span>Crystal-clear voice over internet — no static, no line noise</span></div>
+            </div>
+            <div className="l2-copper-feat">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+              <div><strong>12 rooms, not just one</strong><span>Reach yards across every major market, not just your local area</span></div>
+            </div>
+          </div>
+          <Link to="/replace-copper-hotline" className="l2-btn l2-btn-hot">
+            Bring Your Group to HQ →
+          </Link>
         </div>
       </section>
 
@@ -920,6 +950,42 @@ const CSS = `
   background: linear-gradient(transparent 68%, var(--red-soft) 68%);
 }
 .l2-sub { max-width: 600px; margin: 24px auto 34px; color: var(--ink); font-size: 18.5px; font-weight: 600; line-height: 1.65; }
+.l2-hero-split {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.l2-hero-split .l2-hero-copy { flex: 1; }
+.l2-hero-phone {
+  flex: 0 0 340px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+.l2-hero-phone img { display: block; width: 100%; height: auto; }
+.l2-copper-img {
+  display: block;
+  max-width: 320px;
+  margin: 20px auto 24px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+.l2-phone-subtitle {
+  display: inline-block;
+  margin: 0 auto 28px;
+  padding: 8px 20px;
+  border: 1.5px solid var(--red);
+  border-radius: 100px;
+  color: var(--red);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: background .2s, color .2s;
+}
+.l2-phone-subtitle:hover { background: var(--red); color: #fff; }
 .l2-hero-ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .l2-btn {
   font-family: var(--body); font-weight: 600; font-size: 15.5px;
@@ -1669,6 +1735,54 @@ const CSS = `
   .l2-nav-login { padding: 6px 6px; font-size: 11px; }
   .l2-nav-cta { padding: 6px 8px; font-size: 11px; }
   .l2-sticky-cta { font-size: 14px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* copper upgrader section */
+.l2-copper {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(168deg, #fef3f2 0%, var(--bg) 55%);
+}
+.l2-copper-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+.l2-copper-inner h2 {
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: 700;
+}
+.l2-copper-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin: 28px auto 32px;
+  max-width: 780px;
+  text-align: left;
+}
+.l2-copper-feat {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.l2-copper-feat svg { flex-shrink: 0; color: var(--red); margin-top: 2px; }
+.l2-copper-feat strong { display: block; font-size: 14.5px; margin-bottom: 4px; }
+.l2-copper-feat span { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.l2-copper-body {
+  color: var(--muted);
+  font-size: 17.5px;
+  line-height: 1.65;
+  margin: 18px auto 36px;
+  max-width: 540px;
+}
+@media (max-width: 640px) {
+  .l2-hero-split { flex-direction: column; gap: 24px; }
+  .l2-hero-phone { flex: none; max-width: 280px; }
+  .l2-copper-inner h2 { font-size: clamp(22px, 6vw, 30px); }
+  .l2-copper-body { font-size: 14.5px; margin: 14px auto 28px; }
+  .l2-copper-features { grid-template-columns: 1fr; max-width: 400px; }
+  .l2-copper-img { max-width: 240px; }
+  .l2-phone-subtitle { font-size: 13px; padding: 6px 16px; }
 }
 
 /* reveal */
