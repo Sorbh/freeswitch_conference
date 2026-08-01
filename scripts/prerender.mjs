@@ -138,6 +138,76 @@ const homeBlogHtml = blogData.posts.slice(0, 3).map(p => {
   return `<div class="ssr-faq"><h3><a href="${BASE_URL}/blog/${p.category}/${p.slug}">${p.title}</a></h3><p>${catLabel} · ${p.readTime} — ${p.description}</p></div>`;
 }).join('');
 
+const homeCompareHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>How long does it take you to find a part? 30 minutes? An hour?</h2>
+<p>Our network average is <strong>2 seconds.</strong></p>
+<table><thead><tr><th>Method</th><th>Avg Response</th><th>The Problem</th></tr></thead><tbody>
+<tr><td>Inventory databases</td><td>30–60 min</td><td>Stale listings, and you're result #38 of 40. The part shows in stock — until you drive out and it's already gone.</td></tr>
+<tr><td>Calling around</td><td>40+ min</td><td>Forty minutes of hold music to check five yards. Your customer already bought the part somewhere else.</td></tr>
+<tr><td>Facebook groups</td><td>Hours — if ever</td><td>Your post is buried within the hour, and nobody who can actually sell the part is watching the feed.</td></tr>
+<tr><td><strong>The Hotline HQ network</strong></td><td><strong>2 seconds</strong></td><td>One voice broadcast. Every counter in your region hears it right now, and the yard that has it answers you back in seconds.</td></tr>
+</tbody></table>
+</article>`;
+
+const homeRoomsHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>Twelve rooms. Every major market.</h2>
+<p>Your yard lives in its home room and is profiled into nearby regions — and you can switch rooms straight from the phone when the hunt goes wide.</p>
+<ul style="columns:3;list-style:none;padding:0">${['California', 'Texas', 'Florida', 'Mexico', 'ENS', 'Arizona', 'Ohio', 'New York', 'Georgia', 'Indiana', 'Michigan', 'Carolinas'].map(r => `<li>${r}</li>`).join('')}</ul>
+</article>`;
+
+const homeFeaturesHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>A phone that pays for itself on the first sale.</h2>
+<p>We ship you a preconfigured desk phone. Plug it in, and your yard is live on the network — no setup, no IT, no screens to babysit.</p>
+<ul>
+<li><strong>Always on.</strong> If the line ever drops, it reconnects on its own. Your phone stays in the room day and night without anyone touching it.</li>
+<li><strong>Hands-free listening.</strong> The room plays quietly at your counter. Pick up the handset to talk, put it down to go quiet. No apps, no logins, no screens.</li>
+<li><strong>Desk phone first.</strong> We ship you a desk phone that's ready to go — plug it in and you're on the air. Need to listen on the road? It works in your browser too.</li>
+<li><strong>Every call on record.</strong> Every request is saved and recorded, along with who answered it. You can always go back and hear exactly what was said.</li>
+<li><strong>Reach beyond your region.</strong> You're not boxed into your own area. Your yard also reaches nearby regions, and you can switch rooms right from the phone.</li>
+<li><strong>We watch your line 24/7.</strong> If your phone goes offline or your connection drops, our system alerts us and reconnects automatically.</li>
+</ul>
+</article>`;
+
+const homeIndustriesHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>The hotline model works in more than one industry</h2>
+<p>500+ yards and 15,000+ broadcasts have proven that a live voice network beats databases and phone trees. We're expanding to industries where the same pain exists: fragmented supply, urgent demand, and too many phone calls. See how it works for auto parts: <a href="${BASE_URL}/sell-used-auto-parts">sell parts on the network</a> or learn <a href="${BASE_URL}/blog/guides/how-auto-parts-hotlines-work">how auto parts hotlines work</a>.</p>
+<ul>
+<li><a href="${BASE_URL}/use-case/heavy-equipment-parts-hotline"><strong>Heavy Equipment</strong></a> — CAT, Deere, Komatsu</li>
+<li><a href="${BASE_URL}/use-case/farm-equipment-parts-hotline"><strong>Farm Equipment</strong></a> — Tractors, Combines</li>
+<li><a href="${BASE_URL}/use-case/aviation-parts-hotline"><strong>Aviation / AOG</strong></a> — Aircraft Parts</li>
+<li><a href="${BASE_URL}/use-case/mining-equipment-parts"><strong>Mining</strong></a> — Haul Trucks, Crushers</li>
+<li><a href="${BASE_URL}/use-case/marine-boat-parts"><strong>Marine &amp; Boat</strong></a> — Engines, Outdrives</li>
+<li><a href="${BASE_URL}/use-case/railroad-parts-hotline"><strong>Railroad</strong></a> — Locomotives, Rolling Stock</li>
+</ul>
+</article>`;
+
+const homeCopperHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>Already on a hotline?</h2>
+<p>If your group is on a copper line, a radio network, or any legacy hotline — bring them to HQ. Same group. Better line.</p>
+<ul>
+<li><strong>Same desk phone.</strong> A dedicated Yealink on your counter, just like the copper phone on your wall.</li>
+<li><strong>HD digital audio.</strong> Crystal-clear voice over internet — no static, no line noise.</li>
+<li><strong>12 rooms, not just one.</strong> Reach yards across every major market, not just your local area.</li>
+</ul>
+<p><a href="${BASE_URL}/use-case/replace-copper-hotline">Bring Your Group to HQ →</a></p>
+</article>`;
+
+const homeJoinHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>One flat membership. Your whole region on the line.</h2>
+<ul>
+<li>Flat monthly fee per yard — no per-call charges</li>
+<li>Preconfigured desk phone or browser client included</li>
+<li>Live in your regional room the day the phone arrives</li>
+<li>Call recordings and answer-rate reporting included</li>
+</ul>
+<p>No credit card required. Set up your yard in minutes.</p>
+<p><a href="${BASE_URL}/client/signup">Sign Up Free</a></p>
+</article>`;
+
+const homeFullContent = homeCompareHtml + homeRoomsHtml + homeFeaturesHtml
+  + `<div class="ssr-faq-section"><h2>From the Blog</h2>${homeBlogHtml}<p style="text-align:center;margin-top:24px"><a href="${BASE_URL}/blog">All articles</a></p></div>`
+  + homeIndustriesHtml + homeCopperHtml + homeJoinHtml;
+
 addPage('/', {
   title: 'Hotline HQ — Find Used Auto Parts from 500+ Salvage Yards in Seconds',
   description: 'Broadcast what part you need to 500+ salvage yards at once. The first yard with your part answers in about 2 seconds. No fees, no commissions.',
@@ -149,7 +219,7 @@ addPage('/', {
     'The live voice network that connects <strong>500+ auto dismantler yards</strong>. Ask for a part once — the nearest yard answers in about <strong>2 seconds</strong>.',
     'Sign Up Free', `${BASE_URL}/client/signup`,
     [['500+', 'Member yards'], ['12', 'Regional rooms'], ['2s', 'Typical answer'], ['24/7', 'Always on']]
-  ) + `<div class="ssr-faq-section"><h2>From the Blog</h2>${homeBlogHtml}<p style="text-align:center;margin-top:24px"><a href="${BASE_URL}/blog">All articles</a></p></div>`,
+  ) + homeFullContent,
   jsonLd: {
     "@context": "https://schema.org",
     "@graph": [
@@ -552,6 +622,135 @@ addPage('/use-case/replace-copper-hotline', {
   }
 });
 
+// ── /features/desk-phone (override generic feature entry with rich content) ──
+
+const dpFaqItems = [
+  { q: "Do I have to buy the phone from you?", a: "No. You can order a Yealink T31P from Amazon, B&H Photo, VoIP Supply, or any retailer. We'll send you the configuration file, or ship one preconfigured — your choice." },
+  { q: "What if my internet goes down?", a: "The phone reconnects automatically when your internet comes back. No manual steps needed." },
+  { q: "Can I use both the desk phone and the web app?", a: "Yes. Many members listen on the desk phone at the counter and switch to the web app when they're on the road." },
+  { q: "Is there a monthly fee for the phone?", a: "The desk phone is included with your Hotline HQ membership. No extra hardware fees." },
+  { q: "Can I use it with a headset?", a: "Yes. Standard RJ9 headset port. Plug in any compatible wired headset." },
+  { q: "Does it work with my existing internet?", a: "If you have an ethernet port, yes. Uses about 100 Kbps — less than streaming a single song." },
+];
+
+const dpContentHtml = `<article style="max-width:900px;margin:0 auto;padding:0 24px 48px">
+<h2>Browser calling has limits. A desk phone doesn't.</h2>
+<p>Mic permissions get blocked. Tabs get closed. Batteries die. Notifications get missed. A dedicated desk phone sits on your counter, always on, always connected — like a landline that plugs you into every yard in the state.</p>
+
+<h2>Why salvage yards are ditching browser calling</h2>
+<p>Chrome pushes an update overnight and resets your microphone permissions. An employee closes "that weird tab with the speaker icon." The screen lock kicks in during a slow afternoon and you miss three broadcasts.</p>
+<p>A desk phone doesn't have tabs. It doesn't run Chrome. It doesn't need a login, a password, or a Windows update. It sits on the counter like a landline — except this one connects you to every yard in the state.</p>
+<table><thead><tr><th>Browser Problem</th><th>What Happens</th></tr></thead><tbody>
+<tr><td>Microphone</td><td>Permissions silently revoked</td></tr>
+<tr><td>Browser Tabs</td><td>Employee closed "the noisy tab"</td></tr>
+<tr><td>Screen Lock</td><td>Missed 3 broadcasts</td></tr>
+<tr><td>Shared Computer</td><td>Someone else logged in</td></tr>
+<tr><td>Wi-Fi</td><td>10-second drop — call gone</td></tr>
+<tr><td>Battery</td><td>Died mid-broadcast</td></tr>
+</tbody></table>
+
+<h2>Why yards are leaving copper hotlines behind</h2>
+<p>Telcos are sunsetting POTS (Plain Old Telephone Service) lines across the country. Maintenance crews are shrinking, prices are climbing every year, and some areas can't get copper service at all anymore. The infrastructure your hotline runs on is being retired.</p>
+<p>The HQ desk phone delivers the exact same experience — a dedicated phone on the counter, always on, pick up and your room hears you. But now with HD digital audio, caller ID showing who's talking, every call recorded and transcribed, and the ability to switch between any region instead of being stuck in one local area.</p>
+<p>Your group doesn't lose anything in the switch. Same workflow, same muscle memory. Just better tools underneath. See the full <a href="${BASE_URL}/use-case/replace-copper-hotline">copper-to-HQ comparison</a> for everything your old line is missing.</p>
+
+<h2>What you get with Hotline HQ</h2>
+<p>Everything a browser and copper line can't do — built into one desk phone.</p>
+<ul>
+<li><strong>HD Audio</strong> — Crystal-clear wideband voice</li>
+<li><strong>Caller ID</strong> — See who's talking before you pick up</li>
+<li><strong>Recordings</strong> — Every call recorded automatically</li>
+<li><strong>Transcription</strong> — Full text of every broadcast, searchable</li>
+<li><strong>Reach</strong> — Switch between any region</li>
+<li><strong>Portability</strong> — Desk phone + web panel on the go</li>
+<li><strong>Always On</strong> — 24/7 connection, no browser needed</li>
+<li><strong>Private Calls</strong> — Direct yard-to-yard calls off the room</li>
+<li><strong>Cost</strong> — Flat monthly — phone included</li>
+</ul>
+
+<h2>Three steps. Thirty seconds.</h2>
+<ol>
+<li><strong>Order your phone.</strong> We ship a preconfigured Yealink T31P to your yard — or grab one from Amazon, B&H, or any VoIP retailer and we'll send the config.</li>
+<li><strong>Plug in one cable.</strong> Ethernet into your router. The phone boots, finds the hotline, and connects itself. No passwords, no SIP settings.</li>
+<li><strong>You're live.</strong> Within 30 seconds you hear the network. When someone asks for a part you have, pick up and respond.</li>
+</ol>
+
+<h2>What you actually hear on the hotline</h2>
+<p>The phone sits on your counter with the speaker on low. All day, you hear yards broadcasting requests:</p>
+<blockquote><strong>Mike's Auto — Phoenix, AZ:</strong> "Looking for a 2019 Camry driver's side fender, any color. Who's got one?"</blockquote>
+<blockquote><strong>Valley Salvage — Houston, TX:</strong> "Need a transmission for an '18 F-150, 3.5 EcoBoost. Preferably under 80k miles."</blockquote>
+<blockquote><strong>Tri-State Parts — Newark, NJ:</strong> "Customer waiting on a 2020 Accord headlight assembly, passenger side. Anyone close?"</blockquote>
+<p>When you hear a part you have, you pick up the handset and respond. Caller ID shows exactly who's asking — no guessing. The conversation is recorded and transcribed automatically, so you can review every deal later.</p>
+
+<h2>Why a desk phone</h2>
+<ul>
+<li><strong>No mic permission issues.</strong> The #1 browser problem — blocked microphone — doesn't exist with a desk phone.</li>
+<li><strong>Always on, always connected.</strong> 24/7 connection. No browser tab, no battery, no screen lock to manage.</li>
+<li><strong>Crystal-clear HD voice.</strong> Wideband audio codecs. Every part number, VIN digit, and dollar amount comes through clearly.</li>
+<li><strong>Caller ID on every broadcast.</strong> See who's talking before you pick up. Know exactly which yard is asking.</li>
+<li><strong>No computer required.</strong> Standalone device — just needs ethernet and power. Perfect for any counter.</li>
+<li><strong>Headset ready.</strong> Standard RJ9 port for any compatible wired headset. Go hands-free all day.</li>
+</ul>
+
+<h2>Desk phone vs web client</h2>
+<p>Every Hotline HQ membership includes both. Here's when to use each.</p>
+<table><thead><tr><th></th><th>Desk Phone</th><th>Web Client</th></tr></thead><tbody>
+<tr><td>Best for</td><td>The shop floor — where the work gets done</td><td>The road — when you're away from the counter</td></tr>
+<tr><td>Connection</td><td>Always on, always listening — never misses a broadcast</td><td>Works in any browser on any device</td></tr>
+<tr><td>Audio</td><td>HD audio through a real speaker and handset</td><td>Depends on device speakers/mic</td></tr>
+<tr><td>Setup</td><td>No computer, no browser, no login needed</td><td>Available the minute you sign up</td></tr>
+<tr><td>Durability</td><td>Survives dust, heat, and a busy counter</td><td>Good backup if your phone needs service</td></tr>
+</tbody></table>
+<p>This is how 90% of yards use the hotline every day — desk phone at the counter, web client on the road.</p>
+
+<h2>Specifications</h2>
+<table><thead><tr><th>Spec</th><th>Detail</th></tr></thead><tbody>
+<tr><td>Model</td><td>Yealink SIP-T31P</td></tr>
+<tr><td>Display</td><td>2.3" 132×64 backlit LCD</td></tr>
+<tr><td>Lines</td><td>2 SIP accounts</td></tr>
+<tr><td>Audio</td><td>HD Voice, hands-free speakerphone</td></tr>
+<tr><td>Network</td><td>10/100 Ethernet, PoE</td></tr>
+<tr><td>Ports</td><td>RJ9 headset, RJ45 LAN + PC</td></tr>
+<tr><td>Power</td><td>PoE (802.3af) or AC adapter</td></tr>
+<tr><td>Setup</td><td>Zero-touch — preconfigured</td></tr>
+</tbody></table>
+</article>`;
+
+addPage('/features/desk-phone', {
+  title: 'Hotline HQ Desk Phone — Yealink T31P for Auto Parts Yards',
+  description: 'A preconfigured Yealink T31P desk phone that connects your yard to 500+ dismantlers. Always on, HD audio, caller ID, every call recorded. Plug in and you\'re live.',
+  url: `${BASE_URL}/features/desk-phone`,
+  keywords: 'hotline desk phone, yealink t31p, auto parts phone, salvage yard phone, voip desk phone, hotline hq phone',
+  shell: ssrShell(
+    'THE DESK PHONE',
+    'A real phone on the counter. <em>Not another browser tab.</em>',
+    'The Yealink T31P desk phone connects your yard to the Hotline HQ network 24/7. Always on, HD audio, caller ID on every broadcast. Plug in one ethernet cable and you\'re live in 30 seconds.',
+    'Sign Up Free', `${BASE_URL}/client/signup`
+  ) + dpContentHtml + `<div class="ssr-faq-section"><h2>Frequently Asked Questions</h2>${dpFaqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`,
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${BASE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Features", item: `${BASE_URL}/own-a-hotline` },
+          { "@type": "ListItem", position: 3, name: "Desk Phone", item: `${BASE_URL}/features/desk-phone` },
+        ],
+      },
+      {
+        "@type": "Product",
+        name: "Hotline HQ Desk Phone — Yealink T31P",
+        description: "Preconfigured Yealink T31P IP desk phone for the Hotline HQ auto parts voice network.",
+        brand: { "@type": "Brand", name: "Yealink" },
+        model: "SIP-T31P",
+        image: `${BASE_URL}/images/t31p-desk-phone.webp`,
+      },
+      { "@type": "FAQPage", mainEntity: dpFaqItems.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }
+    ]
+  }
+});
+
 // ── /about ──────────────────────────────────────────────────────────
 
 addPage('/about', {
@@ -691,6 +890,7 @@ for (const post of blogData.posts) {
 // ── Feature pages ───────────────────────────────────────────────────
 
 for (const [slug, f] of Object.entries(featuresData)) {
+  if (slug === 'desk-phone') continue;
   const seo = f.seo || {};
   const faqJsonLd = f.faqs?.length ? [{ "@type": "FAQPage", mainEntity: f.faqs.map(item => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })) }] : [];
 
