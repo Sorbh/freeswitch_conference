@@ -283,7 +283,7 @@ const PRODUCT_LINK_KEYS = [
   ["footer.marketplace", "/marketplace"],
   ["footer.findParts", "/find-used-auto-parts"],
   ["footer.sellParts", "/sell-used-auto-parts"],
-  ["footer.replaceCopperHotline", "/replace-copper-hotline"],
+  ["footer.replaceCopperHotline", "/use-case/replace-copper-hotline"],
 ];
 
 const ROOM_LINKS = [
@@ -349,18 +349,29 @@ export function SiteFooter() {
           <Link to="/features/unanswered-capture">Lead Capture</Link>
           <Link to="/features/parts-marketplace">Marketplace</Link>
           <Link to="/features/admin-dashboard">Admin Dashboard</Link>
+          <Link to="/features/multi-language">Multi-Language</Link>
+          <Link to="/features/enterprise-security">Enterprise Security</Link>
         </div>
 
         <div className="l2f-col">
-          <p className="l2f-head">{t("footer.rooms")}</p>
-          {ROOM_LINKS.map(([name, href]) => (
-            <Link key={name} to={href}>
-              {name}
-            </Link>
-          ))}
-          <Link to="/#rooms" className="l2f-more">
-            {t("footer.allRooms")}
-          </Link>
+          <p className="l2f-head">Industries</p>
+          <Link to="/use-case/heavy-equipment-parts-hotline">Heavy Equipment</Link>
+          <Link to="/use-case/farm-equipment-parts-hotline">Farm Equipment</Link>
+          <Link to="/use-case/aviation-parts-hotline">Aviation / AOG</Link>
+          <Link to="/use-case/mining-equipment-parts">Mining</Link>
+          <Link to="/use-case/marine-boat-parts">Marine & Boat</Link>
+          <Link to="/use-case/railroad-parts-hotline">Railroad</Link>
+          <Link to="/use-case/replace-copper-hotline">Replace Copper</Link>
+        </div>
+
+        <div className="l2f-col">
+          <p className="l2f-head">Resources</p>
+          <Link to="/how-auto-parts-hotlines-work">How Hotlines Work</Link>
+          <Link to="/used-auto-parts-hotline">Auto Parts Hotline</Link>
+          <Link to="/car-part-alternative">Car-Part Alternative</Link>
+          <Link to="/hard-to-find-auto-parts">Hard-to-Find Parts</Link>
+          <Link to="/salvage-yard-marketing">Salvage Yard Marketing</Link>
+          <Link to="/ev-hybrid-auto-parts">EV & Hybrid Parts</Link>
         </div>
 
         <div className="l2f-col">
@@ -419,6 +430,44 @@ export function PageShell({ kicker, title, updated, children, seo }) {
         {children}
       </main>
       <SiteFooter />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared FAQ accordion                                               */
+/* ------------------------------------------------------------------ */
+
+export function SiteFaq({ faqs, band = false }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  const inner = (
+    <section className="fp-section">
+      <div className="fp-section-head">
+        <p className="fp-kicker">FAQ</p>
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <div className="fp-faq-list">
+        {faqs.map((f, i) => (
+          <details
+            className="fp-faq"
+            key={i}
+            open={openIdx === i}
+            onClick={(e) => {
+              e.preventDefault();
+              setOpenIdx(openIdx === i ? null : i);
+            }}
+          >
+            <summary className="fp-faq-q">{f.q}</summary>
+            {openIdx === i && <p className="fp-faq-a">{f.a}</p>}
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+  if (!band) return inner;
+  return (
+    <div style={{ background: 'var(--band)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
+      {inner}
     </div>
   );
 }

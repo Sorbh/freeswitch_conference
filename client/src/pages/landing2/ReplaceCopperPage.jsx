@@ -1,25 +1,28 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
+import { SiteNav, SiteFooter, Seo, SiteFaq, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 
 const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 
 const MAPPING = [
-  { copper: "Dedicated phone on the wall", hq: "Dedicated Yealink desk phone on the counter" },
-  { copper: "Always on, always connected", hq: "Always on, always connected" },
-  { copper: "Pick up and everyone hears you", hq: "Pick up and broadcast to your room" },
+  { copper: "Noisy analog static", hq: "HD audio with AI noise cancellation" },
+  { copper: "Bolted to the wall", hq: "Desk phone + browser — stay on the line anywhere" },
+  { copper: "Goes down, stays down", hq: "99.99% uptime, auto-reconnect" },
+  { copper: "Stuck in one region", hq: "Switch between any room with one button" },
 ];
 
 const COMPARISON = [
   { dim: "Reach", copper: "Local only", hq: "Switch between any region" },
-  { dim: "Voice quality", copper: "Analog", hq: "HD digital" },
-  { dim: "Recordings", copper: "None", hq: "Every call recorded" },
-  { dim: "Caller ID", copper: "No display", hq: "See who's talking in real time" },
-  { dim: "Portability", copper: "Stuck at the wall", hq: "Desk phone + web panel on the go" },
+  { dim: "Voice quality", copper: "Analog", hq: "HD digital", hot: true },
+  { dim: "Recordings", copper: "None", hq: "Recordings available to settle disputes" },
+  { dim: "Caller ID", copper: "No display", hq: "Name, location, and phone number on screen", hot: true },
+  { dim: "Private calls", copper: "Not possible", hq: "One-to-one yard-to-yard calling off the room", hot: true },
+  { dim: "Portability", copper: "Stuck at the wall", hq: "Desk, Wall, Home - Web &amp; Mobile Access" },
   { dim: "Cost per yard", copper: "Rising (telco sunset)", hq: "Flat monthly" },
-  { dim: "Reliability", copper: "Declining infrastructure", hq: "99.9% uptime" },
+  { dim: "Reliability", copper: "Declining infrastructure", hq: "99.9% uptime", hot: true },
   { dim: "Scalability", copper: "Fixed capacity", hq: "Add yards anytime" },
   { dim: "Cross-room", copper: "Not possible", hq: "Yes" },
+  { dim: "Support", copper: "3–6 months to resolve", hq: "Less than 24 hours", hot: true },
 ];
 
 const PAIN_POINTS = [
@@ -61,7 +64,6 @@ const FAQS = [
 ];
 
 export function ReplaceCopperPage() {
-  const [openFaq, setOpenFaq] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     yard: "",
@@ -132,7 +134,7 @@ export function ReplaceCopperPage() {
         title="Replace Your Copper Hotline | Hotline HQ"
         description="Upgrade your copper wire hotline to Hotline HQ. Same dedicated desk phone on the counter, same always-on connection. Now with HD digital audio, 12 regional rooms, and every call recorded."
         keywords="replace copper hotline, copper hotline upgrade, POTS replacement, salvage yard hotline, auto parts hotline, copper wire hotline alternative, digital hotline"
-        path="/replace-copper-hotline"
+        path="/use-case/replace-copper-hotline"
         jsonLd={jsonLd}
       />
       <SiteNav />
@@ -158,11 +160,11 @@ export function ReplaceCopperPage() {
       {/* ── SAME EXPERIENCE, BETTER TECHNOLOGY ── */}
       <section className="fp-section">
         <div className="fp-section-head">
-          <p className="fp-kicker">SAME EXPERIENCE</p>
+          <p className="fp-kicker">ONLY ON HOTLINE HQ</p>
           <h2>Same experience, better technology</h2>
           <p className="fp-lede">
-            If you've used a copper hotline, you already know how HQ works.
-            The phone sits on the counter, stays connected, and when you pick up, your room hears you.
+            Copper gives you a phone on the wall. HQ gives you a platform.
+            These are the things your old line was never built to handle.
           </p>
         </div>
         <div className="rc-mapping">
@@ -213,7 +215,7 @@ export function ReplaceCopperPage() {
               <span>Copper Hotline</span>
             </div>
             {COMPARISON.map((row, i) => (
-              <div className="rc-compare-item" key={i}>
+              <div className={`rc-compare-item${row.hot ? " rc-compare-hot" : ""}`} key={i}>
                 <span className="rc-compare-dim">{row.dim}</span>
                 <span className="rc-compare-val rc-compare-val-old">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" opacity=".5" /></svg>
@@ -227,7 +229,7 @@ export function ReplaceCopperPage() {
               <span>Hotline HQ</span>
             </div>
             {COMPARISON.map((row, i) => (
-              <div className="rc-compare-item" key={i}>
+              <div className={`rc-compare-item${row.hot ? " rc-compare-hot" : ""}`} key={i}>
                 <span className="rc-compare-dim rc-compare-dim-hq">{row.dim}</span>
                 <span className="rc-compare-val rc-compare-val-new">
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -288,7 +290,7 @@ export function ReplaceCopperPage() {
       </section>
 
       {/* ── THREE PAIN POINTS ── */}
-      <section className="fp-section">
+      <section className="fp-section fp-band">
         <div className="fp-section-head">
           <p className="fp-kicker">WHY NOW</p>
           <h2>Three reasons your group can't wait</h2>
@@ -305,7 +307,7 @@ export function ReplaceCopperPage() {
       </section>
 
       {/* ── BRING YOUR GROUP FORM ── */}
-      <section className="fp-section fp-band" id="bring-your-group">
+      <section className="fp-section" id="bring-your-group">
         <div className="fp-section-head">
           <p className="fp-kicker">GET STARTED</p>
           <h2>Bring Your Group to HQ</h2>
@@ -366,29 +368,7 @@ export function ReplaceCopperPage() {
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section className="fp-section">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details
-              className="fp-faq"
-              key={i}
-              open={openFaq === i}
-              onClick={(e) => {
-                e.preventDefault();
-                setOpenFaq(openFaq === i ? null : i);
-              }}
-            >
-              <summary className="fp-faq-q">{f.q}</summary>
-              {openFaq === i && <p className="fp-faq-a">{f.a}</p>}
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} band />
 
       {/* ── BOTTOM CTA ── */}
       <section className="fp-cta-section">
@@ -593,8 +573,14 @@ const PAGE_CSS = `
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
+.rc-compare-item:nth-child(even) {
+  background: var(--band, #f8f7f5);
+}
 .rc-compare-hq .rc-compare-item {
   background: linear-gradient(170deg, #fef7f6, #fff 60%);
+}
+.rc-compare-hq .rc-compare-item:nth-child(even) {
+  background: linear-gradient(170deg, #fdf0ee, #faf8f7 60%);
 }
 .rc-compare-item:last-child { border-bottom: none; }
 .rc-compare-dim {
@@ -617,10 +603,17 @@ const PAGE_CSS = `
 }
 .rc-compare-val-old { color: var(--muted); }
 .rc-compare-val-new { font-weight: 600; }
+.rc-compare-hot {
+  border-left: 3px solid var(--red);
+  background: #fef7f6 !important;
+}
+.rc-compare-hq .rc-compare-hot {
+  background: linear-gradient(170deg, #fce8e6, #fff 60%) !important;
+}
 
 /* ── FAQ ── */
 .fp-faq-list {
-  max-width: 720px;
+  max-width: 680px;
 }
 .fp-faq {
   background: var(--surface);

@@ -218,7 +218,8 @@ export default function App() {
         <Route path="/parts/:slug" element={<Lazy><PartsListingPage /></Lazy>} />
         <Route path="/own-a-hotline" element={<Lazy><OwnHotlinePage /></Lazy>} />
         <Route path="/features/desk-phone" element={<Lazy><DeskPhonePage /></Lazy>} />
-        <Route path="/replace-copper-hotline" element={<Lazy><ReplaceCopperPage /></Lazy>} />
+        <Route path="/use-case/replace-copper-hotline" element={<Lazy><ReplaceCopperPage /></Lazy>} />
+        <Route path="/replace-copper-hotline" element={<Navigate to="/use-case/replace-copper-hotline" replace />} />
         <Route path="/features/:slug" element={<Lazy><FeatureDetailPage /></Lazy>} />
         <Route path="/find-used-auto-parts" element={<Lazy><FindPartsPage /></Lazy>} />
         <Route path="/sell-used-auto-parts" element={<Lazy><SellPartsPage /></Lazy>} />
@@ -228,12 +229,19 @@ export default function App() {
         <Route path="/hard-to-find-auto-parts" element={<Lazy><HardToFindPartsPage /></Lazy>} />
         <Route path="/salvage-yard-marketing" element={<Lazy><SalvageYardMarketingPage /></Lazy>} />
         <Route path="/ev-hybrid-auto-parts" element={<Lazy><EvHybridPartsPage /></Lazy>} />
-        <Route path="/heavy-equipment-parts-hotline" element={<Lazy><HeavyEquipmentPage /></Lazy>} />
-        <Route path="/farm-equipment-parts-hotline" element={<Lazy><FarmEquipmentPage /></Lazy>} />
-        <Route path="/aviation-parts-hotline" element={<Lazy><AviationPartsPage /></Lazy>} />
-        <Route path="/mining-equipment-parts" element={<Lazy><MiningEquipmentPage /></Lazy>} />
-        <Route path="/marine-boat-parts" element={<Lazy><MarinePartsPage /></Lazy>} />
-        <Route path="/railroad-parts-hotline" element={<Lazy><RailroadPartsPage /></Lazy>} />
+        <Route path="/use-case/heavy-equipment-parts-hotline" element={<Lazy><HeavyEquipmentPage /></Lazy>} />
+        <Route path="/use-case/farm-equipment-parts-hotline" element={<Lazy><FarmEquipmentPage /></Lazy>} />
+        <Route path="/use-case/aviation-parts-hotline" element={<Lazy><AviationPartsPage /></Lazy>} />
+        <Route path="/use-case/mining-equipment-parts" element={<Lazy><MiningEquipmentPage /></Lazy>} />
+        <Route path="/use-case/marine-boat-parts" element={<Lazy><MarinePartsPage /></Lazy>} />
+        <Route path="/use-case/railroad-parts-hotline" element={<Lazy><RailroadPartsPage /></Lazy>} />
+        {/* redirects from old industry URLs */}
+        <Route path="/heavy-equipment-parts-hotline" element={<Navigate to="/use-case/heavy-equipment-parts-hotline" replace />} />
+        <Route path="/farm-equipment-parts-hotline" element={<Navigate to="/use-case/farm-equipment-parts-hotline" replace />} />
+        <Route path="/aviation-parts-hotline" element={<Navigate to="/use-case/aviation-parts-hotline" replace />} />
+        <Route path="/mining-equipment-parts" element={<Navigate to="/use-case/mining-equipment-parts" replace />} />
+        <Route path="/marine-boat-parts" element={<Navigate to="/use-case/marine-boat-parts" replace />} />
+        <Route path="/railroad-parts-hotline" element={<Navigate to="/use-case/railroad-parts-hotline" replace />} />
         <Route path="/blog" element={<Lazy><BlogIndexPage /></Lazy>} />
         <Route path="/blog/guides" element={<Lazy><BlogCategoryPage category="guides" /></Lazy>} />
         <Route path="/blog/news" element={<Lazy><BlogCategoryPage category="news" /></Lazy>} />

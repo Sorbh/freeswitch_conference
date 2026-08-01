@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
+import { SiteNav, SiteFooter, Seo, SiteFaq, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 import BlogLayout from "./BlogLayout";
 import REGION_CONTENT from "../../../../data/regions-ssr-data.json";
 
@@ -352,20 +352,7 @@ export function FindPartsPage() {
       </section>
 
       {/* ──── FAQ ──── */}
-      <section className="fp-section">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} />
 
       {/* ──── Bottom CTA ──── */}
       <section className="fp-cta-section">
@@ -765,20 +752,7 @@ export function SellPartsPage() {
       </section>
 
       {/* ──── FAQ ──── */}
-      <section className="fp-section fp-band">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} band />
 
       {/* ──── Bottom CTA ──── */}
       <section className="fp-cta-section">
@@ -1597,20 +1571,7 @@ export function AutoPartsHotlinePage() {
         </div>
       </section>
 
-      <section className="fp-section fp-band">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} />
 
       <section className="fp-cta-section">
         <div className="fp-cta-inner">
@@ -1755,20 +1716,7 @@ export function CarPartAlternativePage() {
         </div>
       </section>
 
-      <section className="fp-section">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} />
 
       <section className="fp-cta-section">
         <div className="fp-cta-inner">
@@ -1903,20 +1851,7 @@ export function HardToFindPartsPage() {
         </div>
       </section>
 
-      <section className="fp-section">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} />
 
       <section className="fp-cta-section">
         <div className="fp-cta-inner">
@@ -2044,20 +1979,7 @@ export function SalvageYardMarketingPage() {
         </div>
       </section>
 
-      <section className="fp-section">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} />
 
       <section className="fp-cta-section">
         <div className="fp-cta-inner">
@@ -2188,20 +2110,7 @@ export function EvHybridPartsPage() {
         </div>
       </section>
 
-      <section className="fp-section">
-        <div className="fp-section-head">
-          <p className="fp-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="fp-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="fp-faq" key={i}>
-              <summary className="fp-faq-q">{f.q}</summary>
-              <p className="fp-faq-a">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
+      <SiteFaq faqs={FAQS} />
 
       <section className="fp-cta-section">
         <div className="fp-cta-inner">
@@ -2781,7 +2690,12 @@ const FEATURE_CSS = `
 
 /* FAQ */
 .fp-faq-list {
-  max-width: 720px;
+  max-width: 680px;
+  padding-left: 32px;
+}
+.fp-band > .fp-faq-list {
+  margin-left: 0;
+  margin-right: 0;
 }
 .fp-faq {
   background: var(--surface);

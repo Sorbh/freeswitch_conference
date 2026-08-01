@@ -5,12 +5,12 @@ const SIGNUP_URL = "https://hotlinehq.online/client/signup";
 const CONTACT_URL = `mailto:${CONTACT_EMAIL}?subject=Industry%20Inquiry`;
 
 const INDUSTRY_NAV = [
-  { label: "Heavy Equipment", to: "/heavy-equipment-parts-hotline" },
-  { label: "Farm Equipment", to: "/farm-equipment-parts-hotline" },
-  { label: "Aviation / AOG", to: "/aviation-parts-hotline" },
-  { label: "Mining Equipment", to: "/mining-equipment-parts" },
-  { label: "Marine / Boat", to: "/marine-boat-parts" },
-  { label: "Railroad", to: "/railroad-parts-hotline" },
+  { label: "Heavy Equipment", to: "/use-case/heavy-equipment-parts-hotline" },
+  { label: "Farm Equipment", to: "/use-case/farm-equipment-parts-hotline" },
+  { label: "Aviation / AOG", to: "/use-case/aviation-parts-hotline" },
+  { label: "Mining Equipment", to: "/use-case/mining-equipment-parts" },
+  { label: "Marine / Boat", to: "/use-case/marine-boat-parts" },
+  { label: "Railroad", to: "/use-case/railroad-parts-hotline" },
 ];
 
 function IndustryLinks({ current }) {
@@ -35,7 +35,7 @@ function ProofBar() {
 }
 
 /* ================================================================== */
-/*  /heavy-equipment-parts-hotline                                     */
+/*  /use-case/heavy-equipment-parts-hotline                                     */
 /* ================================================================== */
 
 export function HeavyEquipmentPage() {
@@ -58,7 +58,7 @@ export function HeavyEquipmentPage() {
         title="Heavy Equipment Parts Hotline — Find CAT, Deere, Komatsu Parts Fast"
         description="Find used heavy equipment parts in seconds. Broadcast to every dealer at once — CAT, Deere, Komatsu, Volvo. Cut downtime from days to minutes. No listing fees."
         keywords="heavy equipment parts, used heavy equipment parts, CAT parts used, heavy equipment parts locator, construction equipment parts, excavator parts used, heavy equipment salvage, Caterpillar parts, Komatsu parts, heavy equipment parts near me"
-        path="/heavy-equipment-parts-hotline"
+        path="/use-case/heavy-equipment-parts-hotline"
         jsonLd={{
           "@context": "https://schema.org",
           "@graph": [
@@ -207,14 +207,16 @@ export function HeavyEquipmentPage() {
       </section>
 
       <section className="ind-section ind-band">
-        <div className="ind-section-head">
-          <p className="ind-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="ind-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
-          ))}
+        <div style={{maxWidth:1100, margin:'0 auto'}}>
+          <div className="ind-section-head" style={{textAlign:'left', maxWidth:'none', marginLeft:0, marginRight:0}}>
+            <p className="ind-kicker">FAQ</p>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div className="ind-faq-list">
+            {FAQS.map((f, i) => (
+              <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -228,7 +230,7 @@ export function HeavyEquipmentPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
-          <IndustryLinks current="/heavy-equipment-parts-hotline" />
+          <IndustryLinks current="/use-case/heavy-equipment-parts-hotline" />
         </div>
       </section>
 
@@ -238,7 +240,7 @@ export function HeavyEquipmentPage() {
 }
 
 /* ================================================================== */
-/*  /farm-equipment-parts-hotline                                      */
+/*  /use-case/farm-equipment-parts-hotline                                      */
 /* ================================================================== */
 
 export function FarmEquipmentPage() {
@@ -261,7 +263,7 @@ export function FarmEquipmentPage() {
         title="Farm Equipment Parts Hotline — Find Tractor & Combine Parts Fast"
         description="Find used farm equipment parts in seconds. Broadcast to every dealer at once — John Deere, Case IH, New Holland. Don't lose harvest time waiting for parts."
         keywords="farm equipment parts, used farm equipment parts, tractor parts, combine parts, John Deere parts used, Case IH parts, farm equipment parts locator, agricultural equipment parts, used tractor parts, farm equipment salvage"
-        path="/farm-equipment-parts-hotline"
+        path="/use-case/farm-equipment-parts-hotline"
         jsonLd={{
           "@context": "https://schema.org",
           "@graph": [
@@ -409,14 +411,16 @@ export function FarmEquipmentPage() {
       </section>
 
       <section className="ind-section ind-band">
-        <div className="ind-section-head">
-          <p className="ind-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="ind-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
-          ))}
+        <div style={{maxWidth:1100, margin:'0 auto'}}>
+          <div className="ind-section-head" style={{textAlign:'left', maxWidth:'none', marginLeft:0, marginRight:0}}>
+            <p className="ind-kicker">FAQ</p>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div className="ind-faq-list">
+            {FAQS.map((f, i) => (
+              <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -430,7 +434,7 @@ export function FarmEquipmentPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
-          <IndustryLinks current="/farm-equipment-parts-hotline" />
+          <IndustryLinks current="/use-case/farm-equipment-parts-hotline" />
         </div>
       </section>
 
@@ -440,7 +444,7 @@ export function FarmEquipmentPage() {
 }
 
 /* ================================================================== */
-/*  /aviation-parts-hotline                                            */
+/*  /use-case/aviation-parts-hotline                                            */
 /* ================================================================== */
 
 export function AviationPartsPage() {
@@ -462,7 +466,7 @@ export function AviationPartsPage() {
         title="Aviation Parts Hotline — AOG Parts Sourcing in Seconds, Not Hours"
         description="AOG parts hotline for aircraft maintenance. Broadcast to every vendor at once — find rotables, avionics, LRUs in seconds. Cut AOG downtime. FAA-compliant sourcing."
         keywords="aviation parts hotline, AOG parts, aircraft parts locator, used aircraft parts, AOG desk, aviation parts supplier, airplane parts, aircraft parts broker, AOG sourcing, aircraft parts search"
-        path="/aviation-parts-hotline"
+        path="/use-case/aviation-parts-hotline"
         jsonLd={{
           "@context": "https://schema.org",
           "@graph": [
@@ -594,7 +598,7 @@ export function AviationPartsPage() {
       </section>
 
       <section className="ind-section">
-        <div className="ind-section-head">
+        <div className="ind-section-head" style={{textAlign:'left'}}>
           <p className="ind-kicker">FAQ</p>
           <h2>Frequently Asked Questions</h2>
         </div>
@@ -615,7 +619,7 @@ export function AviationPartsPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
-          <IndustryLinks current="/aviation-parts-hotline" />
+          <IndustryLinks current="/use-case/aviation-parts-hotline" />
         </div>
       </section>
 
@@ -625,7 +629,7 @@ export function AviationPartsPage() {
 }
 
 /* ================================================================== */
-/*  /mining-equipment-parts                                            */
+/*  /use-case/mining-equipment-parts                                            */
 /* ================================================================== */
 
 export function MiningEquipmentPage() {
@@ -648,7 +652,7 @@ export function MiningEquipmentPage() {
         title="Mining Equipment Parts — Find Haul Truck, Crusher & Drill Parts Fast"
         description="Find used mining equipment parts in seconds. CAT, Komatsu, Hitachi — haul trucks, crushers, drills. Broadcast to every dealer at once. Downtime costs $10K-$50K/hr — don't wait."
         keywords="mining equipment parts, used mining equipment parts, haul truck parts, crusher parts, mining parts supplier, Caterpillar mining parts, Komatsu mining parts, drill rig parts, conveyor parts mining, mining equipment salvage, used mining parts near me"
-        path="/mining-equipment-parts"
+        path="/use-case/mining-equipment-parts"
         jsonLd={{
           "@context": "https://schema.org",
           "@graph": [
@@ -769,16 +773,18 @@ export function MiningEquipmentPage() {
       </section>
 
       <section className="ind-section ind-band">
-        <div className="ind-section-head"><p className="ind-kicker">FAQ</p><h2>Frequently Asked Questions</h2></div>
-        <div className="ind-faq-list">{FAQS.map((f, i) => <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>)}</div>
+        <div style={{maxWidth:1100, margin:'0 auto'}}>
+          <div className="ind-section-head" style={{textAlign:'left', maxWidth:'none', marginLeft:0, marginRight:0}}><p className="ind-kicker">FAQ</p><h2>Frequently Asked Questions</h2></div>
+          <div className="ind-faq-list">{FAQS.map((f, i) => <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>)}</div>
+        </div>
       </section>
 
       <section className="ind-cta"><div className="ind-cta-inner">
         <p className="ind-kicker" style={{color:'var(--red)'}}>COMING SOON</p><h2>The mining equipment parts hotline</h2>
         <p>Proven in auto parts with 500+ members. Mining is next — same urgency, higher stakes. Join the waitlist for early access.</p>
         <a href={CONTACT_URL} className="ind-btn ind-btn-hot">Join the Waitlist</a>
-        <p className="ind-cta-alt">See it working: <Link to="/#top">listen to a live call</Link> · <Link to="/used-auto-parts-hotline">how the hotline works</Link> · <Link to="/heavy-equipment-parts-hotline">heavy equipment hotline</Link></p>
-        <IndustryLinks current="/mining-equipment-parts" />
+        <p className="ind-cta-alt">See it working: <Link to="/#top">listen to a live call</Link> · <Link to="/used-auto-parts-hotline">how the hotline works</Link> · <Link to="/use-case/heavy-equipment-parts-hotline">heavy equipment hotline</Link></p>
+        <IndustryLinks current="/use-case/mining-equipment-parts" />
       </div></section>
       <SiteFooter />
     </div>
@@ -786,7 +792,7 @@ export function MiningEquipmentPage() {
 }
 
 /* ================================================================== */
-/*  /marine-boat-parts                                                 */
+/*  /use-case/marine-boat-parts                                                 */
 /* ================================================================== */
 
 export function MarinePartsPage() {
@@ -809,7 +815,7 @@ export function MarinePartsPage() {
         title="Used Boat Parts & Marine Salvage — Find Engine, Outdrive & Hull Parts Fast"
         description="Find used boat parts and marine salvage parts in seconds. Mercury, Yamaha, Volvo Penta, MerCruiser. No listing platform exists for marine — broadcast to every salvage yard at once."
         keywords="used boat parts, marine parts salvage, boat parts near me, used marine engine parts, marine salvage parts, boat parts locator, used outboard motor parts, marine parts online, boat engine parts used, used boat parts near me, Mercruiser sterndrive parts"
-        path="/marine-boat-parts"
+        path="/use-case/marine-boat-parts"
         jsonLd={{
           "@context": "https://schema.org",
           "@graph": [
@@ -960,14 +966,16 @@ export function MarinePartsPage() {
       </section>
 
       <section className="ind-section ind-band">
-        <div className="ind-section-head">
-          <p className="ind-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="ind-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
-          ))}
+        <div style={{maxWidth:1100, margin:'0 auto'}}>
+          <div className="ind-section-head" style={{textAlign:'left', maxWidth:'none', marginLeft:0, marginRight:0}}>
+            <p className="ind-kicker">FAQ</p>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div className="ind-faq-list">
+            {FAQS.map((f, i) => (
+              <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -981,7 +989,7 @@ export function MarinePartsPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
-          <IndustryLinks current="/marine-boat-parts" />
+          <IndustryLinks current="/use-case/marine-boat-parts" />
         </div>
       </section>
 
@@ -991,7 +999,7 @@ export function MarinePartsPage() {
 }
 
 /* ================================================================== */
-/*  /railroad-parts-hotline                                            */
+/*  /use-case/railroad-parts-hotline                                            */
 /* ================================================================== */
 
 export function RailroadPartsPage() {
@@ -1014,7 +1022,7 @@ export function RailroadPartsPage() {
         title="Railroad & Locomotive Parts Hotline — Find EMD, GE, Alco Parts Fast"
         description="Find used railroad and locomotive parts in seconds. Traction motors, diesel engines, dynamic brakes, air compressors. Broadcast to every rail parts supplier at once. EMD, GE/Wabtec, Alco."
         keywords="railroad parts, locomotive parts, used railroad equipment parts, rail parts supplier, traction motor parts, railroad parts locator, train parts used, locomotive engine parts, railroad brake parts, used locomotive parts for sale, railroad equipment supplier"
-        path="/railroad-parts-hotline"
+        path="/use-case/railroad-parts-hotline"
         jsonLd={{
           "@context": "https://schema.org",
           "@graph": [
@@ -1163,14 +1171,16 @@ export function RailroadPartsPage() {
       </section>
 
       <section className="ind-section ind-band">
-        <div className="ind-section-head">
-          <p className="ind-kicker">FAQ</p>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-        <div className="ind-faq-list">
-          {FAQS.map((f, i) => (
-            <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
-          ))}
+        <div style={{maxWidth:1100, margin:'0 auto'}}>
+          <div className="ind-section-head" style={{textAlign:'left', maxWidth:'none', marginLeft:0, marginRight:0}}>
+            <p className="ind-kicker">FAQ</p>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+          <div className="ind-faq-list">
+            {FAQS.map((f, i) => (
+              <details className="ind-faq" key={i}><summary>{f.q}</summary><p>{f.a}</p></details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -1184,7 +1194,7 @@ export function RailroadPartsPage() {
             See it working now: <Link to="/#top">listen to a live auto parts call</Link>
             {' '}· <Link to="/used-auto-parts-hotline">how the hotline works</Link>
           </p>
-          <IndustryLinks current="/railroad-parts-hotline" />
+          <IndustryLinks current="/use-case/railroad-parts-hotline" />
         </div>
       </section>
 
@@ -1231,7 +1241,7 @@ div:has(> .fp-proof-item) { display: flex; justify-content: center; gap: 0; back
 /* sections */
 .ind-section { padding: 90px 32px; max-width: 1100px; margin: 0 auto; }
 .ind-band { background: #f8f7f5; max-width: 100%; }
-.ind-band .ind-section-head, .ind-band .ind-grid, .ind-band .ind-faq-list { max-width: 1100px; margin-left: auto; margin-right: auto; }
+.ind-band .ind-section-head, .ind-band .ind-grid { max-width: 1100px; margin-left: auto; margin-right: auto; }
 .ind-section-head { text-align: center; margin-bottom: 48px; }
 .ind-section-head h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 700; line-height: 1.08; letter-spacing: -0.015em; color: #16181d; margin: 0 0 16px; }
 .ind-lede { font-size: 17px; line-height: 1.65; color: #6b7075; max-width: 640px; margin: 0 auto; }
@@ -1247,7 +1257,7 @@ div:has(> .fp-proof-item) { display: flex; justify-content: center; gap: 0; back
 .ind-footnote { text-align: center; font-size: 14px; color: #6b7075; margin-top: 24px; }
 
 /* FAQ */
-.ind-faq-list { max-width: 760px; margin: 0 auto; }
+.ind-faq-list { max-width: 680px; }
 .ind-faq { border-bottom: 1px solid #e5e7eb; }
 .ind-faq summary { padding: 20px 0; font-size: 16px; font-weight: 600; color: #16181d; cursor: pointer; list-style: none; }
 .ind-faq summary::-webkit-details-marker { display: none; }

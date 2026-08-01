@@ -527,7 +527,7 @@ export default function Landing2Page() {
           <p className="l2-eyebrow">{t("hero.eyebrow")}</p>
           <h1 dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
           <p className="l2-sub">{t("hero.subheading")}</p>
-          <Link to="/replace-copper-hotline" className="l2-phone-subtitle">{t("hero.phoneSubtitle")}</Link>
+          <Link to="/use-case/replace-copper-hotline" className="l2-phone-subtitle">{t("hero.phoneSubtitle")}</Link>
           <div className="l2-hero-ctas">
             <a className="l2-btn l2-btn-hot" href={signupUrl}>
               {t("common:nav.signUpFree")}
@@ -698,7 +698,7 @@ export default function Landing2Page() {
       </LazySection>
 
       {/* ───────────────── from the blog ───────────────── */}
-      <section className="l2-section l2-blog-section">
+      <section className="l2-section l2-band l2-blog-section">
         <div className="l2-section-head l2-reveal">
           <p className="l2-kicker">FROM THE BLOG</p>
           <h2>Industry guides &amp; insights</h2>
@@ -733,12 +733,12 @@ export default function Landing2Page() {
         </div>
         <div className="l2-industries-grid l2-reveal">
           {[
-            { to: "/heavy-equipment-parts-hotline", label: "Heavy Equipment", sub: "CAT, Deere, Komatsu" },
-            { to: "/farm-equipment-parts-hotline", label: "Farm Equipment", sub: "Tractors, Combines" },
-            { to: "/aviation-parts-hotline", label: "Aviation / AOG", sub: "Aircraft Parts" },
-            { to: "/mining-equipment-parts", label: "Mining", sub: "Haul Trucks, Crushers" },
-            { to: "/marine-boat-parts", label: "Marine & Boat", sub: "Engines, Outdrives" },
-            { to: "/railroad-parts-hotline", label: "Railroad", sub: "Locomotives, Rolling Stock" },
+            { to: "/use-case/heavy-equipment-parts-hotline", label: "Heavy Equipment", sub: "CAT, Deere, Komatsu" },
+            { to: "/use-case/farm-equipment-parts-hotline", label: "Farm Equipment", sub: "Tractors, Combines" },
+            { to: "/use-case/aviation-parts-hotline", label: "Aviation / AOG", sub: "Aircraft Parts" },
+            { to: "/use-case/mining-equipment-parts", label: "Mining", sub: "Haul Trucks, Crushers" },
+            { to: "/use-case/marine-boat-parts", label: "Marine & Boat", sub: "Engines, Outdrives" },
+            { to: "/use-case/railroad-parts-hotline", label: "Railroad", sub: "Locomotives, Rolling Stock" },
           ].map((ind, i) => (
             <Link to={ind.to} className="l2-industry-card" key={i}>
               <strong>{ind.label}</strong>
@@ -749,32 +749,38 @@ export default function Landing2Page() {
       </section>
 
       {/* ───────────────── copper upgrader ───────────────── */}
-      <section className="l2-section l2-copper" id="copper">
-        <div className="l2-copper-inner l2-reveal">
+      <section className="l2-section l2-band" id="copper">
+        <div className="l2-section-head l2-reveal">
           <p className="l2-kicker">SWITCHING FROM COPPER?</p>
           <h2>Already on a hotline?</h2>
-          <img className="l2-copper-img" src="/images/t31p-copper.webp" alt="Hotline HQ desk phone on a shop counter" width="400" height="300" loading="lazy" />
-          <p className="l2-copper-body">
+          <p className="l2-lede">
             If your group is on a copper line, a radio network, or any legacy hotline
             — bring them to HQ. Same group. Better line.
           </p>
-          <div className="l2-copper-features">
-            <div className="l2-copper-feat">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 8h20" /><path d="M9 12h6" /><path d="M9 16h4" /></svg>
-              <div><strong>Same desk phone</strong><span>A dedicated Yealink on your counter, just like the copper phone on your wall</span></div>
+        </div>
+        <div className="l2-copper-layout l2-reveal">
+          <div className="l2-copper-content">
+            <div className="l2-copper-features">
+              <div className="l2-copper-feat">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 8h20" /><path d="M9 12h6" /><path d="M9 16h4" /></svg>
+                <div><strong>Same desk phone</strong><span>A dedicated Yealink on your counter, just like the copper phone on your wall</span></div>
+              </div>
+              <div className="l2-copper-feat">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 2v10l7-7" /></svg>
+                <div><strong>HD digital audio</strong><span>Crystal-clear voice over internet — no static, no line noise</span></div>
+              </div>
+              <div className="l2-copper-feat">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                <div><strong>12 rooms, not just one</strong><span>Reach yards across every major market, not just your local area</span></div>
+              </div>
             </div>
-            <div className="l2-copper-feat">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 2v10l7-7" /></svg>
-              <div><strong>HD digital audio</strong><span>Crystal-clear voice over internet — no static, no line noise</span></div>
-            </div>
-            <div className="l2-copper-feat">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-              <div><strong>12 rooms, not just one</strong><span>Reach yards across every major market, not just your local area</span></div>
-            </div>
+            <Link to="/use-case/replace-copper-hotline" className="l2-btn l2-btn-hot">
+              Bring Your Group to HQ →
+            </Link>
           </div>
-          <Link to="/replace-copper-hotline" className="l2-btn l2-btn-hot">
-            Bring Your Group to HQ →
-          </Link>
+          <div className="l2-copper-phone">
+            <img src="/images/t31p-copper.webp" alt="Hotline HQ desk phone on a shop counter" width="400" height="300" loading="lazy" />
+          </div>
         </div>
       </section>
 
@@ -965,13 +971,6 @@ const CSS = `
   box-shadow: 0 8px 32px rgba(0,0,0,0.18);
 }
 .l2-hero-phone img { display: block; width: 100%; height: auto; }
-.l2-copper-img {
-  display: block;
-  max-width: 320px;
-  margin: 20px auto 24px;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-}
 .l2-phone-subtitle {
   display: inline-block;
   margin: 0 auto 28px;
@@ -1738,26 +1737,29 @@ const CSS = `
 }
 
 /* copper upgrader section */
-.l2-copper {
+.l2-copper-layout {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+.l2-copper-content { flex: 1; }
+.l2-copper-phone {
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.l2-copper-phone img { display: block; width: 320px; height: auto; }
+.l2-copper-old {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   background: linear-gradient(168deg, #fef3f2 0%, var(--bg) 55%);
-}
-.l2-copper-inner {
-  max-width: 680px;
-  margin: 0 auto;
-  text-align: center;
-}
-.l2-copper-inner h2 {
-  font-size: clamp(30px, 4vw, 48px);
-  font-weight: 700;
 }
 .l2-copper-features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  margin: 28px auto 32px;
-  max-width: 780px;
+  margin: 0 0 32px;
   text-align: left;
 }
 .l2-copper-feat {
@@ -1768,20 +1770,12 @@ const CSS = `
 .l2-copper-feat svg { flex-shrink: 0; color: var(--red); margin-top: 2px; }
 .l2-copper-feat strong { display: block; font-size: 14.5px; margin-bottom: 4px; }
 .l2-copper-feat span { font-size: 13px; color: var(--muted); line-height: 1.5; }
-.l2-copper-body {
-  color: var(--muted);
-  font-size: 17.5px;
-  line-height: 1.65;
-  margin: 18px auto 36px;
-  max-width: 540px;
-}
 @media (max-width: 640px) {
   .l2-hero-split { flex-direction: column; gap: 24px; }
   .l2-hero-phone { flex: none; max-width: 280px; }
-  .l2-copper-inner h2 { font-size: clamp(22px, 6vw, 30px); }
-  .l2-copper-body { font-size: 14.5px; margin: 14px auto 28px; }
-  .l2-copper-features { grid-template-columns: 1fr; max-width: 400px; }
-  .l2-copper-img { max-width: 240px; }
+  .l2-copper-layout { flex-direction: column-reverse; gap: 28px; }
+  .l2-copper-phone img { width: 240px; }
+  .l2-copper-features { grid-template-columns: 1fr; }
   .l2-phone-subtitle { font-size: 13px; padding: 6px 16px; }
 }
 
