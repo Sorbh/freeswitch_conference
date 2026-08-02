@@ -427,6 +427,9 @@ export function SellPartsPage() {
     { q: "What types of businesses use Hotline HQ?", a: "Auto dismantlers, salvage yards, junkyards, used parts dealers, and recyclers. Some shops that pull their own parts also use the network to find parts they don't carry. The network is purpose-built for the used auto parts industry — it's not a general marketplace." },
     { q: "Is there a contract or long-term commitment?", a: "No long-term contracts. Membership is month-to-month. You can cancel anytime. Most yards stay because the network pays for itself within the first week — a single transmission sale covers months of membership." },
     { q: "What makes and models are most requested?", a: "Ford leads with 900+ requests, followed by Toyota (830+), Honda (635+), Chevrolet (525+), Nissan (280+), and Dodge (257+). Model years range from the 1990s through 2025. The network reflects real-world demand — whatever customers are driving into shops, that's what's being requested on the hotline." },
+    { q: "Can I sell salvage parts that aren't in my inventory system?", a: "Absolutely — that's the whole point. Most salvage yards have hundreds of parts sitting in rows that were never photographed, cataloged, or entered into any system. On Hotline HQ, you sell dismantled car parts without listing them. You hear a buyer's request, check your yard, and respond. No database entry required." },
+    { q: "How do I sell more auto parts without spending more on marketing?", a: "Stop marketing and start listening. Every broadcast on the network is a qualified buyer describing exactly what they need. You don't pay for ads, optimize SEO, or manage social media — you plug in a desk phone and hear 40+ part requests per day in active rooms. Respond to the ones you can fill. That's it." },
+    { q: "Is Hotline HQ a wholesale or retail channel?", a: "Wholesale. Hotline HQ is a used auto parts wholesale network — yard-to-yard and shop-to-yard sales without retail overhead. No product photos, no shipping logistics, no customer returns. Used car parts wholesale transactions happen in real time: a shop broadcasts what they need, you respond, and they pick it up or arrange freight directly. Flat monthly fee, zero commission." },
   ];
 
   return (
@@ -630,7 +633,7 @@ export function SellPartsPage() {
         </div>
         <div className="fp-advantages">
           {[
-            { title: "Demand finds you", copy: "On eBay or Car-Part.com, buyers can only find parts you've listed. On Hotline HQ, buyers broadcast what they need — and you hear it whether you've cataloged that part or not. A transmission sitting in the back of your yard is worth nothing until someone asks for it. On this network, you hear the ask." },
+            { title: "Demand finds you", copy: "On eBay or Car-Part.com, buyers can only find parts you've listed. On Hotline HQ, buyers broadcast what they need — and you hear it whether you've cataloged that part or not. Whether you sell dismantled car parts from freshly processed vehicles or older pulls sitting on shelves, the network surfaces buyers the moment they need what you have." },
             { title: "Inventory changes daily", copy: "Parts databases go stale. You pull a fender on Monday, but the listing stays up until someone notices. On a live voice network, there's nothing to update — you only respond when you actually have the part right now. No outdated listings. No disappointed buyers." },
             { title: "Small yards compete equally", copy: "A 2-acre yard with 200 vehicles and no parts catalog competes head-to-head with a 40-acre operation running Hollander. On the hotline, what matters is whether you have the part and how fast you respond — not how sophisticated your inventory system is." },
             { title: "Sell what nobody's searching for", copy: "Buyers don't always know how to search for what they need. 'I need a wreck opinion on an '06 Silverado' doesn't fit neatly into a parts database search box. On a voice network, the buyer describes exactly what they need in plain language. If you can help, you speak up." },
@@ -769,7 +772,8 @@ export function SellPartsPage() {
             Also: <Link to="/find-used-auto-parts">Find parts on the network</Link> · <Link to="/salvage-yard-marketing">Marketing for yards</Link> · <Link to="/car-part-alternative">Car-Part.com vs Hotline HQ</Link>
           </p>
           <p className="fp-cta-alt">
-            <Link to="/own-a-hotline">Want to run your own hotline?</Link>
+            <Link to="/auto-parts-interchange-network">Parts interchange network</Link>
+            {' · '}<Link to="/own-a-hotline">Want to run your own hotline?</Link>
             {' · '}<Link to="/use-case/replace-copper-hotline">Switching from a copper line?</Link>
           </p>
         </div>
@@ -1433,6 +1437,8 @@ export function AutoPartsHotlinePage() {
     { q: "What parts are most requested on the hotline?", a: "The top requests across 15,000+ broadcasts: bumpers (398), transmissions (282), motors and engines (273), fenders (204), doors (147), headlights (131), and taillights (110). Top makes: Ford (900+), Toyota (830+), Honda (635+), Chevrolet (525+). Model years span the 1990s through 2025." },
     { q: "Is the hotline available 24/7?", a: "The conference line is always on. Most activity happens during business hours — roughly 7 AM to 6 PM in each regional time zone — but the line never closes. Some yards leave their phone on overnight and catch early-morning requests from shops that start at 6 AM." },
     { q: "How is this different from Car-Part.com?", a: "Car-Part.com is an inventory database — yards list parts, buyers search listings. Listings go stale when parts sell or vehicles get crushed. Hotline HQ is a live voice network — there's nothing to list, nothing to search. You ask for what you need out loud and get a live answer from someone who can verify the part right now. The two services are complementary, not competing." },
+    { q: "Is this the same as a junkyard hotline?", a: "Yes. Whether you call it a junkyard hotline, a salvage yard hotline, or an auto parts hotline, the concept is the same — a live voice conference network connecting yards and dismantlers. Hotline HQ is the largest junkyard hotline in the US with 500+ member yards across 15 regional rooms. The industry uses different terms, but the network is the same." },
+    { q: "Is Hotline HQ a car parts locator?", a: "It's a car parts locator that uses voice instead of search. Rather than typing year-make-model into a database, you describe what you need out loud. 97 salvage yards hear you simultaneously and the first with the part responds in about 2 seconds. Think of it as a live car parts locator that checks 97 yards at once — faster than any parts locating service." },
   ];
 
   return (
@@ -1509,7 +1515,7 @@ export function AutoPartsHotlinePage() {
         </div>
         <div className="fp-advantages">
           {[
-            { title: "It's a live conference line, not a database", copy: "Think of a parts hotline as a conference call that runs all day. Every salvage yard in your region has a phone on the line. When you need a part, you key up and describe it — year, make, model, what you need. Every yard hears you at the same time. This is the same model dismantlers have used for decades, now scaled to 500+ yards across the country." },
+            { title: "It's a live conference line, not a database", copy: "A salvage yard hotline is a conference call that runs all day. Every yard in your region has a phone on the line. When you need a part, you key up and describe it — year, make, model, what you need. Every yard hears you at the same time. This is the same parts locating service model dismantlers have used for decades, now scaled to 500+ yards across the country." },
             { title: "Voice is faster than search", copy: "Typing 'wreck opinion 2006 Silverado 2500 transfer case' into a search box doesn't capture what you actually need. On a hotline, you say it in plain language and the yards who can help understand the full context. Average response time on Hotline HQ: 2 seconds. Average time searching a parts database and calling the listing: 15-45 minutes." },
             { title: "Real-time verification, not stale listings", copy: "When a yard responds on the hotline, you know the part is there right now. The person talking to you can see it. Parts databases show what was in stock when someone last updated the record — which might've been last week. Inventory changes daily. The hotline is always current because there are no listings to go stale." },
             { title: "Both buyers and sellers benefit", copy: "The hotline isn't just for buyers. Sellers hear every request in their region — demand they'd never find on their own. A part sitting in the back of the yard is worth nothing until someone asks for it. On the hotline, you hear the ask. 60% of broadcasts get answered live, and the answering yard wins the sale." },
@@ -1588,7 +1594,7 @@ export function AutoPartsHotlinePage() {
             {' '}or <a href={`mailto:${CONTACT_EMAIL}`}>email us your questions</a>.
           </p>
           <p className="fp-cta-alt">
-            <Link to="/find-used-auto-parts">Find parts</Link> · <Link to="/sell-used-auto-parts">Sell parts</Link> · <Link to="/hard-to-find-auto-parts">Hard-to-find parts</Link> · <Link to="/car-part-alternative">Car-Part.com comparison</Link>
+            <Link to="/find-used-auto-parts">Find parts</Link> · <Link to="/sell-used-auto-parts">Sell parts</Link> · <Link to="/auto-parts-interchange-network">Parts interchange</Link> · <Link to="/car-part-alternative">Car-Part.com comparison</Link>
           </p>
         </div>
       </section>
@@ -1892,6 +1898,8 @@ export function SalvageYardMarketingPage() {
     { q: "What's the ROI on joining the network?", a: "The membership is a flat monthly fee with no commissions. One transmission sale, one motor sale, or a few smaller parts covers months of membership. The network surfaces demand you'd never find through traditional marketing — parts requests from buyers who would've called your competitor instead of you." },
     { q: "Is this worth it for a small yard?", a: "Especially for small yards. You don't need a big inventory database, a marketing team, or a web presence. Plug in the desk phone, listen for requests, and respond when you have the part. Small yards with 200-500 vehicles can compete head-to-head with 40-acre operations because on the hotline, what matters is speed and inventory — not marketing budget." },
     { q: "How is this different from paying for ads?", a: "Google Ads and Facebook Ads drive traffic to your website and hope visitors convert. Hotline HQ gives you buyers who've already described exactly what they need. There's no funnel, no landing page, no conversion rate to optimize. You hear 'I need a 2018 Civic bumper' — if you have it, you respond. The 'lead' is already qualified." },
+    { q: "Does junkyard marketing even work in 2026?", a: "Traditional junkyard marketing — Yellow Pages, Google Ads, Facebook posts — is a money pit. You pay to attract buyers who may not need what you stock. Hotline HQ flips the model: instead of advertising your junkyard to the world, you hear exactly what buyers need and respond when you have it. No ads, no agency, no wasted spend." },
+    { q: "How do I grow my salvage yard business without a marketing team?", a: "You grow your salvage yard business by capturing demand you're currently missing. Every day, buyers broadcast 40+ part requests in active rooms. Without a phone on the line, those salvage yard sales go to the yard that responds first. Growth doesn't require marketing — it requires access to demand. Plug in the desk phone and start hearing it." },
   ];
 
   return (
@@ -1950,7 +1958,7 @@ export function SalvageYardMarketingPage() {
         </div>
         <div className="fp-advantages">
           {[
-            { title: "Google Ads are expensive and generic", copy: "Bidding on 'used auto parts near me' puts you against national chains, eBay, and Amazon. Cost per click runs $2-$8, and most clicks don't convert — the visitor doesn't find their exact part and leaves. You're paying for traffic that doesn't turn into sales." },
+            { title: "Salvage yard advertising is expensive and generic", copy: "Bidding on 'used auto parts near me' puts you against national chains, eBay, and Amazon. Cost per click runs $2-$8, and most clicks don't convert — the visitor doesn't find their exact part and leaves. You're paying for traffic that doesn't turn into salvage yard sales." },
             { title: "SEO takes months and requires content", copy: "Ranking a salvage yard website on Google means writing blog posts, optimizing pages, building backlinks, and waiting 6-12 months. Most yard owners don't have time to be content marketers. And even with rankings, you're still waiting for someone to search, find you, and call." },
             { title: "Listings go stale before they sell", copy: "Posting inventory to Car-Part.com, eBay, or Facebook requires photographing, cataloging, and pricing every part. By the time a buyer finds your listing, the part might be sold. And most of your inventory never gets listed at all — the data entry just isn't worth it." },
             { title: "Word of mouth has a ceiling", copy: "Referrals are your best source, but they don't scale. You only get calls from people who already know you exist. The buyer at a shop 40 miles away who needs your part doesn't know your yard exists — they're calling the yard they've always called." },
@@ -1996,7 +2004,7 @@ export function SalvageYardMarketingPage() {
             {' '}or <a href={`mailto:${CONTACT_EMAIL}`}>email us your questions</a>.
           </p>
           <p className="fp-cta-alt">
-            <Link to="/sell-used-auto-parts">How selling works</Link> · <Link to="/used-auto-parts-hotline">How the hotline works</Link> · <Link to="/find-used-auto-parts">Find parts</Link> · <Link to="/car-part-alternative">Car-Part.com comparison</Link>
+            <Link to="/sell-used-auto-parts">How selling works</Link> · <Link to="/used-auto-parts-hotline">How the hotline works</Link> · <Link to="/auto-parts-interchange-network">Parts interchange</Link> · <Link to="/car-part-alternative">Car-Part.com comparison</Link>
           </p>
         </div>
       </section>
@@ -2128,6 +2136,253 @@ export function EvHybridPartsPage() {
           </p>
           <p className="fp-cta-alt">
             <Link to="/find-used-auto-parts">Find all parts</Link> · <Link to="/hard-to-find-auto-parts">Hard-to-find parts</Link> · <Link to="/used-auto-parts-hotline">How the hotline works</Link> · <Link to="/sell-used-auto-parts">Sell parts</Link>
+          </p>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  /auto-parts-interchange-network — B2B interchange keyword page      */
+/*  Targets: "auto parts interchange", "car parts interchange",         */
+/*  "parts interchange network", "interchange lookup",                  */
+/*  "auto parts interchange network"                                    */
+/* ================================================================== */
+
+export function InterchangeNetworkPage() {
+  const FAQS = [
+    { q: "What is auto parts interchange?", a: "Auto parts interchange is the practice of identifying which parts fit across different vehicles — different makes, models, and years. A 2016 Honda Civic bumper might be identical to a 2017 or 2018. Interchange data (maintained by systems like Hollander) maps these cross-references so yards and buyers can find compatible parts faster. On Hotline HQ, interchange happens naturally: you describe what you need, and yards with compatible parts from any matching vehicle respond." },
+    { q: "How does a parts interchange network work?", a: "A parts interchange network connects salvage yards so they can match parts across their combined inventory using interchange data. On Hotline HQ, this happens by voice in real time. You broadcast 'I need a 2018 Civic front bumper' and any yard with a compatible bumper — whether it came off a 2016, 2017, or 2019 — can respond immediately. No searching databases, no cross-referencing part numbers. The yards already know their interchange." },
+    { q: "What's the difference between interchange and OEM part numbers?", a: "OEM part numbers are manufacturer-specific — they identify the exact part for a specific vehicle. Interchange numbers map which OEM parts are functionally identical across different vehicles. A single OEM bumper cover might interchange across 3 model years and 2 trim levels. Salvage yards use interchange data to sell the same part to a wider pool of buyers." },
+    { q: "Do I need interchange software to use Hotline HQ?", a: "No. Hotline HQ isn't an interchange database — it's a live voice network where dismantlers trade parts in real time. Experienced yard operators already know their interchange from working with the vehicles daily. When a buyer broadcasts a request, yards respond based on what they know fits — no software lookup required. That said, many yards also use Hollander or Car-Part interchange data alongside the hotline." },
+    { q: "How many yards are on the interchange network?", a: "Hotline HQ connects 500+ salvage yards across 15 regional rooms. Each broadcast reaches approximately 97 yards simultaneously. California is the largest room with 200+ active yards and 8,600+ broadcasts processed. Texas, Florida, Arizona, Ohio, and Michigan are the next most active markets." },
+    { q: "Can I find interchange parts for older vehicles?", a: "Yes. The network handles requests for vehicles from the 1990s through 2025. Older vehicles often have wider interchange — a part that fits a 2003 might also fit 2001 through 2006. Yards that specialize in older inventory hear every request and respond when they have a match. Over 15,000 part requests have been processed on the network." },
+    { q: "Is this free to join?", a: "Hotline HQ charges a flat monthly membership fee — no per-call charges, no commissions on sales, no interchange lookup fees. A preconfigured Yealink desk phone is included with membership and shipped to your location. You can also connect through the web client at no extra cost." },
+    { q: "How is this different from Hollander or Car-Part.com interchange?", a: "Hollander and Car-Part.com are interchange databases — they tell you which parts cross-reference across vehicles. Hotline HQ is a live voice network — you ask for a part and real people with real inventory respond in seconds. The two are complementary: Hollander tells you which part numbers interchange, Hotline HQ connects you with someone who actually has the part right now. Many yards use both." },
+  ];
+
+  return (
+    <div className="l2">
+      <style>{SITE_CSS}</style>
+      <style>{FEATURE_CSS}</style>
+      <Seo
+        title="Auto Parts Interchange Network — 500+ Yards, Live Matching | Hotline HQ"
+        description="Auto parts interchange network connecting 500+ salvage yards. Broadcast what you need — yards with interchange-compatible parts respond in 2 seconds. No database lookups."
+        keywords="auto parts interchange, car parts interchange, parts interchange network, interchange lookup, auto parts interchange network, hollander interchange, used auto parts interchange, salvage parts interchange, interchange parts finder, cross reference auto parts"
+        path="/auto-parts-interchange-network"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Service",
+              name: "Auto Parts Interchange Network — Hotline HQ",
+              serviceType: "Auto Parts Interchange Network",
+              provider: { "@type": "Organization", name: "Hotline HQ", url: buildSiteUrl("/") },
+              areaServed: { "@type": "Country", name: "US" },
+              description: "Live voice interchange network connecting 500+ salvage yards. Broadcast a part request and yards with interchange-compatible parts respond in 2 seconds. Over 15,000 parts located.",
+              offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" },
+            },
+            {
+              "@type": "FAQPage",
+              mainEntity: FAQS.map(f => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            },
+          ],
+        }}
+      />
+      <SiteNav />
+
+      <section className="fp-hero">
+        <div className="fp-hero-scrim" aria-hidden="true" />
+        <div className="fp-hero-inner">
+          <p className="fp-kicker">INTERCHANGE NETWORK</p>
+          <h1>The auto parts interchange network that <em>responds in 2 seconds</em></h1>
+          <p className="fp-hero-sub">
+            Stop searching interchange databases. Broadcast what you need and 97 yards with compatible parts
+            respond live. Over 15,000 parts located across <strong>500+ member yards</strong>.
+          </p>
+          <div className="fp-hero-ctas">
+            <a href={SIGNUP_URL} className="fp-btn fp-btn-hot">Join the Network — Free</a>
+            <Link to="/marketplace" className="fp-btn fp-btn-ghost">See Live Requests</Link>
+          </div>
+          <Link to="/#top" className="fp-listen-link">
+            <span className="fp-listen-dot" />
+            Hear a real broadcast — listen to a live call
+          </Link>
+          <div className="fp-hero-stats">
+            {[
+              { value: "15,000+", label: "Parts located" },
+              { value: "~97", label: "Yards per broadcast" },
+              { value: "2s", label: "Avg response" },
+              { value: "500+", label: "Member yards" },
+            ].map((s, i) => (
+              <div className="fp-hero-stat" key={i}>
+                <strong>{s.value}</strong>
+                <span>{s.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="fp-section">
+        <div className="fp-section-head">
+          <p className="fp-kicker">HOW INTERCHANGE WORKS ON THE HOTLINE</p>
+          <h2>Auto parts interchange without the database lookup</h2>
+        </div>
+        <div className="fp-advantages">
+          {[
+            { title: "Interchange happens by voice, not by software", copy: "On an interchange database, you type a part number and get a list of cross-references. On Hotline HQ, you describe what you need and the yards that have a compatible part — from any interchange-matching vehicle — respond in seconds. The interchange knowledge lives with the dismantlers, not in a search box." },
+            { title: "Wider coverage than any single database", copy: "Hollander and Car-Part.com cover documented interchange. But experienced dismantlers know fits that aren't in the data — aftermarket cross-references, trim-level swaps, and parts that physically bolt on even when the interchange number says otherwise. A voice network captures that knowledge. A database can't." },
+            { title: "Real-time verification, not stale cross-references", copy: "Interchange databases tell you a part should fit. They don't tell you if anyone actually has it. On the hotline, you get both answers at once — 'yes that interchanges, and I have one on the shelf right now.' Average response time: 2 seconds. No calling yards one by one to check." },
+            { title: "Every yard is an interchange expert", copy: "Salvage yard operators pull and sell parts all day, every day. They know which bumper covers swap across model years, which engines drop into which chassis, and which headlights are identical except for the part number. That expertise, multiplied by 97 yards hearing your request simultaneously, is the interchange network." },
+          ].map((b, i) => (
+            <div className="fp-advantage" key={i}>
+              <h3>{b.title}</h3>
+              <p>{b.copy}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="fp-section fp-band">
+        <div className="fp-section-head">
+          <p className="fp-kicker">INTERCHANGE VS. DATABASE</p>
+          <h2>Why voice interchange beats searching part numbers</h2>
+          <p className="fp-lede">
+            Traditional interchange is a lookup: you have a part number, you search for cross-references,
+            you call yards. On the hotline, one broadcast replaces the entire workflow.
+          </p>
+        </div>
+        <div className="fp-compare">
+          {[
+            { name: "Hollander / Car-Part Interchange", speed: "15–45 min", cost: "Subscription fee", effort: "Search → find cross-refs → call yards → wait", flaw: "You get a list of part numbers that should interchange. Then you start calling yards to see if anyone has it. Most calls go to voicemail. By the time someone calls back, you've moved on or found it elsewhere." },
+            { name: "eBay / Online Search", speed: "Hours to days", cost: "Free search / 13% fee to buy", effort: "Search, filter, hope it fits, order, wait for shipping", flaw: "Online listings use OEM part numbers — they don't always show interchange. You might miss a compatible part listed under a different vehicle. And you wait days for shipping instead of picking it up today." },
+            { name: "Calling Yards Directly", speed: "45–90 min", cost: "Free (your time)", effort: "Call one yard at a time, describe the part, repeat", flaw: "You know the interchange, but you're calling 20 yards to find one that has it. Most go to voicemail. A morning spent on the phone to find one bumper cover." },
+            { name: "Hotline HQ Interchange Network", speed: "2 seconds", cost: "Flat monthly — no per-search fee", effort: "Broadcast once. Every yard hears you.", flaw: "Describe what you need and 97 yards respond instantly — including yards with interchange-compatible parts from vehicles you didn't think to ask about. One broadcast, all cross-references covered.", hot: true },
+          ].map((c, i) => (
+            <div className={`fp-compare-card${c.hot ? ' hot' : ''}`} key={i}>
+              <p className="fp-compare-label">{c.name}</p>
+              <div className={`fp-compare-time${c.hot ? ' good' : ''}`}>
+                <span>Time to find</span>
+                <strong>{c.speed}</strong>
+              </div>
+              <div className="fp-compare-meta">
+                <span><strong>Cost:</strong> {c.cost}</span>
+                <span><strong>Effort:</strong> {c.effort}</span>
+              </div>
+              <p className="fp-compare-copy">{c.flaw}</p>
+              {c.hot && <span className="fp-compare-badge">Fastest method</span>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="fp-section">
+        <div className="fp-section-head">
+          <p className="fp-kicker">COMMON INTERCHANGE EXAMPLES</p>
+          <h2>Parts that interchange across makes and models</h2>
+          <p className="fp-lede">
+            These are examples of parts that frequently cross-reference across vehicles — the kind of
+            interchange knowledge that salvage yards on the network use every day.
+          </p>
+        </div>
+        <div className="fp-advantages">
+          {[
+            { title: "Bumper covers: 3–5 year spans", copy: "A front bumper cover from a 2016 Honda Civic often fits 2016–2019 models with the same trim level. That's one part serving a 4-year pool of buyers. On the hotline, a yard with a 2017 bumper responds to a request for a 2018 — because they know the interchange. The buyer gets the part faster." },
+            { title: "Engines and transmissions: platform sharing", copy: "Automakers share powertrains across models. The 5.3L V8 in a 2014 Silverado is the same engine in a Tahoe, Suburban, Sierra, and Yukon. One engine fits dozens of configurations. On the network, a buyer asking for a Silverado engine gets responses from yards with any of these platform-shared matches." },
+            { title: "Headlights and taillights: cosmetic swaps", copy: "Lighting assemblies frequently interchange across model years with only minor cosmetic differences. A 2019 Camry taillight might fit 2018–2021 depending on trim. Yards that handle these vehicles daily know the fits instantly — no database lookup needed." },
+            { title: "Doors and fenders: generation-wide fits", copy: "Body panels often stay identical across a full generation — 5 to 7 years of production. A fender from any year in the generation bolts right on. Experienced dismantlers know their generations and respond to interchange requests faster than any database can return results." },
+          ].map((b, i) => (
+            <div className="fp-advantage" key={i}>
+              <h3>{b.title}</h3>
+              <p>{b.copy}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="fp-section fp-band">
+        <div className="fp-section-head">
+          <p className="fp-kicker">FOR SELLERS</p>
+          <h2>Interchange expands your buyer pool</h2>
+          <p className="fp-lede">
+            As a salvage yard on the network, interchange knowledge means every part in your yard fits more
+            vehicles than you think. The hotline surfaces that demand.
+          </p>
+        </div>
+        <div className="fp-advantages">
+          {[
+            { title: "Sell parts to buyers who don't know the interchange", copy: "A shop looking for a 2019 RAV4 mirror doesn't know it's identical to the 2018 and 2020. You do. On the hotline, you hear their request and respond — 'I have a 2018, it's the same part.' That sale would never happen on a parts database unless the buyer searched both years." },
+            { title: "Move slow inventory faster", copy: "A part sitting in your yard from a less popular model year might interchange with a high-demand year. You'd never get a call for a 2016 model, but requests for the 2018 come in daily. On the hotline, you hear the 2018 request and sell your 2016 part." },
+            { title: "Compete on knowledge, not marketing", copy: "On eBay or Car-Part.com, you need to list every interchange variation to be found. On the hotline, your expertise is the search engine. When you hear a request and know the interchange fits, you respond in 2 seconds. No listing, no photos, no data entry — just industry knowledge applied in real time." },
+            { title: "No interchange subscription required", copy: "Hollander interchange data costs money. On Hotline HQ, interchange matching happens through the collective knowledge of 500+ yards. Your flat monthly membership gives you access to the entire network — no additional interchange fees, no per-lookup charges." },
+          ].map((b, i) => (
+            <div className="fp-advantage" key={i}>
+              <h3>{b.title}</h3>
+              <p>{b.copy}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="fp-section">
+        <div className="fp-section-head">
+          <p className="fp-kicker">COVERAGE</p>
+          <h2>15 regional rooms across the US</h2>
+          <p className="fp-lede">
+            Each room connects the dismantlers and salvage yards in that region. Switch between
+            rooms anytime to expand your interchange reach across state lines.
+          </p>
+        </div>
+        <div className="fp-parts-grid">
+          {[
+            { part: "California", count: "8,600+ calls" },
+            { part: "Arizona", count: "2,300+ calls" },
+            { part: "Texas", count: "490+ calls" },
+            { part: "Ohio", count: "410+ calls" },
+            { part: "Michigan", count: "410+ calls" },
+            { part: "Florida", count: "Active" },
+            { part: "Indiana", count: "Active" },
+            { part: "Georgia", count: "Active" },
+          ].map((r, i) => (
+            <div className="fp-part-card" key={i}>
+              <strong className="fp-part-name">{r.part}</strong>
+              <span className="fp-part-count">{r.count}</span>
+            </div>
+          ))}
+        </div>
+        <p className="fp-section-footnote">
+          15 regional rooms total. California is the most active with 200+ yards.{' '}
+          <Link to="/sell-used-auto-parts" style={{color:'var(--red)'}}>Learn how selling works</Link> or{' '}
+          <Link to="/find-used-auto-parts" style={{color:'var(--red)'}}>find parts on the network</Link>.
+        </p>
+      </section>
+
+      <SiteFaq faqs={FAQS} band />
+
+      <section className="fp-cta-section">
+        <div className="fp-cta-inner">
+          <p className="fp-kicker" style={{color:'var(--red)'}}>JOIN THE INTERCHANGE NETWORK</p>
+          <h2>500+ yards. Every interchange. 2 seconds.</h2>
+          <p>Free to join. Desk phone included. Broadcast your first request in under 2 minutes.</p>
+          <a href={SIGNUP_URL} className="fp-btn fp-btn-hot">Sign Up Free</a>
+          <p className="fp-cta-alt">
+            Want to hear it first? <Link to="/#top">Listen to a live call</Link>
+            {' '}or <a href={`mailto:${CONTACT_EMAIL}`}>email us your questions</a>.
+          </p>
+          <p className="fp-cta-alt">
+            <Link to="/sell-used-auto-parts">Sell parts</Link> · <Link to="/find-used-auto-parts">Find parts</Link> · <Link to="/used-auto-parts-hotline">How the hotline works</Link> · <Link to="/car-part-alternative">Car-Part.com comparison</Link>
+          </p>
+          <p className="fp-cta-alt">
+            <Link to="/salvage-yard-marketing">Marketing for yards</Link>
+            {' · '}<Link to="/use-case/replace-copper-hotline">Switching from copper?</Link>
           </p>
         </div>
       </section>
@@ -2696,10 +2951,11 @@ const FEATURE_CSS = `
 .fp-faq-list {
   max-width: 680px;
   padding-left: 32px;
+  margin-right: auto;
 }
 .fp-band > .fp-faq-list {
   margin-left: 0;
-  margin-right: 0;
+  margin-right: auto;
 }
 .fp-faq {
   background: var(--surface);

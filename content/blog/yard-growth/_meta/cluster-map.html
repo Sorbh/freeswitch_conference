@@ -1,0 +1,897 @@
+<title>Salvage Yard Growth — Cluster Map</title>
+<style>
+  /* ── Tokens ── */
+  :root {
+    --bg: #f7f5f0;
+    --bg-card: #ffffff;
+    --text: #2c2416;
+    --text-muted: #7a6e5d;
+    --border: #ddd5c8;
+    --border-light: #ece6da;
+    --pillar: #b8860b;
+    --pillar-bg: #fdf6e3;
+    --pillar-border: #d4a94a;
+    --cluster-a: #2563eb;
+    --cluster-a-bg: #eff4ff;
+    --cluster-b: #059669;
+    --cluster-b-bg: #ecfdf5;
+    --cluster-c: #d97706;
+    --cluster-c-bg: #fffbeb;
+    --cluster-d: #7c3aed;
+    --cluster-d-bg: #f5f0ff;
+    --link-line: #c4baa8;
+    --tag-bg: rgba(0,0,0,.06);
+    --shadow: 0 1px 3px rgba(44,36,22,.08), 0 4px 12px rgba(44,36,22,.04);
+    --shadow-hover: 0 2px 6px rgba(44,36,22,.12), 0 8px 24px rgba(44,36,22,.06);
+    --font-display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1710;
+      --bg-card: #25221a;
+      --text: #e8e0d0;
+      --text-muted: #a09580;
+      --border: #3d372a;
+      --border-light: #322d22;
+      --pillar-bg: #2e2810;
+      --pillar-border: #b8860b;
+      --cluster-a-bg: #1a2040;
+      --cluster-b-bg: #0a2520;
+      --cluster-c-bg: #2a1f0a;
+      --cluster-d-bg: #1f1530;
+      --link-line: #4a4030;
+      --tag-bg: rgba(255,255,255,.08);
+      --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+      --shadow-hover: 0 2px 6px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1710;
+    --bg-card: #25221a;
+    --text: #e8e0d0;
+    --text-muted: #a09580;
+    --border: #3d372a;
+    --border-light: #322d22;
+    --pillar-bg: #2e2810;
+    --pillar-border: #b8860b;
+    --cluster-a-bg: #1a2040;
+    --cluster-b-bg: #0a2520;
+    --cluster-c-bg: #2a1f0a;
+    --cluster-d-bg: #1f1530;
+    --link-line: #4a4030;
+    --tag-bg: rgba(255,255,255,.08);
+    --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+    --shadow-hover: 0 2px 6px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f5f0;
+    --bg-card: #ffffff;
+    --text: #2c2416;
+    --text-muted: #7a6e5d;
+    --border: #ddd5c8;
+    --border-light: #ece6da;
+    --pillar-bg: #fdf6e3;
+    --pillar-border: #d4a94a;
+    --cluster-a-bg: #eff4ff;
+    --cluster-b-bg: #ecfdf5;
+    --cluster-c-bg: #fffbeb;
+    --cluster-d-bg: #f5f0ff;
+    --link-line: #c4baa8;
+    --tag-bg: rgba(0,0,0,.06);
+    --shadow: 0 1px 3px rgba(44,36,22,.08), 0 4px 12px rgba(44,36,22,.04);
+    --shadow-hover: 0 2px 6px rgba(44,36,22,.12), 0 8px 24px rgba(44,36,22,.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .header-eyebrow {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: .5rem;
+  }
+  .header h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin-bottom: .75rem;
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: .95rem;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 1px;
+    background: var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+    box-shadow: var(--shadow);
+  }
+  .stat {
+    flex: 1;
+    background: var(--bg-card);
+    padding: 1rem .75rem;
+    text-align: center;
+    min-width: 0;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--pillar);
+  }
+  .stat-label {
+    font-size: .72rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: .15rem;
+  }
+
+  /* ── SVG Map ── */
+  .map-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+  }
+  .map-container svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ── Cluster sections ── */
+  .cluster-section {
+    margin-bottom: 2rem;
+  }
+  .cluster-header {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .cluster-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .cluster-name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .cluster-intent {
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: .15rem .5rem;
+    border-radius: 3px;
+  }
+
+  /* ── Post cards ── */
+  .post-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .post-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+    transition: box-shadow .2s ease, border-color .2s ease;
+    position: relative;
+  }
+  .post-card:hover {
+    box-shadow: var(--shadow-hover);
+    border-color: var(--text-muted);
+  }
+  .post-card-id {
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+    margin-bottom: .35rem;
+  }
+  .post-card h3 {
+    font-family: var(--font-display);
+    font-size: .95rem;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: .6rem;
+    text-wrap: balance;
+  }
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-bottom: .75rem;
+  }
+  .post-tag {
+    font-size: .68rem;
+    letter-spacing: .04em;
+    padding: .15rem .45rem;
+    border-radius: 3px;
+    background: var(--tag-bg);
+    color: var(--text-muted);
+  }
+  .post-tag.template { font-family: var(--font-mono); }
+  .post-tag.rewrite {
+    background: rgba(217,119,6,.15);
+    color: var(--cluster-c);
+    font-weight: 600;
+  }
+  .post-keyword {
+    font-size: .82rem;
+    color: var(--text-muted);
+    margin-bottom: .5rem;
+    font-style: italic;
+  }
+  .post-keyword strong {
+    color: var(--text);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .post-links {
+    font-size: .72rem;
+    color: var(--text-muted);
+    padding-top: .5rem;
+    border-top: 1px solid var(--border-light);
+  }
+  .post-images {
+    font-size: .72rem;
+    color: var(--text-muted);
+    margin-top: .35rem;
+  }
+  .post-cta {
+    margin-top: .6rem;
+    font-size: .75rem;
+    padding: .3rem .6rem;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .cta-listen { background: rgba(5,150,105,.12); color: var(--cluster-b); }
+  .cta-signup { background: rgba(37,99,235,.12); color: var(--cluster-a); }
+  .cta-whatsapp { background: rgba(124,58,237,.12); color: var(--cluster-d); }
+  .cta-mixed { background: var(--tag-bg); color: var(--text-muted); }
+
+  /* ── Pillar card ── */
+  .pillar-card {
+    background: var(--pillar-bg);
+    border: 2px solid var(--pillar-border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .pillar-badge {
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--pillar);
+    margin-bottom: .35rem;
+  }
+  .pillar-card h2 {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: .75rem;
+    text-wrap: balance;
+  }
+  .pillar-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem 2rem;
+    font-size: .85rem;
+  }
+  .pillar-details dt {
+    color: var(--text-muted);
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .pillar-details dd {
+    margin-bottom: .5rem;
+  }
+
+  /* ── Execution order ── */
+  .exec-section {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-light);
+  }
+  .exec-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  .exec-list {
+    list-style: none;
+    counter-reset: exec;
+  }
+  .exec-item {
+    counter-increment: exec;
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+    padding: .6rem 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: .88rem;
+  }
+  .exec-item::before {
+    content: counter(exec);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: .8rem;
+    color: var(--pillar);
+    min-width: 1.5rem;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .exec-id {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: .1rem .35rem;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .exec-title { font-weight: 500; }
+  .exec-reason {
+    color: var(--text-muted);
+    font-size: .78rem;
+    margin-left: auto;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Quality gate ── */
+  .gates {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: .75rem;
+  }
+  .gate {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .75rem 1rem;
+    font-size: .8rem;
+  }
+  .gate-label {
+    font-weight: 600;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--cluster-b);
+    margin-bottom: .2rem;
+  }
+
+  @media (max-width: 640px) {
+    .stats { flex-direction: column; }
+    .pillar-details { grid-template-columns: 1fr; }
+    .exec-reason { display: none; }
+    .post-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-eyebrow">Hotline HQ Content Cluster</div>
+    <h1>Salvage Yard Growth — Blog Cluster Plan</h1>
+    <p>9 interlinked posts targeting yard owners with zero-competition keywords. 1 pillar, 8 spokes across 4 clusters, 2 rewrites absorbed.</p>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">9</div>
+      <div class="stat-label">Posts</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">38</div>
+      <div class="stat-label">Interlinks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">~17.7k</div>
+      <div class="stat-label">Words</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">30</div>
+      <div class="stat-label">Images</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">4</div>
+      <div class="stat-label">Clusters</div>
+    </div>
+  </div>
+
+  <!-- SVG Cluster Map -->
+  <div class="map-container">
+    <svg viewBox="0 0 800 520" role="img" aria-label="Cluster map showing pillar page connected to 8 spoke posts across 4 topic clusters" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Link lines (behind nodes) -->
+      <g stroke="var(--link-line)" stroke-width="1.5" fill="none" stroke-dasharray="4 3" opacity=".6">
+        <!-- Pillar to all spokes -->
+        <line x1="400" y1="100" x2="145" y2="240"/>
+        <line x1="400" y1="100" x2="300" y2="260"/>
+        <line x1="400" y1="100" x2="455" y2="260"/>
+        <line x1="400" y1="100" x2="145" y2="400"/>
+        <line x1="400" y1="100" x2="300" y2="420"/>
+        <line x1="400" y1="100" x2="500" y2="400"/>
+        <line x1="400" y1="100" x2="655" y2="400"/>
+        <line x1="400" y1="100" x2="655" y2="240"/>
+        <!-- Cross-links within clusters -->
+        <line x1="145" y1="240" x2="300" y2="260" stroke-dasharray="2 4" opacity=".4"/>
+        <line x1="300" y1="260" x2="455" y2="260" stroke-dasharray="2 4" opacity=".4"/>
+        <line x1="145" y1="240" x2="455" y2="260" stroke-dasharray="2 4" opacity=".4"/>
+        <line x1="145" y1="400" x2="300" y2="420" stroke-dasharray="2 4" opacity=".4"/>
+        <line x1="500" y1="400" x2="655" y2="400" stroke-dasharray="2 4" opacity=".4"/>
+        <!-- Cross-cluster links -->
+        <line x1="145" y1="240" x2="145" y2="400" stroke-dasharray="2 6" opacity=".3"/>
+        <line x1="300" y1="420" x2="500" y2="400" stroke-dasharray="2 6" opacity=".3"/>
+        <line x1="655" y1="240" x2="655" y2="400" stroke-dasharray="2 6" opacity=".3"/>
+      </g>
+
+      <!-- Cluster A: Sales & Revenue (top-left) -->
+      <g>
+        <rect x="50" y="185" width="500" height="120" rx="8" fill="var(--cluster-a-bg)" stroke="var(--cluster-a)" stroke-width="1" opacity=".35" stroke-dasharray="4 2"/>
+        <text x="68" y="205" font-family="'SF Mono', Consolas, monospace" font-size="9" fill="var(--cluster-a)" letter-spacing=".1em" text-transform="uppercase" opacity=".7">SALES &amp; REVENUE</text>
+
+        <!-- A1 -->
+        <g>
+          <circle cx="145" cy="240" r="28" fill="var(--cluster-a-bg)" stroke="var(--cluster-a)" stroke-width="2"/>
+          <text x="145" y="236" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">A1</text>
+          <text x="145" y="248" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Sell More</text>
+          <title>A1: How Salvage Yards Sell More Parts — 5 Channels That Actually Work (REWRITE)</title>
+          <rect x="115" y="272" width="60" height="14" rx="2" fill="rgba(217,119,6,.2)"/>
+          <text x="145" y="282" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="var(--cluster-c)" font-weight="600">REWRITE</text>
+        </g>
+
+        <!-- A2 -->
+        <g>
+          <circle cx="300" cy="260" r="28" fill="var(--cluster-a-bg)" stroke="var(--cluster-a)" stroke-width="2"/>
+          <text x="300" y="256" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">A2</text>
+          <text x="300" y="268" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Top Parts</text>
+          <title>A2: Most Profitable Parts to Pull From a Salvage Vehicle</title>
+        </g>
+
+        <!-- A3 -->
+        <g>
+          <circle cx="455" cy="260" r="28" fill="var(--cluster-a-bg)" stroke="var(--cluster-a)" stroke-width="2"/>
+          <text x="455" y="256" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">A3</text>
+          <text x="455" y="268" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Pricing</text>
+          <title>A3: How to Price Used Auto Parts — A Seller&#39;s Strategy Guide</title>
+        </g>
+      </g>
+
+      <!-- Cluster B: Marketing & Networking (bottom-left) -->
+      <g>
+        <rect x="50" y="350" width="345" height="115" rx="8" fill="var(--cluster-b-bg)" stroke="var(--cluster-b)" stroke-width="1" opacity=".35" stroke-dasharray="4 2"/>
+        <text x="68" y="370" font-family="'SF Mono', Consolas, monospace" font-size="9" fill="var(--cluster-b)" letter-spacing=".1em" text-transform="uppercase" opacity=".7">MARKETING &amp; NETWORKING</text>
+
+        <!-- B1 -->
+        <g>
+          <circle cx="145" cy="400" r="28" fill="var(--cluster-b-bg)" stroke="var(--cluster-b)" stroke-width="2"/>
+          <text x="145" y="396" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">B1</text>
+          <text x="145" y="408" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Marketing</text>
+          <title>B1: Salvage Yard Marketing — A Practical Playbook for Auto Dismantlers</title>
+        </g>
+
+        <!-- B2 -->
+        <g>
+          <circle cx="300" cy="420" r="30" fill="var(--cluster-b-bg)" stroke="var(--cluster-b)" stroke-width="2.5"/>
+          <text x="300" y="416" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="700" fill="var(--text)">B2</text>
+          <text x="300" y="428" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Networking</text>
+          <title>B2: How to Network With Other Salvage Yards — Parts Brokering That Pays (HIGHEST VALUE)</title>
+          <rect x="265" y="454" width="70" height="14" rx="2" fill="rgba(5,150,105,.2)"/>
+          <text x="300" y="464" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="var(--cluster-b)" font-weight="600">TOP VALUE</text>
+        </g>
+      </g>
+
+      <!-- Cluster C: Operations & Technology (bottom-right) -->
+      <g>
+        <rect x="410" y="350" width="345" height="115" rx="8" fill="var(--cluster-c-bg)" stroke="var(--cluster-c)" stroke-width="1" opacity=".35" stroke-dasharray="4 2"/>
+        <text x="428" y="370" font-family="'SF Mono', Consolas, monospace" font-size="9" fill="var(--cluster-c)" letter-spacing=".1em" text-transform="uppercase" opacity=".7">OPERATIONS &amp; TECH</text>
+
+        <!-- C1 -->
+        <g>
+          <circle cx="500" cy="400" r="28" fill="var(--cluster-c-bg)" stroke="var(--cluster-c)" stroke-width="2"/>
+          <text x="500" y="396" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">C1</text>
+          <text x="500" y="408" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Software</text>
+          <title>C1: Salvage Yard Software Compared — Inventory Tools for Auto Dismantlers in 2026 (REWRITE)</title>
+          <rect x="470" y="432" width="60" height="14" rx="2" fill="rgba(217,119,6,.2)"/>
+          <text x="500" y="442" text-anchor="middle" font-family="'SF Mono', monospace" font-size="7" fill="var(--cluster-c)" font-weight="600">REWRITE</text>
+        </g>
+
+        <!-- C2 -->
+        <g>
+          <circle cx="655" cy="400" r="28" fill="var(--cluster-c-bg)" stroke="var(--cluster-c)" stroke-width="2"/>
+          <text x="655" y="396" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">C2</text>
+          <text x="655" y="408" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">Sourcing</text>
+          <title>C2: How to Buy Salvage Cars for Dismantling — Auction and Sourcing Tips</title>
+        </g>
+      </g>
+
+      <!-- Cluster D: Industry & Future (top-right) -->
+      <g>
+        <rect x="570" y="185" width="180" height="120" rx="8" fill="var(--cluster-d-bg)" stroke="var(--cluster-d)" stroke-width="1" opacity=".35" stroke-dasharray="4 2"/>
+        <text x="588" y="205" font-family="'SF Mono', Consolas, monospace" font-size="9" fill="var(--cluster-d)" letter-spacing=".1em" text-transform="uppercase" opacity=".7">INDUSTRY &amp; FUTURE</text>
+
+        <!-- D1 -->
+        <g>
+          <circle cx="655" cy="240" r="28" fill="var(--cluster-d-bg)" stroke="var(--cluster-d)" stroke-width="2"/>
+          <text x="655" y="236" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="var(--text)">D1</text>
+          <text x="655" y="248" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="7" fill="var(--text-muted)">EVs</text>
+          <title>D1: How Electric Vehicles Will Change Salvage Yards — What Dismantlers Need to Know</title>
+        </g>
+      </g>
+
+      <!-- Pillar (center-top, prominent) -->
+      <g>
+        <circle cx="400" cy="100" r="42" fill="var(--pillar-bg)" stroke="var(--pillar-border)" stroke-width="3"/>
+        <text x="400" y="90" text-anchor="middle" font-family="'Iowan Old Style', Georgia, serif" font-size="11" font-weight="700" fill="var(--pillar)">PILLAR</text>
+        <text x="400" y="104" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="9" font-weight="600" fill="var(--text)">Grow Your</text>
+        <text x="400" y="116" text-anchor="middle" font-family="-apple-system, sans-serif" font-size="9" font-weight="600" fill="var(--text)">Yard Business</text>
+        <title>P: How to Grow a Salvage Yard Business — 8 Strategies That Work in 2026</title>
+      </g>
+
+      <!-- Legend -->
+      <g transform="translate(30, 500)">
+        <circle cx="8" cy="0" r="5" fill="var(--pillar-bg)" stroke="var(--pillar-border)" stroke-width="1.5"/>
+        <text x="20" y="4" font-family="-apple-system, sans-serif" font-size="9" fill="var(--text-muted)">Pillar</text>
+
+        <circle cx="78" cy="0" r="5" fill="var(--cluster-a-bg)" stroke="var(--cluster-a)" stroke-width="1.5"/>
+        <text x="90" y="4" font-family="-apple-system, sans-serif" font-size="9" fill="var(--text-muted)">Sales</text>
+
+        <circle cx="138" cy="0" r="5" fill="var(--cluster-b-bg)" stroke="var(--cluster-b)" stroke-width="1.5"/>
+        <text x="150" y="4" font-family="-apple-system, sans-serif" font-size="9" fill="var(--text-muted)">Marketing</text>
+
+        <circle cx="218" cy="0" r="5" fill="var(--cluster-c-bg)" stroke="var(--cluster-c)" stroke-width="1.5"/>
+        <text x="230" y="4" font-family="-apple-system, sans-serif" font-size="9" fill="var(--text-muted)">Operations</text>
+
+        <circle cx="308" cy="0" r="5" fill="var(--cluster-d-bg)" stroke="var(--cluster-d)" stroke-width="1.5"/>
+        <text x="320" y="4" font-family="-apple-system, sans-serif" font-size="9" fill="var(--text-muted)">Industry</text>
+
+        <line x1="388" y1="0" x2="408" y2="0" stroke="var(--link-line)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="415" y="4" font-family="-apple-system, sans-serif" font-size="9" fill="var(--text-muted)">Internal link</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Pillar Card -->
+  <div class="pillar-card">
+    <div class="pillar-badge">P &middot; Pillar Page</div>
+    <h2>How to Grow a Salvage Yard Business &mdash; 8 Strategies That Work in 2026</h2>
+    <div class="pillar-details">
+      <div>
+        <dt>Primary keyword</dt>
+        <dd>how to grow a salvage yard business</dd>
+      </div>
+      <div>
+        <dt>Word target</dt>
+        <dd>3,000 words</dd>
+      </div>
+      <div>
+        <dt>Template</dt>
+        <dd>Pillar page</dd>
+      </div>
+      <div>
+        <dt>Competition</dt>
+        <dd>Low &mdash; template mills and generic startup guides only</dd>
+      </div>
+      <div>
+        <dt>CTA</dt>
+        <dd><span class="post-cta cta-listen">Listen Live &mdash; hear a real room</span></dd>
+      </div>
+      <div>
+        <dt>Images</dt>
+        <dd>1 hero + 3 inline = 4 total</dd>
+      </div>
+      <div>
+        <dt>Links out</dt>
+        <dd>A1, A2, A3, B1, B2, C1, C2, D1 (all spokes)</dd>
+      </div>
+      <div>
+        <dt>Links in</dt>
+        <dd>8 (from all spokes)</dd>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cluster A -->
+  <section class="cluster-section">
+    <div class="cluster-header">
+      <div class="cluster-dot" style="background: var(--cluster-a)"></div>
+      <span class="cluster-name">Sales &amp; Revenue</span>
+      <span class="cluster-intent">commercial</span>
+    </div>
+    <div class="post-grid">
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-a)">
+        <div class="post-card-id">A1</div>
+        <h3>How Salvage Yards Sell More Parts &mdash; 5 Channels That Actually Work</h3>
+        <div class="post-keyword"><strong>how to sell used auto parts</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">how-to-guide</span>
+          <span class="post-tag">2,500 words</span>
+          <span class="post-tag rewrite">REWRITE</span>
+        </div>
+        <div class="post-links">Links: P, A2, A3, B1, C1 &middot; Incoming: 4</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 3 inline</div>
+        <div><span class="post-cta cta-signup">CTA: Sign up free</span></div>
+      </div>
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-a)">
+        <div class="post-card-id">A2</div>
+        <h3>Most Profitable Parts to Pull From a Salvage Vehicle</h3>
+        <div class="post-keyword"><strong>most profitable parts to pull from salvage yard</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">data-driven-list</span>
+          <span class="post-tag">1,800 words</span>
+        </div>
+        <div class="post-links">Links: P, A1, A3 &middot; Incoming: 4</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 2 inline</div>
+        <div><span class="post-cta cta-signup">CTA: Sign up free</span></div>
+      </div>
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-a)">
+        <div class="post-card-id">A3</div>
+        <h3>How to Price Used Auto Parts &mdash; A Seller&rsquo;s Strategy Guide</h3>
+        <div class="post-keyword"><strong>how to price used auto parts</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">how-to-guide</span>
+          <span class="post-tag">1,800 words</span>
+        </div>
+        <div class="post-links">Links: P, A1, A2 &middot; Incoming: 3</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 2 inline</div>
+        <div><span class="post-cta cta-listen">CTA: Listen Live</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Cluster B -->
+  <section class="cluster-section">
+    <div class="cluster-header">
+      <div class="cluster-dot" style="background: var(--cluster-b)"></div>
+      <span class="cluster-name">Marketing &amp; Networking</span>
+      <span class="cluster-intent">informational</span>
+    </div>
+    <div class="post-grid">
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-b)">
+        <div class="post-card-id">B1</div>
+        <h3>Salvage Yard Marketing &mdash; A Practical Playbook for Auto Dismantlers</h3>
+        <div class="post-keyword"><strong>salvage yard marketing</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">how-to-guide</span>
+          <span class="post-tag">2,000 words</span>
+        </div>
+        <div class="post-links">Links: P, A1, B2, C1 &middot; Incoming: 3</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 3 inline</div>
+        <div><span class="post-cta cta-mixed">CTA: Mixed per section</span></div>
+      </div>
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-b)">
+        <div class="post-card-id">B2 &middot; Highest value</div>
+        <h3>How to Network With Other Salvage Yards &mdash; Parts Brokering That Pays</h3>
+        <div class="post-keyword"><strong>how to network with other salvage yards</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">how-to-guide</span>
+          <span class="post-tag">1,800 words</span>
+          <span class="post-tag" style="background:rgba(5,150,105,.15);color:var(--cluster-b);font-weight:600">ZERO COMPETITION</span>
+        </div>
+        <div class="post-links">Links: P, A1, B1 &middot; Incoming: 4</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 3 inline</div>
+        <div><span class="post-cta cta-listen">CTA: Listen Live</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Cluster C -->
+  <section class="cluster-section">
+    <div class="cluster-header">
+      <div class="cluster-dot" style="background: var(--cluster-c)"></div>
+      <span class="cluster-name">Operations &amp; Technology</span>
+      <span class="cluster-intent">informational + commercial</span>
+    </div>
+    <div class="post-grid">
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-c)">
+        <div class="post-card-id">C1</div>
+        <h3>Salvage Yard Software Compared &mdash; Inventory Tools for Auto Dismantlers in 2026</h3>
+        <div class="post-keyword"><strong>salvage yard software</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">comparison</span>
+          <span class="post-tag">2,200 words</span>
+          <span class="post-tag rewrite">REWRITE</span>
+        </div>
+        <div class="post-links">Links: P, A1, B2, C2 &middot; Incoming: 3</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 2 inline</div>
+        <div><span class="post-cta cta-signup">CTA: Sign up free</span></div>
+      </div>
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-c)">
+        <div class="post-card-id">C2</div>
+        <h3>How to Buy Salvage Cars for Dismantling &mdash; Auction and Sourcing Tips</h3>
+        <div class="post-keyword"><strong>how to buy salvage cars for dismantling</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">how-to-guide</span>
+          <span class="post-tag">1,800 words</span>
+        </div>
+        <div class="post-links">Links: P, A2, C1 &middot; Incoming: 3</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 3 inline</div>
+        <div><span class="post-cta cta-whatsapp">CTA: WhatsApp us</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Cluster D -->
+  <section class="cluster-section">
+    <div class="cluster-header">
+      <div class="cluster-dot" style="background: var(--cluster-d)"></div>
+      <span class="cluster-name">Industry &amp; Future</span>
+      <span class="cluster-intent">informational</span>
+    </div>
+    <div class="post-grid">
+
+      <div class="post-card" style="border-left: 3px solid var(--cluster-d)">
+        <div class="post-card-id">D1</div>
+        <h3>How Electric Vehicles Will Change Salvage Yards &mdash; What Dismantlers Need to Know</h3>
+        <div class="post-keyword"><strong>electric vehicle recycling salvage yards</strong></div>
+        <div class="post-meta">
+          <span class="post-tag template">industry-analysis</span>
+          <span class="post-tag">1,800 words</span>
+          <span class="post-tag" style="background:rgba(124,58,237,.12);color:var(--cluster-d)">AUTHORITY</span>
+        </div>
+        <div class="post-links">Links: P, A2, C1 &middot; Incoming: 3</div>
+        <div class="post-images">&#x1f5bc; 1 hero + 2 inline</div>
+        <div><span class="post-cta cta-whatsapp">CTA: WhatsApp us</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Execution Order -->
+  <section class="exec-section">
+    <h2>Execution Order</h2>
+    <ol class="exec-list">
+      <li class="exec-item">
+        <span class="exec-id">P</span>
+        <span class="exec-title">How to Grow a Salvage Yard Business</span>
+        <span class="exec-reason">Pillar first &mdash; all spokes link to it</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">B2</span>
+        <span class="exec-title">How to Network With Other Salvage Yards</span>
+        <span class="exec-reason">Highest-value spoke, zero competition</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">A1</span>
+        <span class="exec-title">How Salvage Yards Sell More Parts</span>
+        <span class="exec-reason">Rewrite of existing post</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">A2</span>
+        <span class="exec-title">Most Profitable Parts to Pull</span>
+        <span class="exec-reason">Uses first-party Hotline HQ data</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">A3</span>
+        <span class="exec-title">How to Price Used Auto Parts</span>
+        <span class="exec-reason">Completes Sales &amp; Revenue cluster</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">B1</span>
+        <span class="exec-title">Salvage Yard Marketing Playbook</span>
+        <span class="exec-reason">Links to B2 (now written)</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">C1</span>
+        <span class="exec-title">Salvage Yard Software Compared</span>
+        <span class="exec-reason">Rewrite, links to B2 &amp; A1</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">C2</span>
+        <span class="exec-title">How to Buy Salvage Cars for Dismantling</span>
+        <span class="exec-reason">Links to A2 &amp; C1</span>
+      </li>
+      <li class="exec-item">
+        <span class="exec-id">D1</span>
+        <span class="exec-title">How Electric Vehicles Will Change Salvage Yards</span>
+        <span class="exec-reason">Authority content &mdash; least urgent for conversion</span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Quality Gates -->
+  <section class="exec-section">
+    <h2>Quality Gates</h2>
+    <div class="gates">
+      <div class="gate">
+        <div class="gate-label">Cannibalization</div>
+        No two posts share a primary keyword. Verified.
+      </div>
+      <div class="gate">
+        <div class="gate-label">Link completeness</div>
+        Every post has 3+ incoming internal links. Verified.
+      </div>
+      <div class="gate">
+        <div class="gate-label">Word count</div>
+        Pillar &ge;2,500. Spokes &ge;1,200. All targets meet or exceed.
+      </div>
+      <div class="gate">
+        <div class="gate-label">Intent diversity</div>
+        4 distinct intents across clusters: informational, commercial, mixed.
+      </div>
+      <div class="gate">
+        <div class="gate-label">Template diversity</div>
+        5 templates: pillar-page, how-to-guide, data-driven-list, comparison, industry-analysis.
+      </div>
+      <div class="gate">
+        <div class="gate-label">Image coverage</div>
+        30 images total: 9 heroes + 21 inline. All prompts specified.
+      </div>
+    </div>
+  </section>
+
+</div>

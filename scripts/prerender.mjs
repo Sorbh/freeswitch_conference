@@ -520,6 +520,43 @@ const ownFaqItems = [
 
 const ownFaqHtml = `<div class="ssr-faq-section"><h2>Auto Parts Hotline FAQ</h2>${ownFaqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`;
 
+// ── /auto-parts-interchange-network ──────────────────────────────────
+
+const interchangeFaqItems = [
+  { q: "What is auto parts interchange?", a: "Auto parts interchange is the practice of identifying which parts fit across different vehicles — different makes, models, and years. A 2016 Honda Civic bumper might be identical to a 2017 or 2018. Interchange data maps these cross-references so yards and buyers can find compatible parts faster. On Hotline HQ, interchange happens naturally: you describe what you need, and yards with compatible parts respond." },
+  { q: "How does a parts interchange network work?", a: "A parts interchange network connects salvage yards so they can match parts across their combined inventory. On Hotline HQ, this happens by voice in real time. You broadcast what you need and any yard with a compatible part responds in seconds. No searching databases, no cross-referencing part numbers." },
+  { q: "Do I need interchange software to use Hotline HQ?", a: "No. Experienced yard operators already know their interchange from working with vehicles daily. When a buyer broadcasts a request, yards respond based on what they know fits — no software lookup required. Many yards also use Hollander or Car-Part interchange data alongside the hotline." },
+  { q: "How is this different from Hollander or Car-Part.com interchange?", a: "Hollander and Car-Part.com are interchange databases — they tell you which parts cross-reference. Hotline HQ is a live voice network — you ask for a part and real people with real inventory respond in seconds. The two are complementary." },
+  { q: "Is this free to join?", a: "Hotline HQ charges a flat monthly membership fee — no per-call charges, no commissions, no interchange lookup fees. A preconfigured Yealink desk phone is included and shipped to your location." },
+];
+
+addPage('/auto-parts-interchange-network', {
+  title: 'Auto Parts Interchange Network — 500+ Yards, Live Matching | Hotline HQ',
+  description: 'Auto parts interchange network connecting 500+ salvage yards. Broadcast what you need — yards with interchange-compatible parts respond in 2 seconds.',
+  url: `${BASE_URL}/auto-parts-interchange-network`,
+  keywords: 'auto parts interchange, car parts interchange, parts interchange network, interchange lookup, auto parts interchange network, hollander interchange, salvage parts interchange',
+  shell: ssrShell(
+    'INTERCHANGE NETWORK',
+    'The auto parts interchange network that <em>responds in 2 seconds</em>',
+    'Stop searching interchange databases. Broadcast what you need and 97 yards with compatible parts respond live. Over 15,000 parts located across <strong>500+ member yards</strong>.',
+    'Join the Network — Free', `${BASE_URL}/client/signup`
+  ) + `<div class="ssr-faq-section"><h2>Auto Parts Interchange FAQ</h2>${interchangeFaqItems.map(f => `<div class="ssr-faq"><h3>${f.q}</h3><p>${f.a}</p></div>`).join('')}</div>`,
+  jsonLd: {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service", name: "Auto Parts Interchange Network — Hotline HQ",
+        serviceType: "Auto Parts Interchange Network",
+        provider: { "@type": "Organization", name: "Hotline HQ", url: `${BASE_URL}/` },
+        areaServed: { "@type": "Country", name: "US" },
+        description: "Live voice interchange network connecting 500+ salvage yards. Broadcast a part request and yards with interchange-compatible parts respond in 2 seconds.",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free to join" }
+      },
+      { "@type": "FAQPage", mainEntity: interchangeFaqItems.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }
+    ]
+  }
+});
+
 addPage('/own-a-hotline', {
   title: 'Own an Auto Parts Hotline — Launch Your Network',
   description: 'Launch your own voice hotline network. Platform, phones, and support included — you collect the membership revenue. Proven with 500+ yards.',
@@ -1153,7 +1190,8 @@ const sitemapEntries = pages
   .filter(p => !p.seo.robots?.includes('noindex'))
   .map(p => {
     const url = p.seo.url || `${BASE_URL}${p.route}`;
-    return `  <url>\n    <loc>${url}</loc>\n    <lastmod>${today}</lastmod>\n  </url>`;
+    const lastmod = p.seo.ssrData?.date || today;
+    return `  <url>\n    <loc>${url}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`;
   });
 
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>

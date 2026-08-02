@@ -366,6 +366,22 @@ const CSS = `
 .bp-body code { font-family: var(--mono); font-size: 0.88em; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; }
 .bp-body pre code { background: none; padding: 0; }
 
+/* ─── Custom Blocks ─── */
+.bp-body .custom-block { border-radius: 10px; padding: 20px 24px; margin: 28px 0; }
+.bp-body .custom-block .container-title { font-family: var(--display); font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+.bp-body .custom-block ul { margin: 0; padding: 0; list-style: none; }
+.bp-body .custom-block li { position: relative; padding: 4px 0 4px 20px; font-size: 14.5px; line-height: 1.65; color: var(--ink); }
+.bp-body .custom-block li::before { content: ''; position: absolute; left: 0; top: 12px; width: 8px; height: 8px; border-radius: 2px; }
+.bp-body .key-takeaways { background: #fdf8f4; border: 1px solid #f0ddd0; }
+.bp-body .key-takeaways .container-title { color: #b84a1c; }
+.bp-body .key-takeaways li::before { background: #d4623a; }
+.bp-body .citation-capsule { background: #faf7f2; border-left: 3px solid #d4623a; border-radius: 0 10px 10px 0; font-style: italic; }
+.bp-body .citation-capsule .container-title { color: #d4623a; font-style: italic; }
+@media (prefers-color-scheme: dark) {
+  .bp-body .key-takeaways { background: #1e1810; border-color: #3d2e1e; }
+  .bp-body .citation-capsule { background: #1a1610; border-color: #d4623a; }
+}
+
 /* ─── FAQ ─── */
 .bp-faq { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--line); }
 .bp-faq h2 { font-family: var(--display); font-size: 22px; font-weight: 700; margin: 0 0 20px; color: var(--ink); scroll-margin-top: 80px; border-top: none; padding-top: 0; }

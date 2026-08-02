@@ -372,6 +372,7 @@ export function SiteFooter() {
           <Link to="/hard-to-find-auto-parts">Hard-to-Find Parts</Link>
           <Link to="/salvage-yard-marketing">Salvage Yard Marketing</Link>
           <Link to="/ev-hybrid-auto-parts">EV & Hybrid Parts</Link>
+          <Link to="/auto-parts-interchange-network">Parts Interchange</Link>
         </div>
 
         <div className="l2f-col">

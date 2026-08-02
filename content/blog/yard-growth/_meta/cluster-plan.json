@@ -1,0 +1,515 @@
+{
+  "seed_keyword": "how to grow a salvage yard business",
+  "generated_at": "2026-08-01T00:00:00Z",
+  "brand_voice": "20-year yard veteran writing in a trade magazine — casual, peer-to-peer, dry humor, Flesch Grade 8-10",
+  "pitch_strategy": "Earned product placement — genuine advice first, Hotline HQ shown with evidence where it naturally fits",
+  "cta_strategy": "Matched per post: Listen Live for awareness posts, signup for sales posts, WhatsApp for relationship posts",
+  "image_strategy": "1 hero (16:9) + 2-3 inline images per post. Editorial domain mode. Yard environments, real equipment, worker perspectives. No stock-photo sterility.",
+  "pillar": {
+    "id": "P",
+    "title": "How to Grow a Salvage Yard Business — 8 Strategies That Work in 2026",
+    "primary_keyword": "how to grow a salvage yard business",
+    "secondary_keywords": [
+      "junkyard business growth strategies",
+      "how to run a successful junkyard",
+      "auto dismantler business tips",
+      "salvage yard profitability"
+    ],
+    "search_volume_estimate": "medium",
+    "competition_estimate": "low",
+    "template": "pillar-page",
+    "word_count_target": 3000,
+    "cluster": "pillar",
+    "intent": "informational",
+    "cta": "Listen Live — hear a real room before you decide",
+    "cta_url": "/#listen-live",
+    "hotline_hq_angle": "One of 8 growth strategies is expanding your parts network via voice hotlines. Show real data (2-second response, 500+ yards) but keep it as one strategy among many.",
+    "rewrite_of": null,
+    "links_to": ["A1", "A2", "A3", "B1", "B2", "C1", "C2", "D1"],
+    "links_from": ["A1", "A2", "A3", "B1", "B2", "C1", "C2", "D1"],
+    "images": {
+      "hero": {
+        "prompt": "Aerial view of a mid-size salvage yard with neatly organized rows of vehicles, a busy office building with a desk phone visible through the window, forklift moving a car in the background | Wide establishing shot, rule of thirds | Golden hour warm light casting long shadows across the yard | Editorial photography style, slightly desaturated, trade magazine cover quality",
+        "alt": "Aerial view of an organized salvage yard at golden hour with vehicles in rows and a busy office",
+        "placement": "top"
+      },
+      "inline": [
+        {
+          "prompt": "Close-up of a salvage yard owner's hands on a desk — one hand on a Yealink desk phone, the other writing on a parts order pad, computer screen blurred in background showing inventory | Shallow depth of field, hands in focus | Warm indoor office lighting with natural light from window | Documentary photography style",
+          "alt": "Salvage yard owner working at desk with phone and order pad",
+          "placement": "after-section-2",
+          "context": "Illustrates the daily reality of managing parts requests"
+        },
+        {
+          "prompt": "Split composition: left side shows a single yard worker on a phone calling yards one by one (frustrated expression, messy desk with sticky notes), right side shows a confident yard owner with a single desk phone connected to a conference bridge (clean desk, multiple calls visualized as sound waves) | Side-by-side comparison layout | Even studio-style lighting | Infographic-editorial hybrid",
+          "alt": "Before and after comparison — calling yards one by one versus broadcasting to a network",
+          "placement": "after-section-5",
+          "context": "Visual metaphor for the old way vs. network approach"
+        },
+        {
+          "prompt": "Bird's-eye view of a US map with glowing connection lines between salvage yards in California, Texas, Arizona, and Florida, desk phones at each node, parts icons (transmissions, motors, bumpers) traveling along the lines | Data visualization meets editorial photography | Cool blue and warm amber tones | Modern infographic style with photorealistic elements",
+          "alt": "Map showing salvage yard network connections across US states",
+          "placement": "after-section-7",
+          "context": "Visualizes the geographic network concept"
+        }
+      ]
+    }
+  },
+  "clusters": [
+    {
+      "name": "Cluster A: Sales & Revenue",
+      "intent": "commercial",
+      "color": "#2563eb",
+      "description": "Direct revenue-growth content — what to sell, how to price, which channels work",
+      "posts": [
+        {
+          "id": "A1",
+          "title": "How Salvage Yards Sell More Parts — 5 Channels That Actually Work",
+          "primary_keyword": "how to sell used auto parts",
+          "secondary_keywords": [
+            "salvage yard sales channels",
+            "best way to sell used car parts",
+            "auto parts sales tips",
+            "dismantler sell more parts"
+          ],
+          "search_volume_estimate": "medium",
+          "competition_estimate": "low-medium",
+          "template": "how-to-guide",
+          "word_count_target": 2500,
+          "intent": "commercial",
+          "cta": "Sign up free — your state room is live",
+          "cta_url": "/signup",
+          "hotline_hq_angle": "Voice hotlines ranked as Channel 1 with honest pros/cons. Show real broadcast recordings and response times. But present all 5 channels fairly with genuine trade-offs.",
+          "rewrite_of": "content/blog/guides/how-salvage-yards-sell-more-parts.md",
+          "rewrite_notes": "Keep 5-channel framework and comparison table. Fix: add H3 subheadings, resolve image/chart placeholders, attribute all stats, tone down Hotline HQ bias, replace thin CTA tail with substantive closing, fix unattributed walk-in stats.",
+          "links_to": ["P", "A2", "A3", "B1", "C1"],
+          "links_from": ["P", "A2", "B1", "B2"],
+          "images": {
+            "hero": {
+              "prompt": "A salvage yard sales counter from behind the counter perspective — worker packaging a transmission for shipping, phone at ear, computer showing eBay listing on screen, walk-in customer visible through the doorway | Over-the-shoulder POV shot | Mixed lighting: fluorescent overhead plus natural daylight from open bay door | Documentary editorial style",
+              "alt": "Salvage yard worker at sales counter packaging parts while taking a phone order",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "Five icons in a horizontal row representing sales channels: a desk phone (voice hotline), a laptop screen (online marketplace), a storefront with people (walk-in), a smartphone with social media icons (social), and a headset with search icon (parts locator) — each with a speed meter below showing relative response time | Clean infographic layout, equal spacing | Flat even lighting | Modern icon illustration with subtle depth",
+                "alt": "Five salvage yard sales channels compared by response speed",
+                "placement": "after-section-1",
+                "context": "Visual overview of the 5 channels before deep-diving each"
+              },
+              {
+                "prompt": "Close-up of a Yealink T31P desk phone on a cluttered but authentic salvage yard desk — parts catalogs, a coffee mug, greasy fingerprints on a notepad, small LED showing active call | Tight composition, phone centered | Warm tungsten desk lamp lighting | Photojournalistic style, real workplace feel",
+                "alt": "Yealink desk phone on a working salvage yard desk",
+                "placement": "after-section-2",
+                "context": "Shows the actual hardware — no learning curve, just a phone"
+              },
+              {
+                "prompt": "Screenshot-style mockup of an eBay listing for a used 2019 Honda Civic transmission — showing the listing title, 4 product photos from different angles, price tag, condition notes, and shipping info | UI screenshot composition, crisp edges | Screen-native lighting | Clean product listing mockup",
+                "alt": "Example eBay listing for a used auto part with photos and pricing",
+                "placement": "after-section-3",
+                "context": "Shows what a good eBay auto parts listing looks like"
+              }
+            ]
+          }
+        },
+        {
+          "id": "A2",
+          "title": "Most Profitable Parts to Pull From a Salvage Vehicle",
+          "primary_keyword": "most profitable parts to pull from salvage yard",
+          "secondary_keywords": [
+            "what parts sell fastest at a junkyard",
+            "best parts to dismantle and resell",
+            "most valuable used auto parts to sell",
+            "what used car parts are in highest demand"
+          ],
+          "search_volume_estimate": "medium",
+          "competition_estimate": "low",
+          "template": "data-driven-list",
+          "word_count_target": 1800,
+          "intent": "commercial",
+          "cta": "Sign up free — hear what parts yards are requesting right now",
+          "cta_url": "/signup",
+          "hotline_hq_angle": "Use first-party Hotline HQ broadcast data to show which parts are requested most often. This is original data no competitor has. Natural product proof without pitching.",
+          "rewrite_of": null,
+          "links_to": ["P", "A1", "A3"],
+          "links_from": ["P", "A1", "A3"],
+          "images": {
+            "hero": {
+              "prompt": "A salvage yard worker pulling a transmission from under a raised vehicle on a lift, transmission suspended on a cherry picker/engine hoist, another worker spotting — parts shelves with labeled inventory visible in the background | Action shot from low angle, dynamic composition | Bright overcast daylight filtering into the covered bay | Photojournalistic editorial, sharp detail",
+              "alt": "Salvage yard workers pulling a transmission from a vehicle on a lift",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "Flat-lay arrangement of the top 5 most profitable salvage parts on a clean concrete floor: a catalytic converter, a transmission, an engine/motor, an infotainment screen, and a set of headlights — each labeled with a price range tag | Overhead birds-eye view, evenly spaced grid | Soft diffused natural lighting | Product photography meets editorial flat-lay",
+                "alt": "Top 5 most profitable salvage parts arranged with price tags",
+                "placement": "after-section-2",
+                "context": "Visual summary of the highest-value parts to pull"
+              },
+              {
+                "prompt": "A horizontal bar chart printed on weathered paper pinned to a shop bulletin board, showing 'Most Requested Parts on the Hotline — Last 30 Days' with bars for transmissions, motors, body panels, electrical modules, and catalytic converters | Chart within a real-world context (pinned to a board) | Natural office lighting | Blend of data visualization and documentary photography",
+                "alt": "Bar chart showing most requested parts on the hotline network",
+                "placement": "after-section-4",
+                "context": "Original data from Hotline HQ network — key differentiator"
+              }
+            ]
+          }
+        },
+        {
+          "id": "A3",
+          "title": "How to Price Used Auto Parts — A Seller's Strategy Guide",
+          "primary_keyword": "how to price used auto parts",
+          "secondary_keywords": [
+            "used auto parts pricing guide",
+            "salvage yard profit margins",
+            "what is the markup on used auto parts",
+            "how much do junkyard owners make"
+          ],
+          "search_volume_estimate": "medium",
+          "competition_estimate": "medium",
+          "template": "how-to-guide",
+          "word_count_target": 1800,
+          "intent": "commercial",
+          "cta": "Listen Live — hear real pricing conversations between yards",
+          "cta_url": "/#listen-live",
+          "hotline_hq_angle": "Mention that listening to the hotline is a free pricing education — you hear what other yards charge in real time. Natural fit, not forced.",
+          "rewrite_of": null,
+          "links_to": ["P", "A1", "A2"],
+          "links_from": ["P", "A1", "A2"],
+          "images": {
+            "hero": {
+              "prompt": "A yard owner at a desk with a calculator, printed Car-Part.com price comparison printout, and a notebook with handwritten pricing formulas — pen in hand, thinking expression, parts shelf visible through office window | Medium shot, desk as focal plane | Warm afternoon light through dusty office window | Editorial portrait, candid workplace moment",
+              "alt": "Yard owner calculating parts pricing at desk with reference materials",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "A pricing decision tree diagram on a whiteboard: starting with 'Part Condition' branching to Grade A/B/C, each branch showing markup percentage ranges, with factors like 'demand level', 'shipping weight', and 'interchange availability' as decision nodes | Clean whiteboard diagram, hand-drawn marker style | Office fluorescent lighting | Documentary-educational hybrid",
+                "alt": "Pricing decision tree for used auto parts by condition grade and demand",
+                "placement": "after-section-2",
+                "context": "Visual framework for the pricing strategy"
+              },
+              {
+                "prompt": "Side-by-side comparison of two price tags on the same part (a 2020 Toyota RAV4 headlight assembly): left tag shows 'Car-Part.com Average: $185' and right tag shows 'Your Price: $220 — Grade A, tested, 90-day warranty' with a green 'Why yours is worth more' annotation | Product comparison layout | Clean even lighting | Retail price-tag photography style",
+                "alt": "Price comparison showing how condition and warranty justify higher pricing",
+                "placement": "after-section-4",
+                "context": "Shows the value-based pricing concept in action"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cluster B: Marketing & Networking",
+      "intent": "informational",
+      "color": "#059669",
+      "description": "Customer acquisition and yard-to-yard collaboration — Hotline HQ's sweet spot",
+      "posts": [
+        {
+          "id": "B1",
+          "title": "Salvage Yard Marketing — A Practical Playbook for Auto Dismantlers",
+          "primary_keyword": "salvage yard marketing",
+          "secondary_keywords": [
+            "salvage yard customer acquisition",
+            "junkyard Google Business Profile",
+            "salvage yard SEO",
+            "how to get more customers junkyard"
+          ],
+          "search_volume_estimate": "low-medium",
+          "competition_estimate": "low",
+          "template": "how-to-guide",
+          "word_count_target": 2000,
+          "intent": "informational",
+          "cta": "Different CTAs per section: GBP section → no product CTA. Network section → Listen Live. Overall → WhatsApp for questions",
+          "cta_url": "/#listen-live",
+          "hotline_hq_angle": "Voice networks are one marketing channel among GBP, local SEO, social media, and referrals. Cover all honestly. Hotline HQ fits naturally in the 'network marketing' section.",
+          "rewrite_of": null,
+          "links_to": ["P", "A1", "B2", "C1"],
+          "links_from": ["P", "A1", "B2"],
+          "images": {
+            "hero": {
+              "prompt": "A salvage yard's Google Business Profile listing displayed on a smartphone screen held by a worker's hand (slightly dirty, realistic), with the actual yard visible in the background behind the phone — photos, reviews, hours all visible on screen | Phone-in-environment composition, depth of field | Bright outdoor daylight | Documentary mobile-first photography",
+              "alt": "Salvage yard owner viewing their Google Business Profile on a smartphone with yard in background",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "A marketing channel priority matrix drawn on a workshop whiteboard: X-axis labeled 'Effort' (low to high), Y-axis labeled 'Impact' (low to high). Four quadrants with sticky notes: 'Google Business Profile' and 'Voice Network' in high-impact/low-effort, 'Website SEO' in high-impact/high-effort, 'Social Media' in low-impact/medium-effort, 'Print Ads' in low-impact/high-effort | Whiteboard diagram, authentic handwriting | Office lighting | Documentary-educational style",
+                "alt": "Marketing channel priority matrix for salvage yards on a whiteboard",
+                "placement": "after-section-1",
+                "context": "Helps yard owners prioritize where to spend limited marketing time"
+              },
+              {
+                "prompt": "Before/after split of a salvage yard's Google Business Profile: left side shows a bare listing with no photos, wrong hours, zero reviews; right side shows the same listing optimized with 20+ photos, 4.5 stars, 50+ reviews, updated hours, and a compelling description | Side-by-side UI mockup | Screen lighting | Clean mockup with subtle annotations",
+                "alt": "Before and after comparison of an optimized salvage yard Google Business Profile",
+                "placement": "after-section-3",
+                "context": "Shows the tangible impact of GBP optimization"
+              },
+              {
+                "prompt": "A yard owner filming a short video walkthrough of their yard on a smartphone mounted on a simple tripod — showing organized parts shelves, clean aisles, labeled sections — with a 'LIVE' indicator overlay suggesting a Facebook/Instagram live stream | Action shot, slightly behind the filmer | Natural outdoor daylight | Social media content creation documentary style",
+                "alt": "Yard owner filming a video walkthrough for social media marketing",
+                "placement": "after-section-5",
+                "context": "Practical social media content creation for yards"
+              }
+            ]
+          }
+        },
+        {
+          "id": "B2",
+          "title": "How to Network With Other Salvage Yards — Parts Brokering That Pays",
+          "primary_keyword": "how to network with other salvage yards",
+          "secondary_keywords": [
+            "parts brokering between salvage yards",
+            "salvage yard collaboration",
+            "auto recycler parts locating network",
+            "yard-to-yard parts trading"
+          ],
+          "search_volume_estimate": "low",
+          "competition_estimate": "very low",
+          "template": "how-to-guide",
+          "word_count_target": 1800,
+          "intent": "informational",
+          "cta": "Listen Live — hear yards networking in real time right now",
+          "cta_url": "/#listen-live",
+          "hotline_hq_angle": "This is THE Hotline HQ post. The entire topic IS what the product does. Lead with the concept (yard-to-yard networking), show the history (CB radios, copper hotlines), then present modern voice networks with Hotline HQ as the primary example. Use real broadcast recordings as evidence. Earned placement — not a pitch, because it's literally the answer.",
+          "rewrite_of": null,
+          "links_to": ["P", "A1", "B1"],
+          "links_from": ["P", "A1", "B1", "C1"],
+          "images": {
+            "hero": {
+              "prompt": "Two salvage yard owners shaking hands across a parts counter, one holding a transmission, the other holding cash — in the background a desk phone with an active call light, symbolizing the network that connected them | Medium two-shot, handshake centered | Warm workshop lighting, natural feel | Editorial portrait, trade magazine quality",
+              "alt": "Two yard owners completing a parts deal connected through a voice network",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "A timeline/evolution visual showing 4 eras of yard-to-yard communication: 1970s CB radio on a truck dashboard, 1990s copper wire hotline phone on a wall, 2010s cell phone with contact list, 2026 modern Yealink desk phone with conference bridge indicator — each era in its own panel with year labels | Horizontal 4-panel timeline, left to right progression | Period-appropriate lighting for each era (warm vintage to cool modern) | Historical-editorial illustration",
+                "alt": "Evolution of yard-to-yard communication from CB radio to modern voice networks",
+                "placement": "after-section-2",
+                "context": "Shows the lineage from CB radios to modern SIP-based hotlines"
+              },
+              {
+                "prompt": "A visual diagram of a parts brokering transaction: Customer calls Yard A (shown as a building) → Yard A doesn't have the part → Yard A broadcasts to the network (sound waves reaching 5 other yard buildings) → Yard B responds with the part → Yard A fulfills the customer order — with arrows showing the flow and a '2 seconds' timestamp on the broadcast-to-response step | Process flow diagram with building illustrations | Clean white background with subtle depth | Infographic-editorial hybrid",
+                "alt": "Diagram showing how parts brokering works through a voice network",
+                "placement": "after-section-3",
+                "context": "Visual walkthrough of the core Hotline HQ use case"
+              },
+              {
+                "prompt": "Audio waveform visualization of a real broadcast call — showing the initial broadcast request as a tall waveform segment, a 2-second gap, then the response waveform, with text captions overlaid: 'Need a 2019 Honda Civic transmission' and 'Got one, Grade A, $850' | Horizontal waveform, dark background | Screen-native glow lighting | Modern audio visualization meets editorial annotation",
+                "alt": "Waveform of a real parts broadcast and response with captions",
+                "placement": "after-section-4",
+                "context": "Makes the audio experience tangible for readers who haven't heard it"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cluster C: Operations & Technology",
+      "intent": "informational",
+      "color": "#d97706",
+      "description": "Running the business smarter — tools, sourcing, and systems",
+      "posts": [
+        {
+          "id": "C1",
+          "title": "Salvage Yard Software Compared — Inventory Tools for Auto Dismantlers in 2026",
+          "primary_keyword": "salvage yard software",
+          "secondary_keywords": [
+            "auto dismantler inventory software",
+            "junkyard management tools",
+            "Hollander interchange system",
+            "salvage yard technology"
+          ],
+          "search_volume_estimate": "low-medium",
+          "competition_estimate": "low",
+          "template": "comparison",
+          "word_count_target": 2200,
+          "intent": "commercial",
+          "cta": "Sign up free — software manages inventory, a hotline finds buyers",
+          "cta_url": "/signup",
+          "hotline_hq_angle": "Position voice networks as complementary to software — not a replacement. Software manages your inventory; a hotline finds buyers for parts you have and sources parts you don't. Different tools, different jobs.",
+          "rewrite_of": "content/blog/guides/salvage-yard-software-compared.md",
+          "rewrite_notes": "Keep comparison table framework and decision matrix. Fix: add H3 subheadings, add real pricing data and user counts, add Pinnacle/CRUSH (industry staples that were missing), add screenshots/UI descriptions, fix broken internal link, add outbound links to vendor sites, deepen each review from 100-150 words to 200-300, reposition Hotline HQ section as complementary not competitive.",
+          "links_to": ["P", "A1", "B2", "C2"],
+          "links_from": ["P", "B1", "B2"],
+          "images": {
+            "hero": {
+              "prompt": "A salvage yard manager at a dual-monitor workstation — one screen showing inventory management software with parts listings and stock levels, the other showing a point-of-sale screen with a transaction in progress, desk phone beside the monitors | Over-the-shoulder perspective, screens readable | Blue monitor glow mixed with office ambient light | Tech-editorial workplace photography",
+              "alt": "Salvage yard manager working at a dual-monitor workstation with inventory and POS software",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "A comparison grid showing 6 software tool logos/icons arranged in two rows of three, each with a brief spec card below: name, price range, best-for tag, and a 1-5 star simplicity rating — similar to a trading card layout | Card grid layout, clean spacing | Even studio lighting on cards | Product comparison card design, editorial",
+                "alt": "Comparison cards for six salvage yard software tools with ratings",
+                "placement": "after-section-1",
+                "context": "Quick-reference visual before the detailed reviews"
+              },
+              {
+                "prompt": "A Venn diagram on a workshop whiteboard showing two overlapping circles: left circle labeled 'Inventory Software' (contains: track stock, manage sales, print invoices, Hollander lookup), right circle labeled 'Voice Network' (contains: find buyers, source parts, price discovery, yard-to-yard deals), overlap section labeled 'Both: more parts sold faster' | Whiteboard diagram, hand-drawn marker style | Office lighting | Documentary-educational",
+                "alt": "Venn diagram showing how inventory software and voice networks complement each other",
+                "placement": "after-section-6",
+                "context": "Key visual for the 'software + hotline' positioning"
+              }
+            ]
+          }
+        },
+        {
+          "id": "C2",
+          "title": "How to Buy Salvage Cars for Dismantling — Auction and Sourcing Tips",
+          "primary_keyword": "how to buy salvage cars for dismantling",
+          "secondary_keywords": [
+            "Copart vs IAA for salvage yard buyers",
+            "buying vehicles from insurance companies for parts",
+            "best cars to buy at Copart for parts",
+            "salvage vehicle sourcing strategies"
+          ],
+          "search_volume_estimate": "low-medium",
+          "competition_estimate": "low",
+          "template": "how-to-guide",
+          "word_count_target": 1800,
+          "intent": "informational",
+          "cta": "WhatsApp us — ask what parts are in demand in your state right now",
+          "cta_url": "https://wa.me/66917636278",
+          "hotline_hq_angle": "Light touch. Mention that listening to the hotline tells you what parts are in demand — which informs what vehicles to buy at auction. Practical sourcing intelligence, not a sales pitch.",
+          "rewrite_of": null,
+          "links_to": ["P", "A2", "C1"],
+          "links_from": ["P", "C1"],
+          "images": {
+            "hero": {
+              "prompt": "Wide shot of a Copart or IAA auto auction lot — hundreds of damaged vehicles in rows, a buyer walking through with a tablet inspecting vehicles, auction number stickers on windshields | Wide establishing shot with human figure for scale | Bright overcast daylight, even exposure | Documentary editorial, auction environment",
+              "alt": "Buyer walking through a salvage vehicle auction lot inspecting cars",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "A checklist/scorecard being held by a gloved hand at an auction lot — printed on a clipboard with checkboxes for: body damage assessment, engine condition, mileage, parts demand score, estimated dismantling profit, and bid ceiling — some boxes checked, pen marks visible | Close-up of clipboard with auction lot blurred behind | Outdoor daylight | Documentary close-up, practical tool",
+                "alt": "Vehicle evaluation checklist used by salvage buyers at auction",
+                "placement": "after-section-2",
+                "context": "Practical tool the reader can replicate"
+              },
+              {
+                "prompt": "Split comparison of Copart and IAA interfaces on two laptop screens side by side on a desk — showing similar vehicle listings with different UI layouts, pricing, and fee structures visible | Side-by-side laptop screens, desk environment | Indoor office lighting with screen glow | Tech comparison editorial photography",
+                "alt": "Side-by-side comparison of Copart and IAA auction platforms",
+                "placement": "after-section-3",
+                "context": "Visual comparison of the two major auction platforms"
+              },
+              {
+                "prompt": "A profit calculation written on a shop whiteboard: 'Buy Price: $1,200' at top, then a breakdown showing individual parts (transmission $650, motor $800, headlights $180, cat converter $250, misc $400), total parts value $2,280, minus labor/overhead $350, equals net profit $730 — circled with a green marker | Whiteboard math, hand-drawn | Workshop fluorescent lighting | Documentary-educational",
+                "alt": "Whiteboard showing profit calculation for dismantling a salvage vehicle",
+                "placement": "after-section-5",
+                "context": "Real math showing the dismantling ROI"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cluster D: Industry & Future",
+      "intent": "informational",
+      "color": "#7c3aed",
+      "description": "Forward-looking authority content — positions Hotline HQ as an industry thought leader",
+      "posts": [
+        {
+          "id": "D1",
+          "title": "How Electric Vehicles Will Change Salvage Yards — What Dismantlers Need to Know",
+          "primary_keyword": "electric vehicle recycling salvage yards",
+          "secondary_keywords": [
+            "how will EVs affect junkyards",
+            "EV battery recycling salvage yard",
+            "auto recycling industry trends 2026",
+            "salvage yard future electric cars"
+          ],
+          "search_volume_estimate": "low",
+          "competition_estimate": "very low",
+          "template": "industry-analysis",
+          "word_count_target": 1800,
+          "intent": "informational",
+          "cta": "WhatsApp us — we're building EV-specific rooms as volume grows",
+          "cta_url": "https://wa.me/66917636278",
+          "hotline_hq_angle": "Minimal. One mention: as EV parts become more common, voice networks will help yards source unfamiliar components from specialists. Forward-looking, not a pitch. This post exists for authority and SEO, not conversion.",
+          "rewrite_of": null,
+          "links_to": ["P", "A2", "C1"],
+          "links_from": ["P"],
+          "images": {
+            "hero": {
+              "prompt": "A Tesla Model 3 or similar EV on a salvage yard lift, battery pack partially exposed underneath, a yard worker in safety gear examining the high-voltage battery with proper PPE (orange gloves, face shield) — other ICE vehicles visible in the background | Low angle looking up at the lifted EV | Bright workshop lighting, slight blue-tint to distinguish from traditional yard shots | Editorial-documentary, modern industrial",
+              "alt": "Salvage yard worker examining an electric vehicle battery pack with proper safety equipment",
+              "placement": "top"
+            },
+            "inline": [
+              {
+                "prompt": "An infographic-style comparison showing two columns: left column 'ICE Vehicle Parts' (engine, transmission, exhaust, fuel system) vs right column 'EV Parts' (battery pack, electric motor, inverter, charging port) — with value estimates next to each and arrows showing which EV parts are gaining value | Two-column comparison layout | Clean white background with subtle technical grid | Modern infographic, technical illustration",
+                "alt": "Comparison of traditional ICE vehicle parts versus electric vehicle parts for salvage",
+                "placement": "after-section-2",
+                "context": "Shows what changes and what stays the same for EV dismantling"
+              },
+              {
+                "prompt": "A timeline showing EV adoption projections for the salvage industry: 2024 (3% of vehicles scrapped are EVs), 2028 (estimated 8-12%), 2032 (estimated 20-25%) — with icons of vehicles becoming progressively more electric, and annotations showing 'training window' and 'equipment investment window' | Horizontal timeline, left to right | Clean background with subtle gradient | Data visualization meets editorial infographic",
+                "alt": "Timeline showing projected growth of electric vehicles entering salvage yards",
+                "placement": "after-section-4",
+                "context": "Helps yard owners understand the timeline and when to prepare"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "internal_link_matrix": {
+    "description": "Every post links to the pillar and at least 2 spokes. The pillar links to all spokes. Cross-cluster links are added where semantically relevant.",
+    "total_interlinks": 38,
+    "minimum_incoming_per_post": 3,
+    "link_rules": [
+      "Every spoke links UP to the pillar (anchor: pillar's primary keyword)",
+      "Pillar links DOWN to every spoke (anchor: spoke's primary keyword)",
+      "Spokes in the same cluster link to each other (2-3 contextual links)",
+      "Cross-cluster links where semantically relevant (0-1 per spoke)",
+      "All links use descriptive anchor text, never 'click here' or 'read more'"
+    ],
+    "matrix": {
+      "P":  { "links_to": ["A1","A2","A3","B1","B2","C1","C2","D1"], "incoming_from": ["A1","A2","A3","B1","B2","C1","C2","D1"], "incoming_count": 8 },
+      "A1": { "links_to": ["P","A2","A3","B1","C1"],                  "incoming_from": ["P","A2","B1","B2"],                    "incoming_count": 4 },
+      "A2": { "links_to": ["P","A1","A3"],                            "incoming_from": ["P","A1","A3","C2"],                    "incoming_count": 4 },
+      "A3": { "links_to": ["P","A1","A2"],                            "incoming_from": ["P","A1","A2"],                          "incoming_count": 3 },
+      "B1": { "links_to": ["P","A1","B2","C1"],                       "incoming_from": ["P","A1","B2"],                          "incoming_count": 3 },
+      "B2": { "links_to": ["P","A1","B1"],                            "incoming_from": ["P","A1","B1","C1"],                    "incoming_count": 4 },
+      "C1": { "links_to": ["P","A1","B2","C2"],                       "incoming_from": ["P","B1","B2"],                          "incoming_count": 3 },
+      "C2": { "links_to": ["P","A2","C1"],                            "incoming_from": ["P","C1"],                               "incoming_count": 3 },
+      "D1": { "links_to": ["P","A2","C1"],                            "incoming_from": ["P"],                                    "incoming_count": 3 }
+    }
+  },
+  "execution_order": [
+    { "order": 1, "id": "P",  "reason": "Pillar first — all spokes link to it" },
+    { "order": 2, "id": "B2", "reason": "Highest-value spoke — zero competition, core product use case" },
+    { "order": 3, "id": "A1", "reason": "Rewrite of existing post — absorbs into cluster early" },
+    { "order": 4, "id": "A2", "reason": "Uses first-party data — strong differentiator" },
+    { "order": 5, "id": "A3", "reason": "Completes the Sales & Revenue cluster" },
+    { "order": 6, "id": "B1", "reason": "Marketing playbook — links to B2 which is now written" },
+    { "order": 7, "id": "C1", "reason": "Rewrite of existing post — links to B2 and A1 which are now written" },
+    { "order": 8, "id": "C2", "reason": "Sourcing guide — links to A2 and C1 which are now written" },
+    { "order": 9, "id": "D1", "reason": "Authority content — last because it's least urgent for conversion" }
+  ],
+  "quality_gates": {
+    "cannibalization": "No two posts share a primary keyword. Verified during planning.",
+    "link_completeness": "Every post has 3+ incoming internal links. Verified in matrix.",
+    "word_count": "Pillar ≥2,500 words. Spokes ≥1,200 words.",
+    "intent_diversity": "4 distinct intents: informational (4), commercial (4), mixed (1).",
+    "template_diversity": "4 distinct templates: pillar-page, how-to-guide, data-driven-list, comparison, industry-analysis.",
+    "image_coverage": "Every post has 1 hero + 2-3 inline images with generation prompts."
+  },
+  "totals": {
+    "total_posts": 9,
+    "total_new_posts": 7,
+    "total_rewrites": 2,
+    "total_interlinks": 38,
+    "estimated_total_words": 17700,
+    "total_images": 30,
+    "total_hero_images": 9,
+    "total_inline_images": 21,
+    "clusters": 4
+  }
+}

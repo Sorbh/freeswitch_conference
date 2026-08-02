@@ -28,6 +28,7 @@ const CATEGORIES = {
   guides: { label: 'Industry Guides', description: 'How-to guides and explainers for the auto dismantler industry' },
   news: { label: 'Network Updates', description: 'New rooms, milestones, and member stories from the Hotline HQ network' },
   market: { label: 'Parts Market', description: 'Popular parts, seasonal trends, and pricing insights from 500+ yards' },
+  'yard-growth': { label: 'Yard Growth', description: 'Strategies for salvage yard owners to grow revenue, network, and operations' },
 };
 
 function parseFrontmatter(content) {
@@ -87,6 +88,32 @@ function parseFrontmatter(content) {
 
 function markdownToHtml(md) {
   let html = md;
+
+  // Strip "Citation Capsule:" labels from blockquotes
+  html = html.replace(/\*\*Citation Capsule\*\*:\s*/g, '');
+
+  // Convert [IMAGE: ...] markers: ones with /images/ paths become <img>, rest are stripped
+  html = html.replace(/^\[IMAGE:[^\]]*?(\/images\/blog\/[^\]\s]+\.webp)[^\]]*\]\s*$/gm,
+    (_, src) => `<img src="${src}" alt="" loading="lazy" />`);
+  html = html.replace(/^\[IMAGE:[^\]]*\]\s*$/gm, '');
+
+  // Custom container blocks (:::key-takeaways, :::citation-capsule, etc.)
+  html = html.replace(/^:::(\S+)\n([\s\S]*?)^:::\s*$/gm, (_, type, content) => {
+    const inner = content.trim().split('\n').map(line => {
+      if (line.startsWith('- ')) return `<li>${line.slice(2)}</li>`;
+      if (/^\*\*(.+)\*\*$/.test(line)) return `<strong>${line.replace(/\*\*/g, '')}</strong>`;
+      return line;
+    });
+    const hasListItems = inner.some(l => l.startsWith('<li>'));
+    let body = '';
+    for (const line of inner) {
+      if (line.startsWith('<strong>')) body += `<p class="container-title">${line}</p>\n`;
+      else if (line.startsWith('<li>')) body += line + '\n';
+      else if (line.trim()) body += `<p>${line}</p>\n`;
+    }
+    if (hasListItems) body = body.replace(/(<li>.*\n)+/g, m => `<ul>${m}</ul>`);
+    return `<div class="custom-block ${type}">${body}</div>`;
+  });
 
   // Tables
   html = html.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/gm, (_, header, sep, rows) => {
@@ -183,8 +210,8 @@ function scanPosts() {
         coverImage: meta.coverImage || null,
         ogImage: meta.ogImage || meta.coverImage || null,
         component: meta.component || null,
-        toc: Array.isArray(meta.toc) ? meta.toc : [],
-        faq: Array.isArray(meta.faq) ? meta.faq : [],
+        toc: Array.isArray(meta.toc) ? meta.toc.map(t => ({ id: t.id, label: t.label || t.title })) : [],
+        faq: Array.isArray(meta.faq) ? meta.faq.map(f => ({ q: f.q || f.question, a: f.a || f.answer })) : [],
         bodyHtml: markdownToHtml(body),
       });
     }

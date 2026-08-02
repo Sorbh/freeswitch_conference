@@ -68,6 +68,7 @@ const CarPartAlternativePage = lazy(() => import('./pages/landing2/FeaturePages'
 const HardToFindPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.HardToFindPartsPage })));
 const SalvageYardMarketingPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.SalvageYardMarketingPage })));
 const EvHybridPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.EvHybridPartsPage })));
+const InterchangeNetworkPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.InterchangeNetworkPage })));
 const HeavyEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.HeavyEquipmentPage })));
 const FarmEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.FarmEquipmentPage })));
 const AviationPartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.AviationPartsPage })));
@@ -229,6 +230,7 @@ export default function App() {
         <Route path="/hard-to-find-auto-parts" element={<Lazy><HardToFindPartsPage /></Lazy>} />
         <Route path="/salvage-yard-marketing" element={<Lazy><SalvageYardMarketingPage /></Lazy>} />
         <Route path="/ev-hybrid-auto-parts" element={<Lazy><EvHybridPartsPage /></Lazy>} />
+        <Route path="/auto-parts-interchange-network" element={<Lazy><InterchangeNetworkPage /></Lazy>} />
         <Route path="/use-case/heavy-equipment-parts-hotline" element={<Lazy><HeavyEquipmentPage /></Lazy>} />
         <Route path="/use-case/farm-equipment-parts-hotline" element={<Lazy><FarmEquipmentPage /></Lazy>} />
         <Route path="/use-case/aviation-parts-hotline" element={<Lazy><AviationPartsPage /></Lazy>} />

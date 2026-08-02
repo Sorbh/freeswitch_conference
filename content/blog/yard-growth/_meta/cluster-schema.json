@@ -1,0 +1,551 @@
+[
+  {
+    "slug": "how-evs-will-change-salvage-yards",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "How Electric Vehicles Will Change Salvage Yards - What Dismantlers Need to Know",
+      "description": "Electric vehicles will make up 20-25% of scrapped cars by 2032. Here's what salvage yards need to know about EV battery recycling, safety, and parts pricing.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/how-evs-will-change-salvage-yards/ev-salvage-yard-hero.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/how-evs-will-change-salvage-yards"
+      },
+      "keywords": "electric vehicle recycling salvage yards, how will EVs affect junkyards, EV battery recycling salvage yard, auto recycling industry trends 2026, salvage yard future electric cars"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Do salvage yards need a special license to dismantle EVs?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Requirements vary by state. California requires EV-specific dismantler endorsements through the DMV. Most states are still developing regulations. Contact your state's Department of Motor Vehicles and the Automotive Recyclers Association for current requirements. At minimum, OSHA mandates high-voltage safety training for any worker handling EV batteries ([OSHA](https://www.osha.gov/), 2025)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can you put water on a lithium battery fire?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, but you need a lot of it. NFPA guidelines recommend 3,000 to 8,000 gallons of water for sustained direct cooling of a lithium-ion battery fire ([NFPA](https://www.nfpa.org/), 2024). Standard extinguishers won't work. Many fire departments now use thermal imaging cameras to monitor battery cell temperatures for hours after the visible fire is out."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are hybrid vehicles a good starting point for EV dismantling?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hybrids are the best entry point. Their battery packs are smaller, lower voltage, and easier to handle than full BEV packs. You learn disconnect procedures, PPE habits, and storage protocols at lower risk. Most yards already have hybrids sitting on their lots. Start there before investing in full EV equipment."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "how-to-buy-salvage-cars-for-dismantling",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "How to Buy Salvage Cars for Dismantling - Auction and Sourcing Tips",
+      "description": "Learn how to buy salvage cars for dismantling profitably. Insurance companies totaled 4.1M+ US vehicles in 2023, creating steady auction supply for smart buyers.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/how-to-buy-salvage-cars-for-dismantling/auction-lot-hero.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/how-to-buy-salvage-cars-for-dismantling"
+      },
+      "keywords": "how to buy salvage cars for dismantling, Copart vs IAA for salvage yard buyers, buying vehicles from insurance companies for parts, best cars to buy at Copart for parts, salvage vehicle sourcing strategies, salvage auction tips for dismantlers"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What are the best cars to buy at Copart for parts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Vehicles 3-7 years old with front-end collision damage tend to yield the best returns. The drivetrain stays intact, which means you can pull the transmission, motor, and catalytic converter at full value. Honda, Toyota, and Hyundai models move fastest because parts demand is consistently high across salvage networks ([Car-Part.com](https://www.car-part.com/), 2026)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can you buy directly from insurance companies for dismantling?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, but it takes relationship building. Some insurance carriers sell totaled vehicles directly to licensed dismantlers, bypassing auction fees entirely. Contact local adjusters and claims managers. Once you're on their call list, you'll see vehicles before they reach Copart or IAA. Expect lower per-vehicle costs due to the insurer skipping auction listing fees and buyer premiums."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does it cost to get started buying at Copart?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Copart requires a state-issued dealer or dismantler license for direct bidding. Basic membership starts at $200 per year. The main ongoing cost is the buyer's premium, which runs roughly 18% on top of your winning bid ([Copart.com](https://www.copart.com/), 2026). Factor in transport, typically $150-$500 per vehicle depending on distance, and you're looking at $350-$700 in overhead before you even start pulling parts."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "how-to-network-with-other-salvage-yards",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "How to Network With Other Salvage Yards - Parts Brokering That Pays",
+      "description": "Salvage yards in voice networks access 300,000+ parts vs. 3,000 solo. Learn yard-to-yard brokering from CB radios to modern SIP hotlines.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/how-to-network-with-other-salvage-yards/salvage-yard-network-hero.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/how-to-network-with-other-salvage-yards"
+      },
+      "keywords": "how to network with other salvage yards, parts brokering between salvage yards, salvage yard collaboration, auto recycler parts locating network, yard-to-yard parts trading, salvage yard parts network, auto parts brokering, dismantler networking"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do salvage yards find parts for customers they don't stock?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yards broadcast the request over a voice parts network, reaching 100+ other yards in seconds. The first yard with the part responds, and the two work out pricing and pickup directly. On the Hotline HQ network, average broadcast-to-response time is 2 seconds across 12 regional rooms ([Hotline HQ network data, 2026](/#listen-live))."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does it cost to join a parts brokering network?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Costs vary by network type. Voice networks like Hotline HQ charge a flat monthly membership with no commissions, listing fees, or per-call charges. A preconfigured desk phone ships with membership. Local associations and phone trees are often free but limited in reach and response time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can small salvage yards compete with large dismantlers through networking?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Network access matters more than lot size. A 200-car yard on a voice network with 200+ members hears every request a 1,000-car yard hears. If you have the part, the buyer doesn't care about your acreage. The Automotive Recyclers Association reports roughly 9,000 US recycling businesses, most with fewer than 20 employees ([ARA, 2025](https://a-r-a.org/))."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "how-to-price-used-auto-parts",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "How to Price Used Auto Parts - A Seller's Strategy Guide",
+      "description": "Pricing strategy for salvage yard owners: use market data, condition grading, and demand signals. Yards pricing with data hit 20% net margins vs 10% on gut feel.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/how-to-price-used-auto-parts/pricing-station.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/how-to-price-used-auto-parts"
+      },
+      "keywords": "how to price used auto parts, used auto parts pricing guide, salvage yard profit margins, what is the markup on used auto parts, how much do junkyard owners make, salvage yard pricing strategy, used parts condition grading"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the typical markup on used auto parts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Individual part markups run 50% to 70% per component, according to u-pull-it.com industry data. Net margins for the whole yard are lower, between 10% and 20% of revenue, because overhead like rent, labor, insurance, and unsaleable vehicles eat into gross profit. The yards at 20% price with market data. The yards at 10% price from memory."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much do junkyard owners actually make?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Owner income ranges from $50,000 to over $200,000 depending on yard size, location, and sales channel mix. High-performing yards with stacked channels report $400,000 or more by year five, according to FinModelsLab. The biggest income lever isn't volume, it's pricing discipline."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I find out what a used part is worth?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Start with Car-Part.com, which indexes over 200 million parts from yards nationwide. Check eBay sold listings for the same part to see what buyers actually paid, not just what sellers asked. Then adjust for your part's condition grade, local demand, and your sales channel. Competitive pricing doesn't mean cheapest. It means justified."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "most-profitable-parts-to-pull",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Most Profitable Parts to Pull From a Salvage Vehicle",
+      "description": "Ranked: the 12 most profitable parts to pull from a salvage vehicle. Real price ranges, demand frequency, and pull priority math from 300+ daily broadcasts.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/most-profitable-parts-to-pull/salvage-parts-workbench.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/most-profitable-parts-to-pull"
+      },
+      "keywords": "most profitable parts to pull from salvage yard, what parts sell fastest at a junkyard, best parts to dismantle and resell, most valuable used auto parts to sell, what used car parts are in highest demand"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What parts sell fastest at a junkyard?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Transmissions, motors, and ECU modules sell fastest because demand is constant and repair shops need them urgently. On voice parts networks, these three categories lead daily broadcast volume. Headlight assemblies and alternators also move quickly due to high failure rates. Speed of sale depends on pricing, part condition, and how many sales channels you use."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much can you make pulling parts from one car?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A clean 2017 to 2020 mid-size sedan yields roughly $2,500 to $4,500 in total parts revenue. Full-size trucks run higher, typically $4,000 to $7,000, according to ARA industry estimates. Actual revenue depends on how many parts you successfully pull, test, and sell before the hull goes to scrap metal."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it worth pulling small parts like starters and alternators?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, once you've pulled the high-value items first. Starters and alternators cost almost nothing to store, ship cheaply, and sell consistently. A yard that tests and tags these parts can move dozens per week. The margin per unit is modest at $30 to $100 profit, but the volume adds up over a full quarter."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "pillar-grow-salvage-yard-business",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "How to Grow a Salvage Yard Business \u2014 8 Strategies That Work in 2026",
+      "description": "Practical growth strategies for salvage yard owners: stack sales channels, price with data, build yard-to-yard networks, and source smarter at auction. Written by operators, not consultants.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/grow-salvage-yard-business/salvage-yard-aerial.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/pillar-grow-salvage-yard-business"
+      },
+      "keywords": "how to grow a salvage yard business, junkyard business growth strategies, how to run a successful junkyard, auto dismantler business tips, salvage yard profitability"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How much can a salvage yard owner make per year?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Owner income ranges from $50,000 to over $200,000 depending on yard size, location, and sales channels. High-performing yards with multiple revenue streams \u2014 walk-in, online, and network sales \u2014 report $400,000+ by year five, according to FinModelsLab industry benchmarks."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the profit margin on used auto parts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Typical net margins for salvage yards fall between 10% and 20% of revenue. Individual part markups run higher \u2014 50% to 70% per component is standard. The gap comes from overhead: rent, labor, insurance, and the vehicles that yield fewer saleable parts than expected."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it too late to start or grow a salvage yard in 2026?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The US vehicle recycling market was valued at $85.5 billion in 2025 and is projected to reach $165 billion by 2033. Vehicles are getting more complex, parts are getting more expensive, and the yards that adapt \u2014 stacking sales channels, joining networks, and preparing for EVs \u2014 have room to grow."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "salvage-yard-marketing-playbook",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Salvage Yard Marketing - A Practical Playbook for Auto Dismantlers",
+      "description": "Six salvage yard marketing channels ranked by effort and impact. 81% of parts buyers search online first. A practical playbook for auto dismantlers in 2026.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/salvage-yard-marketing-playbook/salvage-yard-gbp-smartphone.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/salvage-yard-marketing-playbook"
+      },
+      "keywords": "salvage yard marketing, salvage yard customer acquisition, junkyard Google Business Profile, salvage yard SEO, how to get more customers junkyard"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the most effective free marketing for a salvage yard?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Google Business Profile. It's free and delivers the highest return of any single channel. Yards that upload 20+ real photos, respond to every review, and post weekly updates see walk-in traffic increases of 30-50% within months ([PYP Accelerator, 2025](https://pullyourpartaccelerator.com/)). It takes about 15 minutes a week to maintain."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Should a junkyard invest in social media marketing?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Facebook Marketplace is worth the effort since it reaches over 1 billion monthly visitors ([Meta, 2025](https://about.meta.com/)) at zero listing cost. Short yard walkthrough videos also perform well on Facebook and Instagram. Don't spread yourself across every platform. Pick one or two and post consistently."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it worth paying for radio or print ads for a salvage yard?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "In most cases, no. With 81% of parts buyers searching online ([PYP Accelerator, 2025](https://pullyourpartaccelerator.com/)), your budget works better on digital channels. Print yellow pages deliver nearly zero ROI for auto recyclers. Radio reaches broad audiences, but most listeners aren't shopping for used parts. Put that money into Google Business Profile optimization or Car-Part.com listings instead."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "salvage-yard-software-compared",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "Salvage Yard Software Compared - Inventory Tools for Auto Dismantlers in 2026",
+      "description": "Seven salvage yard software tools compared with pricing, features, and fit. 78% of yards now use digital inventory, per ARA 2025 data.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/salvage-yard-software-compared/salvage-yard-manager-workstation.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/salvage-yard-software-compared"
+      },
+      "keywords": "salvage yard software, auto dismantler inventory software, junkyard management tools, Hollander interchange system, salvage yard inventory comparison, dismantler software 2026"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the best salvage yard software for a small yard?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "For a yard with under 500 vehicles, Yard Manager or Dismantly offer the lowest barrier to entry. Yard Manager covers the basics, pull lists and dismantle scheduling, at the lowest monthly cost. Dismantly adds AI-assisted cataloging and marketplace sync if you sell online. Both beat spreadsheets on day one."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does salvage yard software replace a parts hotline?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. They solve different problems. Software tracks what's on your lot. A voice hotline like Hotline HQ broadcasts live buyer requests to hundreds of yards simultaneously. Most yards run both. Software organizes your supply, and the hotline surfaces demand you'd never see from a listing alone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does auto dismantler inventory software cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Pricing ranges widely. Yard Manager starts under $100 per month. Cloud tools like Dismantly and Checkmate run $100 to $300 per month depending on features. YardSmart, Frazer, and Hollander/Pinnacle use quote-based pricing that scales with yard count and modules. Most vendors require a demo before quoting."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "slug": "sell-more-parts",
+    "blogPosting": {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": "How Salvage Yards Sell More Parts - 5 Channels That Actually Work",
+      "description": "Five sales channels for salvage yards ranked by speed, cost, and real ROI. Voice hotlines deliver 2-second responses across 500+ connected dismantler yards.",
+      "datePublished": "2026-08-01",
+      "dateModified": "2026-08-01",
+      "author": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Hotline HQ",
+        "url": "https://hotlinehq.online",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://hotlinehq.online/hotline_hq_logo.png"
+        }
+      },
+      "image": "https://hotlinehq.online/images/blog/sell-more-parts/salvage-yard-counter.webp",
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://hotlinehq.online/blog/cluster-salvage-yard-growth/sell-more-parts"
+      },
+      "keywords": "how to sell used auto parts, salvage yard sales channels, best way to sell used car parts, auto parts sales tips, salvage yard sales strategy, sell used car parts online, dismantler sales channels"
+    },
+    "faqPage": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the fastest way to sell used auto parts?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Voice hotline networks deliver the fastest yard-to-yard sales. A single broadcast reaches 100+ yards, and the average response takes about 2 seconds (Hotline HQ network data, 2026). Online marketplaces reach more individual buyers but responses take hours to days, not seconds."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can small salvage yards compete with large dismantlers on volume?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Network access matters more than yard size. A small yard on a voice hotline with 200+ members hears every request a larger yard hears. If you have the part, the buyer doesn't care how big your lot is. Stack two or three channels and a 10-car-a-week yard can outsell a 50-car operation stuck on walk-ins alone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How many sales channels does a salvage yard actually need?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Two to three is the sweet spot for most mid-size yards. A voice hotline for speed, an online marketplace for national reach on high-value parts, and walk-in traffic for local margin. Adding a fourth channel like social media makes sense only when you have staff time to keep it active."
+          }
+        }
+      ]
+    }
+  }
+]
