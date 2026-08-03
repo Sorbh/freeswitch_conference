@@ -29,10 +29,10 @@ export function OwnHotlinePage() {
 
   const FEATURES = [
     { slug: "always-on-voice-network", icon: FeatIconNetwork, title: "Always-On Voice Network", desc: "Live voice hotline running 24/7. No dialing, no waiting. Members are connected the moment their phone powers on.", accent: "#d92d20" },
-    { slug: "caller-id", icon: FeatIconCallerId, title: "Real-Time Caller ID", desc: "See who's talking — company name, rep name, phone, city. Know exactly which yard is broadcasting before you respond.", accent: "#2563eb" },
-    { slug: "any-device", icon: FeatIconDevice, title: "Works On Any Device", desc: "Preconfigured desk phone or just open the web app on your mobile. No hardware required — push-to-talk from your pocket.", accent: "#7c3aed" },
-    { slug: "desk-phone", icon: FeatIconDeskPhone, title: "Hotline Desk Phone", desc: "A preconfigured Yealink T31P ships to your yard. Plug in the ethernet cable and you're live — no setup, no mic issues, HD audio.", accent: "#0891b2" },
-    { slug: "direct-calls", icon: FeatIconDirect, title: "Private Direct Calls", desc: "Every member gets a 3-digit extension. Call any yard privately over the network — zero phone bills.", accent: "#0891b2" },
+    { slug: "caller-id", icon: FeatIconCallerId, title: "Real-Time Caller ID", desc: "See who's talking: company name, rep name, phone, city. Know exactly which yard is broadcasting before you respond.", accent: "#2563eb" },
+    { slug: "any-device", icon: FeatIconDevice, title: "Works On Any Device", desc: "Preconfigured desk phone or just open the web app on your mobile. No hardware required, push-to-talk from your pocket.", accent: "#7c3aed" },
+    { slug: "desk-phone", icon: FeatIconDeskPhone, title: "Hotline Desk Phone", desc: "A preconfigured Yealink T31P ships to your yard. Plug in the ethernet cable and you're live. No setup, no mic issues, HD audio.", accent: "#0891b2" },
+    { slug: "direct-calls", icon: FeatIconDirect, title: "Private Direct Calls", desc: "Every member gets a 3-digit extension. Call any yard privately over the network. Zero phone bills.", accent: "#0891b2" },
     { slug: "broadcast-recording", icon: FeatIconRecord, title: "Broadcast Recording", desc: "Every broadcast recorded automatically. Browse history, track response times, replay any conversation.", accent: "#ea580c" },
     { slug: "notifications", icon: FeatIconNotify, title: "Smart Notifications", desc: "Push notifications on mobile, Telegram alerts, lock screen controls. Your members never miss a part request.", accent: "#16a34a" },
     { slug: "unanswered-capture", icon: FeatIconCapture, title: "Unanswered Broadcast Capture", desc: "No request goes to waste. Unanswered broadcasts are auto-transcribed, parsed for year/make/model, and listed on the marketplace.", accent: "#ca8a04" },
@@ -95,7 +95,7 @@ export function OwnHotlinePage() {
         <section className="l2-own-hero">
           <p className="l2-doc-kicker">{t("hero.kicker")}</p>
           <h1 dangerouslySetInnerHTML={{ __html: t("hero.heading") }} />
-          <p className="l2-own-lede">{t("hero.lede")} Already running a copper wire hotline? <Link to="/use-case/replace-copper-hotline" style={{color:'var(--red)'}}>Bring your group to HQ</Link> — same desk phone experience, better technology.</p>
+          <p className="l2-own-lede">{t("hero.lede")} Already running a copper wire hotline? <Link to="/use-case/replace-copper-hotline" style={{color:'var(--red)'}}>Bring your group to HQ</Link>, same desk phone experience, better technology.</p>
           <div className="l2-own-ctas">
             <Link className="l2-btn l2-btn-hot" to="/">
               {t("hero.seeNetwork")}
@@ -167,7 +167,7 @@ export function OwnHotlinePage() {
           <div className="l2-feat-header">
             <span className="l2-feat-eyebrow">PLATFORM</span>
             <h2>Everything included.<br />Nothing extra to buy.</h2>
-            <p className="l2-own-sub" style={{ margin: '0' }}>Your members get all of this from day one — desk phone or mobile.</p>
+            <p className="l2-own-sub" style={{ margin: '0' }}>Your members get all of this from day one, desk phone or mobile.</p>
           </div>
           <div className="l2-feat-bento">
             {FEATURES.map((f, i) => {

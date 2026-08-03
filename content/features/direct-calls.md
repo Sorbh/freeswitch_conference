@@ -8,10 +8,10 @@ seo:
 hero:
   kicker: "DIRECT CALLS"
   heading: "Private calls, zero phone bills"
-  lede: "Every member gets a 3-digit extension number. Dial any member privately over the network — negotiate pricing, discuss details, close the deal. No phone bills, no long-distance charges."
+  lede: "Every member gets a 3-digit extension number. Dial any member privately over the network: negotiate pricing, discuss details, close the deal. No phone bills, no long-distance charges."
 problem:
   heading: "Follow-up calls shouldn't cost money"
-  text: "After a broadcast, members often need a private follow-up — negotiate pricing, confirm fitment, arrange delivery. Calling the member's cell or landline costs money and pulls them off the hotline. Direct calls keep the conversation on-network. Free and fast."
+  text: "After a broadcast, members often need a private follow-up: negotiate pricing, confirm fitment, arrange delivery. Calling the member's cell or landline costs money and pulls them off the hotline. Direct calls keep the conversation on-network. Free and fast."
 steps:
   - title: "Request an extension"
     desc: "Members pick any 3-digit number (100-999) from the member directory in their dashboard. The extension gets assigned right away."
@@ -20,12 +20,12 @@ steps:
   - title: "Private connection"
     desc: "Both parties get pulled out of the conference room into a private call. The conversation is recorded and both members return to the room when the call ends."
   - title: "Missed call notifications"
-    desc: "If the callee doesn't answer within 15 seconds, they get a push notification with the caller's name and extension — one tap to call back."
+    desc: "If the callee doesn't answer within 15 seconds, they get a push notification with the caller's name and extension. One tap to call back."
 benefits:
   - title: "Zero cost"
     desc: "Direct calls travel over the internet, not the phone network. No per-minute charges, no long-distance fees."
   - title: "Searchable member directory"
-    desc: "A full directory of every member on the network — searchable by company name, city, phone number, or extension."
+    desc: "A full directory of every member on the network, searchable by company name, city, phone number, or extension."
   - title: "Call recording"
     desc: "Every direct call is recorded automatically. Handy for dispute resolution, training, and quality checks."
   - title: "Push notification on miss"
@@ -37,7 +37,7 @@ faqs:
   - q: "How do I get an extension number?"
     a: "Go to the Members page in your dashboard and tap \"Request Extension.\" Pick any available 3-digit number between 100 and 999."
   - q: "Can I call someone who doesn't have an extension?"
-    a: "No — both parties need an extension for direct calls. Takes 10 seconds to register one."
+    a: "No. Both parties need an extension for direct calls. Takes 10 seconds to register one."
   - q: "Are direct calls recorded?"
     a: "Yes. All direct calls are recorded and available in the admin dashboard. Protects both parties and helps resolve disputes."
   - q: "What happens if nobody answers?"

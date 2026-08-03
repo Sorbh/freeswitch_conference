@@ -6,7 +6,7 @@ const SIGNUP_URL = "/client/signup";
 
 const MAPPING = [
   { copper: "Noisy analog static", hq: "HD audio with AI noise cancellation" },
-  { copper: "Bolted to the wall", hq: "Desk phone + browser — stay on the line anywhere" },
+  { copper: "Bolted to the wall", hq: "Desk phone + browser: stay on the line anywhere" },
   { copper: "Goes down, stays down", hq: "99.99% uptime, auto-reconnect" },
   { copper: "Stuck in one region", hq: "Switch between any room with one button" },
 ];
@@ -28,11 +28,11 @@ const COMPARISON = [
 const PAIN_POINTS = [
   {
     title: "Copper lines are dying",
-    body: "Telcos across the country are sunsetting POTS (Plain Old Telephone Service). Maintenance crews are shrinking, prices are rising, and some areas can't get copper service at all anymore. The infrastructure your hotline depends on is being retired — not next decade, now.",
+    body: "Telcos across the country are sunsetting POTS (Plain Old Telephone Service). Maintenance crews are shrinking, prices are rising, and some areas can't get copper service at all anymore. The infrastructure your hotline depends on is being retired. Not next decade, now.",
   },
   {
     title: "One region isn't enough",
-    body: "A copper hotline covers one local area — the yards within your telco's reach. HQ connects 12 regional rooms across the US. A yard in Texas can broadcast to California, Florida, or Arizona with a single button press. Cross-room broadcasting means your network doesn't stop at the county line.",
+    body: "A copper hotline covers one local area: the yards within your telco's reach. HQ connects 12 regional rooms across the US. A yard in Texas can broadcast to California, Florida, or Arizona with a single button press. Cross-room broadcasting means your network doesn't stop at the county line.",
   },
   {
     title: "No recordings, no accountability",
@@ -206,7 +206,7 @@ export function ReplaceCopperPage() {
           <p className="fp-kicker">SIDE BY SIDE</p>
           <h2>Copper Hotline vs Hotline HQ</h2>
           <p className="fp-lede">
-            Everything your copper line does, HQ does — plus everything it can't.
+            Everything your copper line does, HQ does, plus everything it can't.
           </p>
         </div>
         <div className="rc-compare">
@@ -252,7 +252,7 @@ export function ReplaceCopperPage() {
           <div className="rc-hq-header">Hotline HQ</div>
           <div className="rc-hq-item">
             <span className="rc-hq-dim">HD Audio</span>
-            <span className="rc-hq-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> Crystal-clear wideband voice — no static, no line noise</span>
+            <span className="rc-hq-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> Crystal-clear wideband voice: no static, no line noise</span>
           </div>
           <div className="rc-hq-item">
             <span className="rc-hq-dim">Caller ID</span>
@@ -284,7 +284,7 @@ export function ReplaceCopperPage() {
           </div>
           <div className="rc-hq-item">
             <span className="rc-hq-dim">Cost</span>
-            <span className="rc-hq-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> Flat monthly — phone included</span>
+            <span className="rc-hq-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> Flat monthly, phone included</span>
           </div>
         </div>
       </section>

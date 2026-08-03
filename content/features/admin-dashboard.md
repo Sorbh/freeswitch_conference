@@ -8,28 +8,28 @@ seo:
 hero:
   kicker: "MANAGEMENT"
   heading: "Full control from one screen"
-  lede: "Real-time user status, broadcast analytics, room management, phone health monitoring, and system diagnostics. Everything a network operator needs — nothing they don't."
+  lede: "Real-time user status, broadcast analytics, room management, phone health monitoring, and system diagnostics. Everything a network operator needs, nothing they don't."
 problem:
   heading: "Running a network blind is dangerous"
-  text: "Without visibility, operators fly blind. Are members online? Are rooms active? Are phones even working? Problems slide by for hours before anyone notices. The dashboard puts the full picture in front of you — live, on one screen."
+  text: "Without visibility, operators fly blind. Are members online? Are rooms active? Are phones even working? Problems slide by for hours before anyone notices. The dashboard puts the full picture in front of you, live, on one screen."
 steps:
   - title: "Live overview"
     desc: "The dashboard homepage shows real-time stats: users online, in conference, active broadcasts, with a scrolling event ticker and room activity timelines."
   - title: "User management"
-    desc: "See every member's status — online, offline, muted, talking, error — with smart suggestions for common issues. Bulk actions: reconnect all, mute all, kick all."
+    desc: "See every member's status (online, offline, muted, talking, error) with smart suggestions for common issues. Bulk actions: reconnect all, mute all, kick all."
   - title: "Broadcast analytics"
     desc: "Charts for broadcast volume, response rates, top broadcasters, peak hours. Filter by room, time range, answered or unanswered."
   - title: "System health"
     desc: "FreeSWITCH connection status, server uptime, database size, memory usage, SIP registration count. Auto-alerts fire when something looks off."
 benefits:
   - title: "Real-time SSE updates"
-    desc: "Every dashboard page updates live via Server-Sent Events. No page refreshes, no polling — changes show up the instant they happen."
+    desc: "Every dashboard page updates live via Server-Sent Events. No page refreshes, no polling. Changes show up the instant they happen."
   - title: "Smart diagnostics"
     desc: "The user detail panel flags problems for you: \"UDP/NAT issue detected,\" \"Phone unreachable for 5 minutes,\" \"Stuck in connecting state.\" You know what to fix without digging."
   - title: "Role-based access"
     desc: "Three admin roles: Admin (full access), Editor (users and rooms), Analytics (read-only). Each operator sees only what they need."
   - title: "Remote phone control"
-    desc: "Reboot phones, push configurations, update SIP servers, rebind devices — all from the dashboard. No driving out to the yard."
+    desc: "Reboot phones, push configurations, update SIP servers, rebind devices, all from the dashboard. No driving out to the yard."
 scenario:
   heading: "Real-world: diagnosing a silent yard"
   text: "An operator notices a yard that's been online but silent for 3 days. They open the user detail panel and see: \"No syslog events in 72 hours — phone may be powered off or network-disconnected.\" They tap \"Reboot\" to send a remote restart. 30 seconds later, the phone reconnects and the yard is back on the hotline."

@@ -22,7 +22,7 @@ const steps = [
   {
     number: "01",
     title: "A member needs a part",
-    copy: "They have a customer waiting, but do not have the part in stock.",
+    copy: "They have a customer waiting, but don't have the part in stock.",
   },
   {
     number: "02",
@@ -58,7 +58,7 @@ export default function LandingPage() {
   const handleFormSubmit = (event) => {
     event.preventDefault();
     setFormSubmitted(true);
-    toast.success("Demo request submitted. We will reach out within 24 hours.");
+    toast.success("Demo request submitted. We'll reach out within 24 hours.");
   };
 
   const handlePlayVideo = () => {
@@ -306,7 +306,7 @@ export default function LandingPage() {
                   See how to run the hotline in your area.
                 </h2>
                 <p className="mt-4 text-lg leading-8 text-[#4b5563]">
-                  We will walk you through the product, the member flow, and how
+                  We'll walk you through the product, the member flow, and how
                   this can work in your market.
                 </p>
               </div>
@@ -319,7 +319,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="mt-5 text-2xl font-semibold text-[#111827]">Request received</h3>
                     <p className="mt-3 text-lg leading-8 text-[#4b5563]">
-                      We will reach out within 24 hours.
+                      We'll reach out within 24 hours.
                     </p>
                   </div>
                 ) : (

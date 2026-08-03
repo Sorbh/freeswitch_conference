@@ -11,7 +11,7 @@ hero:
   lede: "JWT authentication, rate limiting, SIP digest auth, encrypted WebSocket connections, and role-based access control. The infrastructure runs 24/7 with zero planned downtime."
 problem:
   heading: "Voice networks are targets"
-  text: "An always-on voice network connected to hundreds of SIP phones is a prime target for toll fraud, unauthorized access, and abuse. Security can't be bolted on later — it has to be the foundation."
+  text: "An always-on voice network connected to hundreds of SIP phones is a prime target for toll fraud, unauthorized access, and abuse. Security can't be bolted on later. It has to be the foundation."
 steps:
   - title: "SIP digest authentication"
     desc: "Every phone must authenticate with FreeSWITCH using SIP digest auth before joining a room. Unauthorized User-Agents get silently rejected."
@@ -41,7 +41,7 @@ faqs:
   - q: "How are admin accounts secured?"
     a: "Bcrypt-hashed passwords, JWT tokens with short expiry, refresh token rotation, and rate-limited login with account lockout after failed attempts."
   - q: "Is there an audit log?"
-    a: "Yes. Every event worth tracking — joins, leaves, mutes, unmutes, broadcasts, direct calls, room changes, admin actions — gets logged with timestamps."
+    a: "Yes. Every event worth tracking (joins, leaves, mutes, unmutes, broadcasts, direct calls, room changes, admin actions) gets logged with timestamps."
   - q: "What happens during a server restart?"
     a: "The server shuts down gracefully: active calls receive a BYE signal, recordings are saved, and the process exits clean. Phones reconnect on their own when the server comes back."
 related:

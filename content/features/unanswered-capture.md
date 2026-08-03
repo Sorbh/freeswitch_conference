@@ -8,17 +8,17 @@ seo:
 hero:
   kicker: "LEAD CAPTURE"
   heading: "No request goes to waste"
-  lede: "When a broadcast goes unanswered, the system doesn't just log it — it transcribes the audio, extracts the part details, and creates a searchable marketplace listing that lives on Google 24/7."
+  lede: "When a broadcast goes unanswered, the system doesn't just log it. It transcribes the audio, extracts the part details, and creates a searchable marketplace listing that lives on Google 24/7."
 problem:
   heading: "Unanswered calls are lost revenue"
-  text: "Some broadcasts go unanswered — the right yard was at lunch, or the part is rare. On a traditional hotline, that request vanishes. On Hotline HQ, every unanswered broadcast becomes a searchable listing that any yard can respond to later — or that a Google searcher finds on their own."
+  text: "Some broadcasts go unanswered. The right yard was at lunch, or the part is rare. On a traditional hotline, that request vanishes. On Hotline HQ, every unanswered broadcast becomes a searchable listing that any yard can respond to later, or that a Google searcher finds on their own."
 steps:
   - title: "Broadcast goes unanswered"
     desc: "The system waits 5 seconds after the speaker mutes. If nobody unmutes, the broadcast gets tagged as unanswered."
   - title: "AI transcription runs"
     desc: "Whisper AI transcribes the audio locally. Then an AI model parses out the structured data: year, make, model, trim, part, and specification."
   - title: "Marketplace listing created"
-    desc: "The extracted part details become a listing on the Parts Marketplace — with the speaker's room, time, and a \"Respond\" form."
+    desc: "The extracted part details become a listing on the Parts Marketplace, with the speaker's room, time, and a \"Respond\" form."
   - title: "Indexed by Google"
     desc: "Each listing gets its own SEO-optimized page with Product and WantAction schema. Google indexes these pages, driving organic traffic to the network."
 benefits:
@@ -29,10 +29,10 @@ benefits:
   - title: "Network growth driver"
     desc: "Marketplace listings attract visitors who aren't on the network yet. They see the activity, see the speed, and sign up."
   - title: "Zero manual work"
-    desc: "The whole pipeline — recording, transcription, parsing, listing creation, SEO — is fully automated. Operators don't lift a finger."
+    desc: "The whole pipeline (recording, transcription, parsing, listing creation, SEO) is fully automated. Operators don't lift a finger."
 scenario:
   heading: "Real-world: a Google search closes a deal 12 hours later"
-  text: "At 8 PM, a yard broadcasts for a rare Mercedes part. The rooms are quiet — unanswered. The system transcribes it, creates a listing: \"2016 Mercedes C300 turbocharger — California.\" The next morning, a Google searcher finds the page, fills out the response form with their name and phone number. The broadcaster gets an email, calls back, and sells the part."
+  text: "At 8 PM, a yard broadcasts for a rare Mercedes part. The rooms are quiet, unanswered. The system transcribes it, creates a listing: \"2016 Mercedes C300 turbocharger — California.\" The next morning, a Google searcher finds the page, fills out the response form with their name and phone number. The broadcaster gets an email, calls back, and sells the part."
 faqs:
   - q: "How does the system know a broadcast is unanswered?"
     a: "After the speaker mutes, the system waits 5 seconds for another member to unmute. No response in that window means unanswered."

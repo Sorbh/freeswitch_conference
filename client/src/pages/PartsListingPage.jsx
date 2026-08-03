@@ -279,7 +279,7 @@ export default function PartsListingPage() {
   const specText = isRealValue(spec) ? ` (${spec})` : "";
   const seoTitle = `${vehicle} ${partName || "Part"} Needed in ${data.room_name} | Used Auto Parts | Hotline HQ`;
   const seoDesc = filled
-    ? `A ${data.room_name} dismantler needed a used ${vehicle} ${partName || "part"}${specText} — this request was filled live on the Hotline HQ network. Join to hear requests like this the moment they're broadcast.`
+    ? `A ${data.room_name} dismantler needed a used ${vehicle} ${partName || "part"}${specText}, this request was filled live on the Hotline HQ network. Join to hear requests like this the moment they're broadcast.`
     : `${data.room_name} dismantler needs a used ${vehicle} ${partName || "part"}${specText}. Have this part in stock? Respond now and get connected on Hotline HQ Marketplace.`;
   const seoKeywords = [parts.make, parts.model, partName, "used auto parts", "salvage parts", data.room_name, "car parts", "dismantler", parts.year].filter(Boolean).join(", ");
 
@@ -404,7 +404,7 @@ export default function PartsListingPage() {
                     ) : expired ? (
                       <div className="pl-action-expired">
                         <h3>Parts like this are requested every day</h3>
-                        <p>Join Hotline HQ and hear requests live — respond the moment someone needs what you carry.</p>
+                        <p>Join Hotline HQ and hear requests live, respond the moment someone needs what you carry.</p>
                         <a href={SIGNUP_URL} className="pl-cta-primary">Join Hotline HQ</a>
                       </div>
                     ) : submitted ? (
@@ -421,7 +421,7 @@ export default function PartsListingPage() {
                     ) : (
                       <>
                         <h3 className="pl-action-heading">Have this part?</h3>
-                        <p className="pl-action-sub">Leave your info — we'll connect you with the requester.</p>
+                        <p className="pl-action-sub">Leave your info, we'll connect you with the requester.</p>
                         <ResponseForm slug={slug} onSuccess={() => setSubmitted(true)} />
                       </>
                     )}
@@ -443,7 +443,7 @@ export default function PartsListingPage() {
 
                     <p className="pl-sidebar-sub">
                       Hotline HQ is an always-on voice network connecting 500+ auto dismantler yards.
-                      Hear requests live and answer in seconds — no waiting for the board.
+                      Hear requests live and answer in seconds, no waiting for the board.
                     </p>
 
                     <div className="pl-sidebar-stats">

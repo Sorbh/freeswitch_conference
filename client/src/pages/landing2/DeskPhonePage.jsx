@@ -7,17 +7,17 @@ const HERO_IMG = "/images/t31p-desk-phone.webp";
 const CLOSEUP_IMG = "/images/t31p-lcd.webp";
 
 const STEPS = [
-  { num: "01", title: "Order your phone", desc: "We ship a preconfigured Yealink T31P to your yard — or grab one from Amazon, B&H, or any VoIP retailer and we'll send the config." },
+  { num: "01", title: "Order your phone", desc: "We ship a preconfigured Yealink T31P to your yard, or grab one from Amazon, B&H, or any VoIP retailer and we'll send the config." },
   { num: "02", title: "Plug in one cable", desc: "Ethernet into your router. The phone boots, finds the hotline, and connects itself. No passwords, no SIP settings." },
   { num: "03", title: "You're live", desc: "Within 30 seconds you hear the network. When someone asks for a part you have, pick up and respond." },
 ];
 
 const BENEFITS = [
-  { icon: "mic", title: "No mic permission issues", desc: "The #1 browser problem — blocked microphone — doesn't exist with a desk phone." },
+  { icon: "mic", title: "No mic permission issues", desc: "The #1 browser problem, blocked microphone, doesn't exist with a desk phone." },
   { icon: "power", title: "Always on, always connected", desc: "24/7 connection. No browser tab, no battery, no screen lock to manage." },
   { icon: "audio", title: "Crystal-clear HD voice", desc: "Wideband audio codecs. Every part number, VIN digit, and dollar amount comes through clearly." },
   { icon: "id", title: "Caller ID on every broadcast", desc: "See who's talking before you pick up. Know exactly which yard is asking." },
-  { icon: "plug", title: "No computer required", desc: "Standalone device — just needs ethernet and power. Perfect for any counter." },
+  { icon: "plug", title: "No computer required", desc: "Standalone device. Just needs ethernet and power. Perfect for any counter." },
   { icon: "headset", title: "Headset ready", desc: "Standard RJ9 port for any compatible wired headset. Go hands-free all day." },
 ];
 
@@ -29,16 +29,16 @@ const SPECS = [
   ["Network", "10/100 Ethernet, PoE"],
   ["Ports", "RJ9 headset, RJ45 LAN + PC"],
   ["Power", "PoE (802.3af) or AC adapter"],
-  ["Setup", "Zero-touch — preconfigured"],
+  ["Setup", "Zero-touch, preconfigured"],
 ];
 
 const FAQS = [
-  { q: "Do I have to buy the phone from you?", a: "No. You can order a Yealink T31P from Amazon, B&H Photo, VoIP Supply, or any retailer. We'll send you the configuration file, or ship one preconfigured — your choice." },
+  { q: "Do I have to buy the phone from you?", a: "No. You can order a Yealink T31P from Amazon, B&H Photo, VoIP Supply, or any retailer. We'll send you the configuration file, or ship one preconfigured. Your choice." },
   { q: "What if my internet goes down?", a: "The phone reconnects automatically when your internet comes back. No manual steps needed." },
   { q: "Can I use both the desk phone and the web app?", a: "Yes. Many members listen on the desk phone at the counter and switch to the web app when they're on the road." },
   { q: "Is there a monthly fee for the phone?", a: "The desk phone is included with your Hotline HQ membership. No extra hardware fees." },
   { q: "Can I use it with a headset?", a: "Yes. Standard RJ9 headset port. Plug in any compatible wired headset." },
-  { q: "Does it work with my existing internet?", a: "If you have an ethernet port, yes. Uses about 100 Kbps — less than streaming a single song." },
+  { q: "Does it work with my existing internet?", a: "If you have an ethernet port, yes. Uses about 100 Kbps, less than streaming a single song." },
 ];
 
 export function DeskPhonePage() {
@@ -84,7 +84,7 @@ export function DeskPhonePage() {
       <style>{CSS}</style>
       <Seo
         title="Hotline Desk Phone — Plug In & You're Live | Yealink T31P | Hotline HQ"
-        description="Get a preconfigured Yealink T31P desk phone for your yard. Plug in the ethernet cable — no setup, no app, no browser. Crystal-clear HD audio, always connected."
+        description="Get a preconfigured Yealink T31P desk phone for your yard. Plug in the ethernet cable, no setup, no app, no browser. Crystal-clear HD audio, always connected."
         keywords="hotline desk phone, yealink t31p auto parts, salvage yard phone, junkyard desk phone, preconfigured IP phone"
         canonicalUrl="https://hotlinehq.online/features/desk-phone"
         path="/features/desk-phone"
@@ -120,7 +120,7 @@ export function DeskPhonePage() {
       <section className="dp-section dp-problem">
         <div className="dp-narrow">
           <h2 className="dp-h2">Browser calling has limits.<br />A desk phone doesn't.</h2>
-          <p className="dp-body">Mic permissions get blocked. Tabs get closed. Batteries die. Notifications get missed. A dedicated desk phone sits on your counter, always on, always connected — like a landline that plugs you into every yard in the state.</p>
+          <p className="dp-body">Mic permissions get blocked. Tabs get closed. Batteries die. Notifications get missed. A dedicated desk phone sits on your counter, always on, always connected. Like a landline that plugs you into every yard in the state.</p>
         </div>
       </section>
 
@@ -131,7 +131,7 @@ export function DeskPhonePage() {
             <div className="dp-content-text">
               <h2 className="dp-h2">Why salvage yards are ditching browser calling</h2>
               <p className="dp-body">Chrome pushes an update overnight and resets your microphone permissions. An employee closes "that weird tab with the speaker icon." The screen lock kicks in during a slow afternoon and you miss three broadcasts.</p>
-              <p className="dp-body">A desk phone doesn't have tabs. It doesn't run Chrome. It doesn't need a login, a password, or a Windows update. It sits on the counter like a landline — except this one connects you to every yard in the state.</p>
+              <p className="dp-body">A desk phone doesn't have tabs. It doesn't run Chrome. It doesn't need a login, a password, or a Windows update. It sits on the counter like a landline, except this one connects you to every yard in the state.</p>
             </div>
             <div className="dp-content-aside">
               <div className="dp-aside-card">
@@ -154,7 +154,7 @@ export function DeskPhonePage() {
                 </div>
                 <div className="dp-aside-item">
                   <span className="dp-aside-dim">Wi-Fi</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> 10-second drop — call gone</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> 10-second drop: call gone</span>
                 </div>
                 <div className="dp-aside-item">
                   <span className="dp-aside-dim">Battery</span>
@@ -173,7 +173,7 @@ export function DeskPhonePage() {
             <div className="dp-content-text">
               <h2 className="dp-h2">Why yards are leaving copper hotlines behind</h2>
               <p className="dp-body">Telcos are sunsetting POTS (Plain Old Telephone Service) lines across the country. Maintenance crews are shrinking, prices are climbing every year, and some areas can't get copper service at all anymore. The infrastructure your hotline runs on is being retired.</p>
-              <p className="dp-body">The HQ desk phone delivers the exact same experience — a dedicated phone on the counter, always on, pick up and your room hears you. But now with HD digital audio, caller ID showing who's talking, every call recorded and transcribed, and the ability to switch between any region instead of being stuck in one local area.</p>
+              <p className="dp-body">The HQ desk phone delivers the exact same experience: a dedicated phone on the counter, always on, pick up and your room hears you. But now with HD digital audio, caller ID showing who's talking, every call recorded and transcribed, and the ability to switch between any region instead of being stuck in one local area.</p>
               <p className="dp-body">Your group doesn't lose anything in the switch. Same workflow, same muscle memory. Just better tools underneath. See the full <Link to="/use-case/replace-copper-hotline" style={{color:'var(--red)'}}>copper-to-HQ comparison</Link> for everything your old line is missing.</p>
             </div>
             <div className="dp-content-aside">
@@ -181,7 +181,7 @@ export function DeskPhonePage() {
                 <div className="dp-aside-header dp-aside-header-copper">Copper Can't Do This</div>
                 <div className="dp-aside-item">
                   <span className="dp-aside-dim">Caller ID</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> No display — don't know who's talking</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> No display: don't know who's talking</span>
                 </div>
                 <div className="dp-aside-item">
                   <span className="dp-aside-dim">Recordings</span>
@@ -213,7 +213,7 @@ export function DeskPhonePage() {
       <section className="dp-section">
         <div className="dp-container">
           <h2 className="dp-h2 dp-center">What you get with Hotline HQ</h2>
-          <p className="dp-body dp-center-text" style={{ maxWidth: 560, margin: "0 auto 36px" }}>Everything a browser and copper line can't do — built into one desk phone.</p>
+          <p className="dp-body dp-center-text" style={{ maxWidth: 560, margin: "0 auto 36px" }}>Everything a browser and copper line can't do, built into one desk phone.</p>
           <div className="dp-hq-card">
             <div className="dp-hq-header">Hotline HQ</div>
             <div className="dp-hq-item">
@@ -250,7 +250,7 @@ export function DeskPhonePage() {
             </div>
             <div className="dp-hq-item">
               <span className="dp-hq-dim">Cost</span>
-              <span className="dp-hq-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> Flat monthly — phone included</span>
+              <span className="dp-hq-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" fill="var(--red)" /><path d="M4.5 8l2.5 2.5 4.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg> Flat monthly, phone included</span>
             </div>
           </div>
         </div>
@@ -281,19 +281,19 @@ export function DeskPhonePage() {
           <p className="dp-body dp-center-text">The phone sits on your counter with the speaker on low. All day, you hear yards broadcasting requests:</p>
           <div className="dp-broadcast-examples">
             <div className="dp-broadcast">
-              <span className="dp-broadcast-caller">Mike's Auto — Phoenix, AZ</span>
+              <span className="dp-broadcast-caller">Mike's Auto, Phoenix, AZ</span>
               <p>"Looking for a 2019 Camry driver's side fender, any color. Who's got one?"</p>
             </div>
             <div className="dp-broadcast">
-              <span className="dp-broadcast-caller">Valley Salvage — Houston, TX</span>
+              <span className="dp-broadcast-caller">Valley Salvage, Houston, TX</span>
               <p>"Need a transmission for an '18 F-150, 3.5 EcoBoost. Preferably under 80k miles."</p>
             </div>
             <div className="dp-broadcast">
-              <span className="dp-broadcast-caller">Tri-State Parts — Newark, NJ</span>
+              <span className="dp-broadcast-caller">Tri-State Parts, Newark, NJ</span>
               <p>"Customer waiting on a 2020 Accord headlight assembly, passenger side. Anyone close?"</p>
             </div>
           </div>
-          <p className="dp-body dp-center-text">When you hear a part you have, you pick up the handset and respond. Caller ID shows exactly who's asking — no guessing. The conversation is recorded and transcribed automatically, so you can review every deal later. Your customer gets the part. Their customer drives away happy. That's the hotline.</p>
+          <p className="dp-body dp-center-text">When you hear a part you have, you pick up the handset and respond. Caller ID shows exactly who's asking, no guessing. The conversation is recorded and transcribed automatically, so you can review every deal later. Your customer gets the part. Their customer drives away happy. That's the hotline.</p>
         </div>
       </section>
 
@@ -348,9 +348,9 @@ export function DeskPhonePage() {
             <div className="dp-vs-card dp-vs-phone">
               <span className="dp-vs-badge">THE COUNTER LINE</span>
               <h3>Desk Phone</h3>
-              <p className="dp-vs-when">For the shop floor — where the work gets done</p>
+              <p className="dp-vs-when">For the shop floor, where the work gets done</p>
               <ul>
-                <li>Always on, always listening — never misses a broadcast</li>
+                <li>Always on, always listening. Never misses a broadcast</li>
                 <li>HD audio through a real speaker and handset</li>
                 <li>Caller ID shows who's talking before you pick up</li>
                 <li>No computer, no browser, no login needed</li>
@@ -362,11 +362,11 @@ export function DeskPhonePage() {
             <div className="dp-vs-card dp-vs-web">
               <span className="dp-vs-badge dp-vs-badge-alt">THE MOBILE LINE</span>
               <h3>Web Client</h3>
-              <p className="dp-vs-when">For the road — when you're away from the counter</p>
+              <p className="dp-vs-when">For the road, when you're away from the counter</p>
               <ul>
                 <li>Works in any browser on any device</li>
                 <li>Listen from auctions, trade shows, or a second location</li>
-                <li>Available the minute you sign up — no shipping wait</li>
+                <li>Available the minute you sign up, no shipping wait</li>
                 <li>Good backup if your phone needs service</li>
               </ul>
               <p className="dp-vs-verdict">Your hotline goes where you go.</p>
@@ -410,7 +410,7 @@ export function DeskPhonePage() {
         <div className="dp-cta-inner">
           <p className="dp-cta-kicker">INCLUDED WITH MEMBERSHIP</p>
           <h2>Ready to skip the browser hassle?</h2>
-          <p className="dp-cta-sub">Every Hotline HQ membership includes a preconfigured desk phone. Or order your own from Amazon — we'll handle the setup.</p>
+          <p className="dp-cta-sub">Every Hotline HQ membership includes a preconfigured desk phone. Or order your own from Amazon. We'll handle the setup.</p>
           <a href={SIGNUP_URL} className="dp-btn dp-btn-hot">Sign Up Free</a>
           <p style={{color:'rgba(255,255,255,0.4)',fontSize:'14px',marginTop:'20px'}}>
             Also: <Link to="/sell-used-auto-parts" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Sell parts on the network</Link>

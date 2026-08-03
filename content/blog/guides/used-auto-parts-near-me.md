@@ -101,7 +101,7 @@ Also, Google won't tell you whether a specific yard has your part. It tells you 
 
 ## Car-Part.com Yard Finder {#car-part-yard-finder}
 
-Car-Part.com is best known as a parts search engine indexing over 200 million parts ([Car-Part.com](https://www.car-part.com), 2025), but it also functions as the most comprehensive salvage yard directory in North America. Their yard locator lets you search by state and city to find recyclers in your area, along with contact information and what inventory systems they use.
+Car-Part.com is best known as a parts search engine indexing over 200 million parts ([Car-Part.com](https://www.car-part.com), 2025), but it's also the largest salvage yard directory in North America. Their yard locator lets you search by state and city to find recyclers in your area, along with contact information and what inventory systems they use.
 
 This is more useful than Google Maps in two ways. First, it lists yards that specifically participate in the recycling network, meaning they actively manage inventory and are more likely to be able to tell you what they have in stock. Second, you can search their inventory directly on the same site. Find the yard, then search it for your part.
 
@@ -234,7 +234,7 @@ For pricing benchmarks before you buy, our [used auto parts pricing guide](/blog
 
 ## Salvage Yard Hotspots by Region {#regional-hotspots}
 
-Not all states are created equal when it comes to used parts availability. Vehicle registrations, climate, accident rates, and the age of the vehicle fleet all affect how many yards operate and what they stock.
+Not all states are equal for used parts availability. Vehicle registrations, climate, accident rates, and the age of the vehicle fleet all affect how many yards operate and what they stock.
 
 ### California
 

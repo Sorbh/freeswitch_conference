@@ -45,7 +45,7 @@ A salvage yard without inventory software is running blind. You can't sell what 
 
 That was fine when yards were small enough that the owner knew every part on every shelf. Most operations outgrow that fast.
 
-Good salvage yard software handles the core workflow: vehicle acquisition, parts cataloging, interchange lookup, pricing, and sales tracking. Some tools go further — marketplace syndication, accounting, fleet management. The right pick depends on your yard's size, your sales channels, and how much you want to manage from one screen.
+Good salvage yard software handles the core workflow: vehicle acquisition, parts cataloging, interchange lookup, pricing, and sales tracking. Some tools go further: marketplace syndication, accounting, fleet management. The right pick depends on your yard's size, your sales channels, and how much you want to manage from one screen.
 
 Here's an honest look at five tools dismantlers actually use, what each does well, and where each falls short.
 
@@ -60,7 +60,7 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 **Pros:**
 - AI-assisted part identification speeds up cataloging
 - Inspection checklists help standardize part grading across your team
-- Multi-channel listing sync — update once, publish everywhere
+- Multi-channel listing sync: update once, publish everywhere
 - Cloud-based, so you can access it from any device. No local server needed
 - Modern interface that newer employees pick up quickly
 
@@ -68,7 +68,7 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 - Newer player compared to the established names
 - Marketplace sync reliability depends on third-party API changes
 - Less suited for yards that do most business through walk-ins or phone calls
-- Feature set is still growing — some advanced reporting isn't there yet
+- Feature set is still growing: some advanced reporting isn't there yet
 
 ## YardSmart {#yardsmart}
 
@@ -94,7 +94,7 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 
 ![Tablet mounted on a forklift dashboard showing a yard map interface with colored dots for vehicle locations](/images/blog/salvage-yard-software-compared/forklift_tablet_map.webp)
 
-**What it does:** A desktop-based dealer management system covering the full salvage yard workflow — vehicle acquisition, dismantling, inventory, sales, and accounting. Frazer has been in the auto dealer software space for decades.
+**What it does:** A desktop-based dealer management system covering the full salvage yard workflow: vehicle acquisition, dismantling, inventory, sales, and accounting. Frazer has been in the auto dealer software space for decades.
 
 **Who it's for:** Yards that want one system for everything, accounting and title management included. Strong for yards that also buy and sell whole vehicles.
 
@@ -102,12 +102,12 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 
 **Pros:**
 - Covers the entire business cycle from buying vehicles to selling parts to closing the books
-- Proven track record — Frazer has been serving auto dealers and dismantlers for years
+- Proven track record: Frazer has been serving auto dealers and dismantlers for years
 - Integrated accounting means you might not need separate QuickBooks
 - Title and vehicle acquisition management built in
 
 **Cons:**
-- Desktop-based — no native cloud access from mobile or remote locations
+- Desktop-based: no native cloud access from mobile or remote locations
 - Interface shows its age next to newer cloud tools
 - Less focused on marketplace syndication than Dismantly or Checkmate
 - Updates and support tied to licensing terms
@@ -124,12 +124,12 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 - Direct integration with Car-Part.com's 200-million-part search network
 - Inventory updates flow straight to where buyers are already looking
 - Car-Part.com's interchange data is built in
-- Established ecosystem with a large user base of yards
+- Established network with a large user base of yards
 
 **Cons:**
-- Ties your inventory workflow to one marketplace ecosystem
+- Ties your inventory workflow to one marketplace platform
 - Less flexible for yards selling mostly through eBay or Facebook
-- Switching costs are real — migrating away means losing the tight Car-Part.com integration
+- Switching costs are real: migrating away means losing the tight Car-Part.com integration
 - Yard management features are secondary to the marketplace connection
 
 ## SalvageSoftware Yard Manager {#yard-manager}
@@ -142,7 +142,7 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 
 **Pros:**
 - Lower cost of entry than enterprise tools
-- Straightforward interface — less training needed
+- Straightforward interface: less training needed
 - Covers the essentials: parts tracking, pull lists, dismantle scheduling
 - Fits yards that don't need marketplace syndication or multi-yard management
 
@@ -174,11 +174,11 @@ Here's an honest look at five tools dismantlers actually use, what each does wel
 
 Every tool above solves the same problem: tracking what's in your yard. That matters. You can't run a serious operation without knowing what you have, where it is, and what it's worth.
 
-But inventory software doesn't find buyers. It organizes your supply. A buyer still has to search for your part, find your listing, and contact you. That takes time — and your listing data goes stale between updates.
+But inventory software doesn't find buyers. It organizes your supply. A buyer still has to search for your part, find your listing, and contact you. That takes time, and your listing data goes stale between updates.
 
 A [voice-based parts hotline](/blog/guides/how-auto-parts-hotlines-work) works the other end. A yard broadcasts a request on the Hotline HQ network, every connected yard hears it live. Got the part? Respond in seconds. No listing required. No data freshness problem.
 
-Software and a hotline aren't competing tools. Most yards on [Hotline HQ](/own-a-hotline) also run one of the inventory systems above. The software tracks your stock. The hotline surfaces demand you'd never see otherwise — requests from yards across your region who need what's sitting on your shelves right now.
+Software and a hotline aren't competing tools. Most yards on [Hotline HQ](/own-a-hotline) also run one of the inventory systems above. The software tracks your stock. The hotline surfaces demand you'd never see otherwise: requests from yards across your region who need what's sitting on your shelves right now.
 
 Think of it this way: inventory software is your filing system. The hotline is your sales floor.
 
@@ -196,8 +196,8 @@ Three things drive the decision:
 
 **Your budget.** Yard Manager gets you in the door for less. Dismantly and Checkmate sit in the mid-range. YardSmart and Frazer cost more but cover more ground.
 
-No software does everything. The yards that move the most parts combine solid inventory management with active selling channels — online marketplaces, walk-in traffic, and live voice networks. The software keeps your house in order. Everything else is about getting the right part in front of the right buyer at the right time.
+No software does everything. The yards that move the most parts combine solid inventory management with active selling channels: online marketplaces, walk-in traffic, and live voice networks. The software keeps your house in order. Everything else is about getting the right part in front of the right buyer at the right time.
 
 ## Software Is Half the Picture {#regional}
 
-Whatever yard-management system you run, it doesn't generate demand — a live network does. Hotline HQ's regional rooms in [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona) put real buyer requests in your ear all day, and [broadcast recording](/features/broadcast-recording) keeps a record of every one. For a complete picture of how software fits into the broader business, see our [auto dismantler business guide](/blog/guides/auto-dismantler-business-guide).
+Whatever yard-management system you run, it doesn't generate demand; a live network does. Hotline HQ's regional rooms in [California](/used-auto-parts/california), [Texas](/used-auto-parts/texas), [Florida](/used-auto-parts/florida), and [Arizona](/used-auto-parts/arizona) put real buyer requests in your ear all day, and [broadcast recording](/features/broadcast-recording) keeps a record of every one. For a complete picture of how software fits into the broader business, see our [auto dismantler business guide](/blog/guides/auto-dismantler-business-guide).

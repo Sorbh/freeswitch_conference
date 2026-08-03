@@ -256,7 +256,7 @@ function EmptyState({ hasFilters }) {
       <p>
         {hasFilters
           ? "Try adjusting your filters to see more results."
-          : "Check back soon — new part requests come in throughout the day."}
+          : "Check back soon, new part requests come in throughout the day."}
       </p>
     </div>
   );

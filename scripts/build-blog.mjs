@@ -21,8 +21,8 @@ const FEATURES_DIR = path.join(ROOT, 'content', 'features');
 const REGISTRY_OUT = path.join(ROOT, 'client', 'src', 'pages', 'landing2', 'blogRegistry.js');
 const SSR_OUT = path.join(ROOT, 'data', 'blog-ssr-data.json');
 const FEATURES_OUT = path.join(ROOT, 'data', 'features-ssr-data.json');
-const PAGES_DIR = path.join(ROOT, 'content', 'pages');
-const PAGES_OUT = path.join(ROOT, 'data', 'pages-ssr-data.json');
+const INDUSTRIES_DIR = path.join(ROOT, 'content', 'industries');
+const INDUSTRIES_OUT = path.join(ROOT, 'data', 'industry-ssr-data.json');
 
 const CATEGORIES = {
   guides: { label: 'Industry Guides', description: 'How-to guides and explainers for the auto dismantler industry' },
@@ -433,21 +433,113 @@ if (featureCount > 0) {
   console.log(`[features] Generated ${path.relative(ROOT, FEATURES_OUT)}`);
 }
 
-// ── SEO Pages (keyword + industry) ─────────────────────────────────
+// ── Industry pages — recursive YAML-subset parser for nested cards ─
 
-function scanPages() {
-  if (!fs.existsSync(PAGES_DIR)) return {};
-  const pages = {};
-  const files = fs.readdirSync(PAGES_DIR).filter(f => f.endsWith('.md'));
+function parseDeepFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+
+  const lines = match[1].split('\n');
+  let i = 0;
+
+  function parseValue(raw) {
+    raw = raw.trim();
+    if (raw.startsWith('"') && raw.endsWith('"')) return raw.slice(1, -1).replace(/\\"/g, '"');
+    return raw;
+  }
+
+  function indent(line) { return line.search(/\S/); }
+
+  function parseMapping(minIndent) {
+    const obj = {};
+    while (i < lines.length) {
+      if (lines[i].trim() === '') { i++; continue; }
+      const ci = indent(lines[i]);
+      if (ci < minIndent) break;
+
+      const stripped = lines[i].slice(ci);
+      const kvMatch = stripped.match(/^(\w+): (.+)$/);
+      if (kvMatch) {
+        obj[kvMatch[1]] = parseValue(kvMatch[2]);
+        i++;
+        continue;
+      }
+      const blockMatch = stripped.match(/^(\w+):$/);
+      if (blockMatch) {
+        const key = blockMatch[1];
+        i++;
+        if (i < lines.length && lines[i].trim() !== '' && lines[i].trimStart().startsWith('- ')) {
+          obj[key] = parseSequence(ci + 2);
+        } else {
+          obj[key] = parseMapping(ci + 2);
+        }
+        continue;
+      }
+      break;
+    }
+    return obj;
+  }
+
+  function parseSequence(minIndent) {
+    const arr = [];
+    while (i < lines.length) {
+      if (lines[i].trim() === '') { i++; continue; }
+      const ci = indent(lines[i]);
+      if (ci < minIndent) break;
+      const stripped = lines[i].slice(ci);
+      if (!stripped.startsWith('- ')) break;
+
+      const after = stripped.slice(2);
+      const kvMatch = after.match(/^(\w+): (.+)$/);
+      if (kvMatch) {
+        const obj = { [kvMatch[1]]: parseValue(kvMatch[2]) };
+        i++;
+        const childIndent = ci + 2;
+        while (i < lines.length) {
+          if (lines[i].trim() === '') { i++; continue; }
+          const ni = indent(lines[i]);
+          if (ni < childIndent) break;
+          const cs = lines[i].slice(ni);
+          const ckv = cs.match(/^(\w+): (.+)$/);
+          if (ckv) { obj[ckv[1]] = parseValue(ckv[2]); i++; continue; }
+          const cblock = cs.match(/^(\w+):$/);
+          if (cblock) {
+            const key = cblock[1];
+            i++;
+            if (i < lines.length && lines[i].trim() !== '' && lines[i].trimStart().startsWith('- ')) {
+              obj[key] = parseSequence(ni + 2);
+            } else {
+              obj[key] = parseMapping(ni + 2);
+            }
+            continue;
+          }
+          break;
+        }
+        arr.push(obj);
+      } else {
+        arr.push(parseValue(after));
+        i++;
+      }
+    }
+    return arr;
+  }
+
+  return parseMapping(0);
+}
+
+function scanIndustries() {
+  if (!fs.existsSync(INDUSTRIES_DIR)) return {};
+  const industries = {};
+  const files = fs.readdirSync(INDUSTRIES_DIR).filter(f => f.endsWith('.md'));
 
   for (const file of files) {
     const slug = file.replace(/\.md$/, '');
-    const content = fs.readFileSync(path.join(PAGES_DIR, file), 'utf8');
-    const meta = parseFeatureFrontmatter(content);
+    const content = fs.readFileSync(path.join(INDUSTRIES_DIR, file), 'utf8');
+    const meta = parseDeepFrontmatter(content);
 
-    pages[slug] = {
+    industries[slug] = {
       title: meta.title || slug,
-      type: meta.type || 'keyword',
+      type: meta.type || 'industry',
       seo: meta.seo || {},
       hero: meta.hero || {},
       sections: meta.sections || [],
@@ -458,16 +550,16 @@ function scanPages() {
     };
   }
 
-  return pages;
+  return industries;
 }
 
-const seoPages = scanPages();
-const pageCount = Object.keys(seoPages).length;
-console.log(`[pages] Found ${pageCount} SEO page(s)`);
+const industries = scanIndustries();
+const industryCount = Object.keys(industries).length;
+console.log(`[industries] Found ${industryCount} industry page(s)`);
 
-if (pageCount > 0) {
-  fs.writeFileSync(PAGES_OUT, JSON.stringify({ pages: seoPages }, null, 2));
-  console.log(`[pages] Generated ${path.relative(ROOT, PAGES_OUT)}`);
+if (industryCount > 0) {
+  fs.writeFileSync(INDUSTRIES_OUT, JSON.stringify({ industries }, null, 2));
+  console.log(`[industries] Generated ${path.relative(ROOT, INDUSTRIES_OUT)}`);
 }
 
 console.log('[content] All done');

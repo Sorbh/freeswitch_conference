@@ -11,10 +11,10 @@ hero:
   lede: "Push notifications on mobile, Telegram alerts for room activity, and lock screen mute controls. Even when a member steps away, the network reaches them."
 problem:
   heading: "Members can't be at the phone 24/7"
-  text: "Even on an always-on network, members step away — lunch, deliveries, customers at the counter. Without notifications, missed broadcasts turn into lost revenue. Notifications close that gap between the hotline and the member's pocket."
+  text: "Even on an always-on network, members step away: lunch, deliveries, customers at the counter. Without notifications, missed broadcasts turn into lost revenue. Notifications close that gap between the hotline and the member's pocket."
 steps:
   - title: "Web push notifications"
-    desc: "When a broadcast goes unanswered in a member's room, they get a push notification on their phone — even if the browser is closed. Tap to open the dashboard."
+    desc: "When a broadcast goes unanswered in a member's room, they get a push notification on their phone, even if the browser is closed. Tap to open the dashboard."
   - title: "Telegram integration"
     desc: "Broadcasts get forwarded to Telegram channels with full details: speaker name, room, duration, transcription, and part details. Configurable per room."
   - title: "Direct call alerts"
@@ -23,11 +23,11 @@ steps:
     desc: "On mobile, media controls in the notification shade let members mute and unmute without opening the app."
 benefits:
   - title: "Works even when closed"
-    desc: "Web push notifications come from the browser's service worker — the Hotline HQ tab doesn't need to be open."
+    desc: "Web push notifications come from the browser's service worker. The Hotline HQ tab doesn't need to be open."
   - title: "Configurable per room"
     desc: "Operators choose which rooms trigger notifications, filter by answered/unanswered, and skip broadcasts with no detected parts."
   - title: "Critical member alerts"
-    desc: "Flag important members as \"critical\" — if they go offline, the system sends Telegram alerts every 60 seconds until they reconnect."
+    desc: "Flag important members as \"critical\". If they go offline, the system sends Telegram alerts every 60 seconds until they reconnect."
   - title: "iOS support via PWA"
     desc: "On iPhone, members add Hotline HQ to their home screen to get push notifications. The app walks them through it."
 scenario:
@@ -37,7 +37,7 @@ faqs:
   - q: "Do I need to install an app for push notifications?"
     a: "On Android, notifications work in Chrome with no install. On iPhone, you need to add Hotline HQ to your home screen first (Share > Add to Home Screen)."
   - q: "Can I turn off notifications?"
-    a: "Yes. Members control their notification preferences in Account Settings — parts request alerts and direct call alerts can be toggled independently."
+    a: "Yes. Members control their notification preferences in Account Settings. Parts request alerts and direct call alerts can be toggled independently."
   - q: "What notification channels are available?"
     a: "Web push (mobile and desktop), Telegram (text or voice message), and WhatsApp. Each channel is configured separately by the network operator."
   - q: "Do notifications include the audio recording?"

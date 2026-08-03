@@ -112,13 +112,13 @@ Different EVs use different charging standards: CCS, CHAdeMO, Tesla's NACS conne
 
 I pulled my first hybrid battery pack in 2019. It took three hours because I had no idea what I was doing. The second one took forty-five minutes. By the fifth, it was routine. Full EV packs are the same learning curve, just steeper and with higher stakes if you skip the safety steps.
 
-> **Citation Capsule**: EV battery packs operate at 400 to 800 volts per NHTSA (2024), requiring manufacturer-specific disconnect procedures, specialized removal equipment, and component knowledge that differs fundamentally from traditional ICE vehicle dismantling.
+> **Citation Capsule**: EV battery packs operate at 400 to 800 volts per NHTSA (2024), requiring manufacturer-specific disconnect procedures, specialized removal equipment, and component knowledge that differs sharply from traditional ICE vehicle dismantling.
 
 [IMAGE: Infographic comparing ICE vehicle parts (engine, transmission, exhaust, fuel system) versus EV-specific parts (battery pack, electric motor, inverter, charging port) with estimated salvage values for each component - search terms: electric vehicle parts diagram comparison ICE versus EV recycling infographic]
 
 ## What Stays the Same on an EV? {#what-stays-same}
 
-Roughly 60-70% of an electric vehicle consists of conventional automotive parts that any experienced dismantler already knows how to handle ([Argonne National Laboratory](https://www.anl.gov/), 2024). Don't let the headlines fool you. The body, cabin, and chassis of an EV are still fundamentally a car.
+Roughly 60-70% of an electric vehicle consists of conventional automotive parts that any experienced dismantler already knows how to handle ([Argonne National Laboratory](https://www.anl.gov/), 2024). Don't let the headlines fool you. The body, cabin, and chassis of an EV are still just a car.
 
 Here's what doesn't change:
 

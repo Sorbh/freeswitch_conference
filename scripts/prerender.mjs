@@ -99,7 +99,7 @@ function loadJson(filename) {
 const blogData = loadJson('blog-ssr-data.json') || { posts: [], categories: {} };
 const featuresData = loadJson('features-ssr-data.json')?.features || {};
 const regionsData = loadJson('regions-ssr-data.json') || {};
-const pagesData = loadJson('pages-ssr-data.json')?.pages || {};
+const pagesData = loadJson('industry-ssr-data.json')?.industries || {};
 
 const assetDir = path.join(DIST_CLIENT, 'assets');
 const prerenderChunkMap = {};

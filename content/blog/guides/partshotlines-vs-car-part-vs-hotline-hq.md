@@ -43,9 +43,9 @@ ogImage: /images/blog/partshotlines-vs-car-part-vs-hotline-hq/desk_phones_compar
 
 If you run a salvage yard, three names keep coming up in parts network conversations: PartsHotlines.com, Car-Part.com, and Hotline HQ. Every yard owner hears about them sooner or later.
 
-All three help you find and sell used auto parts. They just go about it very differently. PartsHotlines searches a curated database of member yards. Car-Part.com searches the largest inventory database in the industry. Hotline HQ skips databases entirely and connects yards on a live voice network.
+All three help you find and sell used auto parts. They just go about it differently. PartsHotlines searches a curated database of member yards. Car-Part.com searches the largest inventory database in the industry. Hotline HQ skips databases entirely and connects yards on a live voice network.
 
-Which one fits depends on what your yard needs most — reach, speed, or both. Here's [how parts hotlines work](/blog/guides/how-auto-parts-hotlines-work) at a fundamental level, and below is how these three stack up.
+Which one fits depends on what your yard needs most: reach, speed, or both. Here's [how parts hotlines work](/blog/guides/how-auto-parts-hotlines-work) at a fundamental level, and below is how these three stack up.
 
 ## PartsHotlines.com {#partshotlines}
 
@@ -62,12 +62,12 @@ The network handles roughly 1.6 million searches per month. Yards are hand-selec
 - Hand-selected membership means results come from verified, operating yards
 - Nearly 30 years of industry relationships and brand recognition
 - 1.6 million monthly searches means real buyer traffic
-- Database search is familiar — works like any online parts lookup
+- Database search is familiar: works like any online parts lookup
 
 **Weaknesses:**
 - Inventory data freshness depends on upload frequency. A part sold yesterday might still show as available today
 - Search results are only as good as the data yards submit. Incomplete uploads mean missed matches
-- Response isn't instant — a search returns listings, then you still need to call the yard and confirm
+- Response isn't instant: a search returns listings, then you still need to call the yard and confirm
 - Buyer-seller communication happens outside the platform
 
 **Best for:** Yards that maintain up-to-date inventory records and want passive exposure to a large, curated network of verified yards.
@@ -77,12 +77,12 @@ The network handles roughly 1.6 million searches per month. Yards are hand-selec
 **Network size:** 200 million parts searchable
 **Model:** Massive inventory database with software integration
 
-Car-Part.com is the largest used auto parts search engine in the industry. 200 million searchable parts — nothing else comes close in raw database size. The platform pulls inventory data from yards running compatible management software, especially their own Checkmate system.
+Car-Part.com is the largest used auto parts search engine in the industry. 200 million searchable parts; nothing else comes close in raw database size. The platform pulls inventory data from yards running compatible management software, especially their own Checkmate system.
 
 Scale is the whole story here. A buyer looking for a 2017 Ford F-150 tailgate might see results from hundreds of yards across the country. That kind of breadth makes it the default first stop for a lot of parts buyers.
 
 **Strengths:**
-- 200 million parts — the largest searchable inventory database in the industry by a wide margin
+- 200 million parts, the largest searchable inventory database in the industry by a wide margin
 - Broad geographic reach spanning the entire US and parts of Canada
 - Tight integration with Checkmate yard management software. If you run Checkmate, your inventory flows directly to Car-Part.com
 - High buyer traffic. Many repair shops and body shops search Car-Part.com first
@@ -92,7 +92,7 @@ Scale is the whole story here. A buyer looking for a 2017 Ford F-150 tailgate mi
 - Data freshness varies. Inventory records are only as current as the last sync from a yard's management software. A yard that syncs weekly has week-old data
 - Size creates noise. A search can return dozens of results, and the buyer can't tell which listings reflect actual current availability
 - Yards without Checkmate or compatible software are going to struggle keeping listings current
-- Commoditizes parts — your listing sits alongside hundreds of others, competing on price alone
+- Commoditizes parts: your listing sits alongside hundreds of others, competing on price alone
 
 **Best for:** Yards that want maximum passive reach and are willing to maintain current inventory records. Strong for yards already running Checkmate or compatible management software.
 
@@ -105,16 +105,16 @@ Scale is the whole story here. A buyer looking for a 2017 Ford F-150 tailgate mi
 
 Hotline HQ works differently from both PartsHotlines and Car-Part.com. No database. No listings. Yards connect a desk phone to an always-on conference room for their region. Someone needs a part, they key up and describe it. Every yard in the room hears the request and responds live if they have it.
 
-Average response time on the network: about 2 seconds. That speed comes from the design itself — you're asking real people in real time, not searching records that may be hours or days old.
+Average response time on the network: about 2 seconds. That speed comes from the design itself: you're asking real people in real time, not searching records that may be hours or days old.
 
 Hotline HQ operates in 12 regional markets, with the highest yard density in California, Texas, Arizona, and Florida.
 
 **Strengths:**
-- Real-time communication. No data staleness — when a yard says "I have it," they're confirming availability right now
+- Real-time communication. No data staleness: when a yard says "I have it," they're confirming availability right now
 - Average response time of ~2 seconds from broadcast to first answer (Hotline HQ network data)
 - Zero inventory uploading required. No software, no listings, no data entry. Plug in the phone and start
 - Regional rooms group yards by geography, so matches are typically shippable or even drivable
-- Flat monthly pricing with no commissions. The sale is between yards — Hotline HQ doesn't take a cut
+- Flat monthly pricing with no commissions. The sale is between yards; Hotline HQ doesn't take a cut
 - Surfaces demand you'd never see. You hear requests for parts you didn't know someone needed
 
 **Weaknesses:**
@@ -145,7 +145,7 @@ Hotline HQ operates in 12 regional markets, with the highest yard density in Cal
 
 This is the core trade-off between database networks and a live voice network. And it hits every search result you see or listing you post.
 
-A salvage yard's inventory changes constantly. Vehicles arrive. Parts get pulled and sold. Cores get crushed. A busy day might mean dozens of parts changing hands. But database syncs run on a schedule — daily if you're diligent, weekly or monthly if you're not.
+A salvage yard's inventory changes constantly. Vehicles arrive. Parts get pulled and sold. Cores get crushed. A busy day might mean dozens of parts changing hands. But database syncs run on a schedule: daily if you're diligent, weekly or monthly if you're not.
 
 That gap between reality and records creates stale listings. A buyer finds a 2019 Chevy Silverado door on Car-Part.com, calls the yard, hears "sorry, sold that Tuesday." Wasted time on both ends.
 
@@ -153,15 +153,15 @@ PartsHotlines has the same problem. Even with hand-selected, quality yards, inve
 
 Hotline HQ sidesteps this entirely. When a yard responds to a broadcast on the voice network, they're confirming the part is available right now. No record to go stale because there's no record. The information is live, from a person who can walk the yard and check.
 
-The trade-off is reach. Databases can store millions of parts and serve them to anyone searching at any hour. A voice network only works when yards are connected and listening. Both models carry real value — they just handle freshness differently.
+The trade-off is reach. Databases can store millions of parts and serve them to anyone searching at any hour. A voice network only works when yards are connected and listening. Both models carry real value; they just handle freshness differently.
 
 ## Which network fits your yard? {#which-fits}
 
 **Choose PartsHotlines if** your yard maintains clean inventory records and you want steady, passive exposure to a curated network. The hand-selected membership means your parts are listed alongside other serious, operating yards. Good fit for yards that treat their data as an asset and update it regularly.
 
-**Choose Car-Part.com if** maximum reach matters most. No other network puts your inventory in front of more potential buyers. If you're already running Checkmate, the integration is tight and keeps your listings current with minimal effort. Hard to ignore if you sell to retail consumers and repair shops — not just other yards. The buyer traffic alone makes the case.
+**Choose Car-Part.com if** maximum reach matters most. No other network puts your inventory in front of more potential buyers. If you're already running Checkmate, the integration is tight and keeps your listings current with minimal effort. Hard to ignore if you sell to retail consumers and repair shops, not just other yards. The buyer traffic alone makes the case.
 
-**Choose Hotline HQ if** speed and accuracy matter most. Your customer calls needing a part found fast — one broadcast reaches your entire region in seconds. No listing management. No data entry. No stale records. And if you want to know what parts are moving across your region, the hotline tells you in real time. Explore the [marketplace](/marketplace) to see the network in action.
+**Choose Hotline HQ if** speed and accuracy matter most. Your customer calls needing a part found fast: one broadcast reaches your entire region in seconds. No listing management. No data entry. No stale records. And if you want to know what parts are moving across your region, the hotline tells you in real time. Explore the [marketplace](/marketplace) to see the network in action.
 
 No wrong answer here. The wrong move is choosing nothing and riding only on walk-in traffic and word of mouth.
 

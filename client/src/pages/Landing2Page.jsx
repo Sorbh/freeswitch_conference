@@ -100,7 +100,7 @@ function Stat({ to, suffix = "", label }) {
 const HERO_CLIPS = [
   {
     file: "./broadcasts/clip1.mp3",
-    part: "2018 Honda Civic — Wreck Opinion",
+    part: "2018 Honda Civic: Wreck Opinion",
     yard: "Fast Auto Parts",
     city: "Phoenix",
     partData: ["2018", "Honda", "Civic", "Wreck opinion"],
@@ -113,7 +113,7 @@ const HERO_CLIPS = [
   },
   {
     file: "./broadcasts/clip2.mp3",
-    part: "2020 Camry — Trunk & Taillights",
+    part: "2020 Camry: Trunk & Taillights",
     yard: "Reeves Auto Wrecking",
     city: "Tucson",
     partData: ["2020", "Toyota", "Camry", "Trunk & taillights"],
@@ -125,7 +125,7 @@ const HERO_CLIPS = [
   },
   {
     file: "./broadcasts/clip3.mp3",
-    part: "2021 Chevy Tahoe — Wreck Opinion",
+    part: "2021 Chevy Tahoe: Wreck Opinion",
     yard: "Carrillo Auto Parts",
     city: "Flagstaff",
     partData: ["2021", "Chevrolet", "Tahoe", "Wreck opinion"],
@@ -137,7 +137,7 @@ const HERO_CLIPS = [
   },
   {
     file: "./broadcasts/clip4.mp3",
-    part: "2018 Honda Civic — Rack & Pinion",
+    part: "2018 Honda Civic: Rack & Pinion",
     yard: "Jordan Auto Wrecking",
     city: "Prescott",
     partData: ["2018", "Honda", "Civic", "Rack & pinion"],
@@ -454,7 +454,7 @@ export default function Landing2Page() {
 
     try {
       const payload = JSON.stringify({
-        email: `${businessName} — ${region}`,
+        email: `${businessName} - ${region}`,
         feature: "get-listed",
         name: region,
         businessName,
@@ -575,7 +575,7 @@ export default function Landing2Page() {
             <div className="l2-hero-replies" aria-live="polite">
               {heroReplies.map((r, i) => (
                 <span className="l2-hero-reply" key={i}>
-                  <strong>{r.yard}</strong> · {r.city} — “{r.reply}”
+                  <strong>{r.yard}</strong> · {r.city}: “{r.reply}”
                 </span>
               ))}
             </div>
@@ -757,7 +757,7 @@ export default function Landing2Page() {
           <h2>Already on a hotline?</h2>
           <p className="l2-lede">
             If your group is on a copper line, a radio network, or any legacy hotline
-            — bring them to HQ. Same group. Better line.
+            , bring them to HQ. Same group. Better line.
           </p>
         </div>
         <div className="l2-copper-layout l2-reveal">
@@ -769,7 +769,7 @@ export default function Landing2Page() {
               </div>
               <div className="l2-copper-feat">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 2v10l7-7" /></svg>
-                <div><strong>HD digital audio</strong><span>Crystal-clear voice over internet — no static, no line noise</span></div>
+                <div><strong>HD digital audio</strong><span>Crystal-clear voice over internet, no static, no line noise</span></div>
               </div>
               <div className="l2-copper-feat">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>

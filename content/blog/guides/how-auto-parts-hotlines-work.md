@@ -87,7 +87,7 @@ The global automotive aftermarket was valued at $509.8 billion in 2026 ([Grand V
 | Facebook groups / forums | Hours to days | Group size dependent | Post-dependent | Free |
 | Parts locating services | Hours | Service network | Depends on service | Per-request or commission |
 
-Why does real-time matter so much? Inventory at a salvage yard changes daily as vehicles arrive and parts sell. A voice request asks a real person who can walk the row and confirm availability right now. That's fundamentally different from a database entry that was last updated Tuesday.
+Why does real-time matter so much? Inventory at a salvage yard changes daily as vehicles arrive and parts sell. A voice request asks a real person who can walk the row and confirm availability right now. That's a different animal from a database entry that was last updated Tuesday.
 
 Online databases can technically search more yards. But stale data creates a frustrating pattern: you find the part listed, call the yard, and they sold it three days ago. Or worse, the listing was never accurate to begin with. Voice eliminates that lag entirely. For a deeper breakdown of every method, see our guide on [how to find used auto parts online](/blog/guides/find-used-auto-parts-online-guide).
 

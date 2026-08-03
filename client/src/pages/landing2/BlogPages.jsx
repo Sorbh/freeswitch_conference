@@ -20,7 +20,7 @@ export function BlogIndexPage() {
       <style>{BLOG_INDEX_CSS}</style>
       <Seo
         title="Blog — Auto Parts Industry Guides & Network Updates | Hotline HQ"
-        description="Industry guides, network updates, and parts market insights from Hotline HQ — the voice network connecting 500+ auto dismantler yards."
+        description="Industry guides, network updates, and parts market insights from Hotline HQ, the voice network connecting 500+ auto dismantler yards."
         keywords="auto parts blog, dismantler industry, salvage yard tips, used auto parts guide, hotline hq blog"
         path="/blog"
         jsonLd={{

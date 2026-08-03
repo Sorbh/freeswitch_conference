@@ -883,6 +883,24 @@ if (fs.existsSync(clientDistDir)) {
         res.json({ status: true, data: list });
     });
 
+    // Industry pages — generated from content/industries/*.md by build-blog.mjs
+    const industriesDataPath = path.join(__dirname, 'data', 'industry-ssr-data.json');
+    let industriesData = {};
+    try {
+        industriesData = JSON.parse(fs.readFileSync(industriesDataPath, 'utf8')).industries || {};
+        console.log('Industries data loaded —', Object.keys(industriesData).length, 'industries');
+    } catch (e) { console.error('Industries data load failed:', e.message); }
+
+    app.get("/api/v1/industries/:slug", (req, res) => {
+        const p = industriesData[req.params.slug];
+        if (!p) return res.status(404).json({ status: false, error: 'Industry not found' });
+        res.json({ status: true, data: { slug: req.params.slug, ...p } });
+    });
+    app.get("/api/v1/industries", (req, res) => {
+        const list = Object.entries(industriesData).map(([slug, p]) => ({ slug, title: p.title, type: p.type, seo: p.seo, hero: p.hero }));
+        res.json({ status: true, data: list });
+    });
+
     // SEO: /features/:slug
     app.get("/features/:slug", (req, res) => {
         const f = featuresData[req.params.slug];

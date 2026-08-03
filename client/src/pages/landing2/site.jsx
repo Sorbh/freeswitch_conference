@@ -149,7 +149,7 @@ export function landingJsonLd() {
         logo: buildSiteUrl("/logo-512.png"),
         email: CONTACT_EMAIL,
         description:
-          "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry — proven with a 500+ yard used auto parts network.",
+          "Hotline HQ builds and operates always-on voice hotline networks that connect businesses in the same industry, proven with a 500+ yard used auto parts network.",
       },
       {
         "@type": "WebSite",

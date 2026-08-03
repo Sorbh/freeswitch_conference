@@ -69,12 +69,7 @@ const HardToFindPartsPage = lazy(() => import('./pages/landing2/FeaturePages').t
 const SalvageYardMarketingPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.SalvageYardMarketingPage })));
 const EvHybridPartsPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.EvHybridPartsPage })));
 const InterchangeNetworkPage = lazy(() => import('./pages/landing2/FeaturePages').then(m => ({ default: m.InterchangeNetworkPage })));
-const HeavyEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.HeavyEquipmentPage })));
-const FarmEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.FarmEquipmentPage })));
-const AviationPartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.AviationPartsPage })));
-const MiningEquipmentPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.MiningEquipmentPage })));
-const MarinePartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.MarinePartsPage })));
-const RailroadPartsPage = lazy(() => import('./pages/landing2/IndustryPages').then(m => ({ default: m.RailroadPartsPage })));
+const IndustryDetailPage = lazy(() => import('./pages/landing2/IndustryDetailPage').then(m => ({ default: m.IndustryDetailPage })));
 const BlogIndexPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogIndexPage })));
 const BlogCategoryPage = lazy(() => import('./pages/landing2/BlogPages').then(m => ({ default: m.BlogCategoryPage })));
 const BlogPostPage = lazy(() => import('./pages/landing2/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
@@ -231,12 +226,7 @@ export default function App() {
         <Route path="/salvage-yard-marketing" element={<Lazy><SalvageYardMarketingPage /></Lazy>} />
         <Route path="/ev-hybrid-auto-parts" element={<Lazy><EvHybridPartsPage /></Lazy>} />
         <Route path="/auto-parts-interchange-network" element={<Lazy><InterchangeNetworkPage /></Lazy>} />
-        <Route path="/use-case/heavy-equipment-parts-hotline" element={<Lazy><HeavyEquipmentPage /></Lazy>} />
-        <Route path="/use-case/farm-equipment-parts-hotline" element={<Lazy><FarmEquipmentPage /></Lazy>} />
-        <Route path="/use-case/aviation-parts-hotline" element={<Lazy><AviationPartsPage /></Lazy>} />
-        <Route path="/use-case/mining-equipment-parts" element={<Lazy><MiningEquipmentPage /></Lazy>} />
-        <Route path="/use-case/marine-boat-parts" element={<Lazy><MarinePartsPage /></Lazy>} />
-        <Route path="/use-case/railroad-parts-hotline" element={<Lazy><RailroadPartsPage /></Lazy>} />
+        <Route path="/use-case/:slug" element={<Lazy><IndustryDetailPage /></Lazy>} />
         {/* redirects from old industry URLs */}
         <Route path="/heavy-equipment-parts-hotline" element={<Navigate to="/use-case/heavy-equipment-parts-hotline" replace />} />
         <Route path="/farm-equipment-parts-hotline" element={<Navigate to="/use-case/farm-equipment-parts-hotline" replace />} />

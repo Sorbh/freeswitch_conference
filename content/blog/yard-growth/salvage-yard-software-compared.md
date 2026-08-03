@@ -100,7 +100,7 @@ Large, established yards that want a proven, full-featured platform. Multi-locat
 
 ### Pricing
 
-Quote-based. Pricing depends on yard size, user count, and modules. Expect enterprise-level pricing. Hollander doesn't publish rates, and implementation costs can be significant because the system is comprehensive.
+Quote-based. Pricing depends on yard size, user count, and modules. Expect enterprise-level pricing. Hollander doesn't publish rates, and implementation costs can be significant because the system covers so much ground.
 
 [IMAGE: Tablet mounted on a forklift dashboard showing a yard map interface with colored dots for vehicle locations - salvage yard forklift tablet technology]
 
@@ -205,7 +205,7 @@ The system also supports environmental compliance reporting, which matters in st
 
 ### Best for
 
-Yards that source heavily from IAA auctions. If 50% or more of your vehicles come through IAA, the seamless auction-to-yard pipeline eliminates manual data entry from that process. Also useful for yards in states with strict environmental compliance requirements.
+Yards that source heavily from IAA auctions. If 50% or more of your vehicles come through IAA, the direct auction-to-yard pipeline eliminates manual data entry from that process. Also useful for yards in states with strict environmental compliance requirements.
 
 ### Pricing
 

@@ -56,7 +56,7 @@ ogImage: /images/blog/best-places-to-sell-used-auto-parts-online/selling-auto-pa
 
 The best place to sell used auto parts online depends on what you're selling and how you're set up. If you run a salvage yard or dismantling operation and want speed, a voice network like Hotline HQ moves parts in seconds across 500+ connected yards. If you're an individual seller looking for the widest buyer pool, eBay Motors puts your listing in front of millions. And if you want zero fees and don't mind slower sales, Facebook Marketplace and Craigslist still work for local pickup deals.
 
-No single platform wins on every front. Fees, speed, buyer reach, and the type of parts you carry all push you toward different channels. This guide breaks down seven real options — what each one costs, how fast parts move, who's buying, and where each platform falls short. Whether you're clearing shelves at a yard or selling a transmission out of your garage, one of these fits.
+No single platform wins on every front. Fees, speed, buyer reach, and the type of parts you carry all push you toward different channels. This guide breaks down seven real options: what each one costs, how fast parts move, who's buying, and where each platform falls short. Whether you're clearing shelves at a yard or selling a transmission out of your garage, one of these fits.
 
 *Disclosure: Hotline HQ publishes this guide and operates a voice hotline network (option 7 below). We've covered every platform honestly, including the trade-offs of our own.*
 
@@ -65,13 +65,13 @@ No single platform wins on every front. Fees, speed, buyer reach, and the type o
 > - eBay Motors offers the largest buyer reach but charges roughly 15% in combined fees
 > - Facebook Marketplace is free for local pickup sales, but buyer quality varies widely
 > - Car-Part.com connects you to the largest used parts database (200M+ parts) for passive, always-on exposure
-> - Voice networks like Hotline HQ deliver the fastest sales — about 2 seconds per broadcast response
+> - Voice networks like Hotline HQ deliver the fastest sales, about 2 seconds per broadcast response
 > - Most profitable yards and sellers use two to three channels, not just one
 > - The right mix depends on your volume, part types, and whether you're selling yard-to-yard or direct-to-consumer
 
 ## The 7 Best Places to Sell Used Auto Parts Online {#best-options}
 
-The used auto parts market in the US generates an estimated $12 billion to $14 billion annually, with roughly 9,000 auto recycling businesses competing for buyers ([Automotive Recyclers Association](https://www.a-r-a.org/)). That market supports a wide range of selling channels — from massive consumer marketplaces to specialized industry networks.
+The used auto parts market in the US generates an estimated $12 billion to $14 billion annually, with roughly 9,000 auto recycling businesses competing for buyers ([Automotive Recyclers Association](https://www.a-r-a.org/)). That market supports a wide range of selling channels, from massive consumer marketplaces to specialized industry networks.
 
 Here are the seven platforms that actually move used auto parts in 2026, ranked by the size of their buyer pool. Later, we'll break down which ones make sense for your specific situation.
 
@@ -89,7 +89,7 @@ eBay Motors is the 800-pound gorilla of online auto parts sales. The eBay market
 
 **Speed of sale:** Variable. High-demand parts from popular vehicles (Honda Civic headlights, F-150 tailgates) can sell within days. Niche parts for older or uncommon vehicles may sit for weeks or months. eBay works better as a long-tail play than a quick-sale channel.
 
-**Reach:** National and international. eBay's buyer pool is unmatched for consumer-facing parts sales. Buyers search by year, make, model, and part number — and eBay's fitment data system helps match your listing to the right vehicles.
+**Reach:** National and international. eBay's buyer pool is unmatched for consumer-facing parts sales. Buyers search by year, make, model, and part number, and eBay's fitment data system helps match your listing to the right vehicles.
 
 **Pros:**
 - Largest buyer pool of any platform
@@ -100,16 +100,16 @@ eBay Motors is the 800-pound gorilla of online auto parts sales. The eBay market
 
 **Cons:**
 - Roughly 15% in fees on every sale eats into margins
-- Shipping logistics fall on you — heavy parts like engines and transmissions are expensive to ship
+- Shipping logistics fall on you: heavy parts like engines and transmissions are expensive to ship
 - Returns and buyer disputes can be costly and time-consuming
-- Listing quality matters — poor photos and descriptions mean no sales
+- Listing quality matters: poor photos and descriptions mean no sales
 - High competition from professional eBay parts sellers and large dismantlers
 
 ## 2. Facebook Marketplace {#facebook-marketplace}
 
 **Best for:** Local pickup sales with zero fees
 
-**How it works:** You post a listing with photos, description, and price. Buyers in your area browse or search Marketplace and message you directly. Transactions happen in person. There's no built-in payment processing for local sales — cash, Venmo, or Zelle are the norm.
+**How it works:** You post a listing with photos, description, and price. Buyers in your area browse or search Marketplace and message you directly. Transactions happen in person. There's no built-in payment processing for local sales; cash, Venmo, or Zelle are the norm.
 
 Facebook Marketplace reaches an enormous audience. Meta reported over 3 billion monthly active users across its platforms in 2024, and Marketplace is available in most US markets. For auto parts, it works best when the buyer is within driving distance.
 
@@ -121,18 +121,18 @@ Facebook Marketplace reaches an enormous audience. Meta reported over 3 billion 
 
 **Pros:**
 - No fees on local pickup sales
-- Huge local audience — almost everyone has a Facebook account
+- Huge local audience: almost everyone has a Facebook account
 - Easy to list from your phone with photos
 - Buyers can see your profile, which builds some trust
 - Works well for large, heavy parts that are impractical to ship
 
 **Cons:**
-- No buyer verification or vetting — flaky buyers and no-shows are common
+- No buyer verification or vetting: flaky buyers and no-shows are common
 - No fitment tools or structured parts data
 - Low-ball offers are relentless
 - No built-in payment protection for local sales
 - Listings expire and get buried quickly without re-posting
-- Not designed for auto parts — you're competing with furniture, electronics, and everything else
+- Not designed for auto parts: you're competing with furniture, electronics, and everything else
 
 ## 3. Car-Part.com {#car-part-com}
 
@@ -144,22 +144,22 @@ Car-Part.com is the industry standard for used parts search. Over 200 million pa
 
 **Pricing and fees:** Car-Part.com charges yards a subscription fee for listing access. Pricing varies by yard size and integration level but typically runs several hundred dollars per month. There are no per-sale commissions. For buyers, searching is free.
 
-**Speed of sale:** Passive. Parts sell when a buyer finds your listing and decides to call. You're not actively pushing parts — they sit in the database until someone searches for them. Speed depends on demand for the specific part and how many other yards have it listed.
+**Speed of sale:** Passive. Parts sell when a buyer finds your listing and decides to call. You're not actively pushing parts; they sit in the database until someone searches for them. Speed depends on demand for the specific part and how many other yards have it listed.
 
 **Reach:** The largest in the used auto parts industry. The 200M+ parts database draws buyers ranging from repair shops and body shops to individual consumers doing their own repairs. For a deeper comparison of how Car-Part.com stacks up against other networks, see our [platform comparison guide](/blog/guides/partshotlines-vs-car-part-vs-hotline-hq).
 
 **Pros:**
 - The largest used auto parts database in the industry
 - Standard tool that shops and buyers already know how to use
-- Passive exposure — parts sell without active effort once listed
+- Passive exposure: parts sell without active effort once listed
 - No per-transaction fees
 - Integration with popular yard management software
 
 **Cons:**
-- Inventory data freshness depends on how often you sync — a part sold yesterday might still show as available today
+- Inventory data freshness depends on how often you sync: a part sold yesterday might still show as available today
 - You need compatible inventory software to list effectively
 - Subscription costs regardless of how many parts you sell
-- Buyer contacts come in as phone calls or emails — no real-time push
+- Buyer contacts come in as phone calls or emails: no real-time push
 - High competition from other yards listing the same parts
 
 For tips on setting yard pricing competitively across platforms, read our [used auto parts pricing guide](/blog/market/used-auto-parts-pricing-guide).
@@ -170,7 +170,7 @@ For tips on setting yard pricing competitively across platforms, read our [used 
 
 **How it works:** You post a classified ad with photos, a description, and your asking price. Buyers browse or search the auto parts section in their metro area. Communication happens through Craigslist's anonymized email relay or by phone number if you include one. All transactions are in person.
 
-Craigslist has been around since 1995 and remains one of the most-visited classified sites in the US. For auto parts, it's a bare-bones option — no fitment data, no payment processing, no buyer verification.
+Craigslist has been around since 1995 and remains one of the most-visited classified sites in the US. For auto parts, it's a bare-bones option: no fitment data, no payment processing, no buyer verification.
 
 **Pricing and fees:** Free. Craigslist charges nothing to post in the auto parts category in most markets. A few metro areas charge a small fee for certain categories, but parts and accessories listings are typically $0.
 
@@ -181,11 +181,11 @@ Craigslist has been around since 1995 and remains one of the most-visited classi
 **Pros:**
 - Completely free
 - No account required (though one is available)
-- Simple to post — minimal barriers to listing
+- Simple to post: minimal barriers to listing
 - Works for large, heavy parts where local pickup is the only option
 
 **Cons:**
-- Buyer quality is low — expect scam attempts, no-shows, and lowball offers
+- Buyer quality is low: expect scam attempts, no-shows, and lowball offers
 - No structured data, fitment tools, or inventory integration
 - Listings get buried quickly and require frequent re-posting
 - No payment protection or dispute resolution
@@ -198,27 +198,27 @@ Craigslist has been around since 1995 and remains one of the most-visited classi
 
 **How it works:** PartCycle connects salvage yards, recyclers, and repair shops on a wholesale-focused marketplace. Yards upload inventory and set pricing. Repair shops and other buyers search for parts and order through the platform. PartCycle handles the transaction and coordinates shipping logistics.
 
-PartCycle positions itself as a modern alternative to older B2B parts networks. The platform focuses on quality-graded, warrantied parts and targets professional buyers — repair shops, body shops, and fleet operators — rather than individual consumers.
+PartCycle positions itself as a modern alternative to older B2B parts networks. The platform focuses on quality-graded, warrantied parts and targets professional buyers, repair shops, body shops, and fleet operators, rather than individual consumers.
 
 **Pricing and fees:** PartCycle charges a transaction fee on sales made through the platform. The exact rate varies by agreement, but it's generally lower than eBay's roughly 15% cut. Some yards also pay a subscription or onboarding fee. Contact PartCycle directly for current pricing.
 
-**Speed of sale:** Moderate. PartCycle's buyer base is smaller than eBay's or Car-Part.com's, but the buyers are professional — they know what they need and they buy without the tire-kicking you see on consumer platforms.
+**Speed of sale:** Moderate. PartCycle's buyer base is smaller than eBay's or Car-Part.com's, but the buyers are professional: they know what they need and they buy without the tire-kicking you see on consumer platforms.
 
 **Reach:** Growing but limited compared to established platforms. PartCycle's network includes thousands of yards and repair shops, but it doesn't have the volume or name recognition of Car-Part.com or eBay. Its strongest coverage is in markets with high recycler density.
 
 **Pros:**
 - Lower fees than eBay for most sellers
-- Professional buyer base — less wasted time on unqualified leads
+- Professional buyer base: less wasted time on unqualified leads
 - Quality grading and warranty support builds buyer trust
 - Shipping coordination through the platform
 - Focus on the auto recycling industry rather than general commerce
 
 **Cons:**
 - Smaller buyer pool than eBay or Car-Part.com
-- Less name recognition — many shops haven't heard of PartCycle yet
+- Less name recognition: many shops haven't heard of PartCycle yet
 - Transaction fees still eat into margins, even if lower than eBay's
 - Requires inventory upload and platform onboarding
-- Not ideal for individual sellers — geared toward licensed yards
+- Not ideal for individual sellers: geared toward licensed yards
 
 ## 6. LKQ / Hollander {#lkq-hollander}
 
@@ -228,9 +228,9 @@ PartCycle positions itself as a modern alternative to older B2B parts networks. 
 
 LKQ operates over 800 locations across North America and generated roughly $14 billion in revenue in 2024 ([LKQ Corporation](https://www.lkqcorp.com/), 2024 annual report). They sell to repair shops, insurance companies, and consumers. Independent yards can supply parts to LKQ as wholesale vendors.
 
-**Pricing and fees:** If you sell to LKQ as a wholesale supplier, pricing is negotiated directly and typically at wholesale rates below what you'd get selling direct to shops or consumers. The trade-off is volume and speed — LKQ buys in quantity and pays reliably. Using Hollander interchange data for your own listings may involve a licensing fee depending on your yard management software.
+**Pricing and fees:** If you sell to LKQ as a wholesale supplier, pricing is negotiated directly and typically at wholesale rates below what you'd get selling direct to shops or consumers. The trade-off is volume and speed: LKQ buys in quantity and pays reliably. Using Hollander interchange data for your own listings may involve a licensing fee depending on your yard management software.
 
-**Speed of sale:** Fast if you're selling wholesale to LKQ — they buy what they need and pay promptly. For parts moving through the broader LKQ retail network, speed depends on demand and location.
+**Speed of sale:** Fast if you're selling wholesale to LKQ: they buy what they need and pay promptly. For parts moving through the broader LKQ retail network, speed depends on demand and location.
 
 **Reach:** The largest in the industry. LKQ's distribution network covers all major US markets and extends into Europe. The Hollander interchange system is the standard reference for parts interchangeability across the entire recycling industry.
 
@@ -247,13 +247,13 @@ LKQ operates over 800 locations across North America and generated roughly $14 b
 - Supplying LKQ means you're helping a competitor grow
 - Hollander data licensing costs can add up for smaller operations
 - Less control over pricing and customer relationships
-- Not a platform you "list on" — it's a supply relationship
+- Not a platform you "list on": it's a supply relationship
 
 ## 7. Hotline HQ {#hotline-hq}
 
 **Best for:** Salvage yards that want the fastest yard-to-yard sales channel
 
-**How it works:** Hotline HQ connects over 500 salvage yards across 12 regional conference rooms on a live voice network. Your yard's desk phone stays connected to your regional room — California, Texas, Florida, Arizona, and others. When any yard on the network needs a part, they key up and describe it: "2019 Ram 1500 left headlight assembly." Every connected yard hears the request in real time. You have the part? Key up, respond, and close the deal directly. Average response time: approximately 2 seconds (Hotline HQ network data).
+**How it works:** Hotline HQ connects over 500 salvage yards across 12 regional conference rooms on a live voice network. Your yard's desk phone stays connected to your regional room: California, Texas, Florida, Arizona, and others. When any yard on the network needs a part, they key up and describe it: "2019 Ram 1500 left headlight assembly." Every connected yard hears the request in real time. You have the part? Key up, respond, and close the deal directly. Average response time: approximately 2 seconds (Hotline HQ network data).
 
 No database. No inventory upload. No waiting for someone to find your listing. Live voice, live response.
 
@@ -261,24 +261,24 @@ No database. No inventory upload. No waiting for someone to find your listing. L
 
 **Speed of sale:** The fastest of any channel covered in this guide. A broadcast goes out, every yard in the room hears it, and responses come back in seconds. There's no listing-and-wait cycle. Parts that would sit in a database for weeks move the same day on the hotline because someone, somewhere on the network, needs it right now.
 
-**Reach:** Over 500 yards across major US markets. Reach is regional — you hear broadcasts from yards in your room and nearby rooms. It's not a national consumer marketplace, and it doesn't replace platforms that reach individual buyers. It supplements them with a fast, direct, yard-to-yard channel.
+**Reach:** Over 500 yards across major US markets. Reach is regional: you hear broadcasts from yards in your room and nearby rooms. It's not a national consumer marketplace, and it doesn't replace platforms that reach individual buyers. It supplements them with a fast, direct, yard-to-yard channel.
 
 For a full breakdown of how the network operates, see our guide on [how auto parts hotlines work](/blog/guides/how-auto-parts-hotlines-work). For a side-by-side look at how Hotline HQ compares to other industry networks, read [PartsHotlines vs. Car-Part.com vs. Hotline HQ](/blog/guides/partshotlines-vs-car-part-vs-hotline-hq).
 
 **Pros:**
-- Fastest time-to-sale of any channel — seconds, not days
+- Fastest time-to-sale of any channel: seconds, not days
 - One broadcast reaches 100+ yards simultaneously
 - Flat monthly fee with no commissions or per-sale costs
 - No inventory upload or database management required
-- Built for the way yards already work — voice, not clicks
+- Built for the way yards already work: voice, not clicks
 - Direct yard-to-yard relationships with no middleman
 
 **Cons:**
-- Yard-to-yard only — doesn't reach individual consumers
+- Yard-to-yard only: doesn't reach individual consumers
 - Regional model means coverage varies by market
 - Requires a desk phone and someone at the counter to respond
 - Not a fit for individual sellers or one-off part sales
-- Newer network — smaller than Car-Part.com's 200M+ parts database
+- Newer network: smaller than Car-Part.com's 200M+ parts database
 
 ## Which Platform Fits Your Operation {#comparison-summary}
 
@@ -288,7 +288,7 @@ Seven platforms, seven different strengths. Here's the short version of which on
 Start with Car-Part.com for passive national reach and Hotline HQ for fast yard-to-yard sales. These two cover different needs and complement each other well. Add eBay Motors if you have the staff to manage listings and ship parts to individual buyers.
 
 **You're a small yard with limited staff:**
-Hotline HQ requires the least overhead — no inventory uploads, no listing management, just listen and respond. Car-Part.com adds passive exposure if your yard management software supports it.
+Hotline HQ requires the least overhead: no inventory uploads, no listing management, just listen and respond. Car-Part.com adds passive exposure if your yard management software supports it.
 
 **You're an individual selling a few parts:**
 eBay Motors gives you the widest audience. Facebook Marketplace works for local pickup of large parts. Craigslist is free but slower and riskier.
@@ -297,7 +297,7 @@ eBay Motors gives you the widest audience. Facebook Marketplace works for local 
 Facebook Marketplace (free for local) and Craigslist (free) cost nothing. Hotline HQ's flat fee means no per-sale hit. eBay's roughly 15% fee is the most expensive option.
 
 **You want the fastest sale:**
-Hotline HQ. Nothing else in this industry matches a 2-second response on a live voice broadcast. Everything else — eBay, Facebook, Car-Part.com — involves waiting for someone to find your listing and decide to reach out.
+Hotline HQ. Nothing else in this industry matches a 2-second response on a live voice broadcast. Everything else (eBay, Facebook, Car-Part.com) involves waiting for someone to find your listing and decide to reach out.
 
 To understand how pricing affects which channel works best for different parts, check our [used auto parts pricing guide](/blog/market/used-auto-parts-pricing-guide). For data on which parts generate the most demand across these platforms, see [the most-requested used auto parts](/blog/market/most-requested-used-auto-parts).
 

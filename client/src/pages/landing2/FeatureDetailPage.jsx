@@ -359,7 +359,7 @@ export function FeatureDetailPage() {
             <div className="fd-sb-card">
               <h4>Share Feature</h4>
               <div className="fd-sb-share">
-                <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(f.title + ' — Hotline HQ')}&url=${encodeURIComponent('https://hotlinehq.online/features/' + slug)}`} target="_blank" rel="noopener noreferrer" className="fd-sb-share-btn" aria-label="Share on X">
+                <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(f.title + ' - Hotline HQ')}&url=${encodeURIComponent('https://hotlinehq.online/features/' + slug)}`} target="_blank" rel="noopener noreferrer" className="fd-sb-share-btn" aria-label="Share on X">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </a>
                 <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://hotlinehq.online/features/' + slug)}`} target="_blank" rel="noopener noreferrer" className="fd-sb-share-btn" aria-label="Share on LinkedIn">
@@ -393,7 +393,7 @@ export function FeatureDetailPage() {
         <div className="bl-cta-inner">
           <p className="bl-cta-kicker">JOIN THE NETWORK</p>
           <h2 className="bl-cta-heading">Ready to build your network?</h2>
-          <p className="bl-cta-sub">Start with the platform that has everything — or talk to us about launching a hotline in your industry.</p>
+          <p className="bl-cta-sub">Start with the platform that has everything, or talk to us about launching a hotline in your industry.</p>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href={SIGNUP_URL} className="bl-cta-btn">Sign Up Free</a>
             <a href={`mailto:${CONTACT_EMAIL}?subject=Launching a hotline`} target="_blank" rel="noopener noreferrer" className="bl-cta-btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.25)', boxShadow: 'none' }}>Talk to Us</a>

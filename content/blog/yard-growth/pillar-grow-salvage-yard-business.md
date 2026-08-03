@@ -56,7 +56,7 @@ faq:
 - Electric vehicles are coming, but the timeline gives you 3–5 years to prepare. Start learning now, don't panic.
 :::
 
-[IMAGE: hero — /images/blog/grow-salvage-yard-business/salvage-yard-aerial.webp]
+[IMAGE: hero: /images/blog/grow-salvage-yard-business/salvage-yard-aerial.webp]
 
 You run a salvage yard. Business isn't bad, but it isn't growing either. Phone rings, walk-ins come through, you move parts. Revenue's been flat for a while. You're not sure what to change.
 
@@ -77,7 +77,7 @@ Growth comes from three things:
 
 Every strategy below serves at least one of those three.
 
-[IMAGE: inline — /images/blog/grow-salvage-yard-business/yard-owner-at-desk.webp]
+[IMAGE: inline: /images/blog/grow-salvage-yard-business/yard-owner-at-desk.webp]
 
 ## Strategy 1: Stack Your Sales Channels {#stack-sales-channels}
 
@@ -134,7 +134,7 @@ Typical net margins for salvage yards run between 10% and 20% of revenue, with i
 
 **Go deeper**: [How to Price Used Auto Parts — A Seller's Strategy Guide](/blog/yard-growth/how-to-price-used-auto-parts)
 
-[IMAGE: inline — /images/blog/grow-salvage-yard-business/before-after-network.webp]
+[IMAGE: inline: /images/blog/grow-salvage-yard-business/before-after-network.webp]
 
 ## Strategy 4: Market Where Yard Owners Actually Look {#market-where-owners-look}
 
@@ -180,7 +180,7 @@ The investment is minimal. A flat monthly membership, a desk phone that ships pr
 
 Inventory software tracks what you have. It doesn't find you buyers. But a yard without a system to track parts (what's in stock, what's sold, what came from which vehicle) is flying blind.
 
-### The landscape in 2026
+### The market in 2026
 
 - **Hollander/Pinnacle**: the industry standard interchange system. If you're doing any kind of online listing, you need Hollander codes to match parts to vehicles.
 - **Dismantly, YardSmart, Car-Part Checkmate**: cloud-based inventory tools. Prices range from $100 to $300/month depending on features.
@@ -210,7 +210,7 @@ A disciplined buyer calculates expected parts revenue before bidding. Sets a cei
 
 **Go deeper**: [How to Buy Salvage Cars for Dismantling — Auction and Sourcing Tips](/blog/yard-growth/how-to-buy-salvage-cars-for-dismantling)
 
-[IMAGE: inline — /images/blog/grow-salvage-yard-business/network-map.webp]
+[IMAGE: inline: /images/blog/grow-salvage-yard-business/network-map.webp]
 
 ## Strategy 8: Get Ahead of the EV Wave {#get-ahead-of-evs}
 

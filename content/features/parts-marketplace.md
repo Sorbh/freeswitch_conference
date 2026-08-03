@@ -8,10 +8,10 @@ seo:
 hero:
   kicker: "MARKETPLACE"
   heading: "Your hotline activity, indexed by Google"
-  lede: "Every unanswered broadcast automatically becomes a searchable part listing. SEO-optimized pages with structured data bring organic traffic — and new members — from Google."
+  lede: "Every unanswered broadcast automatically becomes a searchable part listing. SEO-optimized pages with structured data bring organic traffic, and new members, from Google."
 problem:
   heading: "Hotline networks are invisible to search engines"
-  text: "A traditional hotline generates zero online presence. Hundreds of part requests fly through daily, but Google never sees any of them. The marketplace changes that — voice activity becomes web pages that rank, pull in visitors, and convert them into network members."
+  text: "A traditional hotline generates zero online presence. Hundreds of part requests fly through daily, but Google never sees any of them. The marketplace changes that. Voice activity becomes web pages that rank, pull in visitors, and convert them into network members."
 steps:
   - title: "Broadcast captured"
     desc: "Unanswered broadcasts are transcribed and parsed for part details. Each one becomes a marketplace listing with year, make, model, part, room, and timestamp."
@@ -27,7 +27,7 @@ benefits:
   - title: "Member acquisition"
     desc: "Visitors who land on a listing see how active the network is and get a prompt to sign up. The marketplace is the top of the funnel."
   - title: "Structured data"
-    desc: "Every listing includes Product and WantAction JSON-LD schema, breadcrumbs, and Open Graph tags — built to get maximum search engine visibility."
+    desc: "Every listing includes Product and WantAction JSON-LD schema, breadcrumbs, and Open Graph tags, built to get maximum search engine visibility."
   - title: "Related listings"
     desc: "Each listing page shows related parts from the same room. Keeps visitors browsing longer and increases time on site."
 scenario:
@@ -41,7 +41,7 @@ faqs:
   - q: "Can I see how much traffic the marketplace generates?"
     a: "Yes. The marketplace pages include Microsoft Clarity tracking. Traffic data shows up in your Clarity dashboard."
   - q: "Are listings visible to non-members?"
-    a: "Yes. The marketplace is fully public — that's the point. Anyone can find a listing on Google and respond."
+    a: "Yes. The marketplace is fully public. That's the point. Anyone can find a listing on Google and respond."
 related:
   - unanswered-capture
   - broadcast-recording
