@@ -57,8 +57,6 @@ export function init() {
         CREATE INDEX IF NOT EXISTS idx_users_room ON users(room);
         CREATE INDEX IF NOT EXISTS idx_users_connection_state ON users(connection_state);
         CREATE INDEX IF NOT EXISTS idx_broadcast_room_date ON broadcast_log(room, created_at);
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_broadcast_share_token ON broadcast_log(share_token) WHERE share_token IS NOT NULL;
-
         CREATE TABLE IF NOT EXISTS event_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_type TEXT NOT NULL,
@@ -145,6 +143,7 @@ export function init() {
     for (const [col, sql] of migrations) {
         if (!broadcastCols.includes(col)) sqlite.exec(sql);
     }
+    sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_broadcast_share_token ON broadcast_log(share_token) WHERE share_token IS NOT NULL");
 
     const userCols = sqlite.prepare("PRAGMA table_info(users)").all().map(c => c.name);
     const userMigrations = [
@@ -166,17 +165,6 @@ export function init() {
     if (userCols.includes('web_takeover_contact')) {
         sqlite.exec("ALTER TABLE users DROP COLUMN web_takeover_contact");
     }
-
-    // Backfill: cloud-STT extractions before the markBroadcastHasPartsRequest fix left
-    // has_parts_request=0 despite valid part_details, hiding those marketplace listings.
-    // Idempotent — matches the year+make visibility criteria used by marketplace queries.
-    sqlite.exec(`
-        UPDATE broadcast_log SET has_parts_request = 1
-        WHERE (has_parts_request = 0 OR has_parts_request IS NULL)
-          AND part_details IS NOT NULL
-          AND json_extract(part_details, '$.year') IS NOT NULL AND json_extract(part_details, '$.year') != 'null'
-          AND json_extract(part_details, '$.make') IS NOT NULL AND json_extract(part_details, '$.make') != 'null'
-    `);
 
     sqlite.exec(`
         CREATE TABLE IF NOT EXISTS accounts (
@@ -383,6 +371,16 @@ export function init() {
     for (const [col, sql] of bcastTransMigrations) {
         if (!bcastMigCols.includes(col)) sqlite.exec(sql);
     }
+
+    // Backfill: cloud-STT extractions before the markBroadcastHasPartsRequest fix left
+    // has_parts_request=0 despite valid part_details, hiding those marketplace listings.
+    sqlite.exec(`
+        UPDATE broadcast_log SET has_parts_request = 1
+        WHERE (has_parts_request = 0 OR has_parts_request IS NULL)
+          AND part_details IS NOT NULL
+          AND json_extract(part_details, '$.year') IS NOT NULL AND json_extract(part_details, '$.year') != 'null'
+          AND json_extract(part_details, '$.make') IS NOT NULL AND json_extract(part_details, '$.make') != 'null'
+    `);
 
     // ── Auth tables ──
 

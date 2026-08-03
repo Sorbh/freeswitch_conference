@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SiteFaq, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 
-const SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const SIGNUP_URL = "/client/signup";
 
 const MAPPING = [
   { copper: "Noisy analog static", hq: "HD audio with AI noise cancellation" },

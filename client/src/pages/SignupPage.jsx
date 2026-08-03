@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Toaster, toast } from 'sonner';
+import AuthLayout from '../components/AuthLayout';
 
 // Instant-render fallback only — the live list (with new markets, ordered by
 // activity) is fetched from /api/v1/client/rooms and replaces this on load.
@@ -202,7 +203,7 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <AuthLayout variant="signup">
         <Toaster richColors position="top-center" />
         <div className="w-full max-w-md animate-fadeIn text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(18,183,106,0.1)' }}>
@@ -240,12 +241,12 @@ export default function SignupPage() {
             </button>
           </div>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: 'var(--bg)' }}>
+    <AuthLayout variant="signup">
       <div className="w-full max-w-md animate-fadeIn">
         <div className="flex flex-col items-center mb-6">
           <Link to="/"><img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} /></Link>
@@ -470,7 +471,7 @@ export default function SignupPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 

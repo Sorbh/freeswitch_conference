@@ -37,9 +37,9 @@ export function HQLogo({ light = false, size = 32 }) {
 }
 
 export const CONTACT_EMAIL = "hello@hotlinehq.online";
-const HOTLINE_LOGIN_URL = "https://hotlinehq.online/client/login";
-const HOTLINE_SIGNUP_URL = "https://hotlinehq.online/client/signup";
-const HOTLINE_ADMIN_URL = "https://hotlinehq.online/admin/login";
+const HOTLINE_LOGIN_URL = "/client/login";
+const HOTLINE_SIGNUP_URL = "/client/signup";
+const HOTLINE_ADMIN_URL = "/admin/login";
 const SITE_BASE_PATH = "/hotlinehq";
 
 function getSiteBasePath() {

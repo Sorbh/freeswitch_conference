@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, buildSiteUrl } from "./site";
 
-const SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const SIGNUP_URL = "/client/signup";
 
 function formatDate(iso) {
   const d = new Date(iso + "T00:00:00");

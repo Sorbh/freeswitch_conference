@@ -297,8 +297,8 @@ export default function Landing2Page() {
   ];
   const JOIN_LIST = t("join.list", { returnObjects: true });
 
-  const signupBase = "https://hotlinehq.online/client/signup";
-  const loginBase = "https://hotlinehq.online/client/login";
+  const signupBase = "/client/signup";
+  const loginBase = "/client/login";
   const referralParams = useMemo(() => {
     return new URLSearchParams(window.location.search).toString();
   }, []);

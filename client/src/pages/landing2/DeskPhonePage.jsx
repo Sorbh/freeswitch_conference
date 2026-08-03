@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL } from "./site";
 
-const SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const SIGNUP_URL = "/client/signup";
 const HERO_IMG = "/images/t31p-desk-phone.webp";
 const CLOSEUP_IMG = "/images/t31p-lcd.webp";
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import AuthLayout from '../components/AuthLayout';
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation("auth");
@@ -37,7 +38,7 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <AuthLayout variant="reset">
         <div className="w-full max-w-md text-center animate-fadeIn">
           <h2 className="text-xl font-bold mb-3">{t("reset.invalidLink")}</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>{t("reset.invalidLinkMessage")}</p>
@@ -49,7 +50,7 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <AuthLayout variant="reset">
         <div className="w-full max-w-md text-center animate-fadeIn">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(18,183,106,0.1)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -60,12 +61,12 @@ export default function ResetPasswordPage() {
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>{t("reset.successMessage")}</p>
           <Link to="/client/login" className="hq-btn inline-block px-6 py-3">{t("reset.goToLogin")}</Link>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+    <AuthLayout variant="reset">
       <div className="w-full max-w-md animate-fadeIn">
         <div className="flex flex-col items-center mb-8">
           <h1 className="text-2xl font-bold">{t("reset.title")}</h1>
@@ -94,7 +95,7 @@ export default function ResetPasswordPage() {
           </form>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 

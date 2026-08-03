@@ -214,7 +214,7 @@ export function OwnHotlinePage() {
             </a>
             <a
               className="l2-btn l2-btn-ghost"
-              href="https://hotlinehq.online/client/signup"
+              href="/client/signup"
               style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff', background: 'transparent' }}
             >
               Sign Up Free

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
+import AuthLayout from '../components/AuthLayout';
 
 export default function LoginPage() {
   const { t } = useTranslation("auth");
@@ -110,7 +111,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+    <AuthLayout variant="login">
       <div className="w-full max-w-md animate-fadeIn">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
@@ -245,7 +246,7 @@ export default function LoginPage() {
           </>
         )}
       </div>
-    </div>
+    </AuthLayout>
   );
 }
 

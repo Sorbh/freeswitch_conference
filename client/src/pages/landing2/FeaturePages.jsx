@@ -4,7 +4,7 @@ import { SiteNav, SiteFooter, Seo, SiteFaq, SITE_CSS, CONTACT_EMAIL, buildSiteUr
 import BlogLayout from "./BlogLayout";
 import REGION_CONTENT from "../../../../data/regions-ssr-data.json";
 
-const SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const SIGNUP_URL = "/client/signup";
 
 /* ================================================================== */
 /*  /find-used-auto-parts — buyer intent SEO page                      */

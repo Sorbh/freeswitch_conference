@@ -3,8 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HQMark } from "./landing2/site";
 
-const PUBLIC_LOGIN_URL = "https://hotlinehq.online/client/login";
-const PUBLIC_SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const PUBLIC_LOGIN_URL = "/client/login";
+const PUBLIC_SIGNUP_URL = "/client/signup";
 
 function formatDuration(ms) {
   if (!ms) return "0s";

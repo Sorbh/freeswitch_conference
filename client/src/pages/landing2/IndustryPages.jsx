@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL, buildSiteUrl } from "./site";
 
-const SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const SIGNUP_URL = "/client/signup";
 const CONTACT_URL = `mailto:${CONTACT_EMAIL}?subject=Industry%20Inquiry`;
 
 const INDUSTRY_NAV = [

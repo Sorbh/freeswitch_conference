@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { mintPublicSession, listenerStats } from "../../service/listenerSessions.js";
+import { sqlite } from "../../service/db/connection.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,13 +101,89 @@ publicRouter.get("/network-stats", (req, res) => {
     const listeningNow = liveRooms.reduce((sum, r) => sum + r.online, 0);
     const activeRooms = liveRooms.length;
     const dashboard = global.db.getDashboardStats();
+    const accounts = global.db.getAllAccounts().filter(a => a.active);
+    const totalRooms = global.db.getAllRooms().length;
+
+    const broadcastStats = global.db.getBroadcastStats(7);
+    const broadcasterAvgs = (broadcastStats?.topBroadcasters || []).filter(b => b.avg_response_ms);
+    const avgResponseMs = broadcasterAvgs.length > 0
+        ? Math.round(broadcasterAvgs.reduce((s, b) => s + b.avg_response_ms, 0) / broadcasterAvgs.length)
+        : null;
+    const avgResponseSec = avgResponseMs ? Math.round(avgResponseMs / 1000) : null;
+
+    const weeklyAnswered = (broadcastStats?.daily || []).reduce((s, d) => s + (d.answered || 0), 0);
+    const weeklyTotal = (broadcastStats?.daily || []).reduce((s, d) => s + (d.count || d.total || 0), 0);
+    const weeklyAnswerRate = weeklyTotal > 0 ? Math.round((weeklyAnswered / weeklyTotal) * 100) : null;
+
+    const recent = global.db.getRecentBroadcasts(10).map(b => ({
+        display_name: b.display_name || b.user_name,
+        room_name: b.room_name,
+        transcription: (b.transcription || b.local_transcription || '').slice(0, 140),
+        answered: b.answered,
+        duration_ms: b.duration_ms,
+        participant_count: b.participant_count || 0,
+        response_time_ms: b.response_time_ms,
+        created_at: b.created_at,
+    })).filter(b => b.transcription);
+
+    const topRooms = (global.db.getAllRoomStats?.() || [])
+        .sort((a, b) => b.yards - a.yards)
+        .slice(0, 8)
+        .map(r => ({ name: r.room_name, yards: r.yards, broadcasts: r.broadcasts }));
+
+    let allTimeBroadcasts = 0;
+    try { allTimeBroadcasts = sqlite.prepare('SELECT COUNT(*) as c FROM broadcast_log').get().c; } catch {}
+
+    let yesterdayBroadcasts = 0, yesterdayAnswered = 0;
+    try {
+        const now = new Date();
+        const yStart = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime() / 1000);
+        const yEnd = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 1000);
+        yesterdayBroadcasts = sqlite.prepare('SELECT COUNT(*) as c FROM broadcast_log WHERE created_at >= ? AND created_at < ?').get(yStart, yEnd).c;
+        yesterdayAnswered = sqlite.prepare('SELECT COUNT(*) as c FROM broadcast_log WHERE created_at >= ? AND created_at < ? AND answered = 1').get(yStart, yEnd).c;
+    } catch {}
+
+    let peakHour = null, peakHourCount = 0;
+    try {
+        const row = sqlite.prepare(`SELECT strftime('%H', created_at, 'unixepoch', 'localtime') as hr, COUNT(*) as c FROM broadcast_log WHERE created_at >= strftime('%s','now','-7 days') GROUP BY hr ORDER BY c DESC LIMIT 1`).get();
+        if (row) { peakHour = parseInt(row.hr); peakHourCount = row.c; }
+    } catch {}
+
+    const dailyTrend = (broadcastStats?.daily || []).slice(-7).map(d => ({
+        date: d.date,
+        total: d.count || d.total || 0,
+        answered: d.answered || 0,
+    }));
+
+    let allTimeAnswered = 0;
+    try { allTimeAnswered = sqlite.prepare('SELECT COUNT(*) as c FROM broadcast_log WHERE answered = 1').get().c; } catch {}
+
     res.json({
         status: true,
         data: {
             listeningNow,
             activeRooms,
-            totalMembers: global.db.getAllAccounts().filter(a => a.active).length,
+            totalMembers: accounts.length,
+            totalRooms,
+            onlineUsers: dashboard.onlineUsers,
+            inCallUsers: dashboard.inCallUsers,
             todayBroadcasts: dashboard.todayBroadcasts,
+            todayAnswered: dashboard.todayAnswered,
+            answerRate: dashboard.todayBroadcasts > 0 ? Math.round((dashboard.todayAnswered / dashboard.todayBroadcasts) * 100) : null,
+            yesterdayBroadcasts,
+            yesterdayAnswered,
+            yesterdayAnswerRate: yesterdayBroadcasts > 0 ? Math.round((yesterdayAnswered / yesterdayBroadcasts) * 100) : null,
+            weeklyAnswerRate,
+            avgResponseSec,
+            peakHour,
+            peakHourCount,
+            allTimeBroadcasts,
+            allTimeAnswered,
+            allTimeAnswerRate: allTimeBroadcasts > 0 ? Math.round((allTimeAnswered / allTimeBroadcasts) * 100) : null,
+            dailyTrend,
+            recentBroadcasts: recent.slice(0, 4),
+            topRooms,
+            liveRooms: liveRooms.slice(0, 6).map(r => ({ name: r.name, online: r.online })),
         },
     });
 });

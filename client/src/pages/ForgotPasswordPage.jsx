@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import AuthLayout from '../components/AuthLayout';
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation("auth");
@@ -31,7 +32,7 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+      <AuthLayout variant="forgot">
         <div className="w-full max-w-md animate-fadeIn text-center">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(18,183,106,0.1)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -44,12 +45,12 @@ export default function ForgotPasswordPage() {
           </p>
           <Link to="/client/login" className="hq-btn inline-block px-6 py-3">{t("forgot.backToLogin")}</Link>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
+    <AuthLayout variant="forgot">
       <div className="w-full max-w-md animate-fadeIn">
         <div className="flex flex-col items-center mb-8">
           <img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} />
@@ -74,6 +75,6 @@ export default function ForgotPasswordPage() {
           <Link to="/client/login" className="text-sm font-medium" style={{ color: 'var(--red)' }}>{t("forgot.backToLoginLink")}</Link>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

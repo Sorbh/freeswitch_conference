@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL } from "./site";
 import { BLOG_POSTS, BLOG_CATEGORIES } from "./blogRegistry";
 
-const SIGNUP_URL = "https://hotlinehq.online/client/signup";
+const SIGNUP_URL = "/client/signup";
 
 const ICON_MAP = {
   "always-on-voice-network": IconNetwork,
