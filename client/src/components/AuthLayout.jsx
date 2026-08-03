@@ -55,23 +55,6 @@ function XIcon() {
 // ────────────────────────────────────────────────────────────────
 // LOGIN — returning user. Show live network stats + recent broadcasts
 // ────────────────────────────────────────────────────────────────
-function MiniBar({ values, max, color }) {
-  return (
-    <div className="flex items-end gap-0.5 h-6">
-      {values.map((v, i) => (
-        <div key={i} className="flex-1 rounded-sm" style={{ height: `${Math.max(8, (v / (max || 1)) * 100)}%`, background: color, opacity: 0.5 + (i / values.length) * 0.5 }} />
-      ))}
-    </div>
-  );
-}
-
-function formatPeakHour(h) {
-  if (h == null) return '—';
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hr = h % 12 || 12;
-  return `${hr}${ampm}`;
-}
-
 function LoginPanel() {
   const [d, setD] = useState(null);
 
@@ -82,9 +65,6 @@ function LoginPanel() {
       .catch(() => {});
   }, []);
 
-  const trend = d?.dailyTrend || [];
-  const trendMax = Math.max(...trend.map(t => t.total), 1);
-
   return (
     <>
       <div>
@@ -94,7 +74,21 @@ function LoginPanel() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mt-6">
+      <div className="flex flex-wrap gap-2 mt-5">
+        {[
+          { label: 'HD Audio', to: '/features/desk-phone' },
+          { label: 'Caller ID', to: '/features/caller-id' },
+          { label: 'Private Calls', to: '/features/direct-calls' },
+          { label: '99.99% Uptime', to: '/features/always-on-voice-network' },
+          { label: '30s Setup', to: '/features/desk-phone' },
+          { label: 'Cross-Region', to: '/features/always-on-voice-network' },
+        ].map(f => (
+          <Link key={f.label} to={f.to} target="_blank" rel="noopener noreferrer" className="auth-chip rounded-lg px-4 py-2.5 text-sm font-bold tracking-wide no-underline" style={{ background: 'rgba(239,68,68,0.25)', color: '#fff', border: '1px solid rgba(239,68,68,0.4)', textDecoration: 'none', transition: 'background 0.2s, border-color 0.2s' }}>{f.label}</Link>
+        ))}
+        <style>{`.auth-chip:hover { background: #dc2626 !important; border-color: #dc2626 !important; }`}</style>
+      </div>
+
+      <div className="flex flex-col gap-4 mt-4">
         {/* Live now */}
         <div>
           <SectionLabel>Live Right Now</SectionLabel>
@@ -104,15 +98,17 @@ function LoginPanel() {
           </div>
         </div>
 
-        {/* Today's activity */}
-        <div>
-          <SectionLabel>Today</SectionLabel>
-          <div className="grid grid-cols-3 gap-2.5">
-            <StatCard value={d?.todayBroadcasts ?? '—'} label="Broadcasts" accent />
-            <StatCard value={d?.todayAnswered ?? '—'} label="Answered" />
-            <StatCard value={d?.answerRate != null ? `${d.answerRate}%` : '—'} label="Answer Rate" />
+        {/* Yesterday's activity */}
+        {d?.yesterdayBroadcasts > 0 && (
+          <div>
+            <SectionLabel>Yesterday</SectionLabel>
+            <div className="grid grid-cols-3 gap-2.5">
+              <StatCard value={d.yesterdayBroadcasts} label="Broadcasts" accent />
+              <StatCard value={d.yesterdayAnswered} label="Answered" />
+              <StatCard value={d.yesterdayAnswerRate != null ? `${d.yesterdayAnswerRate}%` : '—'} label="Answer Rate" />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* BROADCAST HIGHLIGHT — red card to break the pattern */}
         <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -130,7 +126,7 @@ function LoginPanel() {
               <div className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--mono)' }}>Answered</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-white">{d?.peakHour != null ? formatPeakHour(d.peakHour) : '—'}</div>
+              <div className="text-2xl font-bold text-white">12–2 PM</div>
               <div className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--mono)' }}>Peak Hour</div>
             </div>
           </div>
@@ -142,21 +138,6 @@ function LoginPanel() {
           )}
         </div>
 
-        {/* 7-day trend */}
-        {trend.length > 0 && (
-          <div>
-            <SectionLabel>7-Day Trend</SectionLabel>
-            <div className="rounded-xl p-3.5" style={{ background: DARK.surface, border: `1px solid ${DARK.surfaceBorder}` }}>
-              <MiniBar values={trend.map(t => t.total)} max={trendMax} color={DARK.red} />
-              <div className="flex justify-between mt-2">
-                {trend.map((t, i) => (
-                  <span key={i} className="text-[9px] font-medium" style={{ color: DARK.dim }}>{new Date(t.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2)}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Network overview */}
         <div>
           <SectionLabel>Network</SectionLabel>
@@ -167,22 +148,6 @@ function LoginPanel() {
             <StatCard value={d?.weeklyAnswerRate != null ? `${d.weeklyAnswerRate}%` : '—'} label="Weekly Answer %" />
           </div>
         </div>
-
-        {/* Live room badges */}
-        {d?.liveRooms?.length > 0 && (
-          <div>
-            <SectionLabel>Active Rooms</SectionLabel>
-            <div className="flex flex-wrap gap-1.5">
-              {d.liveRooms.map(r => (
-                <div key={r.name} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium" style={{ background: DARK.surface, border: `1px solid ${DARK.surfaceBorder}`, color: DARK.text }}>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: DARK.green }} />
-                  {r.name}
-                  <span style={{ color: DARK.dim }}>{r.online}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Recent broadcasts */}
         {d?.recentBroadcasts?.length > 0 && (

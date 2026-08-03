@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>{t("reset.invalidLinkMessage")}</p>
           <Link to="/client/forgot-password" className="text-sm font-semibold" style={{ color: 'var(--red)' }}>{t("reset.requestNewLink")}</Link>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
