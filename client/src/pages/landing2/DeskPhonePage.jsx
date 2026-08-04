@@ -5,6 +5,7 @@ import { SiteNav, SiteFooter, Seo, SITE_CSS, CONTACT_EMAIL } from "./site";
 const SIGNUP_URL = "/client/signup";
 const HERO_IMG = "/images/t31p-desk-phone.webp";
 const CLOSEUP_IMG = "/images/t31p-lcd.webp";
+const WA_URL = "https://wa.me/66917636278?text=Hi%2C%20I%27m%20interested%20in%20getting%20a%20desk%20phone";
 
 const STEPS = [
   { num: "01", title: "Order your phone", desc: "We ship a preconfigured Yealink T31P to your yard, or grab one from Amazon, B&H, or any VoIP retailer and we'll send the config." },
@@ -106,7 +107,7 @@ export function DeskPhonePage() {
               <p className="dp-lede">A preconfigured Yealink T31P desk phone with HD audio sits on your counter, always connected to your room. One ethernet cable. Thirty seconds to your first broadcast.</p>
               <div className="dp-hero-ctas">
                 <a href={SIGNUP_URL} className="dp-btn dp-btn-hot">Sign Up Free</a>
-                <a href={`mailto:${CONTACT_EMAIL}?subject=Desk phone inquiry`} className="dp-btn dp-btn-ghost">Talk to Us</a>
+                <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="dp-btn dp-btn-ghost">Talk to Us / Request your desk phone</a>
               </div>
             </div>
             <div className="dp-hero-img">
@@ -124,41 +125,41 @@ export function DeskPhonePage() {
         </div>
       </section>
 
-      {/* ── WHY YARDS ARE DITCHING BROWSER ── */}
+      {/* ── WHY YARDS ARE ADOPTING HD PHONES ── */}
       <section className="dp-section">
         <div className="dp-container">
           <div className="dp-content-split">
             <div className="dp-content-text">
-              <h2 className="dp-h2">Why salvage yards are ditching browser calling</h2>
-              <p className="dp-body">Chrome pushes an update overnight and resets your microphone permissions. An employee closes "that weird tab with the speaker icon." The screen lock kicks in during a slow afternoon and you miss three broadcasts.</p>
-              <p className="dp-body">A desk phone doesn't have tabs. It doesn't run Chrome. It doesn't need a login, a password, or a Windows update. It sits on the counter like a landline, except this one connects you to every yard in the state.</p>
+              <h2 className="dp-h2">Why salvage yards are adopting HD audio phones</h2>
+              <p className="dp-body">A dedicated desk phone boots up once and stays connected all day. No browser tabs to manage, no mic permissions to fix, no passwords to remember. It sits on the counter like a landline, except this one connects you to every yard in the state.</p>
+              <p className="dp-body">HD audio means crystal-clear voice on every broadcast. Caller ID shows who's talking before you pick up. Every call is recorded and transcribed automatically. And you can switch between rooms with a single button press.</p>
             </div>
             <div className="dp-content-aside">
               <div className="dp-aside-card">
-                <div className="dp-aside-header dp-aside-header-red">Browser Problems</div>
+                <div className="dp-aside-header" style={{ background: 'rgba(18,183,106,0.1)', color: 'var(--green, #12b76a)' }}>HD Phone Advantages</div>
                 <div className="dp-aside-item">
-                  <span className="dp-aside-dim">Microphone</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> Permissions silently revoked</span>
+                  <span className="dp-aside-dim">Audio</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 8l2 2 4-4" stroke="var(--green, #12b76a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg> HD wideband, always clear</span>
                 </div>
                 <div className="dp-aside-item">
-                  <span className="dp-aside-dim">Browser Tabs</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> Employee closed "the noisy tab"</span>
+                  <span className="dp-aside-dim">Connection</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 8l2 2 4-4" stroke="var(--green, #12b76a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg> Always on, wired Ethernet</span>
                 </div>
                 <div className="dp-aside-item">
-                  <span className="dp-aside-dim">Screen Lock</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> Missed 3 broadcasts</span>
+                  <span className="dp-aside-dim">Setup</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 8l2 2 4-4" stroke="var(--green, #12b76a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg> Plug in, boots in 30 seconds</span>
                 </div>
                 <div className="dp-aside-item">
-                  <span className="dp-aside-dim">Shared Computer</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> Someone else logged in</span>
+                  <span className="dp-aside-dim">Caller ID</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 8l2 2 4-4" stroke="var(--green, #12b76a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg> See who's talking on screen</span>
                 </div>
                 <div className="dp-aside-item">
-                  <span className="dp-aside-dim">Wi-Fi</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> 10-second drop: call gone</span>
+                  <span className="dp-aside-dim">Rooms</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 8l2 2 4-4" stroke="var(--green, #12b76a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg> Switch rooms with one button</span>
                 </div>
                 <div className="dp-aside-item">
-                  <span className="dp-aside-dim">Battery</span>
-                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 5l6 6M11 5l-6 6" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round" /></svg> Died mid-broadcast</span>
+                  <span className="dp-aside-dim">Private Calls</span>
+                  <span className="dp-aside-val"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--muted)" strokeWidth="1.5" opacity=".4" /><path d="M5 8l2 2 4-4" stroke="var(--green, #12b76a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg> Call anyone on the network, one click</span>
                 </div>
               </div>
             </div>
@@ -274,6 +275,11 @@ export function DeskPhonePage() {
         </div>
       </section>
 
+      {/* ── inline CTA ── */}
+      <div className="dp-narrow" style={{ textAlign: 'center', padding: '0 24px 48px' }}>
+        <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="dp-btn dp-btn-ghost">Talk to Us / Request your desk phone</a>
+      </div>
+
       {/* ── WHAT YOU HEAR ── */}
       <section className="dp-section dp-experience">
         <div className="dp-narrow">
@@ -318,6 +324,7 @@ export function DeskPhonePage() {
                   </div>
                 ))}
               </div>
+              <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="dp-btn dp-btn-hot" style={{ display: 'block', width: '100%', textAlign: 'center', marginTop: 24 }}>Talk to Us / Request your desk phone</a>
             </div>
           </div>
         </div>
@@ -411,7 +418,10 @@ export function DeskPhonePage() {
           <p className="dp-cta-kicker">INCLUDED WITH MEMBERSHIP</p>
           <h2>Ready to skip the browser hassle?</h2>
           <p className="dp-cta-sub">Every Hotline HQ membership includes a preconfigured desk phone. Or order your own from Amazon. We'll handle the setup.</p>
-          <a href={SIGNUP_URL} className="dp-btn dp-btn-hot">Sign Up Free</a>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href={SIGNUP_URL} className="dp-btn dp-btn-hot">Sign Up Free</a>
+            <a href={WA_URL} target="_blank" rel="noopener noreferrer" className="dp-btn dp-btn-ghost" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }}>Talk to Us / Request your desk phone</a>
+          </div>
           <p style={{color:'rgba(255,255,255,0.4)',fontSize:'14px',marginTop:'20px'}}>
             Also: <Link to="/sell-used-auto-parts" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Sell parts on the network</Link>
             {' · '}<Link to="/own-a-hotline" style={{color:'rgba(255,255,255,0.7)',textDecoration:'underline',textUnderlineOffset:'2px'}}>Own a hotline</Link>

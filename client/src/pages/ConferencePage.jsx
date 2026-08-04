@@ -89,7 +89,7 @@ export default function ConferencePage() {
   return (
     <div>
       {showBanner && (
-        <div className="hq-card referral-banner mb-4 px-4 py-3 flex items-center justify-between gap-3">
+        <div className="hq-card referral-banner mb-4 px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <span className="referral-emoji text-xl flex-shrink-0">🎉</span>
             <div className="min-w-0">
@@ -98,7 +98,7 @@ export default function ConferencePage() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={shareReferral} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--red)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button onClick={shareReferral} className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 md:py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--red)', color: '#fff', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {referralCopied ? t('settings.copied', 'Copied!') : <><ShareIcon /> {t('conference.shareLink', 'Share Link')}</>}
             </button>
             <button onClick={dismissBanner} className="p-1.5 rounded-lg" style={{ color: 'var(--muted)' }} aria-label={t('conference.dismiss')}>
@@ -121,23 +121,6 @@ export default function ConferencePage() {
             <button onClick={handleToggleMute} className="hq-btn flex items-center gap-2 px-4 py-2" style={{ background: muted ? 'var(--red)' : 'var(--green)', boxShadow: muted ? '0 8px 18px rgba(217,45,32,0.3)' : '0 8px 18px rgba(18,183,106,0.3)' }}>
               {muted ? <><MicOffIcon /> {t('conference.unmute')}</> : <><MicOnIcon /> {t('conference.mute', 'Mute')}</>}
             </button>
-          )}
-          {!account?.has_yealink && (
-            <a
-              href="/features/desk-phone"
-              target="_blank"
-              rel="noopener"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-              style={{
-                background: 'var(--red)', color: '#fff', textDecoration: 'none',
-                boxShadow: '0 4px 12px rgba(217,45,32,0.3)',
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" />
-              </svg>
-              {t('conference.getDeskPhone')}
-            </a>
           )}
           {connected && isListenOnly && (
             <ListenOnlyBadge reason={listenOnlyReason} />
@@ -197,6 +180,30 @@ export default function ConferencePage() {
         <StatPill label={t('conference.network')} value={totalOnline} color="var(--red)" unit={totalOnline === 1 ? 'yard' : 'yards'} />
         <StatPill label={t('conference.speaking')} value={unmutedCount} color="#f59e0b" />
       </div>
+
+      {/* Desk phone promotion */}
+      {!account?.has_yealink && (
+        <a
+          href="/features/desk-phone"
+          target="_blank"
+          rel="noopener"
+          className="hq-card mb-4 px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:gap-3"
+          style={{ textDecoration: 'none', cursor: 'pointer', border: '1px solid rgba(217,45,32,0.15)', background: 'rgba(217,45,32,0.04)' }}
+        >
+          <div className="hidden md:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0" style={{ background: 'var(--red)', color: '#fff' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{t('conference.deskPhoneBannerTitle')}</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{t('conference.deskPhoneBannerBody')}</p>
+          </div>
+          <span className="flex-shrink-0 flex items-center justify-center px-3 py-2 md:py-1.5 rounded-lg text-xs font-bold" style={{ background: 'var(--red)', color: '#fff', whiteSpace: 'nowrap' }}>
+            {t('conference.deskPhoneBannerCta')}
+          </span>
+        </a>
+      )}
 
       {/* Contextual nudge */}
       <NudgeBanner connected={connected} roomOnline={roomOnline} totalOnline={totalOnline} roomName={roomShortCode} account={account} t={t} />

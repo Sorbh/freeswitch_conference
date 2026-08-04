@@ -135,6 +135,9 @@
     "unmute": "开麦直播",
     "listenOnly": "仅收听",
     "getDeskPhone": "获取桌面电话",
+    "deskPhoneBannerTitle": "获取专用桌面电话",
+    "deskPhoneBannerBody": "告别麦克风问题 — Yealink桌面电话全天保持连接，无需标签页或权限设置。",
+    "deskPhoneBannerCta": "了解更多",
     "listenOnlyReason": {
       "denied": {
         "title": "麦克风未授权",

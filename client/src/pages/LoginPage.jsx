@@ -137,7 +137,7 @@ export default function LoginPage() {
             <p className="text-sm font-medium mb-5" style={{ color: 'var(--ink)' }}>{email}</p>
 
             <a
-              href="https://wa.me/16917636278?text=Hi%2C%20my%20account%20has%20been%20disabled%20and%20I%20need%20help"
+              href="https://wa.me/66917636278?text=Hi%2C%20my%20account%20has%20been%20disabled%20and%20I%20need%20help"
               target="_blank"
               rel="noopener noreferrer"
               className="hq-btn w-full py-3 mb-3 inline-flex items-center justify-center gap-2 no-underline"

@@ -135,6 +135,9 @@
     "unmute": "Hablar",
     "listenOnly": "Solo escucha",
     "getDeskPhone": "Obtener teléfono",
+    "deskPhoneBannerTitle": "Consigue un teléfono de escritorio",
+    "deskPhoneBannerBody": "Olvídate de los problemas del micrófono — un teléfono Yealink se mantiene conectado todo el día, sin pestañas ni permisos.",
+    "deskPhoneBannerCta": "Más información",
     "listenOnlyReason": {
       "denied": {
         "title": "Micrófono no permitido",

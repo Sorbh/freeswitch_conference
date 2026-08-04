@@ -129,7 +129,10 @@ app.get("/sitemap.xml", (req, res) => {
     res.set('Cache-Control', 'public, max-age=3600');
     res.sendFile(path.join(__dirname, "public", "sitemap.xml"));
 });
-app.use(express.static(path.join(__dirname, "public"), { maxAge: '7d' }));
+app.use((req, res, next) => {
+    if (req.path.endsWith('.js')) res.set('X-Robots-Tag', 'noindex');
+    next();
+}, express.static(path.join(__dirname, "public"), { maxAge: '7d' }));
 import { requireAuth as _recAuth } from './service/auth/middleware.js';
 app.use("/recordings", _recAuth, express.static(path.join(__dirname, "recordings")));
 
@@ -254,7 +257,10 @@ if (fs.existsSync(clientDistDir)) {
         }
     };
 
-    app.use("/assets", clientAssets);
+    app.use("/assets", (req, res, next) => {
+        if (req.path.endsWith('.js')) res.set('X-Robots-Tag', 'noindex');
+        next();
+    }, clientAssets);
     app.get("/assets/*", (req, res) => sendAssetNotFound(res));
     // Service worker + manifest must never be cached long-term (browser re-checks them for updates)
     app.get("/sw.js", (req, res) => {

@@ -665,9 +665,23 @@ export default function DashboardLayout() {
 
         <FreeWebsiteOffer />
 
-        <div className="p-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{account?.company_name}</div>
-          <div className="text-[11px] truncate" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.3)' }}>{account?.email}</div>
+        <div className="border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="border-t border-b py-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            <a
+              href="https://wa.me/66917636278?text=Hi%2C%20I%20need%20help"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-3 py-3 text-sm font-bold"
+              style={{ background: 'var(--red)', color: '#fff', textDecoration: 'none' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              {t('layout.needHelp', 'Need Help?')}
+            </a>
+          </div>
+          <div className="px-4 pt-3 pb-4">
+            <div className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>{account?.company_name}</div>
+            <div className="text-[11px] truncate" style={{ fontFamily: 'var(--mono)', color: 'rgba(255,255,255,0.3)' }}>{account?.email}</div>
+          </div>
         </div>
       </aside>
 

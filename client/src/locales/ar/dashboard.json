@@ -135,6 +135,9 @@
     "unmute": "مباشر",
     "listenOnly": "استماع فقط",
     "getDeskPhone": "احصل على هاتف",
+    "deskPhoneBannerTitle": "احصل على هاتف مكتبي مخصص",
+    "deskPhoneBannerBody": "تخلص من مشاكل الميكروفون — هاتف Yealink يبقى متصلاً طوال اليوم بدون علامات تبويب أو أذونات.",
+    "deskPhoneBannerCta": "معرفة المزيد",
     "listenOnlyReason": {
       "denied": {
         "title": "الميكروفون غير مسموح",

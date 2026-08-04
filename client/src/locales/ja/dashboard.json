@@ -135,6 +135,9 @@
     "unmute": "ライブ開始",
     "listenOnly": "リスニング専用",
     "getDeskPhone": "デスクフォンを入手",
+    "deskPhoneBannerTitle": "専用デスクフォンを手に入れよう",
+    "deskPhoneBannerBody": "マイクの問題とはおさらば — Yealinkデスクフォンなら一日中接続、タブや許可設定は不要です。",
+    "deskPhoneBannerCta": "詳しく見る",
     "listenOnlyReason": {
       "denied": {
         "title": "マイクが許可されていません",

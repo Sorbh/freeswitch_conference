@@ -1,6 +1,17 @@
 # Hotline HQ
 User-agent: *
 Allow: /
+
+# Block JS bundles — crawlers don't need to execute these
+Disallow: /assets/*.js
+Disallow: /jssip.bundle.js
+Disallow: /redline_sip_client.js
+Disallow: /redline_callerid.js
+Disallow: /hotlinehq_extensions.js
+Disallow: /hotlinehq_push_notification.js
+Disallow: /hotlinehq_broadcast_feed.js
+Disallow: /sw.js
+
 # Internal admin/console routes
 Disallow: /dashboard
 Disallow: /users
@@ -12,6 +23,7 @@ Disallow: /notifications
 Disallow: /dev/
 Disallow: /recordings/
 Disallow: /api/
+Disallow: /admin/
 Disallow: /client/
 # Old landing page (duplicate content)
 Disallow: /classic

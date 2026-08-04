@@ -136,6 +136,9 @@
     "unmute": "Go Live",
     "listenOnly": "Listening Only",
     "getDeskPhone": "Get a Desk Phone",
+    "deskPhoneBannerTitle": "Get a dedicated desk phone",
+    "deskPhoneBannerBody": "Skip browser mic issues — a Yealink desk phone stays connected all day, no tabs or permissions needed.",
+    "deskPhoneBannerCta": "Learn More",
     "listenOnlyReason": {
       "denied": {
         "title": "Microphone not allowed",
