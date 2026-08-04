@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [shake, setShake] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [unverified, setUnverified] = useState(false);
+  const [disabled, setDisabled] = useState(false);
   const [resending, setResending] = useState(false);
   const [magicSending, setMagicSending] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
@@ -48,6 +49,7 @@ export default function LoginPage() {
     setError('');
     setMessage('');
     setUnverified(false);
+    setDisabled(false);
     setLoading(true);
     try {
       const cleanEmail = email.trim();
@@ -58,6 +60,8 @@ export default function LoginPage() {
     } catch (err) {
       if (err.code === 'EMAIL_NOT_VERIFIED') {
         setUnverified(true);
+      } else if (err.code === 'ACCOUNT_DISABLED') {
+        setDisabled(true);
       }
       setError(err.message);
       setShake(true);
@@ -120,7 +124,39 @@ export default function LoginPage() {
           <p className="hq-label mt-1">{t("login.subtitle")}</p>
         </div>
 
-        {unverified ? (
+        {disabled ? (
+          <div className="hq-card p-6 text-center">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(239,68,68,0.12)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold mb-1">Account Disabled</h2>
+            <p className="text-sm mb-1" style={{ color: 'var(--muted)' }}>Your account has been disabled by an administrator.</p>
+            <p className="text-sm font-medium mb-5" style={{ color: 'var(--ink)' }}>{email}</p>
+
+            <a
+              href="https://wa.me/16917636278?text=Hi%2C%20my%20account%20has%20been%20disabled%20and%20I%20need%20help"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hq-btn w-full py-3 mb-3 inline-flex items-center justify-center gap-2 no-underline"
+              style={{ background: 'var(--red)', textDecoration: 'none', color: '#fff' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.019-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.612.616l4.529-1.476A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.37 0-4.567-.82-6.3-2.186l-.44-.352-2.874.937.956-2.836-.384-.463A9.95 9.95 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+              Contact Admin
+            </a>
+
+            <button
+              type="button"
+              onClick={() => { setDisabled(false); setError(''); }}
+              className="w-full py-2.5 rounded-lg text-sm font-semibold"
+              style={{ background: 'var(--surface)', border: '1px solid var(--line)', color: 'var(--ink)', cursor: 'pointer' }}
+            >
+              Login Another Account
+            </button>
+          </div>
+        ) : unverified ? (
           <div className="hq-card p-6 text-center">
             <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(234,179,8,0.12)' }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

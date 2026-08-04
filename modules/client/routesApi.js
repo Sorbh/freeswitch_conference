@@ -508,7 +508,7 @@ clientRouter.post("/login", async (req, res) => {
         }
 
         if (!account.active) {
-            return res.status(401).json({ status: false, error: "Account not found or inactive" });
+            return res.status(403).json({ status: false, error: "Your account has been disabled by an administrator", code: 'ACCOUNT_DISABLED' });
         }
 
         const sipPassword = password || '';

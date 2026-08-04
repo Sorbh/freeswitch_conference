@@ -384,8 +384,10 @@ export default function AuthLayout({ variant = 'login', children }) {
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-start justify-center px-4 pt-10 pb-8 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center px-4 py-8 overflow-y-auto">
+        <div className="flex-1" />
         {children}
+        <div className="flex-1" />
       </div>
     </div>
   );
