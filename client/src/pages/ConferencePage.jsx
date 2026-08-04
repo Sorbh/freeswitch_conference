@@ -63,6 +63,7 @@ export default function ConferencePage() {
   const roomShortCode = currentRoomData?.short_code || roomDisplayName;
 
   const [showBanner, setShowBanner] = useState(() => localStorage.getItem('hideReferralBanner') !== 'true');
+  const [phoneLightbox, setPhoneLightbox] = useState(false);
   const [referralCopied, setReferralCopied] = useState(false);
   const { apiFetch } = useAuth();
 
@@ -190,11 +191,13 @@ export default function ConferencePage() {
           className="hq-card mb-4 px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:gap-3"
           style={{ textDecoration: 'none', cursor: 'pointer', border: '1px solid rgba(217,45,32,0.15)', background: 'rgba(217,45,32,0.04)' }}
         >
-          <div className="hidden md:flex w-10 h-10 rounded-xl items-center justify-center flex-shrink-0" style={{ background: 'var(--red)', color: '#fff' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 8.1 18.36a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.1 4.18 2 2 0 0 1 3.08 2h3a2 2 0 0 1 2 1.72c.13.97.36 1.92.69 2.84a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.92.33 1.87.56 2.84.69a2 2 0 0 1 1.72 2z" />
-            </svg>
-          </div>
+          <img
+            src="/images/desk-phone-icon.webp"
+            alt="Yealink T31P desk phone"
+            className="hidden md:block flex-shrink-0"
+            style={{ width: 48, objectFit: 'contain', cursor: 'zoom-in' }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPhoneLightbox(true); }}
+          />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold" style={{ color: 'var(--ink)' }}>{t('conference.deskPhoneBannerTitle')}</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{t('conference.deskPhoneBannerBody')}</p>
@@ -248,6 +251,14 @@ export default function ConferencePage() {
 
       <div id="mixedaudio" style={{ display: 'none' }}><audio id="roomaudio" autoPlay /></div>
 
+      {phoneLightbox && (
+        <div
+          onClick={() => setPhoneLightbox(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}
+        >
+          <img src="/images/t31p-desk-phone.webp" alt="Yealink T31P desk phone" style={{ maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain' }} />
+        </div>
+      )}
 
     </div>
   );
