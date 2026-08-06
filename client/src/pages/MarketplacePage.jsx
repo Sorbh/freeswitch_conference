@@ -379,6 +379,7 @@ export default function MarketplacePage() {
               <p className="mp-hero-sub">
                 Real broadcasts from the Hotline&nbsp;HQ <Link to="/own-a-hotline" className="mp-hero-sub-link">live voice network</Link> that still need a seller. Have the part? Respond and get connected.
               </p>
+              <a href={SIGNUP_URL} className="mp-hero-cta">Sign up and start catching calls</a>
               <div className="mp-hero-stats">
                 <div className="mp-hero-stat">
                   <strong>500+</strong>
@@ -582,6 +583,21 @@ const PAGE_CSS = `
 }
 .mp-hero-sub-link:hover {
   color: var(--hot, #d92d20);
+}
+.mp-hero-cta {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 14px 32px;
+  background: var(--hot, #d92d20);
+  color: #fff !important;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.mp-hero-cta:hover {
+  background: #b91c1c;
 }
 .mp-hero-stats {
   display: flex;

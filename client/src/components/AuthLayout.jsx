@@ -170,13 +170,6 @@ function SignupPanel() {
   const weeklyTotal = trend.reduce((s, day) => s + day.total, 0);
   const weeklyAnswered = trend.reduce((s, day) => s + day.answered, 0);
   const weeklyUnanswered = weeklyTotal - weeklyAnswered;
-  const missRate = weeklyTotal > 0 ? Math.round((weeklyUnanswered / weeklyTotal) * 100) : 0;
-  const maxDay = trend.length > 0 ? Math.max(...trend.map(day => day.total)) : 1;
-  const dayLabels = trend.map((_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (trend.length - 1 - i));
-    return date.toLocaleDateString('en', { weekday: 'short' }).slice(0, 3);
-  });
 
   const FEATURES = [
     { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={DARK.red} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>, title: 'Desk Phone Included', desc: 'Preconfigured Yealink T31P ships to your door', to: '/features/desk-phone' },
@@ -195,7 +188,7 @@ function SignupPanel() {
       <div className="mt-8 rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', border: '1px solid rgba(255,255,255,0.15)' }}>
         <div className="flex items-baseline gap-3">
           <span className="text-5xl font-black tabular-nums" style={{ color: '#fff', lineHeight: 1 }}>
-            {weeklyUnanswered || '—'}
+            {d ? weeklyUnanswered : '—'}
           </span>
           <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.6)' }}>this week</span>
         </div>
@@ -208,46 +201,6 @@ function SignupPanel() {
       </div>
 
       <div className="flex-1 flex flex-col justify-center gap-6 my-6">
-        {/* 7-Day Demand Chart */}
-        {trend.length > 0 && (
-          <div>
-            <SectionLabel>7-Day Demand</SectionLabel>
-            <div className="flex items-end gap-1.5" style={{ height: 100 }}>
-              {trend.map((day, i) => {
-                const totalH = (day.total / maxDay) * 72;
-                const answeredH = day.total > 0 ? (day.answered / day.total) * totalH : 0;
-                const isToday = i === trend.length - 1;
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="text-[9px] font-bold tabular-nums" style={{ color: DARK.dim }}>
-                      {day.total - day.answered}
-                    </div>
-                    <div className="relative w-full flex flex-col justify-end" style={{ height: 72 }}>
-                      <div className="relative w-full rounded-sm overflow-hidden" style={{ height: Math.max(totalH, 2) }}>
-                        <div className="absolute inset-0" style={{ background: 'rgba(239,68,68,0.3)' }} />
-                        <div className="absolute bottom-0 left-0 right-0" style={{ height: answeredH, background: 'rgba(34,197,94,0.4)' }} />
-                      </div>
-                    </div>
-                    <div className="text-[9px] font-medium" style={{ color: isToday ? DARK.text : DARK.dim }}>
-                      {dayLabels[i]}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center gap-4 mt-2.5">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: 'rgba(34,197,94,0.4)' }} />
-                <span className="text-[10px]" style={{ color: DARK.dim }}>Answered</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm" style={{ background: 'rgba(239,68,68,0.3)' }} />
-                <span className="text-[10px]" style={{ color: DARK.dim }}>Unanswered</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* How It Works — red strip */}
         <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>How It Works</div>
@@ -282,25 +235,6 @@ function SignupPanel() {
           </div>
         </div>
 
-        {/* Top markets with demand data */}
-        {d?.topRooms?.length > 0 && (
-          <div>
-            <SectionLabel>Top Markets</SectionLabel>
-            <div className="flex flex-col gap-1.5">
-              {d.topRooms.filter(r => r.broadcasts > 0).map(r => (
-                <div key={r.name} className="flex items-center justify-between rounded-lg px-3.5 py-2.5" style={{ background: DARK.surface, border: `1px solid ${DARK.surfaceBorder}` }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold" style={{ color: DARK.text }}>{r.name}</span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: DARK.redSoft, color: DARK.red }}>{r.yards} yards</span>
-                  </div>
-                  <span className="text-xs font-medium tabular-nums" style={{ color: DARK.muted }}>
-                    {r.broadcasts >= 1000 ? `${(r.broadcasts / 1000).toFixed(1)}k` : r.broadcasts} requests
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Live pulse */}

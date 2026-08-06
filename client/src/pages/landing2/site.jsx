@@ -239,6 +239,48 @@ export function NavMenu({ links }) {
   );
 }
 
+/* User icon dropdown — Login / Sign Up / About */
+export function UserMenu({ loginUrl, signupUrl } = {}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const { t } = useTranslation("common");
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    const onClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClick);
+    };
+  }, []);
+
+  return (
+    <div className="l2-user-menu-wrap" ref={ref}>
+      <button
+        type="button"
+        className="l2-user-btn"
+        aria-label="Account"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </button>
+      {open && (
+        <nav className="l2-user-dropdown">
+          <a href={loginUrl || HOTLINE_LOGIN_URL} onClick={() => setOpen(false)}>{t("nav.login")}</a>
+          <a href={signupUrl || HOTLINE_SIGNUP_URL} className="l2-user-dropdown-cta" onClick={() => setOpen(false)}>{t("nav.signUpFree")}</a>
+          <Link to="/about" className="l2-user-dropdown-sep" onClick={() => setOpen(false)}>About</Link>
+        </nav>
+      )}
+    </div>
+  );
+}
+
 /* Slim nav for the about/legal pages. */
 export function SiteNav() {
   const { t } = useTranslation("common");
@@ -251,12 +293,10 @@ export function SiteNav() {
         <NavLink to="/find-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Find Parts</NavLink>
         <NavLink to="/sell-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Sell Parts</NavLink>
         <NavLink to="/features/desk-phone" className={({isActive}) => isActive ? "l2-nav-active" : ""}>The Phone</NavLink>
+        <NavLink to="/marketplace" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Marketplace</NavLink>
         <NavLink to="/own-a-hotline" className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("nav.ownHotline")}</NavLink>
         <NavLink to="/blog" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Blog</NavLink>
-        <a href={HOTLINE_LOGIN_URL} className="l2-nav-login">{t("nav.login")}</a>
-        <a href={HOTLINE_SIGNUP_URL} className="l2-nav-cta">
-          {t("nav.signUpFree")}
-        </a>
+        <UserMenu />
         <LanguageSwitcher />
         <NavMenu
           links={[
@@ -264,9 +304,12 @@ export function SiteNav() {
             { label: "Find Parts", href: buildSiteUrl("/find-used-auto-parts") },
             { label: "Sell Parts", href: buildSiteUrl("/sell-used-auto-parts") },
             { label: "The Phone", href: buildSiteUrl("/features/desk-phone") },
+            { label: "Marketplace", href: buildSiteUrl("/marketplace") },
             { label: t("nav.ownHotline"), href: buildSiteUrl("/own-a-hotline") },
             { label: "Blog", href: buildSiteUrl("/blog") },
             { label: t("nav.login"), href: HOTLINE_LOGIN_URL, sep: true },
+            { label: t("nav.signUpFree"), href: HOTLINE_SIGNUP_URL },
+            { label: "About", href: buildSiteUrl("/about") },
           ]}
         />
       </nav>
@@ -347,7 +390,7 @@ export function SiteFooter() {
           <Link to="/features/broadcast-recording">Recording</Link>
           <Link to="/features/notifications">Notifications</Link>
           <Link to="/features/unanswered-capture">Lead Capture</Link>
-          <Link to="/features/parts-marketplace">Marketplace</Link>
+          <Link to="/marketplace">Marketplace</Link>
           <Link to="/features/admin-dashboard">Admin Dashboard</Link>
           <Link to="/features/multi-language">Multi-Language</Link>
           <Link to="/features/enterprise-security">Enterprise Security</Link>
@@ -399,6 +442,10 @@ export function SiteFooter() {
         </div>
       </div>
 
+      <div className="l2f-mission">
+        {t("footer.mission")}
+      </div>
+
       <div className="l2f-note">
         {t("footer.notice")}
       </div>
@@ -411,6 +458,13 @@ export function SiteFooter() {
           <Link to="/disclaimer">{t("footer.disclaimer")}</Link>
           <Link to="/about">{t("footer.aboutUs")}</Link>
         </span>
+      </div>
+
+      <div className="l2f-andgate">
+        A Product of{" "}
+        <a href="https://andgate.in/" target="_blank" rel="noopener noreferrer">
+          AndGate Tech Solutions
+        </a>
       </div>
     </footer>
   );
@@ -538,6 +592,34 @@ export const SITE_CSS = `
 }
 .l2-nav-cta:hover { background: var(--red-deep); }
 
+/* user icon dropdown */
+.l2-user-menu-wrap { position: relative; flex-shrink: 0; }
+.l2-user-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; padding: 0;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: rgba(255,255,255,0.7); cursor: pointer;
+  color: var(--ink); transition: border-color .2s, background .2s;
+}
+.l2-user-btn:hover { border-color: var(--red); color: var(--red); }
+.l2-user-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  min-width: 180px; padding: 8px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 12px 40px -10px rgba(22,24,29,0.28);
+  display: flex; flex-direction: column;
+  z-index: 60;
+}
+.l2-user-dropdown a {
+  display: block; padding: 11px 14px; border-radius: 9px;
+  font-size: 14.5px; font-weight: 500; color: var(--ink) !important;
+  white-space: nowrap; text-decoration: none;
+}
+.l2-user-dropdown a:hover { background: var(--band, #f4f2ee); }
+.l2-user-dropdown a.l2-user-dropdown-cta { background: var(--red); color: #fff !important; font-weight: 600; }
+.l2-user-dropdown a.l2-user-dropdown-cta:hover { background: var(--red-deep); color: #fff !important; }
+.l2-user-dropdown-sep { margin-top: 6px; border-top: 1px solid var(--line); border-radius: 0 0 9px 9px !important; padding-top: 13px !important; }
+
 /* burger menu (mobile/tablet) */
 .l2-nav-menu-wrap { position: relative; display: none; flex-shrink: 0; }
 .l2-nav-burger {
@@ -567,6 +649,7 @@ export const SITE_CSS = `
 
 @media (max-width: 1080px) {
   .l2-nav-links > a:not(.l2-nav-cta) { display: none; }
+  .l2-user-menu-wrap { display: none; }
   .l2-nav-menu-wrap { display: inline-flex; }
 }
 @media (max-width: 480px) {
@@ -595,8 +678,13 @@ export const SITE_CSS = `
 .l2f-col a { font-size: 14px; color: #8d919b; transition: color .2s; }
 .l2f-col a:hover { color: #ffffff; }
 .l2f-more { color: #ff6f61 !important; }
+.l2f-mission {
+  max-width: 1280px; margin: 0 auto; padding: 0 32px 28px;
+  font-size: 14.5px; line-height: 1.75; color: #9ca0ab; text-align: center;
+  font-style: italic; border-bottom: 1px solid #23262b;
+}
 .l2f-note {
-  max-width: 1280px; margin: 0 auto; padding: 0 32px 24px;
+  max-width: 1280px; margin: 0 auto; padding: 20px 32px 24px;
   font-size: 12px; line-height: 1.7; color: #6b6f7a;
   border-bottom: 1px solid #23262b;
 }
@@ -608,6 +696,12 @@ export const SITE_CSS = `
 .l2f-bottom-links { display: inline-flex; gap: 18px; }
 .l2f-bottom-links a { color: #8d919b; }
 .l2f-bottom-links a:hover { color: #ffffff; }
+.l2f-andgate {
+  max-width: 1280px; margin: 0 auto; padding: 0 32px 24px;
+  font-size: 12px; color: #6b6f7a; text-align: center;
+}
+.l2f-andgate a { color: #8d919b; text-decoration: underline; text-underline-offset: 2px; }
+.l2f-andgate a:hover { color: #ffffff; }
 
 @media (max-width: 640px) {
   .l2-nav { padding: 10px 16px; }
@@ -616,7 +710,8 @@ export const SITE_CSS = `
   .l2-nav-cta { padding: 8px 14px; font-size: 13px; }
   .l2-nav-burger { width: 36px; height: 36px; }
   .l2f-inner { padding: 48px 16px 32px; gap: 32px; }
-  .l2f-note { padding: 0 16px 20px; }
+  .l2f-mission { padding: 0 16px 20px; font-size: 13.5px; }
+  .l2f-note { padding: 16px 16px 20px; }
   .l2f-bottom { padding: 16px; }
   .l2-doc { padding: 120px 16px 60px; }
 }

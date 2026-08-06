@@ -112,7 +112,7 @@ publicRouter.get("/network-stats", (req, res) => {
     const avgResponseSec = avgResponseMs ? Math.round(avgResponseMs / 1000) : null;
 
     const weeklyAnswered = (broadcastStats?.daily || []).reduce((s, d) => s + (d.answered || 0), 0);
-    const weeklyTotal = (broadcastStats?.daily || []).reduce((s, d) => s + (d.count || d.total || 0), 0);
+    const weeklyTotal = (broadcastStats?.daily || []).reduce((s, d) => s + (d.total || d.count || 0), 0);
     const weeklyAnswerRate = weeklyTotal > 0 ? Math.round((weeklyAnswered / weeklyTotal) * 100) : null;
 
     const recent = global.db.getRecentBroadcasts(10).map(b => ({
@@ -150,8 +150,8 @@ publicRouter.get("/network-stats", (req, res) => {
     } catch {}
 
     const dailyTrend = (broadcastStats?.daily || []).slice(-7).map(d => ({
-        date: d.date,
-        total: d.count || d.total || 0,
+        date: d.day || d.date,
+        total: d.total || d.count || 0,
         answered: d.answered || 0,
     }));
 

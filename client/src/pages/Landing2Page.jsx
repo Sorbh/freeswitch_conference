@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink } from "react-router-dom";
-import { HQLogo, NavMenu, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
+import { HQLogo, NavMenu, UserMenu, SiteFooter, SITE_CSS, Seo, landingJsonLd, CONTACT_EMAIL } from "./landing2/site";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import PublicBroadcastActivity from "../components/PublicBroadcastActivity";
 import { loadSupportgram } from "../lib/supportgram";
@@ -495,21 +495,22 @@ export default function Landing2Page() {
           <NavLink to="/find-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Find Parts</NavLink>
           <NavLink to="/sell-used-auto-parts" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Sell Parts</NavLink>
           <NavLink to="/features/desk-phone" className={({isActive}) => isActive ? "l2-nav-active" : ""}>The Phone</NavLink>
+          <NavLink to="/marketplace" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Marketplace</NavLink>
           <NavLink to="/own-a-hotline" className={({isActive}) => isActive ? "l2-nav-active" : ""}>{t("common:nav.ownHotline")}</NavLink>
           <NavLink to="/blog" className={({isActive}) => isActive ? "l2-nav-active" : ""}>Blog</NavLink>
-          <a href={loginUrl} className="l2-nav-login">{t("common:nav.login")}</a>
-          <a href={signupUrl} className="l2-nav-cta">
-            {t("common:nav.signUpFree")}
-          </a>
+          <UserMenu loginUrl={loginUrl} signupUrl={signupUrl} />
           <LanguageSwitcher />
           <NavMenu
             links={[
               { label: "Find Parts", href: "./find-used-auto-parts" },
               { label: "Sell Parts", href: "./sell-used-auto-parts" },
               { label: "The Phone", href: "./features/desk-phone" },
+              { label: "Marketplace", href: "./marketplace" },
               { label: t("common:nav.ownHotline"), href: "./own-a-hotline" },
               { label: "Blog", href: "./blog" },
               { label: t("common:nav.login"), href: loginUrl, sep: true },
+              { label: t("common:nav.signUpFree"), href: signupUrl },
+              { label: "About", href: "./about" },
             ]}
           />
         </nav>
