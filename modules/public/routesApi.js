@@ -158,6 +158,22 @@ publicRouter.get("/network-stats", (req, res) => {
     let allTimeAnswered = 0;
     try { allTimeAnswered = sqlite.prepare('SELECT COUNT(*) as c FROM broadcast_log WHERE answered = 1').get().c; } catch {}
 
+    let missedRequests = [];
+    try {
+        missedRequests = sqlite.prepare(`
+            SELECT display_name, room_name, part_details, created_at
+            FROM broadcast_log
+            WHERE answered = 0 AND has_parts_request = 1 AND part_details IS NOT NULL
+              AND json_extract(part_details, '$.year') IS NOT NULL AND json_extract(part_details, '$.year') != 'null'
+              AND json_extract(part_details, '$.make') IS NOT NULL AND json_extract(part_details, '$.make') != 'null'
+            ORDER BY created_at DESC LIMIT 5
+        `).all().map(b => {
+            let parts = null;
+            try { parts = JSON.parse(b.part_details); } catch {}
+            return parts ? { yard: b.display_name, room: b.room_name, parts, ts: b.created_at } : null;
+        }).filter(Boolean);
+    } catch {}
+
     res.json({
         status: true,
         data: {
@@ -182,6 +198,7 @@ publicRouter.get("/network-stats", (req, res) => {
             allTimeAnswerRate: allTimeBroadcasts > 0 ? Math.round((allTimeAnswered / allTimeBroadcasts) * 100) : null,
             dailyTrend,
             recentBroadcasts: recent.slice(0, 4),
+            missedRequests,
             topRooms,
             liveRooms: liveRooms.slice(0, 6).map(r => ({ name: r.name, online: r.online })),
         },

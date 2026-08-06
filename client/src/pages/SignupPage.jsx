@@ -41,6 +41,7 @@ export default function SignupPage() {
   const [hasUrlCompany, setHasUrlCompany] = useState(false);
   const [hasUrlRoom, setHasUrlRoom] = useState(false);
   const [companyFromUrl, setCompanyFromUrl] = useState('');
+  const [demandStats, setDemandStats] = useState(null);
   const passwordRef = useRef(null);
 
   useEffect(() => {
@@ -82,8 +83,19 @@ export default function SignupPage() {
     }
   }, []);
 
-  // Replace the hardcoded fallback with the live room list: new markets appear
-  // without a deploy, busiest rooms first, URL-requested room pinned on top.
+  useEffect(() => {
+    fetch('/api/v1/public/network-stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (!j?.status) return;
+        const trend = j.data.dailyTrend || [];
+        const total = trend.reduce((s, d) => s + d.total, 0);
+        const answered = trend.reduce((s, d) => s + d.answered, 0);
+        setDemandStats({ unanswered: total - answered, listening: j.data.listeningNow, members: j.data.totalMembers });
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     fetch('/api/v1/client/rooms')
@@ -248,6 +260,15 @@ export default function SignupPage() {
   return (
     <AuthLayout variant="signup">
       <div className="w-full max-w-md animate-fadeIn">
+        {demandStats && demandStats.unanswered > 0 && (
+          <div className="lg:hidden mb-5 rounded-xl px-4 py-3 text-center" style={{ background: 'rgba(217,45,32,0.06)', border: '1px solid rgba(217,45,32,0.15)' }}>
+            <span className="text-2xl font-black" style={{ color: 'var(--red)' }}>{demandStats.unanswered}</span>
+            <span className="text-sm ml-2" style={{ color: 'var(--ink)' }}>unanswered requests this week</span>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+              {demandStats.members} yards in {demandStats.listening} listening now
+            </div>
+          </div>
+        )}
         <div className="flex flex-col items-center mb-6">
           <Link to="/"><img src="/favicon.svg" alt="Hotline HQ" className="w-14 h-14 mb-4" style={{ filter: 'drop-shadow(0 8px 24px rgba(217,45,32,0.35))' }} /></Link>
           {hasUrlCompany ? (
