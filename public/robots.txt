@@ -2,8 +2,16 @@
 User-agent: *
 Allow: /
 
-# Block JS bundles — crawlers don't need to execute these
-Disallow: /assets/*.js
+# Block static assets — waste crawl budget
+Disallow: /assets/*.js$
+Disallow: /assets/*.css$
+Disallow: /assets/*.woff2$
+Disallow: /build-id.json
+
+# Block content images — crawlers discover via page context, not direct crawl
+Disallow: /images/
+
+# Block standalone JS files
 Disallow: /jssip.bundle.js
 Disallow: /redline_sip_client.js
 Disallow: /redline_callerid.js
@@ -25,6 +33,7 @@ Disallow: /recordings/
 Disallow: /api/
 Disallow: /admin/
 Disallow: /client/
+
 # Old landing page (duplicate content)
 Disallow: /classic
 Disallow: /landing_2

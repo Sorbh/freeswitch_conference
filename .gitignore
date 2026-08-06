@@ -9,6 +9,7 @@ whisper_build/
 data/*.db
 data/*.db-wal
 data/*.db-shm
+data/*.corrupt
 
 # Node
 node_modules/
